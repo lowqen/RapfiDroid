@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pre-Compose window background: matches the desktop dark palette so the
+         launch frame doesn't flash a light color before Compose draws. -->
+    <color name="bg">#262421</color>
+</resources>

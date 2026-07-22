@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose renders all UI; this platform theme only styles the launch
+         window (dark-first, no action bar) before setContent runs. -->
+    <style name="Theme.YixinDroid" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:statusBarColor">@color/bg</item>
+        <item name="android:navigationBarColor">@color/bg</item>
+    </style>
+</resources>

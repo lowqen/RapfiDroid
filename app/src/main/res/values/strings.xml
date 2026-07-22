@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">YixinDroid</string>
+
+    <string name="tab_board">보드</string>
+    <string name="tab_explorer">익스플로러</string>
+    <string name="tab_rankings">랭킹</string>
+    <string name="tab_connect">연결</string>
+
+    <string name="engine_channel_name">엔진 연결</string>
+    <string name="engine_channel_desc">Rapfi 엔진 세션을 유지합니다</string>
+    <string name="engine_notif_title">YixinDroid 엔진</string>
+</resources>
