@@ -3,7 +3,8 @@
 PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계는
 `../test-yixin/docs/안드로이드_앱_아키텍처_계획.md` 참고.
 
-이 저장소는 현재 **P0(스캐폴드) + P1(엔진 통신 모듈)** 까지 구현되어 있다.
+이 저장소는 현재 **P0(스캐폴드) + P1(엔진 통신 모듈) + P2(보드 UI·분석·파서 확장)**
+까지 구현되어 있다.
 
 > ⚠ 이 코드는 **Android SDK가 없는 환경에서 작성**되어 여기서 컴파일 검증은 하지
 > 못했다. Android Studio(Ladybug 이상, JDK 17)에서 열어 Gradle sync 후 빌드하는
@@ -55,7 +56,26 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 - rank5(순수 계산)만 번들 가능. 오프닝 익스플로러 데이터(`freq_data.json`/팩)는
   **RenjuNet 파생 → 재배포·스토어 배포 금지**. P4에서 사용자 기기 반입 방식으로 구현.
 
-## 다음 (P2)
+## P2 (구현됨)
 
-15×15 보드 Composable + 분석 스트림(평가바·멀티PV·금수), 실서버 캡처 기반
-`SearchInfo` 파싱, 워치독·자동 재연결.
+- **보드 UI**: `core/designsystem/component/GomokuBoard` — 반응형 15×15 Canvas
+  (격자·화점·좌표·번호 돌·마지막 수 링·PV 고스트·금수 X·베스트 마커), 탭→착수.
+- **보드 화면**(`feature/board`): 평가바(흑 승률)·수순 카운트·무르기/초기화·
+  분석 토글·멀티PV 스테퍼·PV 목록(탭하면 해당 수순을 보드에 고스트로 미리보기).
+- **파서 확장(문법 포팅)**: 데스크톱 `iochannelout_watch` 문법을 그대로 포팅.
+  - **좌표 = `y,x`(행,열)** 로 정정(P1의 `x,y` 가정은 오류였음, `CoordMapper` 수정).
+  - `INFO PV <idx>…INFO PV DONE` 블록 → `SearchAggregator` 가 `PvSnapshot` 조립
+    (DEPTH·EVAL(±M/수)·WINRATE·BESTLINE·NUMPV), `MESSAGE REALTIME BEST/POS/…`,
+    `FORBID`(yyxx*·`.`), 더블 좌표 착수.
+  - 분석 흐름: `EngineRepository.analyze(position, params)` → `yxboard`+stones+
+    `yxnbest N`, 취소 시 `YXSTOP`. `forbidden()` 도 추가.
+- 테스트 추가: 좌표(y,x)·명령 직렬화·응답 파서(EVAL/WINRATE/BESTLINE/FORBID/
+  REALTIME)·`SearchAggregator`(PV 블록 조립·승률 흑 기준 변환).
+
+> ⚠ **좌표 재검증 필수**: P2에서 좌표를 `y,x`로 바꿨다. 실서버 왕복으로 착수/PV가
+> PC GUI와 같은 자리에 찍히는지 반드시 확인할 것(계획 §2.5).
+
+## 다음 (P3)
+
+3수/5수 랭킹 대시보드(rank5 번들 SQLite), 26주형 카드, freq 임포트. 그리고
+실서버 캡처로 realtime INFO 문법 최종 확인 + 워치독·자동 재연결.

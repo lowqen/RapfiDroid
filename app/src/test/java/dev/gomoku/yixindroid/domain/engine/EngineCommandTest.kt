@@ -10,31 +10,27 @@ class EngineCommandTest {
     private val coord = CoordMapper()
 
     @Test
-    fun start_and_turn() {
+    fun startAndTurnUseRowColWire() {
         assertThat(EngineCommand.Start(15).serialize(coord)).isEqualTo("START 15")
-        assertThat(EngineCommand.Turn(Move(7, 7)).serialize(coord)).isEqualTo("TURN 7,7")
+        // Move(x=8, y=7) -> wire "7,8"
+        assertThat(EngineCommand.Turn(Move(x = 8, y = 7)).serialize(coord)).isEqualTo("TURN 7,8")
     }
 
     @Test
-    fun info_and_nbest() {
-        assertThat(EngineCommand.Info("timeout_turn", "5000").serialize(coord))
-            .isEqualTo("INFO timeout_turn 5000")
-        assertThat(EngineCommand.YxNbest(4).serialize(coord)).isEqualTo("YXNBEST 4")
-    }
-
-    @Test
-    fun board_block_marks_own_and_opponent() {
+    fun boardBlockIsRowColWho() {
         val cmd = EngineCommand.Board(
             listOf(
-                Placement(Move(7, 7), own = true),
-                Placement(Move(7, 6), own = false),
+                Placement(Move(x = 7, y = 7), own = true),
+                Placement(Move(x = 7, y = 6), own = false),
             ),
         )
-        assertThat(cmd.serialize(coord)).isEqualTo("BOARD\n7,7,1\n7,6,2\nDONE")
+        // "y,x,who": (7,7,1) then (6,7,2)
+        assertThat(cmd.serialize(coord)).isEqualTo("BOARD\n7,7,1\n6,7,2\nDONE")
     }
 
     @Test
-    fun raw_passes_through() {
+    fun nbestAndRaw() {
+        assertThat(EngineCommand.YxNbest(4).serialize(coord)).isEqualTo("YXNBEST 4")
         assertThat(EngineCommand.Raw("ABOUT").serialize(coord)).isEqualTo("ABOUT")
     }
 }

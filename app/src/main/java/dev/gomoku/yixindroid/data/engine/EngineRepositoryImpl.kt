@@ -2,39 +2,45 @@ package dev.gomoku.yixindroid.data.engine
 
 import android.content.Context
 import dev.gomoku.yixindroid.core.common.IoDispatcher
+import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
+import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.engine.CoordMapper
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.engine.EngineResponse
 import dev.gomoku.yixindroid.domain.engine.ResponseParser
+import dev.gomoku.yixindroid.domain.engine.SearchAggregator
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Process-scoped engine access. Owns the [EngineConnection], parses incoming
- * lines into [EngineResponse]s, and mirrors both directions into a console
- * stream for the P1 debug screen. Kept alive by [EngineService] so an analysis
- * session survives Activity recreation.
- */
 @Singleton
 class EngineRepositoryImpl @Inject constructor(
     private val connection: EngineConnection,
     @ApplicationContext private val context: Context,
-    @IoDispatcher io: CoroutineDispatcher,
+    @IoDispatcher private val io: CoroutineDispatcher,
 ) : EngineRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + io)
@@ -46,7 +52,7 @@ class EngineRepositoryImpl @Inject constructor(
 
     private val _responses = MutableSharedFlow<EngineResponse>(
         replay = 0,
-        extraBufferCapacity = 256,
+        extraBufferCapacity = 512,
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
     override val responses: SharedFlow<EngineResponse> = _responses.asSharedFlow()
@@ -70,21 +76,20 @@ class EngineRepositoryImpl @Inject constructor(
     override suspend fun connect(endpoint: EngineEndpoint) {
         EngineService.start(context)
         try {
-            connection.open(endpoint) // Connecting -> Handshaking, or throws
+            connection.open(endpoint)
             handshake()
         } catch (e: Exception) {
-            EngineService.stop(context) // don't leave a foreground service on failure
+            EngineService.stop(context)
             throw e
         }
     }
 
-    override suspend fun send(command: EngineCommand) {
+    override suspend fun send(command: EngineCommand) = dispatch(command)
+
+    private suspend fun dispatch(command: EngineCommand) {
         val text = command.serialize(coord)
         _console.emit(ConsoleLine(outbound = true, text = text))
-        // BOARD/YXBOARD blocks embed '\n'; write each physical line in order.
-        for (line in text.split('\n')) {
-            connection.writeLine(line)
-        }
+        for (line in text.split('\n')) connection.writeLine(line)
     }
 
     override fun disconnect() {
@@ -92,19 +97,52 @@ class EngineRepositoryImpl @Inject constructor(
         EngineService.stop(context)
     }
 
+    override fun analyze(position: Position, params: AnalyzeParams): Flow<AnalysisSnapshot> =
+        channelFlow {
+            val aggregator = SearchAggregator(position.sideToMove)
+            val collector = launch {
+                responses.collect { response ->
+                    aggregator.consume(response)?.let { trySend(it) }
+                }
+            }
+            dispatch(EngineCommand.Start(position.size))
+            dispatch(EngineCommand.YxBoard(position.placements()))
+            dispatch(EngineCommand.YxNbest(params.multiPv.coerceAtLeast(1)))
+            connection.markThinking()
+
+            awaitClose {
+                collector.cancel()
+                scope.launch(NonCancellable) {
+                    runCatching { dispatch(EngineCommand.YxStop) }
+                    connection.markSettled()
+                }
+            }
+        }
+
+    override suspend fun forbidden(position: Position): List<Move> {
+        val deferred = scope.async {
+            responses.filterIsInstance<EngineResponse.Forbid>().first().cells
+        }
+        dispatch(EngineCommand.Start(position.size))
+        dispatch(EngineCommand.YxBoard(position.placements()))
+        dispatch(EngineCommand.YxShowForbid)
+        return withTimeoutOrNull(FORBID_TIMEOUT_MS) { deferred.await() }
+            ?: emptyList<Move>().also { deferred.cancel() }
+    }
+
     /**
-     * P1 handshake: drive the piskvork START, then optimistically mark Ready.
-     * The server may print config/DB load noise first (tolerated — it lands in
-     * the console). A socket failure flips state to Error via the reader loop.
-     * P2 will subscribe-before-send to await an explicit OK and push INFO
-     * config defaults (timeouts, rule, threads).
+     * P1/P2 handshake: START then optimistic Ready (the server may print
+     * config/DB noise first — tolerated, lands in the console). A socket
+     * failure flips state to Error via the reader loop. P2+ may await an
+     * explicit OK and push INFO config defaults.
      */
     private suspend fun handshake() {
-        send(EngineCommand.Start(Move.DEFAULT_SIZE))
+        dispatch(EngineCommand.Start(Move.DEFAULT_SIZE))
         connection.markReady()
     }
 
     private companion object {
         const val CONSOLE_REPLAY = 300
+        const val FORBID_TIMEOUT_MS = 3_000L
     }
 }

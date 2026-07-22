@@ -16,6 +16,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import dev.gomoku.yixindroid.feature.board.BoardScreen
 import dev.gomoku.yixindroid.feature.connection.ConnectionScreen
 import dev.gomoku.yixindroid.ui.PlaceholderScreen
 
@@ -54,7 +55,7 @@ fun YixinApp() {
             modifier = Modifier.padding(padding),
         ) {
             composable(Destination.Board.route) {
-                PlaceholderScreen("보드", "15×15 보드 + 엔진 분석은 P2에서 구현됩니다.")
+                BoardScreen()
             }
             composable(Destination.Explorer.route) {
                 PlaceholderScreen("오프닝 익스플로러", "통계·세부 화면은 P4에서 구현됩니다.")

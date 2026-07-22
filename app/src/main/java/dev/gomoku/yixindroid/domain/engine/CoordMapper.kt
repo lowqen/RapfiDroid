@@ -3,26 +3,36 @@ package dev.gomoku.yixindroid.domain.engine
 import dev.gomoku.yixindroid.core.model.Move
 
 /**
- * The **single** place board coordinates cross the wire (see plan §2.5 — the
- * flip-Y trap). Board `y` is top-down; the protocol may or may not flip it
- * depending on the server's `coord_conversion_mode`.
+ * The **single** place board coordinates cross the wire (plan §2.5 — the flip-Y
+ * trap). Confirmed from the desktop main.c (`iochannelout_watch` / `send_board`):
+ * the Rapfi wire format is **"row,col" = "y,x"** in both directions, where the
+ * board index is `cell = y * size + x` (`y` = top-down row, `x` = column).
  *
- * Default `flipY = false` mirrors the desktop proxy path, which is verified
- * with `coord_conversion_mode = "none"`. Any change here MUST be re-checked by
- * a live round-trip (send a known position, confirm the returned move lands on
- * the same cell as the desktop GUI).
+ * `flipY = false` mirrors the verified desktop proxy path
+ * (`coord_conversion_mode = "none"`). Flipping reflects the **row** (matching
+ * the server's `--flip-y`). Any change here MUST be re-checked with a live
+ * round-trip against the same position the desktop GUI shows.
  */
 class CoordMapper(
     val size: Int = Move.DEFAULT_SIZE,
     val flipY: Boolean = false,
 ) {
-    /** Board move -> "x,y" for a command. */
+    /** Board move -> "y,x" (row,col) for a command. */
     fun toWire(move: Move): String {
-        val y = if (flipY) size - 1 - move.y else move.y
-        return "${move.x},$y"
+        val row = if (flipY) size - 1 - move.y else move.y
+        return "$row,${move.x}"
     }
 
-    /** Wire "x,y" -> board move. */
-    fun fromWire(x: Int, y: Int): Move =
-        Move(x, if (flipY) size - 1 - y else y)
+    /** Wire pair (row, col) -> board move. */
+    fun fromWire(row: Int, col: Int): Move =
+        Move(x = col, y = if (flipY) size - 1 - row else row)
+
+    /** Parse a "row,col" token (e.g. "7,8") to a board move, or null. */
+    fun parsePair(token: String): Move? {
+        val parts = token.trim().split(',')
+        if (parts.size != 2) return null
+        val row = parts[0].trim().toIntOrNull() ?: return null
+        val col = parts[1].trim().toIntOrNull() ?: return null
+        return fromWire(row, col)
+    }
 }

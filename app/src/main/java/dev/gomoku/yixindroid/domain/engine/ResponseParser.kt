@@ -1,55 +1,144 @@
 package dev.gomoku.yixindroid.domain.engine
 
+import dev.gomoku.yixindroid.core.model.Move
+
 /**
- * Pure function: one server line -> one [EngineResponse]. No I/O, no state, so
- * it is fully unit-testable on the JVM (see ResponseParserTest). Keeping this
- * side-effect free is the whole point of the P1 raw-console methodology —
- * capture real lines, then grow this parser against them.
+ * Pure, per-line parser ported from the desktop `iochannelout_watch` grammar.
+ * No I/O, no cross-line state — the realtime `INFO …` block is stitched into
+ * PVs by [SearchAggregator]. Fully JVM-unit-testable.
+ *
+ * Coordinates on the wire are **row,col ("y,x")**; [CoordMapper] converts.
  */
 object ResponseParser {
 
-    private val coordinate = Regex("""^(\d+)\s*,\s*(\d+)$""")
+    // one or two committed moves: "y,x" or "y,x y2,x2"
+    private val bestMove = Regex("""^(\d+)\s*,\s*(\d+)(?:\s+(\d+)\s*,\s*(\d+))?$""")
 
     fun parse(rawLine: String, coord: CoordMapper): EngineResponse {
         val raw = rawLine
         val line = rawLine.trim()
-
-        coordinate.matchEntire(line)?.let { m ->
-            val x = m.groupValues[1].toInt()
-            val y = m.groupValues[2].toInt()
-            return EngineResponse.BestMove(coord.fromWire(x, y), raw)
-        }
+        if (line.isEmpty()) return EngineResponse.Unknown(raw)
 
         val upper = line.uppercase()
+
+        when {
+            upper.startsWith("MESSAGE REALTIME") -> return parseRealtime(line.substring(16).trim(), coord, raw)
+            upper.startsWith("MESSAGE INFO") -> return parseCapability(line.substring(12).trim(), raw)
+            upper.startsWith("MESSAGE") -> return EngineResponse.Message(line.drop(7).trim(), raw)
+            upper.startsWith("INFO") -> return parseInfo(line.substring(4).trim(), coord, raw)
+            upper.startsWith("DEBUG") -> return EngineResponse.Debug(line.drop(5).trim(), raw)
+            upper.startsWith("ERROR") -> return EngineResponse.Error(line.drop(5).trim(), raw)
+            upper.startsWith("UNKNOWN") -> return EngineResponse.Unknown(raw)
+            upper.startsWith("FORBID") -> return parseForbid(line, coord, raw)
+            upper == "OK" -> return EngineResponse.Ok(raw)
+            looksLikeAbout(line) -> return EngineResponse.About(parseAboutFields(line), raw)
+        }
+
+        bestMove.matchEntire(line)?.let { m ->
+            val moves = buildList {
+                add(coord.fromWire(m.groupValues[1].toInt(), m.groupValues[2].toInt()))
+                if (m.groupValues[3].isNotEmpty()) {
+                    add(coord.fromWire(m.groupValues[3].toInt(), m.groupValues[4].toInt()))
+                }
+            }
+            return EngineResponse.BestMove(moves, raw)
+        }
+
+        return EngineResponse.Unknown(raw)
+    }
+
+    /** `INFO <key> <value>` — the realtime search stream. */
+    private fun parseInfo(rest: String, coord: CoordMapper, raw: String): EngineResponse {
+        val space = rest.indexOf(' ')
+        val key = if (space < 0) rest else rest.substring(0, space)
+        val value = if (space < 0) "" else rest.substring(space + 1).trim()
+        return when (key.uppercase()) {
+            "PV" ->
+                if (value.uppercase().startsWith("DONE")) EngineResponse.InfoPvDone(raw)
+                else EngineResponse.InfoPvStart(value.toIntOrNull() ?: 0, raw)
+            "NUMPV" -> EngineResponse.InfoNumPv(value.toIntOrNull() ?: 1, raw)
+            "DEPTH" -> EngineResponse.InfoDepth(value.substringBefore('-').trim().toIntOrNull() ?: 0, raw)
+            "BESTLINE" -> EngineResponse.InfoBestline(parseMoveList(value, coord), raw)
+            "WINRATE" -> EngineResponse.InfoWinRate(value.toDoubleOrNull() ?: 0.0, raw)
+            "EVAL" -> parseEval(value, raw)
+            else -> EngineResponse.Message("INFO $rest", raw)
+        }
+    }
+
+    /** EVAL is "+M<n>" / "-M<n>" (mate) or a numeric centipawn value. */
+    private fun parseEval(value: String, raw: String): EngineResponse {
+        val token = value.trim().substringBefore(' ')
         return when {
-            line.isEmpty() -> EngineResponse.Unknown(raw)
-            upper == "OK" -> EngineResponse.Ok(raw)
-            upper.startsWith("ERROR") ->
-                EngineResponse.Error(line.drop(5).trim(), raw)
-            upper.startsWith("MESSAGE") ->
-                EngineResponse.Message(line.drop(7).trim(), raw)
-            upper.startsWith("DEBUG") ->
-                EngineResponse.Debug(line.drop(5).trim(), raw)
-            looksLikeAbout(line) ->
-                EngineResponse.About(parseAboutFields(line), raw)
+            token.startsWith("+M", ignoreCase = true) ->
+                EngineResponse.InfoEval(mate = token.drop(2).toIntOrNull(), cp = null, raw = raw)
+            token.startsWith("-M", ignoreCase = true) ->
+                EngineResponse.InfoEval(mate = token.drop(2).toIntOrNull()?.let { -it }, cp = null, raw = raw)
+            else ->
+                EngineResponse.InfoEval(mate = null, cp = token.toIntOrNull(), raw = raw)
+        }
+    }
+
+    /** `MESSAGE REALTIME <sub>` overlays. Sub-tokens matched like the desktop. */
+    private fun parseRealtime(rest: String, coord: CoordMapper, raw: String): EngineResponse {
+        val upper = rest.uppercase()
+        return when {
+            upper.startsWith("BEST") -> pairOrUnknown(rest.drop(4), coord, raw) { EngineResponse.RealtimeBest(it, raw) }
+            upper.startsWith("LOSE") -> pairOrUnknown(rest.drop(4), coord, raw) { EngineResponse.RealtimeLose(it, raw) }
+            upper.startsWith("POS") -> pairOrUnknown(rest.drop(3), coord, raw) { EngineResponse.RealtimePos(it, raw) }
+            upper.startsWith("DONE") -> pairOrUnknown(rest.drop(4), coord, raw) { EngineResponse.RealtimeDone(it, raw) }
+            upper.startsWith("REFRESH") -> EngineResponse.RealtimeRefresh(raw)
+            upper.startsWith("PV") -> EngineResponse.RealtimePv(parseMoveList(rest.drop(2).trim(), coord), raw)
+            upper.startsWith("VAL") -> EngineResponse.RealtimeVal(rest.drop(3).trim().toIntOrNull() ?: 0, raw)
             else -> EngineResponse.Unknown(raw)
         }
     }
 
-    private fun looksLikeAbout(line: String): Boolean =
-        line.contains("name=", ignoreCase = true) &&
-            line.contains("version=", ignoreCase = true)
+    private inline fun pairOrUnknown(
+        rest: String,
+        coord: CoordMapper,
+        raw: String,
+        make: (Move) -> EngineResponse,
+    ): EngineResponse {
+        val move = coord.parsePair(rest.trim().substringBefore(' '))
+        return if (move != null) make(move) else EngineResponse.Unknown(raw)
+    }
 
-    /** Parse `key="value", key2="value2"` into a map (quotes optional). */
+    private fun parseCapability(rest: String, raw: String): EngineResponse {
+        val space = rest.indexOf(' ')
+        val key = if (space < 0) rest else rest.substring(0, space)
+        val value = if (space < 0) "" else rest.substring(space + 1).trim()
+        return EngineResponse.Capability(key, value, raw)
+    }
+
+    /** `FORBID` + groups of "yyxx" (2-digit row, 2-digit col) until '.'. */
+    private fun parseForbid(line: String, coord: CoordMapper, raw: String): EngineResponse {
+        val body = line.drop(6)
+        val cells = ArrayList<Move>()
+        var i = 0
+        while (i + 4 <= body.length && body[i] != '.') {
+            val row = body.substring(i, i + 2).toIntOrNull() ?: break
+            val col = body.substring(i + 2, i + 4).toIntOrNull() ?: break
+            cells.add(coord.fromWire(row, col))
+            i += 4
+        }
+        return EngineResponse.Forbid(cells, raw)
+    }
+
+    /** Space-separated "y,x" tokens (BESTLINE / REALTIME PV). */
+    private fun parseMoveList(value: String, coord: CoordMapper): List<Move> =
+        value.trim().split(Regex("\\s+"))
+            .mapNotNull { if (it.isBlank()) null else coord.parsePair(it) }
+
+    private fun looksLikeAbout(line: String): Boolean =
+        line.contains("name=", ignoreCase = true) && line.contains("version=", ignoreCase = true)
+
     private fun parseAboutFields(line: String): Map<String, String> {
         val out = LinkedHashMap<String, String>()
-        Regex("""(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*([^,]+)""")
-            .findAll(line)
-            .forEach { m ->
-                val key = (m.groupValues[1].ifEmpty { m.groupValues[3] }).trim()
-                val value = (m.groupValues[2].ifEmpty { m.groupValues[4] }).trim()
-                if (key.isNotEmpty()) out[key] = value
-            }
+        Regex("""(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*([^,]+)""").findAll(line).forEach { m ->
+            val key = (m.groupValues[1].ifEmpty { m.groupValues[3] }).trim()
+            val v = (m.groupValues[2].ifEmpty { m.groupValues[4] }).trim()
+            if (key.isNotEmpty()) out[key] = v
+        }
         return out
     }
 }
