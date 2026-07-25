@@ -5,6 +5,7 @@ import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
@@ -25,6 +26,13 @@ interface EngineRepository {
     suspend fun connect(endpoint: EngineEndpoint)
     suspend fun send(command: EngineCommand)
     fun disconnect()
+
+    /**
+     * Push engine parameters (rule, level, threads, hash, …) and remember them
+     * for later reconnects. They are also sent automatically on connect, since
+     * without them Rapfi analyses with its own config instead of the desktop's.
+     */
+    suspend fun applyParams(params: EngineParams)
 
     /**
      * Analyze [position]: streams [AnalysisSnapshot]s as the search deepens.

@@ -13,7 +13,10 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import dev.gomoku.yixindroid.core.model.CandidateState
+import dev.gomoku.yixindroid.core.model.CellTag
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.TagKind
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -25,7 +28,44 @@ data class BoardRender(
     val forbidden: List<Move> = emptyList(),
     val ghosts: List<Move> = emptyList(),         // PV preview from the current position
     val bestMark: Move? = null,                   // realtime / PV-head highlight
+    val tags: Map<Move, CellTag> = emptyMap(),    // per-cell winrate / mate labels
+    val candidates: Map<Move, CandidateState> = emptyMap(), // realtime POS/DONE
+    val loseCells: Set<Move> = emptySet(),        // realtime LOSE
+    val palette: TagPalette = TagPalette(),       // saturation/value settings
 )
+
+/**
+ * Colour rules for the analysis tags, mirroring the desktop's saturation
+ * settings (settings.txt lines 39–43: losing/winning move saturation, min/max
+ * win-rate saturation, value).
+ */
+data class TagPalette(
+    val losingSaturation: Int = 0,
+    val winningSaturation: Int = 83,
+    val minRateSaturation: Int = 20,
+    val maxRateSaturation: Int = 80,
+    val value: Int = 100,
+) {
+    /** Tag colour: mate wins/losses use the fixed hues, rates interpolate. */
+    fun colorFor(tag: CellTag): Color = when (tag.kind) {
+        TagKind.WIN -> hsv(WIN_HUE, winningSaturation / 100f, value / 100f)
+        TagKind.LOSE -> hsv(LOSE_HUE, (100 - losingSaturation) / 100f, value / 100f)
+        TagKind.RATE -> {
+            val pct = (tag.winRatePct ?: 50).coerceIn(0, 100) / 100f
+            val sat = (minRateSaturation + (maxRateSaturation - minRateSaturation) *
+                kotlin.math.abs(pct - 0.5f) * 2f) / 100f
+            hsv(if (pct >= 0.5f) WIN_HUE else LOSE_HUE, sat, value / 100f)
+        }
+    }
+
+    private fun hsv(hue: Float, saturation: Float, v: Float): Color =
+        Color.hsv(hue, saturation.coerceIn(0f, 1f), v.coerceIn(0.2f, 1f))
+
+    private companion object {
+        const val WIN_HUE = 210f   // blue = good for the side to move
+        const val LOSE_HUE = 8f    // red
+    }
+}
 
 private val Gold = Color(0xFFDCB35C)
 private val Line = Color(0xFF7A5A2B)
@@ -90,6 +130,35 @@ fun GomokuBoard(
             drawLine(Forbid, Offset(c.x - r, c.y + r), Offset(c.x + r, c.y - r), strokeWidth = 3f)
         }
 
+        // realtime candidate cells (POS = live, DONE = settled) — drawn under stones
+        render.candidates.forEach { (m, state) ->
+            val c = Offset(cx(m.x), cy(m.y))
+            val live = state == CandidateState.LIVE
+            drawCircle(
+                if (live) Accent else Line,
+                radius = radius * if (live) 0.30f else 0.20f,
+                center = c,
+                alpha = if (live) 0.75f else 0.45f,
+            )
+        }
+
+        // realtime losing cells
+        render.loseCells.forEach { m ->
+            val c = Offset(cx(m.x), cy(m.y))
+            val r = radius * 0.5f
+            drawLine(Forbid, Offset(c.x - r, c.y), Offset(c.x + r, c.y), strokeWidth = 2.5f)
+        }
+
+        // per-cell analysis tags (winrate % / W n / L n) on empty points
+        if (render.tags.isNotEmpty()) {
+            val occupied = render.stones.toHashSet()
+            render.tags.forEach { (m, tag) ->
+                if (tag.label.isNotEmpty() && m !in occupied) {
+                    drawTag(cx(m.x), cy(m.y), radius, tag.label, render.palette.colorFor(tag))
+                }
+            }
+        }
+
         // played stones with move numbers
         render.stones.forEachIndexed { i, m ->
             val black = i % 2 == 0
@@ -115,6 +184,21 @@ fun GomokuBoard(
                 style = Stroke(width = 3.5f))
         }
     }
+}
+
+/** A filled rounded chip with the tag text, sized to sit on one intersection. */
+private fun DrawScope.drawTag(cx: Float, cy: Float, r: Float, label: String, color: Color) {
+    drawCircle(color, radius = r * 0.82f, center = Offset(cx, cy), alpha = 0.92f)
+    val paint = android.graphics.Paint().apply {
+        this.color = android.graphics.Color.WHITE
+        textSize = r * (if (label.length >= 4) 0.62f else 0.78f)
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+        isFakeBoldText = true
+    }
+    drawContext.canvas.nativeCanvas.drawText(
+        label, cx, cy - (paint.descent() + paint.ascent()) / 2, paint,
+    )
 }
 
 private fun DrawScope.drawStone(cx: Float, cy: Float, r: Float, black: Boolean, number: String, alpha: Float) {

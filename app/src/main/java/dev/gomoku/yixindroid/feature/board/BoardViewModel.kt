@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
+import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,15 +28,21 @@ class BoardViewModel @Inject constructor(
     private val position = MutableStateFlow(Position())
     private val snapshot = MutableStateFlow<AnalysisSnapshot?>(null)
     private val analyzing = MutableStateFlow(false)
-    private val multiPv = MutableStateFlow(1)
+    // settings.txt line 20 ("default number of multi-pv") is 3; the desktop sends
+    // `yxnbest <numpv>` with that value, so match it or the search differs.
+    private val multiPv = MutableStateFlow(EngineParams().multiPv)
     private val previewPv = MutableStateFlow<Int?>(null)
 
     private var analyzeJob: Job? = null
 
+    /** Black-perspective win rate per ply, for the win-rate graph. */
+    private val winRateHistory = MutableStateFlow<List<Double?>>(emptyList())
+
     private val panel = combine(multiPv, previewPv, analyzing) { m, p, a -> Triple(m, p, a) }
 
     val uiState: StateFlow<BoardUiState> =
-        combine(position, repository.state, snapshot, panel) { pos, conn, snap, (mpv, preview, isAnalyzing) ->
+        combine(position, repository.state, snapshot, panel, winRateHistory) {
+                pos, conn, snap, (mpv, preview, isAnalyzing), history ->
             BoardUiState(
                 render = buildRender(pos, snap, preview),
                 moveCount = pos.moves.size,
@@ -43,6 +51,7 @@ class BoardViewModel @Inject constructor(
                 snapshot = snap,
                 multiPv = mpv,
                 previewPv = preview,
+                winRateHistory = history,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -63,6 +72,7 @@ class BoardViewModel @Inject constructor(
     fun onReset() {
         previewPv.value = null
         position.value = Position()
+        winRateHistory.value = emptyList()
         onPositionChanged()
     }
 
@@ -89,8 +99,22 @@ class BoardViewModel @Inject constructor(
         snapshot.value = null
         analyzing.value = true
         val target = position.value
+        val ply = target.moves.size
         analyzeJob = viewModelScope.launch {
-            repository.analyze(target, AnalyzeParams(multiPv.value)).collect { snapshot.value = it }
+            repository.analyze(target, AnalyzeParams(multiPv.value)).collect { snap ->
+                snapshot.value = snap
+                snap.blackWinRate()?.let { recordWinRate(ply, it) }
+            }
+        }
+    }
+
+    /** Keep one (latest) win rate per ply so the graph tracks the whole game. */
+    private fun recordWinRate(ply: Int, rate: Double) {
+        winRateHistory.update { current ->
+            val out = current.toMutableList()
+            while (out.size <= ply) out.add(null)
+            out[ply] = rate
+            out
         }
     }
 
@@ -103,16 +127,22 @@ class BoardViewModel @Inject constructor(
     private fun buildRender(pos: Position, snap: AnalysisSnapshot?, preview: Int?): BoardRender {
         val pv = when {
             preview != null -> snap?.pvs?.firstOrNull { it.index == preview }?.line
-            else -> snap?.best?.line
+            else -> snap?.best?.line?.ifEmpty { snap.realtimeLine }
         }.orEmpty()
         val ghosts = pv.filterNot { pos.moves.contains(it) }.take(GHOST_LIMIT)
         val bestMark = snap?.realtimeBest ?: snap?.best?.head
+        // While previewing one PV the per-cell tags would fight the ghosts for
+        // space, so they are only drawn in the default (aggregate) view.
+        val tags = if (preview == null) snap?.tags.orEmpty() else emptyMap()
         return BoardRender(
             size = pos.size,
             stones = pos.moves,
             lastMove = pos.moves.lastOrNull(),
             ghosts = ghosts,
             bestMark = if (bestMark != null && !pos.moves.contains(bestMark)) bestMark else null,
+            tags = tags,
+            candidates = snap?.candidates.orEmpty(),
+            loseCells = snap?.loseCells.orEmpty(),
         )
     }
 

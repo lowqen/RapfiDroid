@@ -29,8 +29,15 @@ class RankingsViewModel @Inject constructor(
             openingShapeCounts = repo.openingShapeCounts()
             val dist = repo.groupDistribution()
             val total = repo.shapeTotal()
+            val dataError = repo.rank5Error()?.let {
+                "랭킹 데이터(rank5)를 불러오지 못했습니다: $it. " +
+                    "앱을 완전히 종료 후 재설치하거나 Android Studio에서 Clean+Rebuild 하세요."
+            }
             _state.update {
-                it.copy(groupDist = dist, shapeTotal = total, openingCards = baseCards())
+                it.copy(
+                    groupDist = dist, shapeTotal = total, openingCards = baseCards(),
+                    dataError = dataError,
+                )
             }
             refresh3()
             refresh5()

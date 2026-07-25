@@ -15,8 +15,8 @@ android {
         applicationId = "dev.gomoku.yixindroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3.0-p3"
+        versionCode = 4
+        versionName = "0.6.0-p6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

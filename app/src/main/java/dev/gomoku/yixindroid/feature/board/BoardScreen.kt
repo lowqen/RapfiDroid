@@ -1,24 +1,26 @@
 package dev.gomoku.yixindroid.feature.board
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,14 +32,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
-import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.PvSnapshot
 
 private val StoneBlack = Color(0xFF1C1A17)
@@ -53,12 +57,15 @@ fun BoardScreen(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         EvalHeader(ui)
         EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate)
+        WinRateGraph(ui.winRateHistory, ui.moveCount)
         GomokuBoard(render = ui.render, onTap = viewModel::onTap)
+        StatusBar(ui)
         Controls(
             analyzing = ui.analyzing,
             canAnalyze = ui.canAnalyze,
@@ -73,8 +80,137 @@ fun BoardScreen(
             size = ui.render.size,
             previewPv = ui.previewPv,
             onPreview = viewModel::onPreviewPv,
-            modifier = Modifier.weight(1f, fill = false),
         )
+    }
+}
+
+/**
+ * Win rate per ply from Black's perspective — the desktop's win-rate graph
+ * (settings_dev line 2). Gaps (plies never analysed) are simply not connected.
+ */
+@Composable
+private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
+    val samples = history.count { it != null }
+    if (samples < 1) return
+    val line = WinBlue
+    val fill = WinBlue.copy(alpha = 0.22f)
+    val grid = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+    val midGrid = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+    val marker = MaterialTheme.colorScheme.tertiary
+    val plotBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("승률 그래프 (흑 기준)", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val latest = history.getOrNull(currentPly) ?: history.lastOrNull { it != null }
+            Text(
+                latest?.let { "%.0f%% · %d점".format(it * 100, samples) } ?: "—",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Canvas(
+            Modifier
+                .fillMaxWidth()
+                .height(88.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(plotBg),
+        ) {
+            val padY = size.height * 0.06f
+            val plotH = size.height - padY * 2
+            // A single sample would divide by zero; centre it instead.
+            val lastIdx = (history.size - 1).coerceAtLeast(1)
+            val stepX = size.width / lastIdx
+            fun px(i: Int) = if (history.size == 1) size.width / 2 else i * stepX
+            fun py(v: Double) = padY + plotH * (1f - v.toFloat().coerceIn(0f, 1f))
+
+            // 0 / 25 / 50 / 75 / 100% guides, the midline emphasised
+            listOf(0f, 0.25f, 0.5f, 0.75f, 1f).forEach { frac ->
+                val y = padY + plotH * (1f - frac)
+                drawLine(
+                    if (frac == 0.5f) midGrid else grid,
+                    Offset(0f, y), Offset(size.width, y),
+                    strokeWidth = if (frac == 0.5f) 1.6f else 1f,
+                )
+            }
+
+            // filled area + line per contiguous run of analysed plies
+            var segment = mutableListOf<Offset>()
+            fun flush() {
+                if (segment.size >= 2) {
+                    val area = Path().apply {
+                        moveTo(segment.first().x, padY + plotH)
+                        segment.forEach { lineTo(it.x, it.y) }
+                        lineTo(segment.last().x, padY + plotH)
+                        close()
+                    }
+                    drawPath(area, fill)
+                    val stroke = Path().apply {
+                        moveTo(segment.first().x, segment.first().y)
+                        segment.drop(1).forEach { lineTo(it.x, it.y) }
+                    }
+                    drawPath(stroke, line, style = Stroke(width = 4f))
+                }
+                segment.forEach { drawCircle(line, radius = 4f, center = it) }
+                segment = mutableListOf()
+            }
+            history.forEachIndexed { i, v ->
+                if (v == null) flush() else segment.add(Offset(px(i), py(v)))
+            }
+            flush()
+
+            // current ply marker
+            history.getOrNull(currentPly)?.let { v ->
+                val c = Offset(px(currentPly), py(v))
+                drawCircle(marker, radius = 6.5f, center = c)
+                drawCircle(line, radius = 6.5f, center = c, style = Stroke(width = 2f))
+            }
+        }
+    }
+}
+
+/** The nine status fields the desktop shows (lng strings 0..9). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StatusBar(ui: BoardUiState) {
+    val s = ui.stats
+    val evalText = when {
+        s.mate != null && s.mate > 0 -> "+M${s.mate}"
+        s.mate != null -> "-M${-s.mate}"
+        s.evalCp != null -> "${s.evalCp}"
+        else -> "—"
+    }
+    val fields = buildList {
+        add("DEPTH" to (if (s.selDepth > 0) "${s.depth}-${s.selDepth}" else "${s.depth}"))
+        add("EVAL" to evalText)
+        add("WINRATE" to (s.winRatePct?.let { "$it%" } ?: "—"))
+        add("VAL" to (s.realtimeVal?.toString() ?: "—"))
+        add("TIME" to (s.timeMs?.let { "${it}ms" } ?: "—"))
+        add("NODE" to (s.nodes?.let { "%,d".format(it) } ?: "—"))
+        add("SPEED" to (s.speed?.let { "%,d/s".format(it) } ?: "—"))
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            fields.forEach { (key, value) ->
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(key, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(value, style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+        val bestLine = ui.bestLineLabels(ui.render.size)
+        if (bestLine.isNotEmpty()) {
+            Text(
+                "BESTLINE  $bestLine",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -161,8 +297,10 @@ private fun PvList(
     modifier: Modifier = Modifier,
 ) {
     if (pvs.isEmpty()) return
-    LazyColumn(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(pvs, key = { it.index }) { pv ->
+    // A plain Column, not LazyColumn: multi-PV is capped at 8 and the parent is
+    // already vertically scrollable (nesting same-axis scrolls would crash).
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        pvs.forEach { pv ->
             val selected = pv.index == previewPv
             Surface(
                 onClick = { onPreview(if (selected) null else pv.index) },

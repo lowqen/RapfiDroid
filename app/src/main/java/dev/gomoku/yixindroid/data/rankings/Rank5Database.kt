@@ -27,9 +27,33 @@ class Rank5Database @Inject constructor(
 ) {
     @Volatile
     private var db: SQLiteDatabase? = null
+    @Volatile
+    private var attempted = false
 
-    private fun database(): SQLiteDatabase = db ?: synchronized(this) {
-        db ?: open().also { db = it }
+    /** The first load failure, if any (e.g. the asset isn't in the APK). Null
+     *  while loading has not been attempted or has succeeded. */
+    @Volatile
+    var loadError: Throwable? = null
+        private set
+
+    /**
+     * The opened database, or null if it could not be loaded. Failure is cached
+     * in [loadError] and not retried within this process — a missing bundled
+     * asset is deterministic, and a fixed build starts a fresh process anyway.
+     */
+    private fun database(): SQLiteDatabase? {
+        db?.let { return it }
+        return synchronized(this) {
+            db?.let { return it }
+            if (attempted) return null
+            attempted = true
+            try {
+                open().also { db = it }
+            } catch (t: Throwable) {
+                loadError = t
+                null
+            }
+        }
     }
 
     private fun open(): SQLiteDatabase {
@@ -37,18 +61,24 @@ class Rank5Database @Inject constructor(
         val marker = File(context.filesDir, "$DB_NAME.v")
         val current = marker.takeIf { it.exists() }?.readText()?.trim()
         if (!file.exists() || current != ASSET_VERSION) {
+            // Decompress to a temp file and swap in only on success, so an
+            // interrupted extraction never leaves a half-written db behind.
+            val tmp = File(context.filesDir, "$DB_NAME.tmp")
             context.assets.open(ASSET).use { gz ->
                 GZIPInputStream(gz).use { input ->
-                    file.outputStream().use { out -> input.copyTo(out) }
+                    tmp.outputStream().use { out -> input.copyTo(out) }
                 }
             }
+            if (file.exists()) file.delete()
+            if (!tmp.renameTo(file)) { tmp.copyTo(file, overwrite = true); tmp.delete() }
             marker.writeText(ASSET_VERSION)
         }
         return SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
     }
 
     private fun query(sql: String, args: Array<String> = emptyArray()): List<ShapeRank> {
-        database().rawQuery(sql, args).use { c ->
+        val database = database() ?: return emptyList()
+        database.rawQuery(sql, args).use { c ->
             val out = ArrayList<ShapeRank>(c.count)
             while (c.moveToNext()) out.add(c.toShapeRank())
             return out
@@ -94,7 +124,8 @@ class Rank5Database @Inject constructor(
 
     /** Distribution of shapes by placement-multiplicity group (32/16/8/4). */
     fun groupDistribution(): List<Pair<Int, Int>> {
-        database().rawQuery(
+        val database = database() ?: return emptyList()
+        database.rawQuery(
             "SELECT count_raw, COUNT(*) FROM shape GROUP BY count_raw ORDER BY count_raw DESC",
             emptyArray(),
         ).use { c ->
@@ -106,7 +137,8 @@ class Rank5Database @Inject constructor(
 
     /** Shape count per opening (abbr → count), for the 3-move theory overview. */
     fun openingCounts(): Map<String, Int> {
-        database().rawQuery(
+        val database = database() ?: return emptyMap()
+        database.rawQuery(
             "SELECT opening, COUNT(*) FROM shape GROUP BY opening", emptyArray(),
         ).use { c ->
             val out = LinkedHashMap<String, Int>()
@@ -115,9 +147,12 @@ class Rank5Database @Inject constructor(
         }
     }
 
-    fun total(): Int = database().rawQuery(
-        "SELECT COUNT(*) FROM shape", emptyArray(),
-    ).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
+    fun total(): Int {
+        val database = database() ?: return 0
+        return database.rawQuery(
+            "SELECT COUNT(*) FROM shape", emptyArray(),
+        ).use { c -> if (c.moveToFirst()) c.getInt(0) else 0 }
+    }
 
     private fun Cursor.toShapeRank() = ShapeRank(
         rankStd = getInt(0), rankRaw = getInt(1),
@@ -127,10 +162,17 @@ class Rank5Database @Inject constructor(
     )
 
     companion object {
-        private const val ASSET = "rank5.db.gz"
+        /**
+         * Gzipped SQLite. The `.bin` extension is deliberate: AGP's asset merger
+         * silently **gunzips `*.gz` assets and strips the extension**, so a file
+         * shipped as `rank5.db.gz` arrives in the APK as a plain 18 MB
+         * `assets/rank5.db` and `open("rank5.db.gz")` throws. Keeping a neutral
+         * extension leaves the bytes untouched (and the APK ~4 MB smaller).
+         */
+        private const val ASSET = "rank5.db.bin"
         private const val DB_NAME = "rank5.db"
         // Bump when the bundled asset changes so old extractions are replaced.
-        private const val ASSET_VERSION = "1"
+        private const val ASSET_VERSION = "2"
         private const val COLS =
             "rank_std,rank_raw,count_std,count_raw,per_placement,placements,stabilizer," +
                 "opening,rep_moves,m5_dist"

@@ -7,6 +7,7 @@ import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.engine.CoordMapper
@@ -47,6 +48,10 @@ class EngineRepositoryImpl @Inject constructor(
 
     // One coordinate convention for now; becomes a setting in a later phase.
     private val coord = CoordMapper()
+
+    /** Pushed on every connect; P4 will let the settings screen replace it. */
+    @Volatile
+    private var engineParams = EngineParams()
 
     override val state: StateFlow<ConnectionState> = connection.state
 
@@ -105,7 +110,9 @@ class EngineRepositoryImpl @Inject constructor(
                     aggregator.consume(response)?.let { trySend(it) }
                 }
             }
-            dispatch(EngineCommand.Start(position.size))
+            // No START here: the desktop sends it once in init_engine and then
+            // only `yxboard` per analysis (main.c send_board). A START mid-session
+            // resets the engine and cost us a redundant round trip.
             dispatch(EngineCommand.YxBoard(position.placements()))
             dispatch(EngineCommand.YxNbest(params.multiPv.coerceAtLeast(1)))
             connection.markThinking()
@@ -131,18 +138,45 @@ class EngineRepositoryImpl @Inject constructor(
     }
 
     /**
-     * P1/P2 handshake: START then optimistic Ready (the server may print
-     * config/DB noise first — tolerated, lands in the console). A socket
-     * failure flips state to Error via the reader loop. P2+ may await an
-     * explicit OK and push INFO config defaults.
+     * Handshake, ported from the desktop `init_engine()` (main.c:14460). The
+     * order matters and the first two lines are **not optional**: they switch
+     * Rapfi into the detailed output mode that emits `INFO PV/DEPTH/EVAL/
+     * WINRATE/BESTLINE`. Without them the engine only prints
+     * `MESSAGE Depth 2-3 | Eval 814 | …`, which is why analysis appeared in the
+     * console but never on the board.
+     *
+     * The server may print config/DB noise before this — tolerated, it lands in
+     * the console. A socket failure flips state to Error via the reader loop.
      */
     private suspend fun handshake() {
-        dispatch(EngineCommand.Start(Move.DEFAULT_SIZE))
+        val params = engineParams
+        dispatch(EngineCommand.ShowDetail(SHOW_DETAIL_LEVEL))
+        dispatch(EngineCommand.YxShowInfo)
+        dispatch(EngineCommand.DatabaseReadonly(false))
+        // Rule first, then START, then the rest — exactly the desktop's order.
+        // Skipping these left Rapfi on its own config (freestyle rule, default
+        // threads/hash), so no score or best move matched the PC.
+        for ((key, value) in params.infoPairs()) {
+            if (key == RULE_KEY) dispatch(EngineCommand.Info(key, value))
+        }
+        dispatch(EngineCommand.Start(params.boardSize))
+        for ((key, value) in params.infoPairs()) {
+            if (key != RULE_KEY) dispatch(EngineCommand.Info(key, value))
+        }
         connection.markReady()
+    }
+
+    override suspend fun applyParams(params: EngineParams) {
+        engineParams = params
+        for ((key, value) in params.infoPairs()) {
+            dispatch(EngineCommand.Info(key, value))
+        }
     }
 
     private companion object {
         const val CONSOLE_REPLAY = 300
         const val FORBID_TIMEOUT_MS = 3_000L
+        const val SHOW_DETAIL_LEVEL = 3
+        const val RULE_KEY = "rule"
     }
 }

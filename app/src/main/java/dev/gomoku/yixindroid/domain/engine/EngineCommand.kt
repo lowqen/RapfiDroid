@@ -45,6 +45,31 @@ sealed interface EngineCommand {
         override fun serialize(coord: CoordMapper) = "INFO $key $value"
     }
 
+    /**
+     * Switch Rapfi into the **detailed (Yixin) output mode**. Without this the
+     * engine only prints human-readable `MESSAGE Depth 2-3 | Eval 814 | …` lines
+     * and never the `INFO PV/DEPTH/EVAL/WINRATE/BESTLINE` blocks the analysis UI
+     * is built on. The desktop sends exactly this pair in `init_engine()`
+     * (main.c:14465) — spelling and case mirrored deliberately.
+     */
+    data class ShowDetail(val level: Int = 3) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "info show_detail $level"
+    }
+
+    data object YxShowInfo : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxshowinfo"
+    }
+
+    /**
+     * Push the client's read-only state instead of inheriting the engine's own
+     * config. main.c:14467 documents the trap: a server-side `readonly = true`
+     * silently discards every search result and DB edit while the UI shows
+     * read-only off.
+     */
+    data class DatabaseReadonly(val on: Boolean) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "info database_readonly ${if (on) 1 else 0}"
+    }
+
     data object YxShowForbid : EngineCommand {
         override fun serialize(coord: CoordMapper) = "YXSHOWFORBID"
     }

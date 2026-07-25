@@ -74,6 +74,7 @@ fun RankingsScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         Header(ui, onFilter = viewModel::onOpenFilter)
+        ui.dataError?.let { DataErrorBanner(it) }
         ui.error?.let { ErrorBanner(it, viewModel::onDismissError) }
 
         TabRow(selectedTabIndex = ui.tab.ordinal) {
@@ -124,6 +125,15 @@ private fun selectedLabel(ui: RankingsUiState): String = buildString {
     if (rules > 0) { if (isNotEmpty()) append("·"); append("룰$rules") }
     val extra = ui.selectedPlayers.size - 1
     if (extra > 0) append(" +$extra")
+}
+
+@Composable
+private fun DataErrorBanner(message: String) {
+    Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+        Text(message, color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.bodySmall)
+    }
 }
 
 @Composable

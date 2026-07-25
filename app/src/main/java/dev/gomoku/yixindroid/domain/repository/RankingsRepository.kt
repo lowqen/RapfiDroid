@@ -34,6 +34,10 @@ interface RankingsRepository {
     suspend fun openingShapeCounts(): Map<String, Int>
     suspend fun shapeTotal(): Int
 
+    /** Message for the bundled-dataset load failure, or null if it loaded. Valid
+     *  only after a rank5 query has been attempted. */
+    fun rank5Error(): String?
+
     // ---- freq (empirical, imported) ----
     suspend fun matchPlayers(query: String): List<PlayerRef>
     suspend fun matchRules(query: String): List<Int>

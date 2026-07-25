@@ -23,6 +23,28 @@ sealed interface EngineResponse {
     data class InfoWinRate(val winRate: Double, override val raw: String) : EngineResponse
     data class InfoBestline(val line: List<Move>, override val raw: String) : EngineResponse
 
+    /** Numeric search counters if the engine reports them (`INFO NODE/SPEED/TIME`). */
+    data class InfoStat(val key: String, val value: Long, override val raw: String) : EngineResponse
+
+    /**
+     * Rapfi's human-readable thinking line, observed on a live server:
+     * `MESSAGE Depth 2-3 | Eval 814 | Time 1ms | F7 H7`. It appears in the
+     * engine's *normal* message mode; the PV here is in **letter labels**, not
+     * `y,x`. Parsed as a fallback so depth/eval/PV still show if the detailed
+     * mode (`info show_detail 3`) is ever unavailable.
+     */
+    data class Thinking(
+        val depth: Int?,
+        val selDepth: Int?,
+        val evalCp: Int?,
+        val mate: Int?,
+        val timeMs: Long?,
+        val nodes: Long?,
+        val speed: Long?,
+        val line: List<Move>,
+        override val raw: String,
+    ) : EngineResponse
+
     // ---- MESSAGE REALTIME overlays ----
     data class RealtimeBest(val move: Move, override val raw: String) : EngineResponse
     data class RealtimePos(val move: Move, override val raw: String) : EngineResponse

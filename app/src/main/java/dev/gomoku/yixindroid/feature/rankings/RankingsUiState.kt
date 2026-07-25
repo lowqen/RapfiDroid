@@ -53,6 +53,9 @@ data class RankingsUiState(
     val freqGameCount: Int = 0,
     val importing: Boolean = false,
     val error: String? = null,
+    // Non-fatal failure loading the bundled rank5 dataset (e.g. asset missing
+    // from the APK — usually a stale build). Shown as a persistent banner.
+    val dataError: String? = null,
 
     // shared filter
     val filter: RankingFilter = RankingFilter(),

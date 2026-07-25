@@ -4,7 +4,16 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
 `../test-yixin/docs/안드로이드_앱_아키텍처_계획.md` 참고.
 
 이 저장소는 현재 **P0(스캐폴드) + P1(엔진 통신 모듈) + P2(보드 UI·분석·파서 확장)
-+ P3(3수/5수 랭킹 대시보드)** 까지 구현되어 있다.
++ P3(3수/5수 랭킹 대시보드) + P6(분석 표시 완성)** 까지 구현되어 있다.
+
+> 전체 로드맵은 `test-yixin/docs/안드로이드_전체기능_이식_계획.md`(v2)를 따른다.
+> Yixin.exe의 설정 67개·DB 기능·대국 기능 대부분은 아직 미구현이며 P4·P5·P7~P11에 있다.
+
+**P6 핵심**: 엔진 핸드셰이크에 `info show_detail 3` + `yxshowinfo`가 없으면 Rapfi가
+`INFO PV/DEPTH/EVAL/WINRATE/BESTLINE`을 보내지 않아 분석이 화면에 전혀 안 나온다.
+또 `INFO rule`·`thread_num`·`hash_size` 등을 보내지 않으면 엔진이 자기 config
+기본값(프리스타일)으로 돌아 **PC Yixin과 결과가 달라진다** — `EngineParams`가
+`test-yixin/settings.txt` 기본값(자유 렌주·4스레드·8192MB·멀티PV 3)을 그대로 전송한다.
 
 > ⚠ 이 코드는 **Android SDK가 없는 환경에서 작성**되어 여기서 컴파일 검증은 하지
 > 못했다. Android Studio(Ladybug 이상, JDK 17)에서 열어 Gradle sync 후 빌드하는
@@ -14,7 +23,7 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
 ## 무엇이 들어있나 (P1 범위)
 
 - **엔진 통신 모듈** — engine.exe(투명 TCP 릴레이)를 대체. `rapfi-server`
-  (`100.111.248.44:7669`)에 직접 접속해 piskvork를 그대로 주고받는다.
+  (`100.111.248.44:5050`)에 직접 접속해 piskvork를 그대로 주고받는다.
   - `EngineConnection` — 소켓 + 리더/라이터 코루틴 + 연결 상태기계
   - `EngineCommand` / `EngineResponse` / `ResponseParser` — 프로토콜 (순수 함수)
   - `CoordMapper` — 좌표 변환 단일 진원 (flip-Y 함정 격리)
@@ -36,7 +45,7 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
 ## P1 검증(실서버) 절차
 
 1. 기기에서 Tailscale 켜기 → `rapfi-server` 도달 확인.
-2. 앱 실행 → **연결** 탭 → host `100.111.248.44`(프리필), port `7669` → **연결**.
+2. 앱 실행 → **연결** 탭 → host `100.111.248.44`(프리필), port `5050`(프리필) → **연결**.
 3. 콘솔에 서버의 초기 로드 메시지 + `START 15` 전송(`»`) + `OK` 수신 확인,
    상태 칩이 **준비됨**으로.
 4. 명령 입력에 `ABOUT` → 엔진 정보 라인 확인. `TURN 7,7` → 좌표 응답(`x,y`)이

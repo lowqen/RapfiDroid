@@ -24,7 +24,10 @@ object ResponseParser {
         when {
             upper.startsWith("MESSAGE REALTIME") -> return parseRealtime(line.substring(16).trim(), coord, raw)
             upper.startsWith("MESSAGE INFO") -> return parseCapability(line.substring(12).trim(), raw)
-            upper.startsWith("MESSAGE") -> return EngineResponse.Message(line.drop(7).trim(), raw)
+            upper.startsWith("MESSAGE") -> {
+                val body = line.drop(7).trim()
+                return parseThinking(body, raw) ?: EngineResponse.Message(body, raw)
+            }
             upper.startsWith("INFO") -> return parseInfo(line.substring(4).trim(), coord, raw)
             upper.startsWith("DEBUG") -> return EngineResponse.Debug(line.drop(5).trim(), raw)
             upper.startsWith("ERROR") -> return EngineResponse.Error(line.drop(5).trim(), raw)
@@ -61,6 +64,9 @@ object ResponseParser {
             "BESTLINE" -> EngineResponse.InfoBestline(parseMoveList(value, coord), raw)
             "WINRATE" -> EngineResponse.InfoWinRate(value.toDoubleOrNull() ?: 0.0, raw)
             "EVAL" -> parseEval(value, raw)
+            "NODE", "NODES", "SPEED", "TIME" ->
+                digits(value)?.let { EngineResponse.InfoStat(key.uppercase(), it, raw) }
+                    ?: EngineResponse.Message("INFO $rest", raw)
             else -> EngineResponse.Message("INFO $rest", raw)
         }
     }
@@ -77,6 +83,55 @@ object ResponseParser {
                 EngineResponse.InfoEval(mate = null, cp = token.toIntOrNull(), raw = raw)
         }
     }
+
+    /**
+     * `Depth 2-3 | Eval 814 | Time 1ms | F7 H7` — pipe-separated fields, the
+     * unkeyed segment being the PV in letter labels. Returns null when the body
+     * is an ordinary message so the caller can fall back to [EngineResponse.Message].
+     */
+    private fun parseThinking(body: String, raw: String): EngineResponse.Thinking? {
+        if (!body.startsWith("Depth", ignoreCase = true) || '|' !in body) return null
+        var depth: Int? = null
+        var selDepth: Int? = null
+        var evalCp: Int? = null
+        var mate: Int? = null
+        var timeMs: Long? = null
+        var nodes: Long? = null
+        var speed: Long? = null
+        var line: List<Move> = emptyList()
+
+        for (segment in body.split('|')) {
+            val seg = segment.trim()
+            if (seg.isEmpty()) continue
+            val key = seg.substringBefore(' ').uppercase()
+            val value = seg.substringAfter(' ', "").trim()
+            when (key) {
+                "DEPTH" -> {
+                    depth = value.substringBefore('-').trim().toIntOrNull()
+                    selDepth = value.substringAfter('-', "").trim().toIntOrNull()
+                }
+                "EVAL", "EVALUATION" -> when {
+                    value.startsWith("+M", true) -> mate = value.drop(2).trim().toIntOrNull()
+                    value.startsWith("-M", true) -> mate = value.drop(2).trim().toIntOrNull()?.let { -it }
+                    else -> evalCp = value.toIntOrNull()
+                }
+                "TIME" -> timeMs = value.removeSuffix("ms").trim().toLongOrNull()
+                "NODE", "NODES", "N" -> nodes = digits(value)
+                "SPEED" -> speed = digits(value)
+                else -> {
+                    val moves = seg.split(Regex("\\s+")).mapNotNull { Move.fromLabel(it) }
+                    if (moves.isNotEmpty() && moves.size == seg.split(Regex("\\s+")).size) line = moves
+                }
+            }
+        }
+        return EngineResponse.Thinking(
+            depth, selDepth, evalCp, mate, timeMs, nodes, speed, line, raw,
+        )
+    }
+
+    /** Leading digits of e.g. "12345k" / "1.2M" -> plain count where possible. */
+    private fun digits(value: String): Long? =
+        Regex("""\d+""").find(value)?.value?.toLongOrNull()
 
     /** `MESSAGE REALTIME <sub>` overlays. Sub-tokens matched like the desktop. */
     private fun parseRealtime(rest: String, coord: CoordMapper, raw: String): EngineResponse {

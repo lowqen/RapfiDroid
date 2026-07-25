@@ -51,6 +51,9 @@ class RankingsRepositoryImpl @Inject constructor(
 
     override suspend fun shapeTotal(): Int = withContext(io) { rank5.total() }
 
+    override fun rank5Error(): String? =
+        rank5.loadError?.let { it.message ?: it.javaClass.simpleName }
+
     override suspend fun matchPlayers(query: String): List<PlayerRef> {
         val bundle = freqStore.bundle.value ?: return emptyList()
         return withContext(io) { FreqAnalyzer.matchPlayers(bundle, query) }
