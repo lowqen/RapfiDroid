@@ -8,7 +8,9 @@ package dev.gomoku.yixindroid.core.model
  *
  * Field order and command spelling follow main.c (`set_rule`, `set_level`,
  * `set_cautionfactor`, `set_threadnum`, `set_hashsize`, `set_pondering`,
- * `set_vcthread`). This is also the seed for the full settings work (P4).
+ * `set_vcthread`, plus `info usedatabase` / `info nbestsym`). Build one from the
+ * user's settings with [AppSettings.toEngineParams]; the standalone defaults
+ * exist so the engine is never left unconfigured before the settings load.
  */
 data class EngineParams(
     /** Engine rule: 0 freestyle, 1 standard, 2 free renju (settings.txt line 3). */
@@ -16,11 +18,12 @@ data class EngineParams(
     val boardSize: Int = Move.DEFAULT_SIZE,
     /** 0 = unlimited time, 1 = custom, 2..12 = predefined (settings.txt line 6). */
     val level: Int = 0,
-    /** Used only when [level] == 1. */
-    val timeoutTurnMs: Long = 2_000,
-    val timeoutMatchMs: Long = 100_000,
+    /** Used only when [level] == 1. Milliseconds (settings.txt stores seconds). */
+    val timeoutTurnMs: Long = 2_000_000,
+    val timeoutMatchMs: Long = 100_000_000,
     val maxDepth: Int = 100,
     val maxNode: Long = 1_000_000_000,
+    /** Milliseconds; settings.txt line 29 already stores ms. */
     val incrementMs: Int = 0,
     /** Style, rash 0 .. cautious 5 (settings.txt line 11). */
     val cautionFactor: Int = 3,
@@ -29,8 +32,15 @@ data class EngineParams(
     val pondering: Int = 0,
     /** Additional threat check in global search: 0 none, 1 VCT, 2 VC2. */
     val vcThread: Int = 0,
-    /** Default multi-PV count (settings.txt line 20). */
+    /** Default multi-PV count (settings.txt line 20). Not an `INFO` key: the
+     *  desktop passes it as `yxnbest <n>` per search. */
     val multiPv: Int = 3,
+    /** `info usedatabase` (settings.txt line 32). */
+    val useDatabase: Boolean = true,
+    /** `info database_readonly` (settings.txt line 33) — always pushed. */
+    val databaseReadonly: Boolean = false,
+    /** `info nbestsym` (settings.txt line 38). */
+    val nbestSym: Boolean = false,
 ) {
     /**
      * `INFO key value` pairs in the desktop's order. `INFO rule` comes first so the
@@ -38,7 +48,7 @@ data class EngineParams(
      * restart when the rule changes).
      */
     fun infoPairs(): List<Pair<String, String>> = buildList {
-        add("rule" to rule.toString())
+        add("rule" to rule.coerceIn(0, 2).toString())
         addAll(levelPairs())
         add("caution_factor" to cautionFactor.coerceIn(0, MAX_CAUTION).toString())
         add("thread_num" to threadNum.coerceAtLeast(1).toString())
@@ -46,6 +56,11 @@ data class EngineParams(
         add("hash_size" to (hashSizeMb.coerceAtLeast(1).toLong() shl 10).toString())
         add("pondering" to pondering.coerceIn(0, 1).toString())
         add("vcthread" to vcThread.coerceIn(0, 2).toString())
+        add("usedatabase" to bit(useDatabase))
+        // Never inherited from the engine's config: a server-side readonly = true
+        // silently discards every search result and DB edit (main.c:14467).
+        add("database_readonly" to bit(databaseReadonly))
+        add("nbestsym" to bit(nbestSym))
     }
 
     /** Ported from `set_level`: level 1 uses the custom values, everything else
@@ -71,6 +86,16 @@ data class EngineParams(
                 "time_increment" to "0",
             )
         }
+
+    private fun bit(on: Boolean) = if (on) "1" else "0"
+
+    /**
+     * Rule and board size are baked in by `START`, so changing either needs a
+     * fresh handshake rather than a plain `INFO` push (the desktop raises
+     * `isneedrestart` for exactly these).
+     */
+    fun needsRestart(other: EngineParams): Boolean =
+        rule != other.rule || boardSize != other.boardSize
 
     companion object {
         private const val MAX_CAUTION = 5

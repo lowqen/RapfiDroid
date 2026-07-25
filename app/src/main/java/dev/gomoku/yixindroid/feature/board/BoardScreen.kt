@@ -2,8 +2,10 @@ package dev.gomoku.yixindroid.feature.board
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,8 +31,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,6 +50,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
+import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.PvSnapshot
 
 private val StoneBlack = Color(0xFF1C1A17)
@@ -53,6 +62,7 @@ fun BoardScreen(
     viewModel: BoardViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    var confirmReset by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -62,16 +72,20 @@ fun BoardScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         EvalHeader(ui)
-        EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate)
-        WinRateGraph(ui.winRateHistory, ui.moveCount)
-        GomokuBoard(render = ui.render, onTap = viewModel::onTap)
+        // settings_dev.txt lines 1 and 2 — the desktop's own two toggles.
+        if (ui.showEvalBar) EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate)
+        if (ui.showWrGraph) WinRateGraph(ui.winRateHistory, ui.moveCount)
+        ZoomableBoard(ui, viewModel::onTap)
         StatusBar(ui)
         Controls(
             analyzing = ui.analyzing,
             canAnalyze = ui.canAnalyze,
             multiPv = ui.multiPv,
             onUndo = viewModel::onUndo,
-            onReset = viewModel::onReset,
+            onReset = {
+                // settings.txt line 17: warn before throwing the game away.
+                if (ui.showWarning && ui.moveCount > 0) confirmReset = true else viewModel.onReset()
+            },
             onToggle = viewModel::onToggleAnalyze,
             onMultiPv = viewModel::onMultiPvChange,
         )
@@ -81,6 +95,47 @@ fun BoardScreen(
             previewPv = ui.previewPv,
             onPreview = viewModel::onPreviewPv,
         )
+    }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("판을 초기화할까요?") },
+            text = { Text("${ui.moveCount}수를 모두 지웁니다. 되돌릴 수 없습니다.") },
+            confirmButton = {
+                Button(onClick = {
+                    confirmReset = false
+                    viewModel.onReset()
+                }) { Text("초기화") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmReset = false }) { Text("취소") }
+            },
+        )
+    }
+}
+
+/**
+ * The board at the user's zoom (settings_dev line 8). Above 100 % it is wider
+ * than the screen and scrolls sideways; the page itself scrolls vertically, so
+ * the two axes never nest.
+ */
+@Composable
+private fun ZoomableBoard(ui: BoardUiState, onTap: (Move) -> Unit) {
+    val scale = ui.boardScale
+    if (scale <= 1f) {
+        GomokuBoard(
+            render = ui.render,
+            modifier = Modifier.fillMaxWidth(scale),
+            onTap = onTap,
+        )
+        return
+    }
+    BoxWithConstraints {
+        val width = maxWidth * scale
+        Row(Modifier.horizontalScroll(rememberScrollState())) {
+            GomokuBoard(render = ui.render, modifier = Modifier.width(width), onTap = onTap)
+        }
     }
 }
 

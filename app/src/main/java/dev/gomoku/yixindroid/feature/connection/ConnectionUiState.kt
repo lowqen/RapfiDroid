@@ -10,7 +10,14 @@ data class ConnectionUiState(
     val state: ConnectionState = ConnectionState.Disconnected,
     val console: List<ConsoleLine> = emptyList(),
     val commandDraft: String = "",
+    /** settings.txt line 13 — the desktop's "show log". */
+    val showLog: Boolean = true,
+    /** settings.txt line 37 — console text scale in percent. */
+    val logScalePercent: Int = 140,
 ) {
+    /** Console font multiplier; 100 % = the app's default size. */
+    val logScale: Float get() = (logScalePercent.coerceIn(50, 300)) / 100f
+
     val canConnect: Boolean
         get() = state is ConnectionState.Disconnected || state is ConnectionState.Error
 

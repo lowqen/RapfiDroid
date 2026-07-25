@@ -19,6 +19,7 @@ import androidx.navigation.compose.rememberNavController
 import dev.gomoku.yixindroid.feature.board.BoardScreen
 import dev.gomoku.yixindroid.feature.connection.ConnectionScreen
 import dev.gomoku.yixindroid.feature.rankings.RankingsScreen
+import dev.gomoku.yixindroid.feature.settings.SettingsScreen
 import dev.gomoku.yixindroid.ui.PlaceholderScreen
 
 @Composable
@@ -63,6 +64,9 @@ fun YixinApp() {
             }
             composable(Destination.Rankings.route) {
                 RankingsScreen()
+            }
+            composable(Destination.Settings.route) {
+                SettingsScreen()
             }
             composable(Destination.Connect.route) {
                 ConnectionScreen()

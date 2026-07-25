@@ -31,6 +31,7 @@ data class BoardRender(
     val tags: Map<Move, CellTag> = emptyMap(),    // per-cell winrate / mate labels
     val candidates: Map<Move, CandidateState> = emptyMap(), // realtime POS/DONE
     val loseCells: Set<Move> = emptySet(),        // realtime LOSE
+    val showNumbers: Boolean = true,              // settings.txt line 14
     val palette: TagPalette = TagPalette(),       // saturation/value settings
 )
 
@@ -159,10 +160,11 @@ fun GomokuBoard(
             }
         }
 
-        // played stones with move numbers
+        // played stones, numbered unless "show number" is off (settings.txt line 14)
         render.stones.forEachIndexed { i, m ->
             val black = i % 2 == 0
-            drawStone(cx(m.x), cy(m.y), radius, black, "${i + 1}", alpha = 1f)
+            val number = if (render.showNumbers) "${i + 1}" else ""
+            drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 1f)
         }
 
         // last-move ring
@@ -175,7 +177,8 @@ fun GomokuBoard(
         val start = render.stones.size
         render.ghosts.forEachIndexed { i, m ->
             val black = (start + i) % 2 == 0
-            drawStone(cx(m.x), cy(m.y), radius, black, "${i + 1}", alpha = 0.4f)
+            val number = if (render.showNumbers) "${i + 1}" else ""
+            drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 0.4f)
         }
 
         // best-move highlight

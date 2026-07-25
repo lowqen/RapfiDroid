@@ -6,6 +6,7 @@ import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.data.prefs.EndpointStore
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
+import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +22,7 @@ import javax.inject.Inject
 class ConnectionViewModel @Inject constructor(
     private val repository: EngineRepository,
     private val endpointStore: EndpointStore,
+    settingsRepository: SettingsRepository,
 ) : ViewModel() {
 
     private val host = MutableStateFlow(EngineEndpoint.DEFAULT_HOST)
@@ -28,14 +30,25 @@ class ConnectionViewModel @Inject constructor(
     private val draft = MutableStateFlow("")
     private val consoleLines = MutableStateFlow(ConsoleBuffer())
 
+    // combine takes five flows at most, so host+port travel as one pair.
+    private val endpoint = combine(host, port) { h, p -> h to p }
+
     val uiState: StateFlow<ConnectionUiState> =
-        combine(host, port, repository.state, consoleLines, draft) { h, p, st, buffer, d ->
+        combine(
+            endpoint,
+            repository.state,
+            consoleLines,
+            draft,
+            settingsRepository.settings,
+        ) { (h, p), st, buffer, d, config ->
             ConnectionUiState(
                 host = h,
                 port = p,
                 state = st,
                 console = buffer.lines,
                 commandDraft = d,
+                showLog = config.showLog,
+                logScalePercent = config.logScale,
             )
         }.stateIn(
             scope = viewModelScope,

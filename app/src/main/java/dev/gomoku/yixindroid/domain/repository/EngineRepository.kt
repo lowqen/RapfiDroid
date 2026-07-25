@@ -4,6 +4,7 @@ import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
+import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.Move
@@ -23,14 +24,18 @@ interface EngineRepository {
     val responses: SharedFlow<EngineResponse>
     val console: SharedFlow<ConsoleLine>
 
+    /** Limits the engine reported (thread/hash maxima); empty until it does. */
+    val capabilities: StateFlow<EngineCapabilities>
+
     suspend fun connect(endpoint: EngineEndpoint)
     suspend fun send(command: EngineCommand)
     fun disconnect()
 
     /**
      * Push engine parameters (rule, level, threads, hash, …) and remember them
-     * for later reconnects. They are also sent automatically on connect, since
-     * without them Rapfi analyses with its own config instead of the desktop's.
+     * for later reconnects. They are also sent automatically on connect and
+     * whenever the settings change, since without them Rapfi analyses with its
+     * own config instead of the user's.
      */
     suspend fun applyParams(params: EngineParams)
 

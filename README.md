@@ -4,10 +4,17 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
 `../test-yixin/docs/안드로이드_앱_아키텍처_계획.md` 참고.
 
 이 저장소는 현재 **P0(스캐폴드) + P1(엔진 통신 모듈) + P2(보드 UI·분석·파서 확장)
-+ P3(3수/5수 랭킹 대시보드) + P6(분석 표시 완성)** 까지 구현되어 있다.
++ P3(3수/5수 랭킹 대시보드) + P6(분석 표시 완성) + P4(설정 67개)** 까지 구현되어 있다.
 
 > 전체 로드맵은 `test-yixin/docs/안드로이드_전체기능_이식_계획.md`(v2)를 따른다.
-> Yixin.exe의 설정 67개·DB 기능·대국 기능 대부분은 아직 미구현이며 P4·P5·P7~P11에 있다.
+> Yixin.exe의 DB 기능·대국 기능은 아직 미구현이며 P5·P7~P11에 있다.
+
+**P4 핵심**: 데스크톱이 쓰는 `settings.txt`(47줄) + `settings_dev.txt`(20줄) = **67개
+설정 전부**를 `DesktopSettings` 선언표 하나로 모델링한다. 표의 위치가 곧 줄 번호이고,
+그 표가 파일 코덱·설정 화면·`INFO` 전송을 모두 구동하므로 어느 한쪽만 빠질 수 없다.
+설정 화면에서 PC의 두 파일을 **그대로 불러오기/내보내기**할 수 있다(SAF).
+단위 함정 3건은 `AppSettings.toEngineParams()`가 한곳에서 흡수한다 —
+시간 제한은 파일이 초·엔진이 ms, 수당 증가는 양쪽 ms, 해시는 MB→KB(`<<10`).
 
 **P6 핵심**: 엔진 핸드셰이크에 `info show_detail 3` + `yxshowinfo`가 없으면 Rapfi가
 `INFO PV/DEPTH/EVAL/WINRATE/BESTLINE`을 보내지 않아 분석이 화면에 전혀 안 나온다.
@@ -31,8 +38,8 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
   - `EngineService` — 세션 유지용 Foreground Service
 - **연결 화면**(`feature/connection`) — 서버 IP/포트 입력, 연결/해제, 상태 칩,
   **piskvork 원시 콘솔**(양방향), 수동 명령 입력. 실서버 왕복·좌표 검증용.
-- **앱 셸** — Material 3 다크 테마, 하단 4탭 내비게이션(보드/익스플로러/랭킹은
-  P2+ 플레이스홀더).
+- **앱 셸** — Material 3 테마(다크/라이트는 설정 27행), 하단 5탭 내비게이션
+  (보드/익스플로러/랭킹/설정/연결).
 - **테스트**(`app/src/test`) — 파서·좌표·명령 직렬화 단위테스트 + 로컬 소켓
   서버를 띄워 `EngineConnection` 왕복을 검증하는 통합테스트.
 
@@ -63,7 +70,8 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 
 - 배포는 **개인 사이드로드** 전용.
 - rank5(순수 계산)만 번들 가능. 오프닝 익스플로러 데이터(`freq_data.json`/팩)는
-  **RenjuNet 파생 → 재배포·스토어 배포 금지**. P4에서 사용자 기기 반입 방식으로 구현.
+  **RenjuNet 파생 → 재배포·스토어 배포 금지**. P3에서 사용자 기기 반입(SAF)으로 구현했고
+  앱은 그 데이터를 절대 내보내지 않는다(설정 내보내기는 `settings*.txt`뿐).
 
 ## P2 (구현됨)
 
@@ -115,7 +123,27 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 바로 `Rankings` 탭에서 이론 랭킹 확인, ③ freq 임포트로 실전 빈도 확인,
 ④ (P1/P2) Tailscale on + `Connect` 탭으로 실서버 왕복·좌표(y,x) 검증.
 
-## 다음 (P4/P5)
+## P4 (구현됨) — 설정 67개
 
-P4 오프닝 익스플로러(PackReader + 국면키 교차검증), P5 수순 탐색기(MoVarSet 포팅).
-그리고 실서버 캡처로 realtime INFO 문법 최종 확인 + 워치독·자동 재연결.
+- **선언표**: `core/model/DesktopSettings` = 47 + 20 항목. `line = 표 위치`,
+  `build()`가 47/20을 `require`로 검증. 항목마다 파일·줄·주석(원문 그대로)·라벨·
+  카테고리·편집기·`INFO` 키·주의사항을 갖는다.
+- **모델**: `AppSettings`(@Serializable, 67 필드, 선언 순서 = 파일 순서),
+  `toEngineParams()`가 단위 변환과 규칙 환원(오프닝 룰 3~6 → 엔진 0/1/2)을 담당.
+- **코덱**: `domain/settings/SettingsCodec` — 데스크톱 텍스트 왕복. 위치 기반 파싱을
+  그대로 재현하고 **예약 슬롯(dev 9행)·일회성 표시(dev 20행)도 읽고 그대로 쓴다**.
+- **영속**: `SettingsStore`(DataStore, JSON 한 덩어리 → 원자적 갱신·마이그레이션 불필요),
+  `SettingsRepository`가 앱 전체의 단일 진원.
+- **엔진 반영**: 설정이 바뀌면 **달라진 `INFO`만** 재전송, 규칙·보드크기 변경 시
+  핸드셰이크 재수행. `usedatabase`/`database_readonly`/`nbestsym` 추가,
+  `hash autoclear`는 탐색 직전 `yxhashclear`. 엔진이 알려주는
+  `MAX_THREAD_NUM`/`MAX_HASH_SIZE`로 스레드·해시 상한을 조인다.
+- **화면**: `feature/settings` — 검색·카테고리 필터·행마다 출처(`settings.txt 37행`,
+  `INFO thread_num`)·PC 기본값과 다른 항목 표시, SAF로 두 파일 불러오기/내보내기.
+- **테스트**: `SettingsCodecTest`(14) — 배포된 두 파일을 바이트 단위로 임베드해 고정.
+
+## 다음 (P7)
+
+P7 데이터베이스 전체(값·주석 표시, 저장/로드/신규, 자동저장, 삭제 12종, 병합/분할,
+Lib·CSV 입출력). 이후 P5(대국) → P8(기보 I/O·리뷰·증명) → P9(오프닝/수순 탐색기)
+→ P10(엔진 운용) → P11(외관·안정화). 상세는 계획서 §5.

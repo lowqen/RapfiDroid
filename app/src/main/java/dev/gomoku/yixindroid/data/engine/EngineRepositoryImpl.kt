@@ -6,6 +6,7 @@ import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
+import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.Move
@@ -16,6 +17,7 @@ import dev.gomoku.yixindroid.domain.engine.EngineResponse
 import dev.gomoku.yixindroid.domain.engine.ResponseParser
 import dev.gomoku.yixindroid.domain.engine.SearchAggregator
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
+import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -26,12 +28,15 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
@@ -40,6 +45,7 @@ import javax.inject.Singleton
 @Singleton
 class EngineRepositoryImpl @Inject constructor(
     private val connection: EngineConnection,
+    private val settingsRepository: SettingsRepository,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EngineRepository {
@@ -49,11 +55,14 @@ class EngineRepositoryImpl @Inject constructor(
     // One coordinate convention for now; becomes a setting in a later phase.
     private val coord = CoordMapper()
 
-    /** Pushed on every connect; P4 will let the settings screen replace it. */
+    /** Mirror of the settings' engine subset; pushed on connect and on change. */
     @Volatile
     private var engineParams = EngineParams()
 
     override val state: StateFlow<ConnectionState> = connection.state
+
+    private val _capabilities = MutableStateFlow(EngineCapabilities())
+    override val capabilities: StateFlow<EngineCapabilities> = _capabilities.asStateFlow()
 
     private val _responses = MutableSharedFlow<EngineResponse>(
         replay = 0,
@@ -73,7 +82,29 @@ class EngineRepositoryImpl @Inject constructor(
         scope.launch {
             connection.incoming.collect { line ->
                 _console.emit(ConsoleLine(outbound = false, text = line))
-                _responses.emit(ResponseParser.parse(line, coord))
+                val response = ResponseParser.parse(line, coord)
+                if (response is EngineResponse.Capability) {
+                    _capabilities.update { it.with(response.key, response.value) }
+                }
+                _responses.emit(response)
+            }
+        }
+        // Settings own the engine parameters. Pushing only what changed keeps the
+        // console readable; rule and board size are baked in by START, so those
+        // need the whole handshake again.
+        scope.launch {
+            settingsRepository.settings.collect { settings ->
+                val next = settings.toEngineParams()
+                val previous = engineParams
+                engineParams = next
+                // Only once the session is settled: pushing mid-handshake would
+                // interleave with the connect sequence.
+                val live = connection.state.value
+                val settled = live is ConnectionState.Ready || live is ConnectionState.Thinking
+                if (!settled || previous == next) return@collect
+                runCatching {
+                    if (next.needsRestart(previous)) handshake() else pushChanges(previous, next)
+                }
             }
         }
     }
@@ -110,6 +141,11 @@ class EngineRepositoryImpl @Inject constructor(
                     aggregator.consume(response)?.let { trySend(it) }
                 }
             }
+            // settings.txt line 25: drop the TT first when the user asked for it,
+            // so a search cannot be biased by the previous position's entries.
+            if (settingsRepository.settings.value.hashAutoClear) {
+                dispatch(EngineCommand.YxHashClear)
+            }
             // No START here: the desktop sends it once in init_engine and then
             // only `yxboard` per analysis (main.c send_board). A START mid-session
             // resets the engine and cost us a redundant round trip.
@@ -130,7 +166,7 @@ class EngineRepositoryImpl @Inject constructor(
         val deferred = scope.async {
             responses.filterIsInstance<EngineResponse.Forbid>().first().cells
         }
-        dispatch(EngineCommand.Start(position.size))
+        // yxboard alone is enough; a START here would reset the session mid-game.
         dispatch(EngineCommand.YxBoard(position.placements()))
         dispatch(EngineCommand.YxShowForbid)
         return withTimeoutOrNull(FORBID_TIMEOUT_MS) { deferred.await() }
@@ -152,24 +188,32 @@ class EngineRepositoryImpl @Inject constructor(
         val params = engineParams
         dispatch(EngineCommand.ShowDetail(SHOW_DETAIL_LEVEL))
         dispatch(EngineCommand.YxShowInfo)
-        dispatch(EngineCommand.DatabaseReadonly(false))
+        dispatch(EngineCommand.DatabaseReadonly(params.databaseReadonly))
         // Rule first, then START, then the rest — exactly the desktop's order.
         // Skipping these left Rapfi on its own config (freestyle rule, default
         // threads/hash), so no score or best move matched the PC.
-        for ((key, value) in params.infoPairs()) {
+        val pairs = params.infoPairs()
+        for ((key, value) in pairs) {
             if (key == RULE_KEY) dispatch(EngineCommand.Info(key, value))
         }
         dispatch(EngineCommand.Start(params.boardSize))
-        for ((key, value) in params.infoPairs()) {
-            if (key != RULE_KEY) dispatch(EngineCommand.Info(key, value))
+        for ((key, value) in pairs) {
+            if (key !in PRE_START_KEYS) dispatch(EngineCommand.Info(key, value))
         }
         connection.markReady()
     }
 
     override suspend fun applyParams(params: EngineParams) {
+        val previous = engineParams
         engineParams = params
-        for ((key, value) in params.infoPairs()) {
-            dispatch(EngineCommand.Info(key, value))
+        if (params.needsRestart(previous)) handshake() else pushChanges(previous, params)
+    }
+
+    /** Only the `INFO` pairs whose value actually changed (all of them on first push). */
+    private suspend fun pushChanges(previous: EngineParams, next: EngineParams) {
+        val before = previous.infoPairs().toMap()
+        for ((key, value) in next.infoPairs()) {
+            if (before[key] != value) dispatch(EngineCommand.Info(key, value))
         }
     }
 
@@ -178,5 +222,9 @@ class EngineRepositoryImpl @Inject constructor(
         const val FORBID_TIMEOUT_MS = 3_000L
         const val SHOW_DETAIL_LEVEL = 3
         const val RULE_KEY = "rule"
+
+        /** Sent before START: the rule is baked in by it, and the desktop pushes
+         *  the read-only flag there too (as lowercase `info database_readonly`). */
+        val PRE_START_KEYS = setOf(RULE_KEY, "database_readonly")
     }
 }

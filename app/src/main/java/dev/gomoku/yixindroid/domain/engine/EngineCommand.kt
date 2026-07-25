@@ -74,6 +74,11 @@ sealed interface EngineCommand {
         override fun serialize(coord: CoordMapper) = "YXSHOWFORBID"
     }
 
+    /** Drop the transposition table (settings.txt line 25, "hash autoclear"). */
+    data object YxHashClear : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxhashclear"
+    }
+
     data object TakeBack : EngineCommand {
         override fun serialize(coord: CoordMapper) = "TAKEBACK"
     }

@@ -8,13 +8,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.theme.YixinDroidTheme
+import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import dev.gomoku.yixindroid.navigation.YixinApp
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    /** Injected directly: the theme must follow settings.txt line 27 (dark mode)
+     *  before any screen — and therefore any ViewModel — exists. */
+    @Inject
+    lateinit var settings: SettingsRepository
 
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
@@ -24,7 +33,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         maybeRequestNotifications()
         setContent {
-            YixinDroidTheme {
+            val current by settings.settings.collectAsStateWithLifecycle()
+            YixinDroidTheme(darkTheme = current.darkMode) {
                 YixinApp()
             }
         }

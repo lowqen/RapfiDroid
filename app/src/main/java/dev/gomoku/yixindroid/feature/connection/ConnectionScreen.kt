@@ -112,27 +112,39 @@ private fun ConnectionContent(
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        // settings.txt line 13 ("show log") hides the console entirely, like the
+        // desktop's View ▸ Log toggle; line 37 scales its text.
+        if (ui.showLog) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "piskvork 콘솔",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                IconButton(onClick = onClear) {
+                    Icon(Icons.Filled.Delete, contentDescription = "콘솔 지우기")
+                }
+            }
+
+            Console(
+                lines = ui.console,
+                scale = ui.logScale,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            )
+        } else {
             Text(
-                "piskvork 콘솔",
+                "로그 표시가 꺼져 있습니다 (설정 ▸ 표시 ▸ 로그)",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
             )
-            IconButton(onClick = onClear) {
-                Icon(Icons.Filled.Delete, contentDescription = "콘솔 지우기")
-            }
         }
-
-        Console(
-            lines = ui.console,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-        )
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -178,7 +190,7 @@ private fun StatusChip(state: ConnectionState) {
 }
 
 @Composable
-private fun Console(lines: List<ConsoleLine>, modifier: Modifier = Modifier) {
+private fun Console(lines: List<ConsoleLine>, scale: Float, modifier: Modifier = Modifier) {
     val listState = rememberLazyListState()
     LaunchedEffect(lines.size) {
         if (lines.isNotEmpty()) listState.animateScrollToItem(lines.size - 1)
@@ -195,13 +207,13 @@ private fun Console(lines: List<ConsoleLine>, modifier: Modifier = Modifier) {
                 .fillMaxSize()
                 .padding(horizontal = 10.dp, vertical = 6.dp),
         ) {
-            items(lines) { line -> ConsoleRow(line) }
+            items(lines) { line -> ConsoleRow(line, scale) }
         }
     }
 }
 
 @Composable
-private fun ConsoleRow(line: ConsoleLine) {
+private fun ConsoleRow(line: ConsoleLine, scale: Float) {
     val color = when {
         line.outbound -> MaterialTheme.colorScheme.secondary
         line.text.startsWith("ERROR", ignoreCase = true) -> MaterialTheme.colorScheme.error
@@ -211,7 +223,10 @@ private fun ConsoleRow(line: ConsoleLine) {
     val prefix = if (line.outbound) "» " else "  "
     Text(
         text = prefix + line.text,
-        style = MonoStyle,
+        style = MonoStyle.copy(
+            fontSize = MonoStyle.fontSize * scale,
+            lineHeight = MonoStyle.lineHeight * scale,
+        ),
         color = color,
     )
 }
