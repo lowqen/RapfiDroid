@@ -18,6 +18,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.gomoku.yixindroid.feature.board.BoardScreen
 import dev.gomoku.yixindroid.feature.connection.ConnectionScreen
+import dev.gomoku.yixindroid.feature.database.DatabaseScreen
 import dev.gomoku.yixindroid.feature.rankings.RankingsScreen
 import dev.gomoku.yixindroid.feature.settings.SettingsScreen
 import dev.gomoku.yixindroid.ui.PlaceholderScreen
@@ -64,6 +65,9 @@ fun YixinApp() {
             }
             composable(Destination.Rankings.route) {
                 RankingsScreen()
+            }
+            composable(Destination.Database.route) {
+                DatabaseScreen()
             }
             composable(Destination.Settings.route) {
                 SettingsScreen()

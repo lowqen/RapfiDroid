@@ -3,14 +3,18 @@ package dev.gomoku.yixindroid.feature.board
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
+import dev.gomoku.yixindroid.core.designsystem.component.DbLabel
 import dev.gomoku.yixindroid.core.designsystem.component.TagPalette
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.AppSettings
 import dev.gomoku.yixindroid.core.model.ConnectionState
+import dev.gomoku.yixindroid.core.model.DbOpResult
+import dev.gomoku.yixindroid.core.model.DbState
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.StoneColor
+import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,6 +34,7 @@ import javax.inject.Inject
 class BoardViewModel @Inject constructor(
     private val repository: EngineRepository,
     private val settingsRepository: SettingsRepository,
+    private val database: DatabaseRepository,
 ) : ViewModel() {
 
     private val settings = settingsRepository.settings
@@ -47,15 +52,30 @@ class BoardViewModel @Inject constructor(
     /** Black-perspective win rate per ply, for the win-rate graph. */
     private val winRateHistory = MutableStateFlow<List<Double?>>(emptyList())
 
+    /** One-shot user feedback (a refused database write, mostly). */
+    private val _notice = MutableStateFlow<String?>(null)
+
     private data class Panel(
         val connection: ConnectionState,
         val preview: Int?,
         val analyzing: Boolean,
         val forbidden: List<Move>,
+        val db: DbState,
+        val notice: String?,
     )
 
-    private val panel = combine(repository.state, previewPv, analyzing, forbidden) { c, p, a, f ->
-        Panel(c, p, a, f)
+    private val panel = combine(
+        repository.state, previewPv, analyzing, forbidden, database.state, _notice,
+    ) { values ->
+        @Suppress("UNCHECKED_CAST")
+        Panel(
+            connection = values[0] as ConnectionState,
+            preview = values[1] as Int?,
+            analyzing = values[2] as Boolean,
+            forbidden = values[3] as List<Move>,
+            db = values[4] as DbState,
+            notice = values[5] as String?,
+        )
     }
 
     val uiState: StateFlow<BoardUiState> =
@@ -74,6 +94,9 @@ class BoardViewModel @Inject constructor(
                 showWrGraph = config.showWrGraph,
                 showWarning = config.showWarning,
                 boardZoomPercent = config.boardZoomPercent,
+                db = p.db,
+                dbValue = p.db.value,
+                notice = p.notice,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -88,6 +111,11 @@ class BoardViewModel @Inject constructor(
                     onPositionChanged()
                 }
             }
+        }
+        // The database follows the board: every position change re-queries it,
+        // exactly like the desktop's show_database() call after each move.
+        viewModelScope.launch {
+            position.collect { database.setPosition(it) }
         }
         // Forbidden points depend on the rule, the toggle and whose turn it is.
         viewModelScope.launch {
@@ -211,6 +239,17 @@ class BoardViewModel @Inject constructor(
         } else {
             emptyMap()
         }
+        // yixindb labels: the desktop draws them only while the engine is idle
+        // (main.c:1913 `f == 0 && usedatabase && isthinking == 0`), preferring the
+        // free-form board text over the stored value when that toggle is on.
+        val dbLabels = if (config.useDatabase && !panel.analyzing) {
+            panel.db.snapshot.cells.mapNotNull { (move, cell) ->
+                val text = cell.display(config.showBoardText)
+                if (text.isEmpty()) null else move to DbLabel(text, cell.kindOf())
+            }.toMap()
+        } else {
+            emptyMap()
+        }
         return BoardRender(
             size = pos.size,
             stones = pos.moves,
@@ -221,6 +260,7 @@ class BoardViewModel @Inject constructor(
             tags = tags,
             candidates = if (overlay) snap?.candidates.orEmpty() else emptyMap(),
             loseCells = if (overlay) snap?.loseCells.orEmpty() else emptySet(),
+            dbLabels = dbLabels,
             showNumbers = config.showNumber,
             palette = TagPalette(
                 losingSaturation = config.lossSaturation,
@@ -230,6 +270,44 @@ class BoardViewModel @Inject constructor(
                 value = config.colorValue,
             ),
         )
+    }
+
+    // ---- database actions (P7) ---------------------------------------------
+
+    /**
+     * Long press on a point = the desktop's board-text dialog (Ctrl/middle click,
+     * main.c:2677). It only makes sense on an empty point, and never while the
+     * database is read-only — the desktop returns early in that case too.
+     */
+    fun onCellLabel(cell: Move, label: String) = runDb { database.editCellLabel(cell, label) }
+
+    fun onSaveComment(comment: String) = runDb { database.editComment(comment) }
+
+    /** `dbval` — logs the stored record for this position. */
+    fun onQueryDbValue() = runDb { database.queryValue() }
+
+    fun onQueryDbComment() = runDb { database.queryComment() }
+
+    fun onDbDeleteOne() = runDb { database.deleteOne() }
+
+    fun onDbSetBestMove() = runDb { database.setBestMove() }
+
+    fun onDbClearBestMove() = runDb { database.clearBestMove() }
+
+    fun onDbSave() = runDb { database.save() }
+
+    fun onNoticeShown() {
+        _notice.value = null
+    }
+
+    /** Runs a database call and surfaces a refusal as a notice instead of failing silently. */
+    private fun runDb(block: suspend () -> DbOpResult) {
+        viewModelScope.launch {
+            when (val result = block()) {
+                is DbOpResult.Refused -> _notice.value = result.reason
+                DbOpResult.Sent -> Unit
+            }
+        }
     }
 
     private companion object {

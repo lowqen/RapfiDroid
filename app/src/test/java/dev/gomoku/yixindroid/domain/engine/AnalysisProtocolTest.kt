@@ -94,8 +94,12 @@ class AnalysisProtocolTest {
     fun ordinaryMessageStaysAMessage() {
         assertThat(line("MESSAGE Evaluator set to mix9svq."))
             .isInstanceOf(EngineResponse.Message::class.java)
-        assertThat(line("MESSAGE DATABASE LOAD DONE"))
+        assertThat(line("MESSAGE Saved database file using 0 ms"))
             .isInstanceOf(EngineResponse.Message::class.java)
+        // `MESSAGE DATABASE …` used to land here as well; since P7 it is typed
+        // (see DatabaseProtocolTest) because the database UI needs the fields.
+        assertThat(line("MESSAGE DATABASE LOAD DONE"))
+            .isInstanceOf(EngineResponse.DbFileEvent::class.java)
     }
 
     @Test

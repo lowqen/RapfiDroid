@@ -102,7 +102,7 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { n -> "${file.fileName} $n줄을 불러왔습니다" },
+                        onSuccess = { n -> "${file.fileName} ${n}줄을 불러왔습니다" },
                         onFailure = { e -> "불러오기 실패: ${e.message}" },
                     ),
                 )

@@ -3,6 +3,8 @@ package dev.gomoku.yixindroid.feature.board
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.ConnectionState
+import dev.gomoku.yixindroid.core.model.DbPositionValue
+import dev.gomoku.yixindroid.core.model.DbState
 import dev.gomoku.yixindroid.core.model.SearchStats
 
 data class BoardUiState(
@@ -19,10 +21,24 @@ data class BoardUiState(
     val showWrGraph: Boolean = true,
     val showWarning: Boolean = true,
     val boardZoomPercent: Int = 100,
+    // ---- database (P7) ----
+    val db: DbState = DbState(),
+    /** Position value read from the database, used while the engine is idle. */
+    val dbValue: DbPositionValue? = null,
+    /** Transient message (e.g. a write refused because the DB is read-only). */
+    val notice: String? = null,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
-    val blackWinRate: Double? get() = snapshot?.blackWinRate()
-    val blackMate: Int? get() = snapshot?.blackMate()
+
+    /**
+     * Eval bar source: the live search when there is one, otherwise the stored
+     * database value — the desktop feeds the bar from both
+     * (`evalbar_update_from_engine` / `evalbar_update_from_db`).
+     */
+    val blackWinRate: Double? get() = snapshot?.blackWinRate() ?: dbValue?.blackWinRate
+    val blackMate: Int? get() = snapshot?.blackMate() ?: dbValue?.blackMate
+    val dbActive: Boolean get() = db.enabled && connection.isLive
+    val canEditDb: Boolean get() = db.canWrite(connection.isLive)
     val depth: Int get() = snapshot?.depth ?: 0
     val stats: SearchStats get() = snapshot?.stats ?: SearchStats()
 

@@ -57,6 +57,53 @@ sealed interface EngineResponse {
     /** YXSHOWFORBID result: `FORBID` + "yyxx"* + '.' */
     data class Forbid(val cells: List<Move>, override val raw: String) : EngineResponse
 
+    // ---- MESSAGE DATABASE (yixindb), assembled by DatabaseAggregator ----------
+
+    /**
+     * One child cell: `MESSAGE DATABASE <y> <x> <tag> <v1> <v2> <v3> <v4> <text>`.
+     * [packedTag] holds 1-4 characters packed big-endian (main.c decodes the same
+     * int); [fields] keeps the numeric tail verbatim (the desktop skips it) and
+     * [text] is the free-form label (`%6s`).
+     */
+    data class DbCellValue(
+        val move: Move,
+        val packedTag: Int,
+        val fields: List<Int>,
+        val text: String,
+        override val raw: String,
+    ) : EngineResponse
+
+    /** `MESSAGE DATABASE REFRESH` — drop every cell tag before the new set. */
+    data class DbRefresh(override val raw: String) : EngineResponse
+
+    /** `MESSAGE DATABASE DONE` — end of one query's cell stream. */
+    data class DbDone(override val raw: String) : EngineResponse
+
+    /** `MESSAGE DATABASE ONE <tag> <val> <depth> <bound> [label]`. */
+    data class DbOne(
+        val tag: Int,
+        val value: Int,
+        val depth: Int,
+        val bound: Int,
+        val label: String,
+        override val raw: String,
+    ) : EngineResponse
+
+    /**
+     * `MESSAGE DATABASE TEXT "…"` — the position comment. A comment can span
+     * several physical lines, so the closing quote may be missing here; the
+     * aggregator keeps consuming raw lines until it appears (as main.c does).
+     */
+    data class DbTextLine(val body: String, override val raw: String) : EngineResponse
+
+    /** `MESSAGE DATABASE LOAD|SAVE START <file>` / `… DONE`. */
+    data class DbFileEvent(
+        val saving: Boolean,
+        val started: Boolean,
+        val file: String,
+        override val raw: String,
+    ) : EngineResponse
+
     /** MESSAGE INFO MAX_THREAD_NUM / MAX_HASH_SIZE and similar capabilities. */
     data class Capability(val key: String, val value: String, override val raw: String) : EngineResponse
 

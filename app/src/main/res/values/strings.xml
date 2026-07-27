@@ -4,6 +4,7 @@
     <string name="tab_board">보드</string>
     <string name="tab_explorer">익스플로러</string>
     <string name="tab_rankings">랭킹</string>
+    <string name="tab_database">DB</string>
     <string name="tab_settings">설정</string>
     <string name="tab_connect">연결</string>
 

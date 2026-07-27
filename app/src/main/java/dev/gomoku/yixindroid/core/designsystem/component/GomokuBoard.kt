@@ -15,6 +15,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import dev.gomoku.yixindroid.core.model.CandidateState
 import dev.gomoku.yixindroid.core.model.CellTag
+import dev.gomoku.yixindroid.core.model.DbCellKind
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.TagKind
 import kotlin.math.min
@@ -31,9 +32,17 @@ data class BoardRender(
     val tags: Map<Move, CellTag> = emptyMap(),    // per-cell winrate / mate labels
     val candidates: Map<Move, CandidateState> = emptyMap(), // realtime POS/DONE
     val loseCells: Set<Move> = emptySet(),        // realtime LOSE
+    val dbLabels: Map<Move, DbLabel> = emptyMap(), // yixindb values / board texts
     val showNumbers: Boolean = true,              // settings.txt line 14
     val palette: TagPalette = TagPalette(),       // saturation/value settings
 )
+
+/**
+ * A database label on one point: the stored value (`W5`, `39%`, `D`) or a
+ * free-form board text. Drawn only while the engine is idle, like the desktop
+ * (main.c:1913 — analysis tags win during a search).
+ */
+data class DbLabel(val text: String, val kind: DbCellKind)
 
 /**
  * Colour rules for the analysis tags, mirroring the desktop's saturation
@@ -51,12 +60,27 @@ data class TagPalette(
     fun colorFor(tag: CellTag): Color = when (tag.kind) {
         TagKind.WIN -> hsv(WIN_HUE, winningSaturation / 100f, value / 100f)
         TagKind.LOSE -> hsv(LOSE_HUE, (100 - losingSaturation) / 100f, value / 100f)
-        TagKind.RATE -> {
-            val pct = (tag.winRatePct ?: 50).coerceIn(0, 100) / 100f
-            val sat = (minRateSaturation + (maxRateSaturation - minRateSaturation) *
-                kotlin.math.abs(pct - 0.5f) * 2f) / 100f
-            hsv(if (pct >= 0.5f) WIN_HUE else LOSE_HUE, sat, value / 100f)
-        }
+        TagKind.RATE -> rateColor(tag.winRatePct ?: 50)
+    }
+
+    /**
+     * Database labels use the same scale (main.c colours them with
+     * `winrate2colorstr`: W = 100 %, L = 0 %, D = 50 %, `NN%` = the rate).
+     * Free-form notes get no value colour.
+     */
+    fun colorForDb(kind: DbCellKind, ratePct: Int?): Color = when (kind) {
+        DbCellKind.WIN -> hsv(WIN_HUE, winningSaturation / 100f, value / 100f)
+        DbCellKind.LOSS -> hsv(LOSE_HUE, (100 - losingSaturation) / 100f, value / 100f)
+        DbCellKind.DRAW -> rateColor(50)
+        DbCellKind.RATE -> rateColor(ratePct ?: 50)
+        DbCellKind.NOTE -> NoteColor
+    }
+
+    private fun rateColor(percent: Int): Color {
+        val pct = percent.coerceIn(0, 100) / 100f
+        val sat = (minRateSaturation + (maxRateSaturation - minRateSaturation) *
+            kotlin.math.abs(pct - 0.5f) * 2f) / 100f
+        return hsv(if (pct >= 0.5f) WIN_HUE else LOSE_HUE, sat, value / 100f)
     }
 
     private fun hsv(hue: Float, saturation: Float, v: Float): Color =
@@ -65,6 +89,7 @@ data class TagPalette(
     private companion object {
         const val WIN_HUE = 210f   // blue = good for the side to move
         const val LOSE_HUE = 8f    // red
+        val NoteColor = Color(0xFF5B4636)
     }
 }
 
@@ -75,11 +100,16 @@ private val White = Color(0xFFF5F2EA)
 private val Accent = Color(0xFF81B64C)
 private val Forbid = Color(0xFFE2705F)
 
+/**
+ * @param onLongPress the desktop opens its "board text" dialog on Ctrl+click or
+ *   a middle click (main.c:2677); on a phone a long press is the natural stand-in.
+ */
 @androidx.compose.runtime.Composable
 fun GomokuBoard(
     render: BoardRender,
     modifier: Modifier = Modifier,
     onTap: ((Move) -> Unit)? = null,
+    onLongPress: ((Move) -> Unit)? = null,
 ) {
     val n = render.size
     Canvas(
@@ -87,14 +117,22 @@ fun GomokuBoard(
             .fillMaxWidth()
             .aspectRatio(1f)
             .then(
-                if (onTap != null) {
-                    Modifier.pointerInput(n) {
-                        detectTapGestures { offset ->
+                if (onTap != null || onLongPress != null) {
+                    Modifier.pointerInput(n, onTap, onLongPress) {
+                        fun cellAt(offset: Offset): Move {
                             val step = this.size.width.toFloat() / (n + 1)
                             val col = ((offset.x - step) / step).roundToInt().coerceIn(0, n - 1)
                             val row = ((offset.y - step) / step).roundToInt().coerceIn(0, n - 1)
-                            onTap(Move(col, row))
+                            return Move(col, row)
                         }
+                        detectTapGestures(
+                            onTap = if (onTap != null) { offset -> onTap(cellAt(offset)) } else null,
+                            onLongPress = if (onLongPress != null) {
+                                { offset -> onLongPress(cellAt(offset)) }
+                            } else {
+                                null
+                            },
+                        )
                     }
                 } else {
                     Modifier
@@ -151,12 +189,24 @@ fun GomokuBoard(
         }
 
         // per-cell analysis tags (winrate % / W n / L n) on empty points
+        val occupiedCells = render.stones.toHashSet()
         if (render.tags.isNotEmpty()) {
-            val occupied = render.stones.toHashSet()
             render.tags.forEach { (m, tag) ->
-                if (tag.label.isNotEmpty() && m !in occupied) {
+                if (tag.label.isNotEmpty() && m !in occupiedCells) {
                     drawTag(cx(m.x), cy(m.y), radius, tag.label, render.palette.colorFor(tag))
                 }
+            }
+        }
+
+        // database values / board texts — the desktop draws these while the
+        // engine is idle, and never over an analysis tag for the same point.
+        render.dbLabels.forEach { (m, label) ->
+            if (label.text.isNotEmpty() && m !in occupiedCells && m !in render.tags) {
+                val pct = label.text.dropLast(1).toIntOrNull()
+                drawTag(
+                    cx(m.x), cy(m.y), radius, label.text,
+                    render.palette.colorForDb(label.kind, pct),
+                )
             }
         }
 

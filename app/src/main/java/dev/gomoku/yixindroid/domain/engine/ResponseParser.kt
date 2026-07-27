@@ -14,6 +14,9 @@ object ResponseParser {
     // one or two committed moves: "y,x" or "y,x y2,x2"
     private val bestMove = Regex("""^(\d+)\s*,\s*(\d+)(?:\s+(\d+)\s*,\s*(\d+))?$""")
 
+    /** `boardtext` is a `char[8]` filled with `%6s` on the desktop. */
+    private const val DB_TEXT_MAX = 6
+
     fun parse(rawLine: String, coord: CoordMapper): EngineResponse {
         val raw = rawLine
         val line = rawLine.trim()
@@ -23,6 +26,7 @@ object ResponseParser {
 
         when {
             upper.startsWith("MESSAGE REALTIME") -> return parseRealtime(line.substring(16).trim(), coord, raw)
+            upper.startsWith("MESSAGE DATABASE") -> return parseDatabase(line.substring(16).trim(), coord, raw)
             upper.startsWith("MESSAGE INFO") -> return parseCapability(line.substring(12).trim(), raw)
             upper.startsWith("MESSAGE") -> {
                 val body = line.drop(7).trim()
@@ -156,6 +160,73 @@ object ResponseParser {
     ): EngineResponse {
         val move = coord.parsePair(rest.trim().substringBefore(' '))
         return if (move != null) make(move) else EngineResponse.Unknown(raw)
+    }
+
+    /**
+     * `MESSAGE DATABASE …` — the yixindb stream. main.c dispatches on the first
+     * character of the remainder (REFRESH / DONE / ONE / TEXT / LOAD / SAVE) and
+     * treats everything else as a cell record:
+     *
+     * ```
+     * MESSAGE DATABASE <y> <x> <tag> <v1> <v2> <v3> <v4> <text>
+     * ```
+     *
+     * The desktop consumes exactly seven numbers before the text
+     * (`"%d %d %d %*d %*d %*d %*d %n"`) and keeps only y/x/tag; we keep the tail
+     * too. Fewer numbers than that still parse — y/x/tag are all the UI needs.
+     */
+    private fun parseDatabase(rest: String, coord: CoordMapper, raw: String): EngineResponse {
+        val upper = rest.uppercase()
+        return when {
+            upper.startsWith("REFRESH") -> EngineResponse.DbRefresh(raw)
+            upper.startsWith("DONE") -> EngineResponse.DbDone(raw)
+            upper.startsWith("ONE") -> parseDbOne(rest.drop(3).trim(), raw)
+            upper.startsWith("TEXT") -> EngineResponse.DbTextLine(rest.drop(4).trim(), raw)
+            upper.startsWith("LOAD") -> parseDbFile(rest.drop(4).trim(), saving = false, raw = raw)
+            upper.startsWith("SAVE") -> parseDbFile(rest.drop(4).trim(), saving = true, raw = raw)
+            else -> parseDbCell(rest, coord, raw)
+        }
+    }
+
+    /** `ONE <tag> <val> <depth> <bound> [label]` (main.c:13562). */
+    private fun parseDbOne(rest: String, raw: String): EngineResponse {
+        val parts = rest.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (parts.size < 4) return EngineResponse.Message("DATABASE ONE $rest", raw)
+        val nums = parts.take(4).map { it.toIntOrNull() ?: return EngineResponse.Message("DATABASE ONE $rest", raw) }
+        return EngineResponse.DbOne(
+            tag = nums[0],
+            value = nums[1],
+            depth = nums[2],
+            bound = nums[3],
+            label = parts.drop(4).joinToString(" "),
+            raw = raw,
+        )
+    }
+
+    /** `LOAD|SAVE START <file>` / `LOAD|SAVE DONE` (main.c:13624-13678). */
+    private fun parseDbFile(rest: String, saving: Boolean, raw: String): EngineResponse {
+        val started = rest.uppercase().startsWith("START")
+        val file = if (started) rest.drop(5).trim() else ""
+        return EngineResponse.DbFileEvent(saving = saving, started = started, file = file, raw = raw)
+    }
+
+    private fun parseDbCell(rest: String, coord: CoordMapper, raw: String): EngineResponse {
+        val parts = rest.split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (parts.size < 3) return EngineResponse.Message("DATABASE $rest", raw)
+        val y = parts[0].toIntOrNull() ?: return EngineResponse.Message("DATABASE $rest", raw)
+        val x = parts[1].toIntOrNull() ?: return EngineResponse.Message("DATABASE $rest", raw)
+        val tag = parts[2].toIntOrNull() ?: return EngineResponse.Message("DATABASE $rest", raw)
+        val tail = parts.drop(3)
+        val fields = tail.takeWhile { it.toIntOrNull() != null }.map { it.toInt() }
+        // `%6s`: the desktop stores at most six characters of the free-form text.
+        val text = tail.drop(fields.size).firstOrNull().orEmpty().take(DB_TEXT_MAX)
+        return EngineResponse.DbCellValue(
+            move = coord.fromWire(y, x),
+            packedTag = tag,
+            fields = fields,
+            text = text,
+            raw = raw,
+        )
     }
 
     private fun parseCapability(rest: String, raw: String): EngineResponse {

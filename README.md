@@ -1,13 +1,14 @@
 # YixinDroid
 
-PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계는
-`../test-yixin/docs/안드로이드_앱_아키텍처_계획.md` 참고.
+PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계·로드맵·검증 절차는
+`../test-yixin/docs/YixinDroid_이식_계획.md` 참고(단일 진원).
 
 이 저장소는 현재 **P0(스캐폴드) + P1(엔진 통신 모듈) + P2(보드 UI·분석·파서 확장)
-+ P3(3수/5수 랭킹 대시보드) + P6(분석 표시 완성) + P4(설정 67개)** 까지 구현되어 있다.
++ P3(3수/5수 랭킹 대시보드) + P6(분석 표시 완성) + P4(설정 67개) + P7(데이터베이스 전체)**
+까지 구현되어 있다.
 
-> 전체 로드맵은 `test-yixin/docs/안드로이드_전체기능_이식_계획.md`(v2)를 따른다.
-> Yixin.exe의 DB 기능·대국 기능은 아직 미구현이며 P5·P7~P11에 있다.
+> 목표는 **Yixin.exe의 모든 설정·기능 이식**이며, 대국 기능(룰·시계·스왑)과 연구 도구는
+> 아직 미구현이다 (P5·P8~P11 — 계획서 §4 인벤토리·§5 단계 참고).
 
 **P4 핵심**: 데스크톱이 쓰는 `settings.txt`(47줄) + `settings_dev.txt`(20줄) = **67개
 설정 전부**를 `DesktopSettings` 선언표 하나로 모델링한다. 표의 위치가 곧 줄 번호이고,
@@ -22,10 +23,10 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
 기본값(프리스타일)으로 돌아 **PC Yixin과 결과가 달라진다** — `EngineParams`가
 `test-yixin/settings.txt` 기본값(자유 렌주·4스레드·8192MB·멀티PV 3)을 그대로 전송한다.
 
-> ⚠ 이 코드는 **Android SDK가 없는 환경에서 작성**되어 여기서 컴파일 검증은 하지
-> 못했다. Android Studio(Ladybug 이상, JDK 17)에서 열어 Gradle sync 후 빌드하는
-> 것을 전제로 정확하게 작성했다. 첫 sync 시 Studio가 Gradle 래퍼(jar/gradlew)를
-> 채워준다(또는 `gradle wrapper --gradle-version 8.9`).
+> P0~P4는 Android SDK가 없는 환경에서 작성돼 컴파일 검증 없이 커밋됐다. **P7부터는
+> 로컬 SDK + Android Studio JBR로 `testDebugUnitTest`·`assembleDebug`를 실제로 돌려
+> 확인한다**(현재 99 테스트 통과, APK 빌드 성공). 기기에서의 화면·실서버 동작 확인은
+> 여전히 사용자 몫이다.
 
 ## 무엇이 들어있나 (P1 범위)
 
@@ -38,8 +39,8 @@ PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계�
   - `EngineService` — 세션 유지용 Foreground Service
 - **연결 화면**(`feature/connection`) — 서버 IP/포트 입력, 연결/해제, 상태 칩,
   **piskvork 원시 콘솔**(양방향), 수동 명령 입력. 실서버 왕복·좌표 검증용.
-- **앱 셸** — Material 3 테마(다크/라이트는 설정 27행), 하단 5탭 내비게이션
-  (보드/익스플로러/랭킹/설정/연결).
+- **앱 셸** — Material 3 테마(다크/라이트는 설정 27행), 하단 6탭 내비게이션
+  (보드/익스플로러/랭킹/DB/설정/연결).
 - **테스트**(`app/src/test`) — 파서·좌표·명령 직렬화 단위테스트 + 로컬 소켓
   서버를 띄워 `EngineConnection` 왕복을 검증하는 통합테스트.
 
@@ -96,7 +97,8 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 
 `Rankings` 탭 = 상단 2탭(3수/5수) + 공용 필터 바텀시트.
 
-- **번들 데이터**: `assets/rank5.db.gz`(gzip 4.1MB → 해제 17MB, 206,470행) —
+- **번들 데이터**: `assets/rank5.db.bin`(gzip 4.1MB → 해제 18MB, 206,470행; AGP가
+  `*.gz`를 자동 해제해 버리므로 중립 확장자) —
   이론 5수 전수 랭킹. **순수 계산(RenjuNet 무관) → 번들 가능**. 첫 실행 시
   내부 저장소로 해제·복사, 읽기 전용 SQLite로 오픈(`Rank5Database`, Room 미사용:
   읽기 전용·마이그레이션 없음, prepackaged 식별해시 함정 회피).
@@ -118,7 +120,7 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 
 ## 빌드 & 검증 (Android Studio)
 
-빌드/검증 절차는 `../test-yixin/docs/안드로이드_앱_아키텍처_계획.md` §11 에 정리.
+빌드/검증 절차는 `../test-yixin/docs/YixinDroid_이식_계획.md` §6 에 정리.
 요약: ① Android Studio에서 폴더 열기 → Gradle sync → ▶ Run, ② P3는 서버 없이
 바로 `Rankings` 탭에서 이론 랭킹 확인, ③ freq 임포트로 실전 빈도 확인,
 ④ (P1/P2) Tailscale on + `Connect` 탭으로 실서버 왕복·좌표(y,x) 검증.
@@ -142,8 +144,30 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
   `INFO thread_num`)·PC 기본값과 다른 항목 표시, SAF로 두 파일 불러오기/내보내기.
 - **테스트**: `SettingsCodecTest`(14) — 배포된 두 파일을 바이트 단위로 임베드해 고정.
 
-## 다음 (P7)
+## P7 (구현됨) — 데이터베이스 전체
 
-P7 데이터베이스 전체(값·주석 표시, 저장/로드/신규, 자동저장, 삭제 12종, 병합/분할,
-Lib·CSV 입출력). 이후 P5(대국) → P8(기보 I/O·리뷰·증명) → P9(오프닝/수순 탐색기)
-→ P10(엔진 운용) → P11(외관·안정화). 상세는 계획서 §5.
+`DB` 탭 + 보드 화면 DB 패널. 데이터베이스는 **원격 엔진 옆의 `rapfi.db`** 이므로 모든
+연산이 소켓 명령이고, 파일 경로는 **서버 경로**다.
+
+- **명령**: `DbPositionCommand`(head + `y,x` 줄들 + `done`)로 위치 기반 명령 전부 —
+  조회(`yxquerydatabaseallt/one/text`), 편집(`yxedittextdatabase`·`yxeditlabeldatabase`·
+  `yxedittvddatabase 1/2/4`·최선수 표시), 삭제(`yxdeletedatabaseone`,
+  `yxdeletedatabaseall` 12변형). 파일 연산은 head + 경로(`yxsetdatabase`·`yxdbmerge`·
+  `yxdbsplit`·`yxlibtodb`·`yxdbtolib`·`yxdbtotxt(all)`·`yxtxttodb`·`yxdbtopos`),
+  단일 줄은 `yxsavedatabase`·`yxdbcheck`·`yxdbfix`.
+- **셀 값**: `boardtag`의 1~4자 big-endian 패킹 int를 디코딩(`w39`→`W39`, 수순 0 → `W*`),
+  `showBoardText`가 켜지면 사용자 라벨 우선. 분석 중에는 분석 태그가 이긴다.
+- **국면 값**: `evalbar_update_from_db` 포팅 — 최선 자식값 = 국면값. 엔진 값이 없을 때
+  평가바를 이 값으로 채운다.
+- **조회 페어링**: `dbqueryseq`/`dbdoneseq` 그대로 — 늦게 도착한 이전 국면의 응답이
+  국면값(메이트 부호)을 뒤집지 못한다.
+- **자동 저장**: 엔진이 Ready(유휴)일 때만, 1분 틱으로 간격을 세어 즉시 반영.
+- **가드**: 미연결 / DB 꺼짐 / 읽기 전용은 클라이언트에서 거부하고 이유를 표시한다.
+  **일괄 삭제·분할은 기본 잠금**(DB 화면 스위치로 해제), 삭제 확인은 settings.txt 35행.
+- **테스트**: `DatabaseProtocolTest`(31) + `DatabaseRepositoryTest`(11) → 전체 99개 통과.
+
+## 다음 (P5)
+
+P5 대국 기능(룰 8종·보드 크기·컴퓨터 흑/백·Play/Stop·Undo·Redo All·시계·스왑 대화상자).
+이후 P8(기보 I/O·리뷰·증명·큐) → P9(오프닝/수순 탐색기) → P10(엔진 운용) →
+P11(외관·안정화). 상세는 계획서 §5.
