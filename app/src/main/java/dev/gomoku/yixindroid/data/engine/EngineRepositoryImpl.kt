@@ -174,6 +174,33 @@ class EngineRepositoryImpl @Inject constructor(
     }
 
     /**
+     * Balance search. The desktop does exactly three things (main.c:10862):
+     * push the board, mark itself as thinking, send `yxbalanceone|two <bias>`.
+     * The answer arrives on the ordinary best-move channel — one coordinate, or
+     * two for `balancetwo`, which is why the parser accepts a pair.
+     *
+     * There is no time limit of our own: the engine stops when its own budget
+     * runs out or when the user presses stop. The cap below only keeps a lost
+     * reply from pinning the UI in "thinking" forever.
+     */
+    override suspend fun balance(position: Position, two: Boolean, bias: Int): List<Move> {
+        val deferred = scope.async {
+            responses.filterIsInstance<EngineResponse.BestMove>().first().moves
+        }
+        dispatch(EngineCommand.YxBoard(position.placements()))
+        dispatch(EngineCommand.YxBalance(two = two, bias = bias))
+        connection.markThinking()
+        return try {
+            withTimeoutOrNull(BALANCE_TIMEOUT_MS) { deferred.await() }
+                ?: emptyList<Move>().also { deferred.cancel() }
+        } finally {
+            connection.markSettled()
+        }
+    }
+
+    override suspend fun stop() = dispatch(EngineCommand.YxStop)
+
+    /**
      * Handshake, ported from the desktop `init_engine()` (main.c:14460). The
      * order matters and the first two lines are **not optional**: they switch
      * Rapfi into the detailed output mode that emits `INFO PV/DEPTH/EVAL/
@@ -220,6 +247,9 @@ class EngineRepositoryImpl @Inject constructor(
     private companion object {
         const val CONSOLE_REPLAY = 300
         const val FORBID_TIMEOUT_MS = 3_000L
+
+        /** Balance searches are user-budgeted; this is only a leak guard. */
+        const val BALANCE_TIMEOUT_MS = 15 * 60_000L
         const val SHOW_DETAIL_LEVEL = 3
         const val RULE_KEY = "rule"
 

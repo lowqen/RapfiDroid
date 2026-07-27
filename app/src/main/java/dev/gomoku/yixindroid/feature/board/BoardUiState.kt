@@ -27,8 +27,24 @@ data class BoardUiState(
     val dbValue: DbPositionValue? = null,
     /** Transient message (e.g. a write refused because the DB is read-only). */
     val notice: String? = null,
+    // ---- toolbar ----
+    /** Moves undone but still redoable (the desktop's `movepath` tail). */
+    val futureCount: Int = 0,
+    val balancing: Boolean = false,
+    /** The line in the desktop's clipboard format ("h8i9…", `getpos`). */
+    val positionString: String = "",
 ) {
     val canAnalyze: Boolean get() = connection.isLive
+    val canUndo: Boolean get() = moveCount > 0
+    val canRedo: Boolean get() = futureCount > 0
+    val busy: Boolean get() = analyzing || balancing
+
+    /**
+     * Shape transforms need stones. An ordinary analysis simply restarts on the
+     * new shape, but a balance search would come back with coordinates for the
+     * old one, so those block the transform buttons.
+     */
+    val canTransform: Boolean get() = moveCount > 0 && !balancing
 
     /**
      * Eval bar source: the live search when there is one, otherwise the stored

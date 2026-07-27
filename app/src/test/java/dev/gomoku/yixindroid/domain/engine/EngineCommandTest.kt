@@ -33,4 +33,27 @@ class EngineCommandTest {
         assertThat(EngineCommand.YxNbest(4).serialize(coord)).isEqualTo("YXNBEST 4")
         assertThat(EngineCommand.Raw("ABOUT").serialize(coord)).isEqualTo("ABOUT")
     }
+
+    /** `balance1` / `balance1 100` / `balance2` (main.c:10864). */
+    @Test
+    fun balanceMatchesTheDesktopCommand() {
+        assertThat(EngineCommand.YxBalance(two = false).serialize(coord))
+            .isEqualTo("yxbalanceone 0")
+        assertThat(EngineCommand.YxBalance(two = false, bias = 100).serialize(coord))
+            .isEqualTo("yxbalanceone 100")
+        assertThat(EngineCommand.YxBalance(two = true).serialize(coord))
+            .isEqualTo("yxbalancetwo 0")
+    }
+
+    /**
+     * A balance-two answer arrives as two coordinates on one line, and both are
+     * played (main.c:13950).
+     */
+    @Test
+    fun aBalanceTwoReplyParsesAsTwoMoves() {
+        val response = ResponseParser.parse("7,7 8,8", coord)
+        assertThat(response).isInstanceOf(EngineResponse.BestMove::class.java)
+        assertThat((response as EngineResponse.BestMove).moves)
+            .containsExactly(Move(x = 7, y = 7), Move(x = 8, y = 8)).inOrder()
+    }
 }

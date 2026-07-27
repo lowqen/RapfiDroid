@@ -1,5 +1,6 @@
 package dev.gomoku.yixindroid.feature.board
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
@@ -8,10 +9,15 @@ import dev.gomoku.yixindroid.core.designsystem.component.TagPalette
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.AppSettings
+import dev.gomoku.yixindroid.core.model.BoardShift
+import dev.gomoku.yixindroid.core.model.BoardSymmetry
+import dev.gomoku.yixindroid.core.model.BoardTransform
 import dev.gomoku.yixindroid.core.model.ConnectionState
+import dev.gomoku.yixindroid.data.board.BoardImageIo
 import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.DbState
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.MoveCursor
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.StoneColor
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
@@ -35,6 +41,7 @@ class BoardViewModel @Inject constructor(
     private val repository: EngineRepository,
     private val settingsRepository: SettingsRepository,
     private val database: DatabaseRepository,
+    private val imageIo: BoardImageIo,
 ) : ViewModel() {
 
     private val settings = settingsRepository.settings
@@ -46,6 +53,16 @@ class BoardViewModel @Inject constructor(
 
     /** Renju forbidden points for the current position (settings.txt line 30). */
     private val forbidden = MutableStateFlow<List<Move>>(emptyList())
+
+    /**
+     * The moves undone but not thrown away. The desktop keeps the whole line in
+     * `movepath` with `piecenum` as a cursor, so redo/"jump to end" replay it
+     * (main.c `change_piece`); this is the same tail, held separately.
+     */
+    private val future = MutableStateFlow<List<Move>>(emptyList())
+
+    /** A balance search is running (desktop `balance1` / `balance2`). */
+    private val balancing = MutableStateFlow(false)
 
     private var analyzeJob: Job? = null
 
@@ -62,10 +79,13 @@ class BoardViewModel @Inject constructor(
         val forbidden: List<Move>,
         val db: DbState,
         val notice: String?,
+        val future: List<Move>,
+        val balancing: Boolean,
     )
 
     private val panel = combine(
         repository.state, previewPv, analyzing, forbidden, database.state, _notice,
+        future, balancing,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -75,6 +95,8 @@ class BoardViewModel @Inject constructor(
             forbidden = values[3] as List<Move>,
             db = values[4] as DbState,
             notice = values[5] as String?,
+            future = values[6] as List<Move>,
+            balancing = values[7] as Boolean,
         )
     }
 
@@ -97,6 +119,9 @@ class BoardViewModel @Inject constructor(
                 db = p.db,
                 dbValue = p.db.value,
                 notice = p.notice,
+                futureCount = p.future.size,
+                balancing = p.balancing,
+                positionString = BoardTransform.toPositionString(pos.moves, pos.size),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -128,26 +153,142 @@ class BoardViewModel @Inject constructor(
     fun onTap(move: Move) {
         if (position.value.moves.contains(move)) return
         previewPv.value = null
+        // main.c:2182 — replaying the move that is already stored keeps the redo
+        // tail; a different move means the line diverged, so the tail is dropped.
+        future.value = MoveCursor.tailAfter(future.value, move)
         position.value = position.value.play(move)
         onPositionChanged()
     }
 
-    fun onUndo() {
-        if (position.value.moves.isEmpty()) return
+    /** One move back (`undo one`), remembering it for redo. */
+    fun onUndo() = jumpTo(position.value.moves.size - 1)
+
+    /** One move forward along the remembered line (`redo one`). */
+    fun onRedo() = jumpTo(position.value.moves.size + 1)
+
+    /** Back to the empty board without losing the line (`undo all`). */
+    fun onFirst() = jumpTo(0)
+
+    /** Forward to the end of the line (`redo all`). */
+    fun onLast() = jumpTo(Int.MAX_VALUE)
+
+    /**
+     * Move the cursor along the full line, exactly like the desktop's
+     * `change_piece`: it replays `movepath` up to `p`, so the moves on either
+     * side of the cursor are never lost.
+     */
+    private fun jumpTo(target: Int) {
+        val pos = position.value
+        val (played, tail) = MoveCursor.splitAt(pos.moves + future.value, target)
+        if (played.size == pos.moves.size) return
         previewPv.value = null
-        position.value = position.value.undo()
+        position.value = pos.copy(moves = played)
+        future.value = tail
         onPositionChanged()
     }
 
+    /** Discard the game (`clear`). Unlike navigation this drops the redo tail. */
     fun onReset() {
         previewPv.value = null
+        future.value = emptyList()
         position.value = Position(size = settings.value.boardSize)
         winRateHistory.value = emptyList()
         onPositionChanged()
     }
 
-    fun onToggleAnalyze() {
-        if (analyzing.value) stopAnalysis() else startAnalysis()
+    fun onStartAnalyze() {
+        if (!analyzing.value) startAnalysis()
+    }
+
+    /**
+     * Stop button: ends whichever search is running. A balance search is stopped
+     * through the engine (`YXSTOP`), which makes it report its current best move
+     * — the same thing the desktop's stop button does mid-`balance`.
+     */
+    fun onStopAnalyze() {
+        if (analyzing.value) stopAnalysis()
+        if (balancing.value) viewModelScope.launch { runCatching { repository.stop() } }
+    }
+
+    /**
+     * `rotate` / `flip`: transform the whole shape. The desktop replays the
+     * transformed path from an empty board, so colours and numbering survive and
+     * the redo tail is dropped (main.c:10194-10266).
+     */
+    fun onSymmetry(symmetry: BoardSymmetry) {
+        val pos = position.value
+        if (pos.moves.isEmpty()) return
+        applyLine(BoardTransform.symmetry(pos.moves, pos.size, symmetry))
+    }
+
+    /**
+     * `move [^,v,<,>]`: shift every stone one point. The desktop refuses the
+     * whole shift if any stone would leave the board (main.c:10304) rather than
+     * clipping the shape.
+     */
+    fun onShift(direction: BoardShift) {
+        val pos = position.value
+        if (pos.moves.isEmpty()) return
+        val shifted = BoardTransform.shift(pos.moves, pos.size, direction)
+        if (shifted == null) {
+            _notice.value = "판 밖으로 나가는 수가 있어 이동할 수 없습니다"
+            return
+        }
+        applyLine(shifted)
+    }
+
+    /** Replace the position with [moves] (transform result / pasted line). */
+    private fun applyLine(moves: List<Move>) {
+        previewPv.value = null
+        future.value = emptyList()
+        winRateHistory.value = emptyList()
+        position.value = position.value.copy(moves = moves)
+        onPositionChanged()
+    }
+
+    /** `putpos`: load a line from the desktop's clipboard format ("h8i9…"). */
+    fun onLoadPositionString(text: String) {
+        val size = position.value.size
+        val moves = BoardTransform.fromPositionString(text.trim(), size)
+        if (moves.isEmpty()) {
+            _notice.value = "국면 문자열을 읽을 수 없습니다"
+            return
+        }
+        applyLine(moves)
+        _notice.value = "${moves.size}수를 불러왔습니다"
+    }
+
+    /**
+     * Balance search (`balance1` / `balance2`). The desktop plays the answer onto
+     * the board — one move, or both moves of a pair — so this does the same.
+     */
+    fun onBalance(two: Boolean, bias: Int) {
+        if (balancing.value || !repository.state.value.isLive) return
+        if (analyzing.value) stopAnalysis()
+        balancing.value = true
+        val target = position.value
+        viewModelScope.launch {
+            val moves = runCatching { repository.balance(target, two, bias) }.getOrDefault(emptyList())
+            balancing.value = false
+            // The board may have moved on while the engine was thinking; only a
+            // still-current position may be played onto (the desktop swallows a
+            // late reply through `isneedomit`, main.c:4538).
+            if (position.value != target) return@launch
+            val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
+            if (legal.isEmpty()) {
+                _notice.value = "균형점을 찾지 못했습니다"
+                return@launch
+            }
+            future.value = emptyList()
+            position.value = target.copy(moves = target.moves + legal)
+            onPositionChanged()
+            _notice.value = "균형점: ${legal.joinToString(" ") { it.label(target.size) }}"
+        }
+    }
+
+    /** Feedback from the screen (image export result, copied position, …). */
+    fun onNotice(text: String) {
+        _notice.value = text
     }
 
     /** The stepper writes settings.txt line 20, so the choice survives restarts. */
@@ -166,6 +307,20 @@ class BoardViewModel @Inject constructor(
         snapshot.value = null
         refreshForbidden()
         if (analyzing.value) startAnalysis()
+    }
+
+    /**
+     * Write the current board as a PNG to a location the user picked. The bytes
+     * are rendered by the screen (it owns the Compose density) and only stored
+     * here, next to the other one-shot feedback.
+     */
+    fun onSaveImage(uri: Uri, bytes: ByteArray) {
+        viewModelScope.launch {
+            _notice.value = runCatching { imageIo.write(uri, bytes) }.fold(
+                onSuccess = { "보드 이미지를 저장했습니다" },
+                onFailure = { e -> "이미지 저장 실패: ${e.message}" },
+            )
+        }
     }
 
     private fun startAnalysis() {

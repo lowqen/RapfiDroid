@@ -118,9 +118,16 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 
 라이선스: rank5만 번들, freq는 사용자 반입·비공유(§라이선스 주의 그대로).
 
-## 빌드 & 검증 (Android Studio)
+## 빌드 & 검증
 
-빌드/검증 절차는 `../test-yixin/docs/YixinDroid_이식_계획.md` §6 에 정리.
+빌드/검증 절차는 `../test-yixin/docs/YixinDroid_이식_계획.md` §6 에 정리. 커밋 전
+로컬 확인은 명령줄로 끝난다:
+
+```powershell
+$env:JAVA_HOME='C:\Program Files\Android\Android Studio\jbr'
+.\gradlew.bat --offline testDebugUnitTest assembleDebug
+```
+
 요약: ① Android Studio에서 폴더 열기 → Gradle sync → ▶ Run, ② P3는 서버 없이
 바로 `Rankings` 탭에서 이론 랭킹 확인, ③ freq 임포트로 실전 빈도 확인,
 ④ (P1/P2) Tailscale on + `Connect` 탭으로 실서버 왕복·좌표(y,x) 검증.
@@ -164,10 +171,32 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 - **자동 저장**: 엔진이 Ready(유휴)일 때만, 1분 틱으로 간격을 세어 즉시 반영.
 - **가드**: 미연결 / DB 꺼짐 / 읽기 전용은 클라이언트에서 거부하고 이유를 표시한다.
   **일괄 삭제·분할은 기본 잠금**(DB 화면 스위치로 해제), 삭제 확인은 settings.txt 35행.
-- **테스트**: `DatabaseProtocolTest`(31) + `DatabaseRepositoryTest`(11) → 전체 99개 통과.
+- **테스트**: `DatabaseProtocolTest`(31) + `DatabaseRepositoryTest`(11).
+
+## 보드 툴바 (구현됨) — 2026-07-27
+
+보드 아래 아이콘 툴바. 버튼 하나 = 데스크톱 콘솔 명령 하나(`main.c execute_command`).
+
+- **수순 이동** « ‹ › » = `undo all`·`undo one`·`redo one`·`redo all`. 데스크톱처럼
+  전체 기보를 들고 커서만 옮기므로 **되돌린 수가 살아 있고**, 저장돼 있던 그 수를 다시
+  놓으면 뒤 수순도 유지된다(main.c:2182). 규칙은 `core/model/MoveCursor`에 분리·테스트.
+- **엔진** ▶/■ = `thinking start/stop`. ■는 균형점 탐색도 `YXSTOP`으로 끊는다.
+- **균형점** ⚖ = `balance1 [n]` / `balance2 [n]` → `yxbalanceone|two <bias>`. 답으로 온
+  좌표(두 수면 둘 다)를 그대로 판에 놓고, 그 사이 국면이 바뀌었으면 버린다.
+- **모양 대칭** ⇄ = `rotate 90/180/270` + `flip`. 단 `flip /`는 데스크톱에서 사실상
+  180° 회전이라, 앱은 **진짜 역대각 대칭**을 넣어 8개 대칭을 모두 낸다(나머지는 동일).
+- **수 이동** ✥ = `move ^v<>`. 판 밖으로 나가는 수가 하나라도 있으면 전부 이동하지 않는다.
+- **이미지 저장** 🖼 = 1440px PNG를 SAF로 저장(권한 불필요). 화면과 같은 프레임을
+  `drawBoard`로 오프스크린 렌더.
+- **국면 문자열** ⓘ = `getpos`/`putpos` + 클립보드 왕복(`h8i9…`, 두 자리 행 그리디 파싱).
+- **보드 확대**: 보드만 full-bleed + 좌표 여백 1칸→0.75칸 + 승률 그래프를 툴바 아래로.
+  여백을 줄였으므로 **그리기와 탭 판정이 `BoardGeometry` 하나**를 공유하고 전 교점 왕복을
+  테스트한다. 획 두께는 `step` 비례(PNG 확대 시 선이 실 같아지지 않게).
+- **테스트**: `BoardTransformTest`·`MoveCursorTest`·`BoardGeometryTest` +
+  `EngineCommandTest`의 balance 2건 → 전체 **125개** 통과.
 
 ## 다음 (P5)
 
-P5 대국 기능(룰 8종·보드 크기·컴퓨터 흑/백·Play/Stop·Undo·Redo All·시계·스왑 대화상자).
+P5 대국 기능(룰 8종·보드 크기·컴퓨터 흑/백·시계·스왑 대화상자·금수 토글).
 이후 P8(기보 I/O·리뷰·증명·큐) → P9(오프닝/수순 탐색기) → P10(엔진 운용) →
 P11(외관·안정화). 상세는 계획서 §5.

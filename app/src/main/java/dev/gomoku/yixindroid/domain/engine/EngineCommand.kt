@@ -46,6 +46,18 @@ sealed interface EngineCommand {
     }
 
     /**
+     * Rapfi balance search — the desktop's `balance1` / `balance2` console
+     * commands (main.c:10854): `yxbalanceone <bias>` looks for the single move
+     * that balances the position, `yxbalancetwo <bias>` for the move *pair*.
+     * [bias] is in the engine's value units and defaults to 0 (dead even), like
+     * the desktop's `sscanf` fallback.
+     */
+    data class YxBalance(val two: Boolean, val bias: Int = 0) : EngineCommand {
+        override fun serialize(coord: CoordMapper) =
+            "yxbalance${if (two) "two" else "one"} $bias"
+    }
+
+    /**
      * Switch Rapfi into the **detailed (Yixin) output mode**. Without this the
      * engine only prints human-readable `MESSAGE Depth 2-3 | Eval 814 | …` lines
      * and never the `INFO PV/DEPTH/EVAL/WINRATE/BESTLINE` blocks the analysis UI

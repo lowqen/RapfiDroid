@@ -75,6 +75,10 @@ class DatabaseRepositoryTest {
             emptyFlow()
 
         override suspend fun forbidden(position: Position): List<Move> = emptyList()
+        override suspend fun balance(position: Position, two: Boolean, bias: Int): List<Move> =
+            emptyList()
+
+        override suspend fun stop() = Unit
     }
 
     private class FakeSettings(

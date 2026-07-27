@@ -48,4 +48,15 @@ interface EngineRepository {
 
     /** Renju forbidden points for [position] (empty if none / not renju). */
     suspend fun forbidden(position: Position): List<Move>
+
+    /**
+     * Balance search (desktop `balance1` / `balance2`): the move — or move pair,
+     * when [two] — that brings the position closest to [bias]. Suspends until the
+     * engine answers; [stop] makes it answer with its current best, and the
+     * result is empty if it never does.
+     */
+    suspend fun balance(position: Position, two: Boolean, bias: Int = 0): List<Move>
+
+    /** YXSTOP: ends the running search, which then reports its best move. */
+    suspend fun stop()
 }

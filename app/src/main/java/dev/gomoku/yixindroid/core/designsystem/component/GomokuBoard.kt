@@ -93,6 +93,36 @@ data class TagPalette(
     }
 }
 
+/**
+ * Where the intersections sit inside a square board.
+ *
+ * The margin around the grid carries the coordinate labels. The desktop can
+ * afford a full cell there; on a phone the board is only as wide as the screen,
+ * so this leaves three quarters of one — all the labels need — which makes every
+ * stone a few percent larger.
+ *
+ * Drawing and hit testing both go through this, so they cannot drift apart.
+ */
+class BoardGeometry(val side: Float, val n: Int) {
+    val step: Float = side / (n - 1 + 2 * MARGIN)
+    val origin: Float = step * MARGIN
+    val radius: Float get() = step * 0.45f
+
+    fun cx(x: Int): Float = origin + x * step
+    fun cy(y: Int): Float = origin + y * step
+
+    /** Nearest intersection to a touch, clamped to the board. */
+    fun cellAt(px: Float, py: Float): Move = Move(
+        x = ((px - origin) / step).roundToInt().coerceIn(0, n - 1),
+        y = ((py - origin) / step).roundToInt().coerceIn(0, n - 1),
+    )
+
+    companion object {
+        /** Margin in cells on each side of the grid. */
+        const val MARGIN = 0.75f
+    }
+}
+
 private val Gold = Color(0xFFDCB35C)
 private val Line = Color(0xFF7A5A2B)
 private val Black = Color(0xFF1C1A17)
@@ -119,12 +149,8 @@ fun GomokuBoard(
             .then(
                 if (onTap != null || onLongPress != null) {
                     Modifier.pointerInput(n, onTap, onLongPress) {
-                        fun cellAt(offset: Offset): Move {
-                            val step = this.size.width.toFloat() / (n + 1)
-                            val col = ((offset.x - step) / step).roundToInt().coerceIn(0, n - 1)
-                            val row = ((offset.y - step) / step).roundToInt().coerceIn(0, n - 1)
-                            return Move(col, row)
-                        }
+                        fun cellAt(offset: Offset): Move =
+                            BoardGeometry(this.size.width.toFloat(), n).cellAt(offset.x, offset.y)
                         detectTapGestures(
                             onTap = if (onTap != null) { offset -> onTap(cellAt(offset)) } else null,
                             onLongPress = if (onLongPress != null) {
@@ -139,103 +165,115 @@ fun GomokuBoard(
                 },
             ),
     ) {
-        val side = min(size.width, size.height)
-        val step = side / (n + 1)
-        val radius = step * 0.45f
-        fun cx(x: Int) = step + x * step
-        fun cy(y: Int) = step + y * step
+        drawBoard(render)
+    }
+}
 
-        drawRect(Gold, size = size)
+/**
+ * One board frame. Split out of the composable so the same pixels can be drawn
+ * off-screen for the PNG export (see `renderBoardPng`).
+ */
+fun DrawScope.drawBoard(render: BoardRender) {
+    val n = render.size
+    val geometry = BoardGeometry(min(size.width, size.height), n)
+    val step = geometry.step
+    val radius = geometry.radius
+    // Stroke widths follow the grid: the PNG export draws the same frame at a
+    // higher resolution, where fixed pixel widths would come out as hairlines.
+    val hair = (step / 45f).coerceAtLeast(1f)
+    fun cx(x: Int) = geometry.cx(x)
+    fun cy(y: Int) = geometry.cy(y)
 
-        // grid
-        for (i in 0 until n) {
-            drawLine(Line, Offset(cx(0), cy(i)), Offset(cx(n - 1), cy(i)), strokeWidth = 1.5f)
-            drawLine(Line, Offset(cx(i), cy(0)), Offset(cx(i), cy(n - 1)), strokeWidth = 1.5f)
+    drawRect(Gold, size = size)
+
+    // grid
+    for (i in 0 until n) {
+        drawLine(Line, Offset(cx(0), cy(i)), Offset(cx(n - 1), cy(i)), strokeWidth = hair)
+        drawLine(Line, Offset(cx(i), cy(0)), Offset(cx(i), cy(n - 1)), strokeWidth = hair)
+    }
+    // star points (15x15): center + 4 (3,3)-style
+    if (n == 15) {
+        listOf(3 to 3, 3 to 11, 11 to 3, 11 to 11, 7 to 7).forEach { (x, y) ->
+            drawCircle(Line, radius = step * 0.09f, center = Offset(cx(x), cy(y)))
         }
-        // star points (15x15): center + 4 (3,3)-style
-        if (n == 15) {
-            listOf(3 to 3, 3 to 11, 11 to 3, 11 to 11, 7 to 7).forEach { (x, y) ->
-                drawCircle(Line, radius = step * 0.09f, center = Offset(cx(x), cy(y)))
+    }
+
+    drawLabels(geometry)
+
+    // forbidden markers
+    render.forbidden.forEach { m ->
+        val c = Offset(cx(m.x), cy(m.y))
+        val r = radius * 0.7f
+        drawLine(Forbid, Offset(c.x - r, c.y - r), Offset(c.x + r, c.y + r), strokeWidth = hair * 2f)
+        drawLine(Forbid, Offset(c.x - r, c.y + r), Offset(c.x + r, c.y - r), strokeWidth = hair * 2f)
+    }
+
+    // realtime candidate cells (POS = live, DONE = settled) — drawn under stones
+    render.candidates.forEach { (m, state) ->
+        val c = Offset(cx(m.x), cy(m.y))
+        val live = state == CandidateState.LIVE
+        drawCircle(
+            if (live) Accent else Line,
+            radius = radius * if (live) 0.30f else 0.20f,
+            center = c,
+            alpha = if (live) 0.75f else 0.45f,
+        )
+    }
+
+    // realtime losing cells
+    render.loseCells.forEach { m ->
+        val c = Offset(cx(m.x), cy(m.y))
+        val r = radius * 0.5f
+        drawLine(Forbid, Offset(c.x - r, c.y), Offset(c.x + r, c.y), strokeWidth = hair * 1.7f)
+    }
+
+    // per-cell analysis tags (winrate % / W n / L n) on empty points
+    val occupiedCells = render.stones.toHashSet()
+    if (render.tags.isNotEmpty()) {
+        render.tags.forEach { (m, tag) ->
+            if (tag.label.isNotEmpty() && m !in occupiedCells) {
+                drawTag(cx(m.x), cy(m.y), radius, tag.label, render.palette.colorFor(tag))
             }
         }
+    }
 
-        drawLabels(n, step)
-
-        // forbidden markers
-        render.forbidden.forEach { m ->
-            val c = Offset(cx(m.x), cy(m.y))
-            val r = radius * 0.7f
-            drawLine(Forbid, Offset(c.x - r, c.y - r), Offset(c.x + r, c.y + r), strokeWidth = 3f)
-            drawLine(Forbid, Offset(c.x - r, c.y + r), Offset(c.x + r, c.y - r), strokeWidth = 3f)
-        }
-
-        // realtime candidate cells (POS = live, DONE = settled) — drawn under stones
-        render.candidates.forEach { (m, state) ->
-            val c = Offset(cx(m.x), cy(m.y))
-            val live = state == CandidateState.LIVE
-            drawCircle(
-                if (live) Accent else Line,
-                radius = radius * if (live) 0.30f else 0.20f,
-                center = c,
-                alpha = if (live) 0.75f else 0.45f,
+    // database values / board texts — the desktop draws these while the
+    // engine is idle, and never over an analysis tag for the same point.
+    render.dbLabels.forEach { (m, label) ->
+        if (label.text.isNotEmpty() && m !in occupiedCells && m !in render.tags) {
+            val pct = label.text.dropLast(1).toIntOrNull()
+            drawTag(
+                cx(m.x), cy(m.y), radius, label.text,
+                render.palette.colorForDb(label.kind, pct),
             )
         }
+    }
 
-        // realtime losing cells
-        render.loseCells.forEach { m ->
-            val c = Offset(cx(m.x), cy(m.y))
-            val r = radius * 0.5f
-            drawLine(Forbid, Offset(c.x - r, c.y), Offset(c.x + r, c.y), strokeWidth = 2.5f)
-        }
+    // played stones, numbered unless "show number" is off (settings.txt line 14)
+    render.stones.forEachIndexed { i, m ->
+        val black = i % 2 == 0
+        val number = if (render.showNumbers) "${i + 1}" else ""
+        drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 1f)
+    }
 
-        // per-cell analysis tags (winrate % / W n / L n) on empty points
-        val occupiedCells = render.stones.toHashSet()
-        if (render.tags.isNotEmpty()) {
-            render.tags.forEach { (m, tag) ->
-                if (tag.label.isNotEmpty() && m !in occupiedCells) {
-                    drawTag(cx(m.x), cy(m.y), radius, tag.label, render.palette.colorFor(tag))
-                }
-            }
-        }
+    // last-move ring
+    render.lastMove?.let { m ->
+        drawCircle(Accent, radius = radius * 0.55f, center = Offset(cx(m.x), cy(m.y)),
+            style = Stroke(width = hair * 2f))
+    }
 
-        // database values / board texts — the desktop draws these while the
-        // engine is idle, and never over an analysis tag for the same point.
-        render.dbLabels.forEach { (m, label) ->
-            if (label.text.isNotEmpty() && m !in occupiedCells && m !in render.tags) {
-                val pct = label.text.dropLast(1).toIntOrNull()
-                drawTag(
-                    cx(m.x), cy(m.y), radius, label.text,
-                    render.palette.colorForDb(label.kind, pct),
-                )
-            }
-        }
+    // PV ghosts: continue numbering/colour from the current position
+    val start = render.stones.size
+    render.ghosts.forEachIndexed { i, m ->
+        val black = (start + i) % 2 == 0
+        val number = if (render.showNumbers) "${i + 1}" else ""
+        drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 0.4f)
+    }
 
-        // played stones, numbered unless "show number" is off (settings.txt line 14)
-        render.stones.forEachIndexed { i, m ->
-            val black = i % 2 == 0
-            val number = if (render.showNumbers) "${i + 1}" else ""
-            drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 1f)
-        }
-
-        // last-move ring
-        render.lastMove?.let { m ->
-            drawCircle(Accent, radius = radius * 0.55f, center = Offset(cx(m.x), cy(m.y)),
-                style = Stroke(width = 3f))
-        }
-
-        // PV ghosts: continue numbering/colour from the current position
-        val start = render.stones.size
-        render.ghosts.forEachIndexed { i, m ->
-            val black = (start + i) % 2 == 0
-            val number = if (render.showNumbers) "${i + 1}" else ""
-            drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 0.4f)
-        }
-
-        // best-move highlight
-        render.bestMark?.let { m ->
-            drawCircle(Gold, radius = radius * 0.85f, center = Offset(cx(m.x), cy(m.y)),
-                style = Stroke(width = 3.5f))
-        }
+    // best-move highlight
+    render.bestMark?.let { m ->
+        drawCircle(Gold, radius = radius * 0.85f, center = Offset(cx(m.x), cy(m.y)),
+            style = Stroke(width = hair * 2.3f))
     }
 }
 
@@ -268,17 +306,25 @@ private fun DrawScope.drawStone(cx: Float, cy: Float, r: Float, black: Boolean, 
     )
 }
 
-private fun DrawScope.drawLabels(n: Int, step: Float) {
+private fun DrawScope.drawLabels(geometry: BoardGeometry) {
+    val step = geometry.step
     val paint = android.graphics.Paint().apply {
         color = Line.toArgb()
-        textSize = step * 0.34f
+        textSize = step * 0.32f
         textAlign = android.graphics.Paint.Align.CENTER
         isAntiAlias = true
     }
-    for (i in 0 until n) {
-        val colLabel = ('A' + i).toString()
-        drawContext.canvas.nativeCanvas.drawText(colLabel, step + i * step, step * 0.55f, paint)
-        val rowLabel = (n - i).toString()
-        drawContext.canvas.nativeCanvas.drawText(rowLabel, step * 0.4f, step + i * step + step * 0.12f, paint)
+    for (i in 0 until geometry.n) {
+        // Columns above the top line, rows left of the first one — both inside
+        // the margin, so a label can never sit on the grid.
+        drawContext.canvas.nativeCanvas.drawText(
+            ('A' + i).toString(), geometry.cx(i), geometry.origin - step * 0.22f, paint,
+        )
+        drawContext.canvas.nativeCanvas.drawText(
+            (geometry.n - i).toString(),
+            geometry.origin * 0.42f,
+            geometry.cy(i) + step * 0.12f,
+            paint,
+        )
     }
 }

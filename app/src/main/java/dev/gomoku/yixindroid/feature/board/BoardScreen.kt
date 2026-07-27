@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.feature.board
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -14,32 +16,48 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Undo
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.LastPage
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Balance
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FirstPage
+import androidx.compose.material.icons.filled.Flip
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,15 +66,23 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
+import dev.gomoku.yixindroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
+import dev.gomoku.yixindroid.core.model.BoardShift
+import dev.gomoku.yixindroid.core.model.BoardSymmetry
 import dev.gomoku.yixindroid.core.model.DbCellKind
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.PvSnapshot
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val StoneBlack = Color(0xFF1C1A17)
 private val StoneWhite = Color(0xFFEDEAE3)
@@ -71,18 +97,40 @@ fun BoardScreen(
     /** Cell whose board text is being edited (the desktop's Board Text dialog). */
     var labelTarget by remember { mutableStateOf<Move?>(null) }
     var commentDraft by remember { mutableStateOf<String?>(null) }
+    var showBalance by remember { mutableStateOf(false) }
+    var showPosition by remember { mutableStateOf(false) }
+    /** The two toolbar buttons that open a second row instead of acting at once. */
+    var symmetryOpen by remember { mutableStateOf(false) }
+    var shiftOpen by remember { mutableStateOf(false) }
+
+    val scope = rememberCoroutineScope()
+    // The export launcher outlives recompositions, so it must not capture the
+    // frame it was created with.
+    val currentRender by rememberUpdatedState(ui.render)
+    val saveImage = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("image/png"),
+    ) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val bytes = withContext(Dispatchers.Default) { renderBoardPng(currentRender) }
+                viewModel.onSaveImage(uri, bytes)
+            }
+        }
+    }
+
+    // The board is full-bleed; everything else keeps the page margin.
+    val pad = Modifier.padding(horizontal = 12.dp)
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        EvalHeader(ui)
-        // settings_dev.txt lines 1 and 2 — the desktop's own two toggles.
-        if (ui.showEvalBar) EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate)
-        if (ui.showWrGraph) WinRateGraph(ui.winRateHistory, ui.moveCount)
+        EvalHeader(ui, pad)
+        // settings_dev.txt line 1 — the desktop's own toggle.
+        if (ui.showEvalBar) EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate, modifier = pad)
         ZoomableBoard(
             ui = ui,
             onTap = viewModel::onTap,
@@ -91,27 +139,58 @@ fun BoardScreen(
                 if (ui.dbActive && !ui.render.stones.contains(cell)) labelTarget = cell
             },
         )
-        StatusBar(ui)
-        Controls(
-            analyzing = ui.analyzing,
-            canAnalyze = ui.canAnalyze,
-            multiPv = ui.multiPv,
+        BoardToolbar(
+            ui = ui,
+            modifier = pad,
+            symmetryOpen = symmetryOpen,
+            shiftOpen = shiftOpen,
+            onFirst = viewModel::onFirst,
             onUndo = viewModel::onUndo,
+            onRedo = viewModel::onRedo,
+            onLast = viewModel::onLast,
+            onStart = viewModel::onStartAnalyze,
+            onStop = viewModel::onStopAnalyze,
+            onBalance = { showBalance = true },
+            onSaveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
+            onInfo = { showPosition = true },
             onReset = {
                 // settings.txt line 17: warn before throwing the game away.
                 if (ui.showWarning && ui.moveCount > 0) confirmReset = true else viewModel.onReset()
             },
-            onToggle = viewModel::onToggleAnalyze,
-            onMultiPv = viewModel::onMultiPvChange,
+            onToggleSymmetry = {
+                symmetryOpen = !symmetryOpen
+                shiftOpen = false
+            },
+            onToggleShift = {
+                shiftOpen = !shiftOpen
+                symmetryOpen = false
+            },
+            onSymmetry = viewModel::onSymmetry,
+            onShift = viewModel::onShift,
         )
+        // Directly under the toolbar: most notices answer a button that was just
+        // pressed, and the page can be scrolled well past its bottom.
+        ui.notice?.let { text ->
+            Snackbar(pad) { Text(text) }
+            LaunchedEffect(text) {
+                kotlinx.coroutines.delay(3_000)
+                viewModel.onNoticeShown()
+            }
+        }
+        StatusBar(ui, pad)
+        // settings_dev.txt line 2.
+        if (ui.showWrGraph) WinRateGraph(ui.winRateHistory, ui.moveCount, pad)
+        PvHeader(multiPv = ui.multiPv, onMultiPv = viewModel::onMultiPvChange, modifier = pad)
         PvList(
             pvs = ui.snapshot?.pvs.orEmpty(),
             size = ui.render.size,
             previewPv = ui.previewPv,
             onPreview = viewModel::onPreviewPv,
+            modifier = pad,
         )
         DatabasePanel(
             ui = ui,
+            modifier = pad,
             onQueryValue = viewModel::onQueryDbValue,
             onQueryComment = viewModel::onQueryDbComment,
             onEditComment = { commentDraft = ui.db.snapshot.comment },
@@ -120,13 +199,28 @@ fun BoardScreen(
             onDeleteOne = viewModel::onDbDeleteOne,
             onSave = viewModel::onDbSave,
         )
-        ui.notice?.let { text ->
-            Snackbar { Text(text) }
-            LaunchedEffect(text) {
-                kotlinx.coroutines.delay(3_000)
-                viewModel.onNoticeShown()
-            }
-        }
+    }
+
+    if (showBalance) {
+        BalanceDialog(
+            onDismiss = { showBalance = false },
+            onConfirm = { two, bias ->
+                showBalance = false
+                viewModel.onBalance(two, bias)
+            },
+        )
+    }
+
+    if (showPosition) {
+        PositionDialog(
+            ui = ui,
+            onDismiss = { showPosition = false },
+            onLoad = { text ->
+                showPosition = false
+                viewModel.onLoadPositionString(text)
+            },
+            onCopied = { viewModel.onNotice("국면 문자열을 복사했습니다") },
+        )
     }
 
     labelTarget?.let { cell ->
@@ -212,7 +306,7 @@ private fun ZoomableBoard(
  * (settings_dev line 2). Gaps (plies never analysed) are simply not connected.
  */
 @Composable
-private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
+private fun WinRateGraph(history: List<Double?>, currentPly: Int, modifier: Modifier = Modifier) {
     val samples = history.count { it != null }
     if (samples < 1) return
     val line = WinBlue
@@ -222,7 +316,7 @@ private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
     val marker = MaterialTheme.colorScheme.tertiary
     val plotBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
 
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -299,7 +393,7 @@ private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
 /** The nine status fields the desktop shows (lng strings 0..9). */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun StatusBar(ui: BoardUiState) {
+private fun StatusBar(ui: BoardUiState, modifier: Modifier = Modifier) {
     val s = ui.stats
     val evalText = when {
         s.mate != null && s.mate > 0 -> "+M${s.mate}"
@@ -316,7 +410,7 @@ private fun StatusBar(ui: BoardUiState) {
         add("NODE" to (s.nodes?.let { "%,d".format(it) } ?: "—"))
         add("SPEED" to (s.speed?.let { "%,d/s".format(it) } ?: "—"))
     }
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             fields.forEach { (key, value) ->
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -338,19 +432,28 @@ private fun StatusBar(ui: BoardUiState) {
 }
 
 @Composable
-private fun EvalHeader(ui: BoardUiState) {
+private fun EvalHeader(ui: BoardUiState, modifier: Modifier = Modifier) {
     val eval = when {
         ui.blackMate != null -> if (ui.blackMate!! > 0) "흑 M${ui.blackMate}" else "백 M${-ui.blackMate!!}"
         ui.blackWinRate != null -> "흑 ${(ui.blackWinRate!! * 100).toInt()}%"
         else -> "—"
     }
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("$eval  ·  depth ${ui.depth}", style = MaterialTheme.typography.titleLarge)
-        Text("${ui.moveCount}수", style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("$eval  ·  depth ${ui.depth}", style = MaterialTheme.typography.titleMedium)
+        Text(
+            buildString {
+                append("${ui.moveCount}수")
+                // The redo tail the desktop keeps in `movepath` past the cursor.
+                if (ui.futureCount > 0) append(" (+${ui.futureCount})")
+                if (ui.balancing) append(" · 균형점 탐색") else if (ui.analyzing) append(" · 분석 중")
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -370,45 +473,248 @@ private fun EvalBar(blackWinRate: Double?, mate: Int?, modifier: Modifier = Modi
     }
 }
 
+/**
+ * The board's own control strip, in the desktop toolbar's order: navigate the
+ * line, run the engine, export, then the shape tools. Each button maps to a
+ * desktop command — `undo/redo one|all`, `thinking start|stop`, `balance1|2`,
+ * `clear`, `rotate`/`flip`, `move` and `getpos`/`putpos`.
+ *
+ * Rotate/flip and shift open a second row rather than acting immediately: they
+ * are repeat-until-right operations, and a menu that closed after every tap
+ * would make nudging a shape four points a chore.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Controls(
-    analyzing: Boolean,
-    canAnalyze: Boolean,
-    multiPv: Int,
+private fun BoardToolbar(
+    ui: BoardUiState,
+    modifier: Modifier = Modifier,
+    symmetryOpen: Boolean,
+    shiftOpen: Boolean,
+    onFirst: () -> Unit,
     onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onLast: () -> Unit,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+    onBalance: () -> Unit,
+    onSaveImage: () -> Unit,
+    onInfo: () -> Unit,
     onReset: () -> Unit,
-    onToggle: () -> Unit,
-    onMultiPv: (Int) -> Unit,
+    onToggleSymmetry: () -> Unit,
+    onToggleShift: () -> Unit,
+    onSymmetry: (BoardSymmetry) -> Unit,
+    onShift: (BoardShift) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OutlinedIconButton(onClick = onUndo) {
-            Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "무르기")
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            ToolButton(Icons.Filled.FirstPage, "처음으로", ui.canUndo, onFirst)
+            ToolButton(Icons.Filled.ChevronLeft, "한 수 뒤로", ui.canUndo, onUndo)
+            ToolButton(Icons.Filled.ChevronRight, "한 수 앞으로", ui.canRedo, onRedo)
+            ToolButton(Icons.AutoMirrored.Filled.LastPage, "마지막 수로", ui.canRedo, onLast)
+            ToolDivider()
+            ToolButton(Icons.Filled.PlayArrow, "분석 시작", ui.canAnalyze && !ui.busy, onStart)
+            ToolButton(Icons.Filled.Stop, "정지", ui.busy, onStop)
+            ToolButton(Icons.Filled.Balance, "균형점 찾기", ui.canAnalyze && !ui.busy, onBalance)
+            ToolDivider()
+            ToolButton(Icons.Filled.Image, "이미지 저장", true, onSaveImage)
+            ToolButton(Icons.Filled.Info, "국면 문자열", true, onInfo)
+            ToolDivider()
+            ToolButton(Icons.Filled.Refresh, "판 초기화", true, onReset)
+            ToolButton(Icons.Filled.Flip, "모양 대칭", ui.canTransform, onToggleSymmetry, symmetryOpen)
+            ToolButton(Icons.Filled.OpenWith, "수 이동", ui.canTransform, onToggleShift, shiftOpen)
         }
-        OutlinedIconButton(onClick = onReset) {
-            Icon(Icons.Filled.Refresh, contentDescription = "초기화")
+        if (symmetryOpen) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // 90/180/270 = `rotate`; the four mirrors = `flip` (main.c:10194).
+                SymmetryChip("90°", BoardSymmetry.ROTATE_90, onSymmetry)
+                SymmetryChip("180°", BoardSymmetry.ROTATE_180, onSymmetry)
+                SymmetryChip("270°", BoardSymmetry.ROTATE_270, onSymmetry)
+                SymmetryChip("좌우", BoardSymmetry.MIRROR_LEFT_RIGHT, onSymmetry)
+                SymmetryChip("상하", BoardSymmetry.MIRROR_UP_DOWN, onSymmetry)
+                SymmetryChip("대각 ＼", BoardSymmetry.MIRROR_DIAGONAL, onSymmetry)
+                SymmetryChip("대각 ／", BoardSymmetry.MIRROR_ANTI_DIAGONAL, onSymmetry)
+            }
         }
-        Button(onClick = onToggle, enabled = canAnalyze) {
-            Icon(if (analyzing) Icons.Filled.Stop else Icons.Filled.PlayArrow, contentDescription = null)
-            Text(if (analyzing) "  정지" else "  분석")
+        if (shiftOpen) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ToolButton(Icons.Filled.ArrowUpward, "위로", true, { onShift(BoardShift.UP) })
+                ToolButton(Icons.Filled.ArrowDownward, "아래로", true, { onShift(BoardShift.DOWN) })
+                ToolButton(
+                    Icons.AutoMirrored.Filled.ArrowBack, "왼쪽으로", true,
+                    { onShift(BoardShift.LEFT) },
+                )
+                ToolButton(
+                    Icons.AutoMirrored.Filled.ArrowForward, "오른쪽으로", true,
+                    { onShift(BoardShift.RIGHT) },
+                )
+                Text(
+                    "모든 수가 한 칸씩 이동합니다",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        Box(Modifier.weight(1f))
-        Stepper(label = "PV", value = multiPv, onChange = onMultiPv)
     }
 }
 
 @Composable
-private fun Stepper(label: String, value: Int, onChange: (Int) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        IconButton(onClick = { onChange(value - 1) }) { Text("−", style = MaterialTheme.typography.titleLarge) }
-        Text("$value", style = MaterialTheme.typography.bodyMedium)
-        IconButton(onClick = { onChange(value + 1) }) { Text("+", style = MaterialTheme.typography.titleLarge) }
+private fun ToolButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    active: Boolean = false,
+) {
+    if (active) {
+        FilledTonalIconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(44.dp)) {
+            Icon(icon, contentDescription = label)
+        }
+    } else {
+        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(44.dp)) {
+            Icon(icon, contentDescription = label)
+        }
     }
+}
+
+@Composable
+private fun ToolDivider() {
+    VerticalDivider(modifier = Modifier.height(28.dp).padding(horizontal = 3.dp))
+}
+
+@Composable
+private fun SymmetryChip(label: String, symmetry: BoardSymmetry, onPick: (BoardSymmetry) -> Unit) {
+    AssistChip(onClick = { onPick(symmetry) }, label = { Text(label) })
+}
+
+/** Multi-PV stepper (settings.txt line 20), above the PV list it controls. */
+@Composable
+private fun PvHeader(multiPv: Int, onMultiPv: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("후보 수 (멀티 PV)", style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { onMultiPv(multiPv - 1) }) {
+                Text("−", style = MaterialTheme.typography.titleLarge)
+            }
+            Text("$multiPv", style = MaterialTheme.typography.bodyMedium)
+            IconButton(onClick = { onMultiPv(multiPv + 1) }) {
+                Text("+", style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+/**
+ * Balance search options. `balance1` looks for the single move that levels the
+ * position, `balance2` for the pair; the number is the desktop's optional bias
+ * argument in engine value units (`balance1 100`), 0 meaning dead even.
+ */
+@Composable
+private fun BalanceDialog(onDismiss: () -> Unit, onConfirm: (Boolean, Int) -> Unit) {
+    var bias by remember { mutableStateOf("0") }
+    val value = bias.trim().toIntOrNull() ?: 0
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("균형점 찾기") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. " +
+                        "찾은 수는 바로 판에 놓입니다.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                OutlinedTextField(
+                    value = bias,
+                    onValueChange = { bias = it },
+                    singleLine = true,
+                    label = { Text("치우침 (0 = 완전 균형)") },
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(false, value) }) { Text("한 수") }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(onClick = onDismiss) { Text("취소") }
+                Button(onClick = { onConfirm(true, value) }) { Text("두 수") }
+            }
+        },
+    )
+}
+
+/**
+ * The line as text, in the desktop's clipboard format (`getpos` / `putpos`,
+ * main.c:10345-10405) — the practical way to carry a position between the phone
+ * and the PC.
+ */
+@Composable
+private fun PositionDialog(
+    ui: BoardUiState,
+    onDismiss: () -> Unit,
+    onLoad: (String) -> Unit,
+    onCopied: () -> Unit,
+) {
+    val clipboard = LocalClipboardManager.current
+    var draft by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("국면 문자열") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    ui.positionString.ifEmpty { "(빈 판)" },
+                    style = MaterialTheme.typography.bodyMedium
+                        .copy(fontFamily = FontFamily.Monospace),
+                )
+                Text(
+                    "${ui.moveCount}수" + if (ui.futureCount > 0) " · 되돌린 ${ui.futureCount}수는 제외" else "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    singleLine = true,
+                    label = { Text("불러올 문자열 (예: h8i9g7)") },
+                )
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TextButton(
+                    onClick = {
+                        clipboard.setText(AnnotatedString(ui.positionString))
+                        onCopied()
+                    },
+                    enabled = ui.positionString.isNotEmpty(),
+                ) { Text("복사") }
+                TextButton(onClick = { draft = clipboard.getText()?.text.orEmpty() }) {
+                    Text("붙여넣기")
+                }
+                Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text("불러오기") }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("닫기") } },
+    )
+}
+
+/** `board_12수_20260727-1530.png`, minus the non-ASCII. */
+private fun imageFileName(moveCount: Int): String {
+    val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US)
+        .format(java.util.Date())
+    return "yixin_board_${moveCount}_$stamp.png"
 }
 
 @Composable
@@ -458,6 +764,7 @@ private fun PvList(
 @Composable
 private fun DatabasePanel(
     ui: BoardUiState,
+    modifier: Modifier = Modifier,
     onQueryValue: () -> Unit,
     onQueryComment: () -> Unit,
     onEditComment: () -> Unit,
@@ -470,6 +777,7 @@ private fun DatabasePanel(
     if (!db.enabled) {
         Text(
             "데이터베이스 사용이 꺼져 있습니다 (설정 32행)",
+            modifier = modifier,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -478,7 +786,7 @@ private fun DatabasePanel(
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
     ) {
         Column(
             Modifier.padding(10.dp),
