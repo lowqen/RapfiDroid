@@ -1,6 +1,14 @@
 package dev.gomoku.yixindroid.core.model
 
-enum class StoneColor { BLACK, WHITE }
+enum class StoneColor {
+    BLACK,
+    WHITE,
+    ;
+
+    fun other(): StoneColor = if (this == BLACK) WHITE else BLACK
+
+    val label: String get() = if (this == BLACK) "흑" else "백"
+}
 
 /** A placed stone as the protocol needs it: cell + whether it is the engine's
  *  own stone (BOARD line field 3 = 1) or the opponent's (= 2). */

@@ -104,6 +104,50 @@ sealed interface EngineResponse {
         override val raw: String,
     ) : EngineResponse
 
+    // ---- MESSAGE SWAP2 / SOOSORV (opening negotiation) ------------------------
+
+    /**
+     * A stone the engine places during an opening negotiation:
+     * `MESSAGE SWAP2 MOVE1 <y> <x>` / `MESSAGE SOOSORV MOVE4 <y> <x> <N>`.
+     *
+     * Note the coordinates here are **space separated**, not `y,x` — the desktop
+     * reads them with `sscanf("%d %d")` (main.c:13349).
+     */
+    data class OpeningMove(
+        val swap2: Boolean,
+        /** 1..5, the move index in the negotiation. */
+        val index: Int,
+        val move: Move,
+        /** Soosorv move 4 also announces how many fifth moves follow. */
+        val fifthCount: Int?,
+        override val raw: String,
+    ) : EngineResponse
+
+    /**
+     * The engine's answer to a swap question: `MESSAGE SWAP2 SWAP1 YES|NO`,
+     * `MESSAGE SOOSORV SWAP2 Y|N`. [which] is 1 or 2.
+     */
+    data class OpeningSwap(
+        val swap2: Boolean,
+        val which: Int,
+        val yes: Boolean,
+        override val raw: String,
+    ) : EngineResponse
+
+    /**
+     * `MESSAGE SOOSORV MOVE5 …` — the fifth-move stage. `C <y> <x>` is the
+     * engine choosing one of the offered fifth moves (the board is rewound to
+     * four stones first), `REFRESH`/`DONE` bracket the candidates it offers, and
+     * a bare `<y> <x>` is one such candidate (main.c:13498).
+     */
+    data class SoosorvFifth(
+        val kind: Kind,
+        val move: Move?,
+        override val raw: String,
+    ) : EngineResponse {
+        enum class Kind { CHOOSE, REFRESH, DONE, OFFER }
+    }
+
     /** MESSAGE INFO MAX_THREAD_NUM / MAX_HASH_SIZE and similar capabilities. */
     data class Capability(val key: String, val value: String, override val raw: String) : EngineResponse
 

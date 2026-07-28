@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.feature.board
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.designsystem.component.DbLabel
 import dev.gomoku.yixindroid.core.designsystem.component.TagPalette
@@ -12,25 +13,25 @@ import dev.gomoku.yixindroid.core.model.AppSettings
 import dev.gomoku.yixindroid.core.model.BoardShift
 import dev.gomoku.yixindroid.core.model.BoardSymmetry
 import dev.gomoku.yixindroid.core.model.BoardTransform
+import dev.gomoku.yixindroid.core.model.ComputerSide
 import dev.gomoku.yixindroid.core.model.ConnectionState
-import dev.gomoku.yixindroid.data.board.BoardImageIo
 import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.DbState
+import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.Move
-import dev.gomoku.yixindroid.core.model.MoveCursor
 import dev.gomoku.yixindroid.core.model.Position
-import dev.gomoku.yixindroid.core.model.StoneColor
+import dev.gomoku.yixindroid.core.model.Swap2Choice
+import dev.gomoku.yixindroid.core.model.TapResult
+import dev.gomoku.yixindroid.data.board.BoardImageIo
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
+import dev.gomoku.yixindroid.domain.repository.GameRepository
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -41,25 +42,18 @@ class BoardViewModel @Inject constructor(
     private val repository: EngineRepository,
     private val settingsRepository: SettingsRepository,
     private val database: DatabaseRepository,
+    private val game: GameRepository,
     private val imageIo: BoardImageIo,
 ) : ViewModel() {
 
     private val settings = settingsRepository.settings
 
-    private val position = MutableStateFlow(Position(size = settings.value.boardSize))
+    /** The board itself lives in [GameRepository] so a game survives this screen. */
+    private val position = game.position
+
     private val snapshot = MutableStateFlow<AnalysisSnapshot?>(null)
     private val analyzing = MutableStateFlow(false)
     private val previewPv = MutableStateFlow<Int?>(null)
-
-    /** Renju forbidden points for the current position (settings.txt line 30). */
-    private val forbidden = MutableStateFlow<List<Move>>(emptyList())
-
-    /**
-     * The moves undone but not thrown away. The desktop keeps the whole line in
-     * `movepath` with `piecenum` as a cursor, so redo/"jump to end" replay it
-     * (main.c `change_piece`); this is the same tail, held separately.
-     */
-    private val future = MutableStateFlow<List<Move>>(emptyList())
 
     /** A balance search is running (desktop `balance1` / `balance2`). */
     private val balancing = MutableStateFlow(false)
@@ -69,7 +63,7 @@ class BoardViewModel @Inject constructor(
     /** Black-perspective win rate per ply, for the win-rate graph. */
     private val winRateHistory = MutableStateFlow<List<Double?>>(emptyList())
 
-    /** One-shot user feedback (a refused database write, mostly). */
+    /** One-shot user feedback (a refused move or database write, mostly). */
     private val _notice = MutableStateFlow<String?>(null)
 
     private data class Panel(
@@ -81,11 +75,12 @@ class BoardViewModel @Inject constructor(
         val notice: String?,
         val future: List<Move>,
         val balancing: Boolean,
+        val game: GameState,
     )
 
     private val panel = combine(
-        repository.state, previewPv, analyzing, forbidden, database.state, _notice,
-        future, balancing,
+        repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
+        game.future, balancing, game.state,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -97,6 +92,7 @@ class BoardViewModel @Inject constructor(
             notice = values[5] as String?,
             future = values[6] as List<Move>,
             balancing = values[7] as Boolean,
+            game = values[8] as GameState,
         )
     }
 
@@ -122,92 +118,79 @@ class BoardViewModel @Inject constructor(
                 futureCount = p.future.size,
                 balancing = p.balancing,
                 positionString = BoardTransform.toPositionString(pos.moves, pos.size),
+                game = p.game,
+                sideToMove = pos.sideToMove,
+                showForbidden = config.showForbidden,
+                isRenju = config.isRenju,
+                showClock = config.showClock,
+                openingNeedsOddSize = config.openingNeedsOddSize,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
     init {
-        // Board size is a setting; changing it starts a fresh board (the engine is
-        // re-STARTed by the repository for the same reason).
-        viewModelScope.launch {
-            settings.map { it.boardSize }.distinctUntilChanged().collect { size ->
-                if (size != position.value.size) {
-                    position.value = Position(size = size)
-                    winRateHistory.value = emptyList()
-                    onPositionChanged()
-                }
-            }
-        }
         // The database follows the board: every position change re-queries it,
         // exactly like the desktop's show_database() call after each move.
         viewModelScope.launch {
-            position.collect { database.setPosition(it) }
-        }
-        // Forbidden points depend on the rule, the toggle and whose turn it is.
-        viewModelScope.launch {
-            settings.map { it.showForbidden to it.isRenju }.distinctUntilChanged().collect {
-                refreshForbidden()
+            position.collect { pos ->
+                database.setPosition(pos)
+                snapshot.value = null
+                if (analyzing.value) startAnalysis()
             }
         }
     }
 
+    // ---- board -------------------------------------------------------------
+
+    /**
+     * A tap goes to the game: depending on the rule and whose turn it is it
+     * places a stone, answers an opening step, or starts the engine's turn.
+     */
     fun onTap(move: Move) {
-        if (position.value.moves.contains(move)) return
         previewPv.value = null
-        // main.c:2182 — replaying the move that is already stored keeps the redo
-        // tail; a different move means the line diverged, so the tail is dropped.
-        future.value = MoveCursor.tailAfter(future.value, move)
-        position.value = position.value.play(move)
-        onPositionChanged()
+        viewModelScope.launch {
+            when (val result = game.tap(move)) {
+                is TapResult.Rejected -> _notice.value = result.reason
+                else -> Unit
+            }
+        }
     }
 
     /** One move back (`undo one`), remembering it for redo. */
-    fun onUndo() = jumpTo(position.value.moves.size - 1)
+    fun onUndo() = inGame { game.undo() }
 
     /** One move forward along the remembered line (`redo one`). */
-    fun onRedo() = jumpTo(position.value.moves.size + 1)
+    fun onRedo() = inGame { game.redo() }
 
     /** Back to the empty board without losing the line (`undo all`). */
-    fun onFirst() = jumpTo(0)
+    fun onFirst() = inGame { game.toStart() }
 
     /** Forward to the end of the line (`redo all`). */
-    fun onLast() = jumpTo(Int.MAX_VALUE)
+    fun onLast() = inGame { game.toEnd() }
 
-    /**
-     * Move the cursor along the full line, exactly like the desktop's
-     * `change_piece`: it replays `movepath` up to `p`, so the moves on either
-     * side of the cursor are never lost.
-     */
-    private fun jumpTo(target: Int) {
-        val pos = position.value
-        val (played, tail) = MoveCursor.splitAt(pos.moves + future.value, target)
-        if (played.size == pos.moves.size) return
-        previewPv.value = null
-        position.value = pos.copy(moves = played)
-        future.value = tail
-        onPositionChanged()
-    }
-
-    /** Discard the game (`clear`). Unlike navigation this drops the redo tail. */
-    fun onReset() {
-        previewPv.value = null
-        future.value = emptyList()
-        position.value = Position(size = settings.value.boardSize)
+    /** Discard the game (`clear`), clocks and opening protocol included. */
+    fun onReset() = inGame {
         winRateHistory.value = emptyList()
-        onPositionChanged()
+        game.newGame(resetClock = true)
     }
 
     fun onStartAnalyze() {
-        if (!analyzing.value) startAnalysis()
+        if (analyzing.value) return
+        if (game.state.value.thinking) {
+            _notice.value = "대국 착수를 계산하는 중입니다"
+            return
+        }
+        startAnalysis()
     }
 
     /**
-     * Stop button: ends whichever search is running. A balance search is stopped
-     * through the engine (`YXSTOP`), which makes it report its current best move
-     * — the same thing the desktop's stop button does mid-`balance`.
+     * Stop button: ends whichever search is running — analysis, a balance search
+     * or the engine's game turn. All three stop with `YXSTOP`, which makes the
+     * engine report its current best move, exactly like the desktop's stop.
      */
     fun onStopAnalyze() {
         if (analyzing.value) stopAnalysis()
         if (balancing.value) viewModelScope.launch { runCatching { repository.stop() } }
+        if (game.state.value.thinking) viewModelScope.launch { game.stopThinking() }
     }
 
     /**
@@ -238,12 +221,10 @@ class BoardViewModel @Inject constructor(
     }
 
     /** Replace the position with [moves] (transform result / pasted line). */
-    private fun applyLine(moves: List<Move>) {
+    private fun applyLine(moves: List<Move>) = inGame {
         previewPv.value = null
-        future.value = emptyList()
         winRateHistory.value = emptyList()
-        position.value = position.value.copy(moves = moves)
-        onPositionChanged()
+        game.replaceLine(moves)
     }
 
     /** `putpos`: load a line from the desktop's clipboard format ("h8i9…"). */
@@ -279,11 +260,42 @@ class BoardViewModel @Inject constructor(
                 _notice.value = "균형점을 찾지 못했습니다"
                 return@launch
             }
-            future.value = emptyList()
-            position.value = target.copy(moves = target.moves + legal)
-            onPositionChanged()
+            game.replaceLine(target.moves + legal)
             _notice.value = "균형점: ${legal.joinToString(" ") { it.label(target.size) }}"
         }
+    }
+
+    // ---- game (P5) ---------------------------------------------------------
+
+    /** Which colours the engine plays (settings.txt lines 4-5). */
+    fun onComputerSide(side: ComputerSide) = inGame { game.setComputerSide(side) }
+
+    /** "엔진 착수" — the desktop's `thinking start` when a game is on. */
+    fun onEngineMove() = inGame {
+        when (val result = game.engineMove()) {
+            is TapResult.Rejected -> _notice.value = result.reason
+            else -> Unit
+        }
+    }
+
+    fun onNewGame() = onReset()
+
+    fun onOfferDraw() = inGame { game.offerDraw() }
+
+    fun onResign() = inGame { game.resign() }
+
+    fun onSwapAnswer(yes: Boolean) = inGame { game.answerSwap(yes) }
+
+    fun onSwap2Answer(choice: Swap2Choice) = inGame { game.answerSwap2(choice) }
+
+    fun onFifthCount(count: Int) = inGame { game.answerFifthCount(count) }
+
+    fun onDismissPrompt() = game.dismissPrompt()
+
+    /** Forbidden point display (settings.txt line 30), toggled from the board. */
+    fun onToggleForbidden() {
+        val next = !settings.value.showForbidden
+        viewModelScope.launch { settingsRepository.set("showForbidden", if (next) "1" else "0") }
     }
 
     /** Feedback from the screen (image export result, copied position, …). */
@@ -301,12 +313,6 @@ class BoardViewModel @Inject constructor(
 
     fun onPreviewPv(index: Int?) {
         previewPv.value = index
-    }
-
-    private fun onPositionChanged() {
-        snapshot.value = null
-        refreshForbidden()
-        if (analyzing.value) startAnalysis()
     }
 
     /**
@@ -327,6 +333,8 @@ class BoardViewModel @Inject constructor(
         analyzeJob?.cancel()
         snapshot.value = null
         analyzing.value = true
+        // The game's forbidden refresh must not push a board mid-search.
+        game.setAnalyzing(true)
         val target = position.value
         val ply = target.moves.size
         analyzeJob = viewModelScope.launch {
@@ -334,26 +342,6 @@ class BoardViewModel @Inject constructor(
                 snapshot.value = snap
                 snap.blackWinRate()?.let { recordWinRate(ply, it) }
             }
-        }
-    }
-
-    /**
-     * Ask the engine for forbidden points, like the desktop does: renju base rule,
-     * the toggle on, Black to move (only Black has forbidden points) and **not
-     * while searching** — the desktop hides them then, and a YXBOARD mid-search
-     * would disturb it.
-     */
-    private fun refreshForbidden() {
-        val config = settings.value
-        val pos = position.value
-        val wanted = config.showForbidden && config.isRenju && !analyzing.value &&
-            pos.sideToMove == StoneColor.BLACK && repository.state.value.isLive
-        if (!wanted) {
-            forbidden.value = emptyList()
-            return
-        }
-        viewModelScope.launch {
-            forbidden.value = runCatching { repository.forbidden(pos) }.getOrDefault(emptyList())
         }
     }
 
@@ -371,6 +359,7 @@ class BoardViewModel @Inject constructor(
         analyzeJob?.cancel()
         analyzeJob = null
         analyzing.value = false
+        game.setAnalyzing(false)
     }
 
     private fun buildRender(
@@ -397,7 +386,7 @@ class BoardViewModel @Inject constructor(
         // yixindb labels: the desktop draws them only while the engine is idle
         // (main.c:1913 `f == 0 && usedatabase && isthinking == 0`), preferring the
         // free-form board text over the stored value when that toggle is on.
-        val dbLabels = if (config.useDatabase && !panel.analyzing) {
+        val dbLabels = if (config.useDatabase && !panel.analyzing && !panel.game.thinking) {
             panel.db.snapshot.cells.mapNotNull { (move, cell) ->
                 val text = cell.display(config.showBoardText)
                 if (text.isEmpty()) null else move to DbLabel(text, cell.kindOf())
@@ -463,6 +452,11 @@ class BoardViewModel @Inject constructor(
                 DbOpResult.Sent -> Unit
             }
         }
+    }
+
+    /** Runs a game call on the view-model scope (named to avoid shadowing `launch`). */
+    private fun inGame(block: suspend () -> Unit) {
+        viewModelScope.launch { block() }
     }
 
     private companion object {

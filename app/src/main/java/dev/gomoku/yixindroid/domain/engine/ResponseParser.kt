@@ -27,6 +27,10 @@ object ResponseParser {
         when {
             upper.startsWith("MESSAGE REALTIME") -> return parseRealtime(line.substring(16).trim(), coord, raw)
             upper.startsWith("MESSAGE DATABASE") -> return parseDatabase(line.substring(16).trim(), coord, raw)
+            upper.startsWith("MESSAGE SWAP2") ->
+                return parseOpening(line.substring(13).trim(), swap2 = true, coord = coord, raw = raw)
+            upper.startsWith("MESSAGE SOOSORV") ->
+                return parseOpening(line.substring(15).trim(), swap2 = false, coord = coord, raw = raw)
             upper.startsWith("MESSAGE INFO") -> return parseCapability(line.substring(12).trim(), raw)
             upper.startsWith("MESSAGE") -> {
                 val body = line.drop(7).trim()
@@ -227,6 +231,76 @@ object ResponseParser {
             text = text,
             raw = raw,
         )
+    }
+
+    /**
+     * `MESSAGE SWAP2 …` / `MESSAGE SOOSORV …` — the opening negotiation
+     * (main.c:13347-13537). Coordinates are space separated here.
+     */
+    private fun parseOpening(
+        rest: String,
+        swap2: Boolean,
+        coord: CoordMapper,
+        raw: String,
+    ): EngineResponse {
+        val upper = rest.uppercase()
+        val body = rest.substringAfter(' ', "").trim()
+        val nums = Regex("""-?\d+""").findAll(body).map { it.value.toInt() }.toList()
+
+        // MOVE5 under Soosorv is the fifth-move stage, not a plain stone.
+        if (!swap2 && upper.startsWith("MOVE5")) {
+            val tail = rest.drop(5).trim()
+            val tailUpper = tail.uppercase()
+            return when {
+                tailUpper.startsWith("C") -> {
+                    val c = Regex("""-?\d+""").findAll(tail).map { it.value.toInt() }.toList()
+                    if (c.size >= 2) {
+                        EngineResponse.SoosorvFifth(
+                            EngineResponse.SoosorvFifth.Kind.CHOOSE,
+                            coord.fromWire(c[0], c[1]), raw,
+                        )
+                    } else {
+                        EngineResponse.Message("SOOSORV $rest", raw)
+                    }
+                }
+                tailUpper.startsWith("R") ->
+                    EngineResponse.SoosorvFifth(EngineResponse.SoosorvFifth.Kind.REFRESH, null, raw)
+                tailUpper.startsWith("D") ->
+                    EngineResponse.SoosorvFifth(EngineResponse.SoosorvFifth.Kind.DONE, null, raw)
+                else -> {
+                    val c = Regex("""-?\d+""").findAll(tail).map { it.value.toInt() }.toList()
+                    if (c.size >= 2) {
+                        EngineResponse.SoosorvFifth(
+                            EngineResponse.SoosorvFifth.Kind.OFFER,
+                            coord.fromWire(c[0], c[1]), raw,
+                        )
+                    } else {
+                        EngineResponse.Message("SOOSORV $rest", raw)
+                    }
+                }
+            }
+        }
+
+        if (upper.startsWith("MOVE") && nums.size >= 2) {
+            val index = upper.getOrNull(4)?.digitToIntOrNull() ?: 0
+            return EngineResponse.OpeningMove(
+                swap2 = swap2,
+                index = index,
+                move = coord.fromWire(nums[0], nums[1]),
+                // Soosorv MOVE4 appends N (main.c:13472 "%d %d %d").
+                fifthCount = nums.getOrNull(2),
+                raw = raw,
+            )
+        }
+
+        if (upper.startsWith("SWAP")) {
+            val which = upper.getOrNull(4)?.digitToIntOrNull() ?: 1
+            // Swap2 spells it YES/NO, Soosorv just Y/N.
+            val yes = body.uppercase().startsWith("Y")
+            return EngineResponse.OpeningSwap(swap2 = swap2, which = which, yes = yes, raw = raw)
+        }
+
+        return EngineResponse.Message(if (swap2) "SWAP2 $rest" else "SOOSORV $rest", raw)
     }
 
     private fun parseCapability(rest: String, raw: String): EngineResponse {

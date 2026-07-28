@@ -76,13 +76,13 @@ data class AppSettings(
     val toolbarPos: Int = 0,
     /** 27. dark mode. */
     val darkMode: Boolean = true,
-    /** 28. show the game clock (P5). */
+    /** 28. show the game clock. */
     val showClock: Boolean = false,
     /** 29. time increment per move, **milliseconds**. */
     val incrementMs: Int = 0,
     /** 30. show renju forbidden points. */
     val showForbidden: Boolean = true,
-    /** 31. enforce the clock timeout (P5). */
+    /** 31. warn when the player runs out of time (`show_dialog_timeout`). */
     val checkTimeout: Boolean = false,
     /** 32. use the engine's yixindb database. */
     val useDatabase: Boolean = true,
@@ -169,6 +169,32 @@ data class AppSettings(
 
     /** True when forbidden points exist at all (renju bases). */
     val isRenju: Boolean get() = engineRule == 2
+
+    /**
+     * The opening negotiation on top of the base rule — the desktop's
+     * `specialrule`, decoded exactly as `load_setting` does (main.c:14070).
+     */
+    val opening: OpeningProtocol
+        get() = when (rule) {
+            3 -> OpeningProtocol.SWAP_FIRST
+            4 -> OpeningProtocol.RIF
+            5 -> OpeningProtocol.SOOSORV
+            6 -> OpeningProtocol.SWAP2
+            else -> OpeningProtocol.NONE
+        }
+
+    /** An overline wins under every rule except standard gomoku (main.c:2236). */
+    val allowsOverlineWin: Boolean get() = engineRule != 1
+
+    /**
+     * The opening protocols measure from the exact centre (`boardsize / 2`), so
+     * an even board has no centre point to open on.
+     */
+    val openingNeedsOddSize: Boolean
+        get() = opening != OpeningProtocol.NONE && boardSize % 2 == 0
+
+    /** Which colours the engine plays (settings.txt lines 4-5). */
+    val computerSide: ComputerSide get() = ComputerSide.of(computerBlack, computerWhite)
 
     /** The engine-facing subset, with the file's units converted to the wire's. */
     fun toEngineParams(): EngineParams = EngineParams(

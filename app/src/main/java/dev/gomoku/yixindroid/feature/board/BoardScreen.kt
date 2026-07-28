@@ -42,6 +42,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,9 +78,14 @@ import dev.gomoku.yixindroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
 import dev.gomoku.yixindroid.core.model.BoardShift
 import dev.gomoku.yixindroid.core.model.BoardSymmetry
+import dev.gomoku.yixindroid.core.model.ClockSide
+import dev.gomoku.yixindroid.core.model.ComputerSide
 import dev.gomoku.yixindroid.core.model.DbCellKind
+import dev.gomoku.yixindroid.core.model.GamePrompt
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.OpeningProtocol
 import dev.gomoku.yixindroid.core.model.PvSnapshot
+import dev.gomoku.yixindroid.core.model.Swap2Choice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -99,6 +105,7 @@ fun BoardScreen(
     var commentDraft by remember { mutableStateOf<String?>(null) }
     var showBalance by remember { mutableStateOf(false) }
     var showPosition by remember { mutableStateOf(false) }
+    var confirmResign by remember { mutableStateOf(false) }
     /** The two toolbar buttons that open a second row instead of acting at once. */
     var symmetryOpen by remember { mutableStateOf(false) }
     var shiftOpen by remember { mutableStateOf(false) }
@@ -177,6 +184,18 @@ fun BoardScreen(
                 viewModel.onNoticeShown()
             }
         }
+        GamePanel(
+            ui = ui,
+            modifier = pad,
+            onComputerSide = viewModel::onComputerSide,
+            onEngineMove = viewModel::onEngineMove,
+            onNewGame = {
+                if (ui.showWarning && ui.moveCount > 0) confirmReset = true else viewModel.onNewGame()
+            },
+            onDraw = viewModel::onOfferDraw,
+            onResign = { confirmResign = true },
+            onToggleForbidden = viewModel::onToggleForbidden,
+        )
         StatusBar(ui, pad)
         // settings_dev.txt line 2.
         if (ui.showWrGraph) WinRateGraph(ui.winRateHistory, ui.moveCount, pad)
@@ -265,6 +284,268 @@ fun BoardScreen(
             },
         )
     }
+
+    if (confirmResign) {
+        AlertDialog(
+            onDismissRequest = { confirmResign = false },
+            title = { Text("기권할까요?") },
+            text = { Text("엔진에 `yxresign`을 보내고 이 대국을 끝냅니다.") },
+            confirmButton = {
+                Button(onClick = {
+                    confirmResign = false
+                    viewModel.onResign()
+                }) { Text("기권") }
+            },
+            dismissButton = { TextButton(onClick = { confirmResign = false }) { Text("취소") } },
+        )
+    }
+
+    // The desktop's game dialogs, one per prompt.
+    ui.game.prompt?.let { prompt ->
+        GamePromptDialog(
+            prompt = prompt,
+            size = ui.render.size,
+            onSwap = viewModel::onSwapAnswer,
+            onSwap2 = viewModel::onSwap2Answer,
+            onFifthCount = viewModel::onFifthCount,
+            onDismiss = viewModel::onDismissPrompt,
+        )
+    }
+}
+
+/**
+ * The game side of the board: who the engine plays, the two clocks, and the
+ * actions the desktop keeps in its Game menu (new game, draw, resign) plus the
+ * forbidden-point toggle.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GamePanel(
+    ui: BoardUiState,
+    modifier: Modifier = Modifier,
+    onComputerSide: (ComputerSide) -> Unit,
+    onEngineMove: () -> Unit,
+    onNewGame: () -> Unit,
+    onDraw: () -> Unit,
+    onResign: () -> Unit,
+    onToggleForbidden: () -> Unit,
+) {
+    val game = ui.game
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text("대국", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    buildString {
+                        append("${ui.sideToMove.label} 차례")
+                        if (game.opening != OpeningProtocol.NONE) append(" · ${game.opening.label}")
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            game.result?.let { result ->
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        result.describe(),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                }
+            }
+
+            // computerside (settings.txt lines 4-5)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ComputerSide.entries.forEach { side ->
+                    FilterChip(
+                        selected = game.computerSide == side,
+                        onClick = { onComputerSide(side) },
+                        label = { Text(side.label) },
+                    )
+                }
+            }
+
+            if (ui.showClock) ClockRow(ui)
+
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                AssistChip(onClick = onNewGame, label = { Text("새 대국") })
+                AssistChip(
+                    onClick = onEngineMove,
+                    enabled = ui.engineOnMove,
+                    label = { Text("엔진 착수") },
+                )
+                AssistChip(
+                    onClick = onDraw,
+                    enabled = !game.over && ui.connection.isLive,
+                    label = { Text("무승부 제안") },
+                )
+                AssistChip(
+                    onClick = onResign,
+                    enabled = !game.over && ui.moveCount > 0,
+                    label = { Text("기권") },
+                )
+                if (ui.isRenju) {
+                    FilterChip(
+                        selected = ui.showForbidden,
+                        onClick = onToggleForbidden,
+                        label = { Text("금수 표시") },
+                    )
+                }
+            }
+
+            if (ui.openingNeedsOddSize) {
+                Text(
+                    "오프닝 규칙은 판의 정중앙을 기준으로 하므로 홀수 크기 판이 필요합니다 (설정 1행).",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            if (game.offeringFifth) {
+                Text(
+                    "5수 후보 ${game.fifthCount}개를 순서대로 놓으세요. 상대가 그중 하나를 고릅니다.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (game.log.isNotEmpty()) {
+                Text(
+                    game.log.takeLast(2).joinToString("\n"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** Used / left per side, in the desktop's four-field layout. */
+@Composable
+private fun ClockRow(ui: BoardUiState) {
+    val clock = ui.game.clock
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        listOf(ClockSide.COMPUTER to "컴퓨터", ClockSide.HUMAN to "사람").forEach { (side, name) ->
+            Column(Modifier.weight(1f)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(name, style = MaterialTheme.typography.labelMedium)
+                    if (clock.running == side) {
+                        Text("●", style = MaterialTheme.typography.labelMedium, color = WinBlue)
+                    }
+                }
+                Text(
+                    "남음 ${clock.label(side)}",
+                    style = MaterialTheme.typography.labelSmall
+                        .copy(fontFamily = FontFamily.Monospace),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "사용 ${clock.usedLabel(side)}",
+                    style = MaterialTheme.typography.labelSmall
+                        .copy(fontFamily = FontFamily.Monospace),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One dialog per desktop game dialog: the swap questions, the number of fifth
+ * moves, and the three information popups.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun GamePromptDialog(
+    prompt: GamePrompt,
+    size: Int,
+    onSwap: (Boolean) -> Unit,
+    onSwap2: (Swap2Choice) -> Unit,
+    onFifthCount: (Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    when (prompt) {
+        is GamePrompt.Swap -> AlertDialog(
+            onDismissRequest = { onSwap(false) },
+            title = { Text("교환하시겠습니까?") },
+            text = {
+                Text(
+                    buildString {
+                        append("돌을 바꿔 잡으면 이후 컴퓨터가 반대 색을 둡니다.")
+                        prompt.fifthCount?.let { append("\n5수 후보 수 N = $it") }
+                    },
+                )
+            },
+            confirmButton = { Button(onClick = { onSwap(true) }) { Text("교환") } },
+            dismissButton = { TextButton(onClick = { onSwap(false) }) { Text("그대로") } },
+        )
+
+        GamePrompt.Swap2 -> AlertDialog(
+            onDismissRequest = { onSwap2(Swap2Choice.STAY_WHITE) },
+            title = { Text("하나를 선택하세요") },
+            text = { Text("스왑2: 백을 유지하거나, 돌을 바꾸거나, 2수를 더 놓습니다.") },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(onClick = { onSwap2(Swap2Choice.STAY_WHITE) }) { Text("백 유지") }
+                    TextButton(onClick = { onSwap2(Swap2Choice.SWAP) }) { Text("교환") }
+                    Button(onClick = { onSwap2(Swap2Choice.ADD_TWO) }) { Text("2수 추가") }
+                }
+            },
+        )
+
+        GamePrompt.FifthCount -> AlertDialog(
+            onDismissRequest = { onFifthCount(1) },
+            title = { Text("5수 후보 개수 (1~8)") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("상대에게 제시할 5수의 개수 N을 고르세요.")
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        (1..8).forEach { n ->
+                            AssistChip(onClick = { onFifthCount(n) }, label = { Text("$n") })
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+        )
+
+        GamePrompt.SwapInfo -> InfoDialog("교환", "상대가 돌을 바꿔 잡았습니다.", onDismiss)
+        GamePrompt.IllegalOpening -> InfoDialog(
+            "표준 오프닝이 아닙니다",
+            "첫 3수는 정중앙 근처(2수는 ±1, 3수는 ±2)여야 합니다. 판을 초기화했습니다.",
+            onDismiss,
+        )
+        is GamePrompt.Forbidden -> InfoDialog(
+            "금수",
+            "${prompt.cell.label(size)}는 흑의 금수입니다.",
+            onDismiss,
+        )
+        GamePrompt.Timeout -> InfoDialog("시간 초과", "제한 시간을 모두 사용했습니다.", onDismiss)
+        is GamePrompt.Info -> InfoDialog("대국", prompt.text, onDismiss)
+    }
+}
+
+@Composable
+private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(text) },
+        confirmButton = { Button(onClick = onDismiss) { Text("확인") } },
+    )
 }
 
 /**

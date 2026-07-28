@@ -109,12 +109,12 @@ object DesktopSettings {
         )
         bool(
             "computerBlack", "computer play black (0: no, 1: yes)", "컴퓨터가 흑돌 플레이",
-            SettingCategory.GAME, note = "대국 진행은 P5",
+            SettingCategory.GAME, note = "새 대국을 시작할 때 적용됩니다(보드 화면에서도 바꿀 수 있음)",
             get = { it.computerBlack }, set = { s, v -> s.copy(computerBlack = v) },
         )
         bool(
             "computerWhite", "computer play white (0: no, 1: yes)", "컴퓨터가 백돌 플레이",
-            SettingCategory.GAME, note = "대국 진행은 P5",
+            SettingCategory.GAME, note = "새 대국을 시작할 때 적용됩니다(보드 화면에서도 바꿀 수 있음)",
             get = { it.computerWhite }, set = { s, v -> s.copy(computerWhite = v) },
         )
         int(
@@ -265,7 +265,7 @@ object DesktopSettings {
         )
         bool(
             "showClock", "show clock (0: no, 1: yes)", "시계", SettingCategory.GAME,
-            note = "대국 시계는 P5",
+            note = "보드 화면 대국 패널에 반영됩니다",
             get = { it.showClock }, set = { s, v -> s.copy(showClock = v) },
         )
         int(
@@ -281,7 +281,7 @@ object DesktopSettings {
         )
         bool(
             "checkTimeout", "check timeout", "시간 초과 확인", SettingCategory.GAME,
-            note = "대국 시계는 P5",
+            note = "보드 화면 대국 패널에 반영됩니다",
             get = { it.checkTimeout }, set = { s, v -> s.copy(checkTimeout = v) },
         )
         bool(

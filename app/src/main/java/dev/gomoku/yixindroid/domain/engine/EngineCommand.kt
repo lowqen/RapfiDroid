@@ -86,6 +86,59 @@ sealed interface EngineCommand {
         override fun serialize(coord: CoordMapper) = "YXSHOWFORBID"
     }
 
+    /**
+     * The remaining match budget, pushed before every engine turn — the desktop
+     * sends this in front of each `BOARD`/`TURN` (main.c:2742).
+     */
+    data class InfoTimeLeft(val ms: Long) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "INFO time_left ${ms.coerceAtLeast(0)}"
+    }
+
+    /** Desktop console `draw` / `resign` (main.c:11212). */
+    data object YxDraw : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxdraw"
+    }
+
+    data object YxResign : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxresign"
+    }
+
+    /**
+     * Swap2 negotiation steps. Step 1 asks the engine to open with three stones,
+     * steps 2 and 3 ask it to judge the position the user just built — the board
+     * is pushed separately with `YXBOARD` first, as the desktop does.
+     */
+    data class YxSwap2Step(val step: Int) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxswap2step$step"
+    }
+
+    /**
+     * Soosorv-8 negotiation steps. Unlike Swap2 these carry the move list
+     * themselves: `yxsoosorvstep2` + `y,x` lines + `done` (main.c:2807), and
+     * steps 4/5 take the number of fifth moves.
+     */
+    data class YxSoosorvStep(
+        val step: Int,
+        val fifthCount: Int? = null,
+        val moves: List<Move> = emptyList(),
+    ) : EngineCommand {
+        override fun serialize(coord: CoordMapper): String = buildString {
+            append("yxsoosorvstep")
+            append(step)
+            if (fifthCount != null) {
+                append(' ')
+                append(fifthCount)
+            }
+            if (moves.isNotEmpty()) {
+                for (m in moves) {
+                    append('\n')
+                    append(coord.toWire(m))
+                }
+                append("\ndone")
+            }
+        }
+    }
+
     /** Drop the transposition table (settings.txt line 25, "hash autoclear"). */
     data object YxHashClear : EngineCommand {
         override fun serialize(coord: CoordMapper) = "yxhashclear"

@@ -5,7 +5,9 @@ import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbPositionValue
 import dev.gomoku.yixindroid.core.model.DbState
+import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.SearchStats
+import dev.gomoku.yixindroid.core.model.StoneColor
 
 data class BoardUiState(
     val render: BoardRender = BoardRender(),
@@ -33,11 +35,24 @@ data class BoardUiState(
     val balancing: Boolean = false,
     /** The line in the desktop's clipboard format ("h8i9…", `getpos`). */
     val positionString: String = "",
+    // ---- game (P5) ----
+    val game: GameState = GameState(),
+    val sideToMove: StoneColor = StoneColor.BLACK,
+    val showForbidden: Boolean = true,
+    val isRenju: Boolean = true,
+    /** settings.txt line 28 — the desktop hides the clock widget when off. */
+    val showClock: Boolean = true,
+    /** An opening protocol is selected but the board has no centre point. */
+    val openingNeedsOddSize: Boolean = false,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
     val canUndo: Boolean get() = moveCount > 0
     val canRedo: Boolean get() = futureCount > 0
-    val busy: Boolean get() = analyzing || balancing
+    val busy: Boolean get() = analyzing || balancing || game.thinking
+
+    /** The engine owes the move that is due, so "엔진 착수" makes sense. */
+    val engineOnMove: Boolean
+        get() = game.engineOwns(sideToMove) && !game.thinking && !game.over && connection.isLive
 
     /**
      * Shape transforms need stones. An ordinary analysis simply restarts on the
