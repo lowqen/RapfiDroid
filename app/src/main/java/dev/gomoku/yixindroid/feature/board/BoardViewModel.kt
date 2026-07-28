@@ -17,8 +17,10 @@ import dev.gomoku.yixindroid.core.model.ComputerSide
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.DbState
+import dev.gomoku.yixindroid.core.model.GameReport
 import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.MoveQuality
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.Swap2Choice
 import dev.gomoku.yixindroid.core.model.TapResult
@@ -26,6 +28,7 @@ import dev.gomoku.yixindroid.data.board.BoardImageIo
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameRepository
+import dev.gomoku.yixindroid.domain.repository.ReviewRepository
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,6 +46,7 @@ class BoardViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val database: DatabaseRepository,
     private val game: GameRepository,
+    private val review: ReviewRepository,
     private val imageIo: BoardImageIo,
 ) : ViewModel() {
 
@@ -76,11 +80,12 @@ class BoardViewModel @Inject constructor(
         val future: List<Move>,
         val balancing: Boolean,
         val game: GameState,
+        val report: GameReport?,
     )
 
     private val panel = combine(
         repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
-        game.future, balancing, game.state,
+        game.future, balancing, game.state, review.report,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -93,6 +98,7 @@ class BoardViewModel @Inject constructor(
             future = values[6] as List<Move>,
             balancing = values[7] as Boolean,
             game = values[8] as GameState,
+            report = values[9] as GameReport?,
         )
     }
 
@@ -405,6 +411,10 @@ class BoardViewModel @Inject constructor(
             candidates = if (overlay) snap?.candidates.orEmpty() else emptyMap(),
             loseCells = if (overlay) snap?.loseCells.orEmpty() else emptySet(),
             dbLabels = dbLabels,
+            // Review grades, only for the stones actually on the board and only
+            // while the line still matches the reviewed one (main.c re-grades on
+            // every board refresh; here the report is the source of truth).
+            badges = if (config.showMoveBadge) badgesFor(pos, panel.report) else emptyMap(),
             showNumbers = config.showNumber,
             palette = TagPalette(
                 losingSaturation = config.lossSaturation,
@@ -414,6 +424,21 @@ class BoardViewModel @Inject constructor(
                 value = config.colorValue,
             ),
         )
+    }
+
+    /**
+     * Grades for the stones on the board. The report holds the whole reviewed
+     * line, so a prefix of it still matches while the user walks the game; a
+     * different line means the badges no longer belong to these stones.
+     */
+    private fun badgesFor(pos: Position, report: GameReport?): Map<Move, MoveQuality> {
+        if (report == null || pos.moves.isEmpty()) return emptyMap()
+        val reviewed = report.data.moves
+        if (reviewed.size < pos.moves.size) return emptyMap()
+        for (i in pos.moves.indices) if (reviewed[i] != pos.moves[i]) return emptyMap()
+        return report.moves.take(pos.moves.size)
+            .filter { it.quality != MoveQuality.NONE }
+            .associate { it.move to it.quality }
     }
 
     // ---- database actions (P7) ---------------------------------------------

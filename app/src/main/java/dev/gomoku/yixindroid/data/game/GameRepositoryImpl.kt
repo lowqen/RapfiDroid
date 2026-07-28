@@ -666,7 +666,7 @@ class GameRepositoryImpl @Inject constructor(
     override suspend fun toStart() = jumpTo(0)
     override suspend fun toEnd() = jumpTo(Int.MAX_VALUE)
 
-    private suspend fun jumpTo(target: Int) {
+    override suspend fun jumpTo(target: Int) {
         if (_state.value.thinking) stopThinking()
         val pos = _position.value
         val (played, tail) = MoveCursor.splitAt(pos.moves + _future.value, target)

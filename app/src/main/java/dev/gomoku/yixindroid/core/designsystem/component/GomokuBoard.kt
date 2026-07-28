@@ -17,6 +17,7 @@ import dev.gomoku.yixindroid.core.model.CandidateState
 import dev.gomoku.yixindroid.core.model.CellTag
 import dev.gomoku.yixindroid.core.model.DbCellKind
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.MoveQuality
 import dev.gomoku.yixindroid.core.model.TagKind
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -35,6 +36,8 @@ data class BoardRender(
     val dbLabels: Map<Move, DbLabel> = emptyMap(), // yixindb values / board texts
     val showNumbers: Boolean = true,              // settings.txt line 14
     val palette: TagPalette = TagPalette(),       // saturation/value settings
+    /** Review grades on played stones (settings_dev line 4, `mq_badge_pixbuf`). */
+    val badges: Map<Move, MoveQuality> = emptyMap(),
 )
 
 /**
@@ -254,6 +257,10 @@ fun DrawScope.drawBoard(render: BoardRender) {
         val black = i % 2 == 0
         val number = if (render.showNumbers) "${i + 1}" else ""
         drawStone(cx(m.x), cy(m.y), radius, black, number, alpha = 1f)
+        // Review grade in the stone's top-right corner (`mq_badge_pixbuf`).
+        render.badges[m]?.takeIf { it != MoveQuality.NONE }?.let { quality ->
+            drawBadge(cx(m.x), cy(m.y), radius, quality, hair)
+        }
     }
 
     // last-move ring
@@ -275,6 +282,32 @@ fun DrawScope.drawBoard(render: BoardRender) {
         drawCircle(Gold, radius = radius * 0.85f, center = Offset(cx(m.x), cy(m.y)),
             style = Stroke(width = hair * 2.3f))
     }
+}
+
+/**
+ * The desktop's quality badge (`mq_badge_pixbuf`, main.c:1349): a filled circle
+ * of the grade's colour with a white outline, at 21 % of the stone's width,
+ * sitting on the stone's top-right corner.
+ */
+private fun DrawScope.drawBadge(cx: Float, cy: Float, r: Float, quality: MoveQuality, hair: Float) {
+    val radius = r * 0.42f
+    val center = Offset(cx + r - radius * 0.5f, cy - r + radius * 0.5f)
+    val color = Color(0xFF000000L or (quality.colorHex.removePrefix("#").toLong(16)))
+    drawCircle(color, radius = radius, center = center)
+    drawCircle(
+        Color.White, radius = radius, center = center, alpha = 0.9f,
+        style = Stroke(width = hair * 1.2f),
+    )
+    val paint = android.graphics.Paint().apply {
+        this.color = android.graphics.Color.WHITE
+        textSize = radius * (if (quality.symbol.length > 1) 1.05f else 1.35f)
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+        isFakeBoldText = true
+    }
+    drawContext.canvas.nativeCanvas.drawText(
+        quality.symbol, center.x, center.y - (paint.descent() + paint.ascent()) / 2, paint,
+    )
 }
 
 /** A filled rounded chip with the tag text, sized to sit on one intersection. */

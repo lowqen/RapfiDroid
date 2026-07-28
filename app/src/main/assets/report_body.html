@@ -1,0 +1,99 @@
+</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#262421;color:#dfdedc;font:14px/1.5 system-ui,'Segoe UI',sans-serif;max-width:1020px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin-bottom:2px}
+h2{font-size:15px;margin-bottom:10px;color:#c9c7c4}
+.meta{color:#989694;font-size:12.5px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.acc{display:flex;gap:10px}
+.acccard{border-radius:10px;padding:10px 22px;text-align:center;min-width:130px}
+.ab{background:#1d1c1a;border:1px solid #454341}
+.aw{background:#f4f3f1;color:#262421}
+.accnum{font-size:30px;font-weight:700;line-height:1.15}
+.acclab{font-size:11.5px;opacity:.75}
+.card{background:#302e2b;border-radius:12px;padding:16px;margin-bottom:14px}
+.player{display:flex;gap:18px;flex-wrap:wrap}
+#boardwrap{flex:1 1 380px;max-width:560px}
+#board{width:100%;height:auto;display:block}
+.side{flex:1 1 260px;display:flex;flex-direction:column;gap:12px;min-width:250px}
+.wood{fill:#dcb35c}
+.gl{stroke:#5f4a26;stroke-width:1}
+.star{fill:#5f4a26}
+.cl{fill:#7d6435;font-size:12px}
+.bs{fill:#181818;stroke:#000;stroke-width:1;cursor:pointer}
+.ws{fill:#f4f4f2;stroke:#8a8a88;stroke-width:1;cursor:pointer}
+.bn{fill:#cfcfcf;pointer-events:none}
+.wn{fill:#33322f;pointer-events:none}
+.badge{fill:#fff;font-size:12px;font-weight:700;pointer-events:none}
+.nopt{pointer-events:none}
+.hintring{fill:none;stroke:#81b64c;stroke-width:2.6;stroke-dasharray:5 4;pointer-events:none}
+.cmtbox{background:#262421;border-radius:10px;padding:12px;min-height:96px}
+.chip{display:inline-block;border-radius:6px;padding:1px 8px;font-weight:700;font-size:13px;margin-right:6px}
+.cmttext{margin-top:8px;font-size:14px}
+.controls{display:flex;align-items:center;gap:6px;justify-content:center}
+.controls button{background:#3d3a37;color:#dfdedc;border:0;border-radius:8px;font-size:15px;padding:7px 14px;cursor:pointer}
+.controls button:hover{background:#4a4744}
+.cnt{min-width:76px;text-align:center;font-weight:600}
+#slider{width:100%;accent-color:#81b64c}
+.hint{color:#7a7876;font-size:11.5px;text-align:center}
+#graph{width:100%;height:auto;display:block;cursor:pointer}
+.gbg{fill:#e9e8e4}
+.garea{fill:#2a2c31}
+.gline{fill:none;stroke:#111;stroke-width:1.4;opacity:.5}
+.ggrid{stroke:#8b8b8b;stroke-width:1;stroke-dasharray:4 4;opacity:.5}
+.gmid{stroke:#8b8b8b;stroke-width:1;stroke-dasharray:4 4;opacity:.9}
+.gt{fill:#a8a6a3;font-size:11px}
+.gcur{stroke:#4a9eff;stroke-width:1.6}
+.gcurd{fill:#4a9eff;stroke:#fff;stroke-width:1.4}
+.gdot{stroke:#fff;stroke-width:1.2;cursor:pointer}
+.sumrow{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.ctable{border-collapse:collapse}
+.ctable th{font-size:11.5px;color:#989694;padding:2px 10px;text-align:right}
+.ctable th:first-child{text-align:left}
+.ctable td{padding:2.5px 10px;font-size:13.5px}
+.ctable td.num{text-align:right;font-variant-numeric:tabular-nums}
+.ctable td.zero{opacity:.35}
+.gname{font-weight:700}
+.wtitle{font-size:11.5px;color:#989694;margin-bottom:6px}
+.wbtn{display:block;background:#262421;border:1px solid #454341;color:#dfdedc;border-radius:8px;padding:7px 12px;margin-bottom:6px;cursor:pointer;font-size:13.5px;text-align:left;width:100%}
+.wbtn:hover{background:#3a3835}
+#worst{min-width:210px;flex:0 0 auto}
+.twrap{max-height:420px;overflow:auto;position:relative;border-radius:8px}
+#mt{border-collapse:collapse;width:100%;font-size:13px}
+#mt th{position:sticky;top:0;background:#3a3733;color:#c9c7c4;padding:6px 8px;text-align:left;font-size:11.5px;z-index:1}
+#mt td{padding:4.5px 8px;border-top:1px solid #3a3733}
+#mt tr{cursor:pointer}
+#mt tr:hover td{background:#383531}
+#mt tr.cur td{background:#413d38}
+#mt td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+#mt td.mv{font-weight:600;white-space:nowrap}
+#mt td.cmt{color:#b5b3b0}
+details.card summary{cursor:pointer;font-size:14px;color:#c9c7c4;font-weight:600}
+details pre{margin-top:10px;background:#1e1c1a;border-radius:8px;padding:12px;font:12px/1.45 Consolas,monospace;white-space:pre-wrap;word-break:break-word;max-height:380px;overflow:auto;color:#b9b7b4}
+footer{color:#8c8a87;font-size:12px;text-align:center;margin-top:22px}
+@media(max-width:760px){.top{flex-direction:column;align-items:flex-start}}
+</style></head><body>
+<header class='top'>
+ <div id='hleft'></div>
+ <div class='acc' id='acc'></div>
+</header>
+<section class='card player'>
+ <div id='boardwrap'><svg id='board' xmlns='http://www.w3.org/2000/svg'></svg></div>
+ <div class='side'>
+  <div class='cmtbox'><span id='chip' class='chip'></span><span id='cmtmeta' class='meta'></span><div id='cmttext' class='cmttext'></div></div>
+  <div class='controls'>
+   <button id='bfirst'>|&#9664;</button><button id='bprev'>&#9664;</button><span id='cnt' class='cnt'></span><button id='bnext'>&#9654;</button><button id='blast'>&#9654;|</button>
+  </div>
+  <input id='slider' type='range' min='0' max='1' value='0'>
+  <div class='hint' id='hint1'>&#8592; &#8594; keys &middot; click stones, dots or rows to jump</div>
+ </div>
+</section>
+<section class='card'><h2 id='t_wr'>Winrate</h2><svg id='graph' xmlns='http://www.w3.org/2000/svg'></svg></section>
+<section class='card'><h2 id='t_gr'>Grades</h2><div class='sumrow'><div id='cnttbl'></div><div id='worst'></div></div></section>
+<section class='card'><h2 id='t_mv'>Moves</h2><div class='twrap' id='tw'><table id='mt'></table></div></section>
+<details class='card'><summary id='t_log'>Engine log</summary><pre id='logpre'></pre></details>
+<details class='card'><summary id='t_raw'>Raw data</summary><pre id='rawpre'></pre></details>
+<footer id='foot'></footer>
+<script>
+const GAME = 

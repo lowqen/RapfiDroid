@@ -63,9 +63,13 @@ data class EngineParams(
         add("nbestsym" to bit(nbestSym))
     }
 
-    /** Ported from `set_level`: level 1 uses the custom values, everything else
-     *  the predefined table with unlimited time. */
-    private fun levelPairs(): List<Pair<String, String>> =
+    /**
+     * `set_level` (main.c:2922): level 1 uses the custom values, everything else
+     * the predefined node table with unlimited time. Public because a game
+     * review overrides these for the run and has to put them back afterwards,
+     * exactly as the desktop calls `set_level(levelchoice)` when it finishes.
+     */
+    fun levelPairs(): List<Pair<String, String>> =
         if (level == 1) {
             listOf(
                 "timeout_turn" to timeoutTurnMs.toString(),

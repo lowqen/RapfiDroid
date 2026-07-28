@@ -50,6 +50,9 @@ interface GameRepository {
     suspend fun toStart()
     suspend fun toEnd()
 
+    /** Park the cursor on [index] stones, keeping the rest of the line for redo. */
+    suspend fun jumpTo(index: Int)
+
     /** Replace the whole line (shape transforms, pasted positions). */
     suspend fun replaceLine(moves: List<Move>)
 

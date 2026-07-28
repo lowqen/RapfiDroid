@@ -1,6 +1,7 @@
 package dev.gomoku.yixindroid.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Cable
 import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.GridOn
@@ -16,6 +17,7 @@ enum class Destination(
     val icon: ImageVector,
 ) {
     Board("board", R.string.tab_board, Icons.Filled.GridOn),
+    Review("review", R.string.tab_review, Icons.Filled.Assessment),
     Explorer("explorer", R.string.tab_explorer, Icons.Filled.Explore),
     Rankings("rankings", R.string.tab_rankings, Icons.Filled.Leaderboard),
     Database("database", R.string.tab_database, Icons.Filled.Storage),

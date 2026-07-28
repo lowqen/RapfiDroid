@@ -2,6 +2,7 @@
     <string name="app_name">YixinDroid</string>
 
     <string name="tab_board">보드</string>
+    <string name="tab_review">리뷰</string>
     <string name="tab_explorer">익스플로러</string>
     <string name="tab_rankings">랭킹</string>
     <string name="tab_database">DB</string>

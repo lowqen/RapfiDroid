@@ -20,6 +20,7 @@ import dev.gomoku.yixindroid.feature.board.BoardScreen
 import dev.gomoku.yixindroid.feature.connection.ConnectionScreen
 import dev.gomoku.yixindroid.feature.database.DatabaseScreen
 import dev.gomoku.yixindroid.feature.rankings.RankingsScreen
+import dev.gomoku.yixindroid.feature.review.ReviewScreen
 import dev.gomoku.yixindroid.feature.settings.SettingsScreen
 import dev.gomoku.yixindroid.ui.PlaceholderScreen
 
@@ -59,6 +60,9 @@ fun YixinApp() {
         ) {
             composable(Destination.Board.route) {
                 BoardScreen()
+            }
+            composable(Destination.Review.route) {
+                ReviewScreen()
             }
             composable(Destination.Explorer.route) {
                 PlaceholderScreen("오프닝 익스플로러", "통계·세부 화면은 P4에서 구현됩니다.")
