@@ -54,10 +54,12 @@ import dev.gomoku.yixindroid.core.model.MoveQuality
 import dev.gomoku.yixindroid.core.model.QueueEntry
 import dev.gomoku.yixindroid.core.model.QueueStatus
 import dev.gomoku.yixindroid.core.model.ReviewBudget
+import dev.gomoku.yixindroid.feature.prove.ProveCard
 
 /**
- * Game review, the analysis queue and the report — the desktop's Analysis menu
- * (Game Review / Analysis Queue / Game Report) on one screen.
+ * Game review, position prove, the analysis queue and the report — the desktop's
+ * Analysis menu (Game Review / Prove Position / Analysis Queue / Game Report) on
+ * one screen.
  */
 @Composable
 fun ReviewScreen(
@@ -132,6 +134,11 @@ fun ReviewScreen(
                 items(report.moves, key = { it.index }) { move ->
                     MoveRow(move, report.size) { viewModel.onJumpTo(move.index) }
                 }
+            }
+            item {
+                // The desktop's Analysis menu holds Prove Position next to Game
+                // Review, and both drive the same engine, so they share a screen.
+                ProveCard(onNotice = { viewModel.onExternalNotice(it) })
             }
             item {
                 QueueCard(

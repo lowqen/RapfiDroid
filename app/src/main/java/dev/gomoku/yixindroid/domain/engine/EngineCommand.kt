@@ -139,6 +139,15 @@ sealed interface EngineCommand {
         }
     }
 
+    /**
+     * Rapfi: search this position for **every defense** instead of the best move
+     * (`yxsearchdefend`, main.c:9495). One PV per playable defense comes back, so
+     * the prove pipeline reads the whole AND-node fan-out from a single search.
+     */
+    data object YxSearchDefend : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxsearchdefend"
+    }
+
     /** Drop the transposition table (settings.txt line 25, "hash autoclear"). */
     data object YxHashClear : EngineCommand {
         override fun serialize(coord: CoordMapper) = "yxhashclear"

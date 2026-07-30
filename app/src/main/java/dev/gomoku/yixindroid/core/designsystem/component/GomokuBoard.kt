@@ -18,6 +18,8 @@ import dev.gomoku.yixindroid.core.model.CellTag
 import dev.gomoku.yixindroid.core.model.DbCellKind
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.MoveQuality
+import dev.gomoku.yixindroid.core.model.ProveMark
+import dev.gomoku.yixindroid.core.model.ProveOverlay
 import dev.gomoku.yixindroid.core.model.TagKind
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -38,6 +40,8 @@ data class BoardRender(
     val palette: TagPalette = TagPalette(),       // saturation/value settings
     /** Review grades on played stones (settings_dev line 4, `mq_badge_pixbuf`). */
     val badges: Map<Move, MoveQuality> = emptyMap(),
+    /** Prove overlay while a proof runs; null when none does. */
+    val prove: ProveOverlay? = null,
 )
 
 /**
@@ -282,6 +286,100 @@ fun DrawScope.drawBoard(render: BoardRender) {
         drawCircle(Gold, radius = radius * 0.85f, center = Offset(cx(m.x), cy(m.y)),
             style = Stroke(width = hair * 2.3f))
     }
+
+    // prove overlay on top of everything (main.c:9061 `prove_cell_pixbuf`)
+    render.prove?.let { prove ->
+        prove.ghost.forEach { (m, ply) ->
+            drawProveGhost(cx(m.x), cy(m.y), radius, hair, ply, prove)
+        }
+        prove.marks.forEach { (m, mark) ->
+            if (m in prove.ghost) return@forEach
+            drawProveMark(cx(m.x), cy(m.y), radius, hair, mark, prove.budgetLabel(m))
+        }
+    }
+}
+
+/** Attack ring colour of the prove overlay (main.c:9089): orange, defense blue. */
+private val ProveAttack = Color(0xFFE67D21)
+private val ProveDefend = Color(0xFF3F8FED)
+private val ProveWin = Color(0xFF21A86B)
+private val ProveLoss = Color(0xFFD44747)
+private val ProveExhausted = Color(0xFF5C5C66)
+private val ProveOpen = Color(0xFF858A94)
+private val ProveLatent = Color(0xFF8C8F9E)
+
+/**
+ * One stone of the line under search: a translucent stone with its ply number and
+ * a ring saying whether that ply is an attack or a defense. The last ply is the
+ * focus and gets a heavier ring (the desktop pulses it; a static ring reads the
+ * same on a phone and avoids a 500 ms redraw of the whole board).
+ */
+private fun DrawScope.drawProveGhost(
+    cx: Float,
+    cy: Float,
+    r: Float,
+    hair: Float,
+    ply: Int,
+    prove: ProveOverlay,
+) {
+    val black = prove.isBlack(ply)
+    val focus = ply == prove.ghostLen
+    drawStone(cx, cy, r, black, "", alpha = 0.55f)
+    drawCircle(
+        if (prove.isAttack(ply)) ProveAttack else ProveDefend,
+        radius = r * 0.90f,
+        center = Offset(cx, cy),
+        alpha = if (focus) 1f else 0.72f,
+        style = Stroke(width = hair * if (focus) 3.4f else 2f),
+    )
+    val paint = android.graphics.Paint().apply {
+        color = if (black) android.graphics.Color.WHITE else android.graphics.Color.BLACK
+        textSize = r * if (ply < 10) 0.76f else 0.62f
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+        isFakeBoldText = true
+    }
+    drawContext.canvas.nativeCanvas.drawText(
+        "$ply", cx, cy - (paint.descent() + paint.ascent()) / 2, paint,
+    )
+}
+
+/** Status marker on a root candidate (`PM_*`, main.c:9099-9134). */
+private fun DrawScope.drawProveMark(
+    cx: Float,
+    cy: Float,
+    r: Float,
+    hair: Float,
+    mark: ProveMark,
+    budget: String,
+) {
+    if (mark == ProveMark.NONE) return
+    val center = Offset(cx, cy)
+    if (mark == ProveMark.LATENT) {
+        // A latent alternative is an outline only — it has no budget yet.
+        drawCircle(ProveLatent, radius = r * 0.58f, center = center, alpha = 0.85f,
+            style = Stroke(width = hair * 2f))
+        return
+    }
+    val (color, glyph) = when (mark) {
+        ProveMark.WIN -> ProveWin to "✓"
+        ProveMark.LOSS -> ProveLoss to "✗"
+        ProveMark.EXH -> ProveExhausted to "!"
+        else -> ProveOpen to budget
+    }
+    drawCircle(color, radius = r * 0.67f, center = center, alpha = 0.92f)
+    drawCircle(Color.White, radius = r * 0.67f, center = center, alpha = 0.9f,
+        style = Stroke(width = hair))
+    val paint = android.graphics.Paint().apply {
+        this.color = android.graphics.Color.WHITE
+        textSize = r * if (glyph.length > 2) 0.5f else 0.7f
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+        isFakeBoldText = true
+    }
+    drawContext.canvas.nativeCanvas.drawText(
+        glyph, cx, cy - (paint.descent() + paint.ascent()) / 2, paint,
+    )
 }
 
 /**

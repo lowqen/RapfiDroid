@@ -44,6 +44,11 @@ data class BoardUiState(
     val showClock: Boolean = true,
     /** An opening protocol is selected but the board has no centre point. */
     val openingNeedsOddSize: Boolean = false,
+    /**
+     * The two lines the desktop paints over the win-rate graph while a proof runs
+     * (`prove_badge_lines`); null when no prove is running.
+     */
+    val proveBadge: Pair<String, String>? = null,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
     val canUndo: Boolean get() = moveCount > 0

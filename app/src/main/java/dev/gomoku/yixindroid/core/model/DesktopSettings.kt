@@ -385,28 +385,30 @@ object DesktopSettings {
             SettingEditor.Choice(
                 listOf(ChoiceOption(0, "엄격"), ChoiceOption(1, "기본"), ChoiceOption(2, "느슨")),
             ),
-            note = "수 품질 채점(검토)은 P8",
+            note = "리뷰 등급 기준 — 같은 손실을 얼마나 엄하게 볼지",
             get = { it.mqPreset }, set = { s, v -> s.copy(mqPreset = v) },
         )
         bool(
             "showMoveBadge", "show move badges on stones (0: no, 1: yes)", "돌에 수 품질 배지",
-            SettingCategory.DISPLAY, note = "채점 결과가 필요하므로 P8",
+            SettingCategory.DISPLAY, note = "리뷰가 끝난 뒤 돌 위에 등급 배지를 그립니다",
             get = { it.showMoveBadge }, set = { s, v -> s.copy(showMoveBadge = v) },
         )
         int(
             "proveBudget0Sec", "prove mode initial budget per node (seconds)",
             "증명 초기 예산", SettingCategory.RESEARCH, SettingEditor.Number(1, 3_600, "초/노드"),
-            note = "증명 모드는 P8",
+            note = "노드당 시작 예산 — 실패하면 2배씩 올립니다",
             get = { it.proveBudget0Sec }, set = { s, v -> s.copy(proveBudget0Sec = v) },
         )
         int(
             "proveBudgetMaxSec", "prove mode budget cap (seconds)", "증명 예산 상한",
-            SettingCategory.RESEARCH, SettingEditor.Number(1, 36_000, "초"), note = "증명 모드는 P8",
+            SettingCategory.RESEARCH, SettingEditor.Number(1, 36_000, "초"),
+            note = "이 예산까지 올려도 결론이 없으면 그 노드는 포기합니다",
             get = { it.proveBudgetMaxSec }, set = { s, v -> s.copy(proveBudgetMaxSec = v) },
         )
         int(
             "proveNbest", "prove mode attacker candidates (yxnbest k)", "증명 공격 후보 수",
-            SettingCategory.RESEARCH, SettingEditor.Number(1, 8), note = "증명 모드는 P8",
+            SettingCategory.RESEARCH, SettingEditor.Number(1, 8),
+            note = "OR 노드에서 yxnbest 로 받는 공격 후보 수 (실패 시 1씩 확장)",
             get = { it.proveNbest }, set = { s, v -> s.copy(proveNbest = v) },
         )
         int(
@@ -432,42 +434,46 @@ object DesktopSettings {
         )
         bool(
             "proveBestFirst", "prove best attack move first (0: no, 1: yes)",
-            "증명: 최선 공격 먼저", SettingCategory.RESEARCH, note = "증명 모드는 P8",
+            "증명: 최선 공격 먼저", SettingCategory.RESEARCH,
+            note = "최선수 하나만 전개하고 실패할 때만 다음 후보를 꺼냅니다",
             get = { it.proveBestFirst }, set = { s, v -> s.copy(proveBestFirst = v) },
         )
         bool(
             "proveProbe", "prove early probe of strongest defense (0: no, 1: yes)",
-            "증명: 최강 방어 조기 탐색", SettingCategory.RESEARCH, note = "증명 모드는 P8",
+            "증명: 최강 방어 조기 탐색", SettingCategory.RESEARCH,
+            note = "성립할 것 같은 방어를 먼저 한 번 확인 — 반증되면 그 가지 전체가 무의미해집니다",
             get = { it.proveProbe }, set = { s, v -> s.copy(proveProbe = v) },
         )
         bool(
             "reviewByDepth", "review budget unit (0: seconds, 1: depth)", "검토 예산 단위 = 깊이",
-            SettingCategory.RESEARCH, note = "검토(리뷰)는 P8",
+            SettingCategory.RESEARCH,
             get = { it.reviewByDepth }, set = { s, v -> s.copy(reviewByDepth = v) },
         )
         int(
             "reviewDepth", "review fixed depth per move", "검토 고정 깊이",
-            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, "플라이"), note = "P8",
+            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, "플라이"),
             get = { it.reviewDepth }, set = { s, v -> s.copy(reviewDepth = v) },
         )
         bool(
             "proveByDepth", "prove budget unit (0: seconds, 1: depth)", "증명 예산 단위 = 깊이",
-            SettingCategory.RESEARCH, note = "증명 모드는 P8",
+            SettingCategory.RESEARCH, note = "시간 대신 고정 깊이로 탐색합니다",
             get = { it.proveByDepth }, set = { s, v -> s.copy(proveByDepth = v) },
         )
         int(
             "proveDepth0", "prove initial depth per node", "증명 초기 깊이",
-            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, "플라이"), note = "P8",
+            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, "플라이"),
+            note = "깊이 모드에서 노드당 시작 깊이 (실패 시 +2)",
             get = { it.proveDepth0 }, set = { s, v -> s.copy(proveDepth0 = v) },
         )
         int(
             "proveDepthMax", "prove depth cap per node", "증명 깊이 상한",
-            SettingCategory.RESEARCH, SettingEditor.Number(4, 128, "플라이"), note = "P8",
+            SettingCategory.RESEARCH, SettingEditor.Number(4, 128, "플라이"),
             get = { it.proveDepthMax }, set = { s, v -> s.copy(proveDepthMax = v) },
         )
         bool(
             "skipOpening", "skip grading/search of opening moves 1-5 (0: no, 1: yes)",
-            "1~5수 채점 생략", SettingCategory.RESEARCH, note = "검토·증명은 P8",
+            "1~5수 채점 생략", SettingCategory.RESEARCH,
+            note = "리뷰가 오프닝 국면을 탐색하지 않고 등급도 매기지 않습니다",
             get = { it.skipOpening }, set = { s, v -> s.copy(skipOpening = v) },
         )
         fixed(

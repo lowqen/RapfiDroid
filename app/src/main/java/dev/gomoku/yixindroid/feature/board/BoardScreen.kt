@@ -138,6 +138,22 @@ fun BoardScreen(
         EvalHeader(ui, pad)
         // settings_dev.txt line 1 — the desktop's own toggle.
         if (ui.showEvalBar) EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate, modifier = pad)
+        // While a proof runs the desktop paints its two counters over the win-rate
+        // graph (`prove_badge_lines`); here they sit above the board, where the
+        // ghost stones of the searched line are.
+        ui.proveBadge?.let { (first, second) ->
+            Column(pad) {
+                Text(first, style = MaterialTheme.typography.labelMedium)
+                if (second.isNotEmpty()) {
+                    Text(
+                        second,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
         ZoomableBoard(
             ui = ui,
             onTap = viewModel::onTap,

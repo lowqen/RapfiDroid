@@ -22,12 +22,15 @@ import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.MoveQuality
 import dev.gomoku.yixindroid.core.model.Position
+import dev.gomoku.yixindroid.core.model.ProveOverlay
+import dev.gomoku.yixindroid.core.model.ProveProgress
 import dev.gomoku.yixindroid.core.model.Swap2Choice
 import dev.gomoku.yixindroid.core.model.TapResult
 import dev.gomoku.yixindroid.data.board.BoardImageIo
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameRepository
+import dev.gomoku.yixindroid.domain.repository.ProveRepository
 import dev.gomoku.yixindroid.domain.repository.ReviewRepository
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.Job
@@ -47,6 +50,7 @@ class BoardViewModel @Inject constructor(
     private val database: DatabaseRepository,
     private val game: GameRepository,
     private val review: ReviewRepository,
+    private val prove: ProveRepository,
     private val imageIo: BoardImageIo,
 ) : ViewModel() {
 
@@ -81,11 +85,13 @@ class BoardViewModel @Inject constructor(
         val balancing: Boolean,
         val game: GameState,
         val report: GameReport?,
+        val prove: ProveOverlay,
+        val proveProgress: ProveProgress,
     )
 
     private val panel = combine(
         repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
-        game.future, balancing, game.state, review.report,
+        game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -99,6 +105,8 @@ class BoardViewModel @Inject constructor(
             balancing = values[7] as Boolean,
             game = values[8] as GameState,
             report = values[9] as GameReport?,
+            prove = values[10] as ProveOverlay,
+            proveProgress = values[11] as ProveProgress,
         )
     }
 
@@ -130,6 +138,7 @@ class BoardViewModel @Inject constructor(
                 isRenju = config.isRenju,
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
+                proveBadge = if (p.proveProgress.running) p.proveProgress.badgeLines() else null,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -152,6 +161,10 @@ class BoardViewModel @Inject constructor(
      * places a stone, answers an opening step, or starts the engine's turn.
      */
     fun onTap(move: Move) {
+        researchBusy()?.let {
+            _notice.value = it
+            return
+        }
         previewPv.value = null
         viewModelScope.launch {
             when (val result = game.tap(move)) {
@@ -181,6 +194,10 @@ class BoardViewModel @Inject constructor(
 
     fun onStartAnalyze() {
         if (analyzing.value) return
+        researchBusy()?.let {
+            _notice.value = it
+            return
+        }
         if (game.state.value.thinking) {
             _notice.value = "대국 착수를 계산하는 중입니다"
             return
@@ -251,6 +268,10 @@ class BoardViewModel @Inject constructor(
      */
     fun onBalance(two: Boolean, bias: Int) {
         if (balancing.value || !repository.state.value.isLive) return
+        researchBusy()?.let {
+            _notice.value = it
+            return
+        }
         if (analyzing.value) stopAnalysis()
         balancing.value = true
         val target = position.value
@@ -415,6 +436,9 @@ class BoardViewModel @Inject constructor(
             // while the line still matches the reviewed one (main.c re-grades on
             // every board refresh; here the report is the source of truth).
             badges = if (config.showMoveBadge) badgesFor(pos, panel.report) else emptyMap(),
+            // Prove overlay: ghost stones of the line under search plus a status
+            // marker on every root candidate (main.c:9061 `prove_cell_pixbuf`).
+            prove = panel.prove.takeIf { it.active },
             showNumbers = config.showNumber,
             palette = TagPalette(
                 losingSaturation = config.lossSaturation,
@@ -480,7 +504,23 @@ class BoardViewModel @Inject constructor(
     }
 
     /** Runs a game call on the view-model scope (named to avoid shadowing `launch`). */
+    /**
+     * Board actions are locked while a review or a proof runs — main.c returns
+     * early from the board click and from every navigation callback while
+     * `reviewactive || proveactive` (main.c:2661, 4524). Without this a tap would
+     * push a `TURN` into the middle of the run's own conversation.
+     */
+    private fun researchBusy(): String? = when {
+        review.progress.value.running -> "게임 리뷰가 진행 중입니다 — 먼저 중지하세요"
+        prove.progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
+        else -> null
+    }
+
     private fun inGame(block: suspend () -> Unit) {
+        researchBusy()?.let {
+            _notice.value = it
+            return
+        }
         viewModelScope.launch { block() }
     }
 

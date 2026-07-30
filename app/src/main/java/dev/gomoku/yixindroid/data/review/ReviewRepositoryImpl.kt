@@ -27,6 +27,7 @@ import dev.gomoku.yixindroid.domain.engine.SearchAggregator
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameFileReader
 import dev.gomoku.yixindroid.domain.repository.GameRepository
+import dev.gomoku.yixindroid.domain.repository.ProveRepository
 import dev.gomoku.yixindroid.domain.repository.ReviewRepository
 import dev.gomoku.yixindroid.domain.repository.ReviewStart
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
@@ -44,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
+import javax.inject.Provider
 import javax.inject.Singleton
 
 /**
@@ -67,6 +69,13 @@ class ReviewRepositoryImpl @Inject constructor(
     private val game: GameRepository,
     private val settingsRepository: SettingsRepository,
     private val files: GameFileReader,
+    /**
+     * A prove run owns the engine just as exclusively as a review does, and each
+     * refuses to start while the other runs (main.c's `reviewactive` /
+     * `proveactive` pair). Injected lazily because the prove repository takes
+     * *this* one — the guard is the only thing that needs it.
+     */
+    private val prove: Provider<ProveRepository>,
     @IoDispatcher io: CoroutineDispatcher,
 ) : ReviewRepository {
 
@@ -152,9 +161,10 @@ class ReviewRepositoryImpl @Inject constructor(
         ReviewStart.Started
     }
 
-    /** The desktop's three refusals (main.c:7189, 7440). */
+    /** The desktop's refusals (main.c:7189, 7195, 7440). */
     private fun guard(): String? = when {
         _progress.value.running -> "이미 리뷰가 진행 중입니다"
+        prove.get().progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
         !engine.state.value.isLive -> "엔진에 연결되어 있지 않습니다"
         game.state.value.thinking -> "엔진이 대국 수를 계산 중입니다 — 먼저 중지하세요"
         else -> null

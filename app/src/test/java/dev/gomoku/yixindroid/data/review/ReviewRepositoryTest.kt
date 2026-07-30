@@ -15,6 +15,10 @@ import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.MoveQuality
 import dev.gomoku.yixindroid.core.model.Position
+import dev.gomoku.yixindroid.core.model.ProveOptions
+import dev.gomoku.yixindroid.core.model.ProveOutcome
+import dev.gomoku.yixindroid.core.model.ProveOverlay
+import dev.gomoku.yixindroid.core.model.ProveProgress
 import dev.gomoku.yixindroid.core.model.QueueEntry
 import dev.gomoku.yixindroid.core.model.QueueStatus
 import dev.gomoku.yixindroid.core.model.ReviewBudget
@@ -28,6 +32,8 @@ import dev.gomoku.yixindroid.domain.engine.ResponseParser
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameFileReader
 import dev.gomoku.yixindroid.domain.repository.GameRepository
+import dev.gomoku.yixindroid.domain.repository.ProveRepository
+import dev.gomoku.yixindroid.domain.repository.ProveStart
 import dev.gomoku.yixindroid.domain.repository.ReviewStart
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +49,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
+import javax.inject.Provider
 
 /**
  * The review pipeline against the desktop's loop (main.c:7098 onwards): what it
@@ -150,10 +157,23 @@ class ReviewRepositoryTest {
         override suspend fun read(uri: String): ByteArray? = contents[uri]
     }
 
+    /** Only the run flag matters: a review refuses to start while a prove runs. */
+    private class FakeProve : ProveRepository {
+        val progressFlow = MutableStateFlow(ProveProgress())
+        override val progress: StateFlow<ProveProgress> get() = progressFlow
+        override val overlay: StateFlow<ProveOverlay> = MutableStateFlow(ProveOverlay.EMPTY)
+        override val outcome: StateFlow<ProveOutcome?> = MutableStateFlow(null)
+        override val log: StateFlow<List<String>> = MutableStateFlow(emptyList())
+        override suspend fun start(options: ProveOptions) = ProveStart.Started
+        override suspend fun cancel() = Unit
+        override fun clearOutcome() = Unit
+    }
+
     private class Harness(
         val engine: FakeEngine,
         val game: FakeGame,
         val files: FakeFiles,
+        val prove: FakeProve,
         val review: ReviewRepositoryImpl,
     ) {
         suspend fun receive(line: String) {
@@ -186,10 +206,12 @@ class ReviewRepositoryTest {
         val engine = FakeEngine()
         val game = FakeGame()
         val files = FakeFiles()
+        val prove = FakeProve()
         val repository = ReviewRepositoryImpl(
-            engine, game, FakeSettings(settings), files, StandardTestDispatcher(testScheduler),
+            engine, game, FakeSettings(settings), files, Provider { prove },
+            StandardTestDispatcher(testScheduler),
         )
-        val h = Harness(engine, game, files, repository)
+        val h = Harness(engine, game, files, prove, repository)
         try {
             runCurrent()
             body(h)
@@ -222,6 +244,15 @@ class ReviewRepositoryTest {
         h.game.replaceLine(listOf(h8))
         h.game.stateFlow.value = GameState(thinking = true)
         assertThat(h.review.start(ReviewBudget())).isInstanceOf(ReviewStart.Refused::class.java)
+    }
+
+    /** main.c:7195 — the two pipelines would fight over the same engine. */
+    @Test
+    fun `a running prove blocks the review`() = reviewTest { h ->
+        h.game.replaceLine(listOf(h8))
+        h.prove.progressFlow.value = ProveProgress(running = true)
+        val refusal = h.review.start(ReviewBudget()) as ReviewStart.Refused
+        assertThat(refusal.reason).contains("증명")
     }
 
     // ---- the loop -----------------------------------------------------------

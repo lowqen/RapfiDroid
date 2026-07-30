@@ -277,6 +277,11 @@ class ReviewViewModel @Inject constructor(
         notice.value = null
     }
 
+    /** Snackbar for a section that shares this screen (the prove card). */
+    fun onExternalNotice(text: String) {
+        notice.value = text
+    }
+
     private var cachedShell: ReportShell? = null
 
     private companion object {
