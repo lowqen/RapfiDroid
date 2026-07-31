@@ -1,0 +1,252 @@
+# 국면 키 골든 벡터 — rifdb/rif_crosscheck.py 가 생성한다(손으로 고치지 말 것).
+# rifkey.py 와 test_webkey.exe(= main.c web_poskey) 가 합의한 값만 실린다.
+# 형식: <수순>\t<키>\t<채택 t>\t<b3 의 정규 프레임 좌표>
+# 크기 15. YixinDroid PosKeyTest 가 이 파일을 읽어 4번째 구현을 대조한다.
+h8	15h8b	0	b3
+h8 i9	15g9wh8b	1	n3
+h8 i9 j10	15f10bg9wh8b	1	n3
+h8 g9 h9 h10	15f8wg8bh8bg7w	6	m2
+a1	15a15b	2	b13
+o15 a1	15a15bo1w	1	n3
+h8 h9 j10 i9 g9	15f10bg9wg8wh8bg7b	6	m2
+b2 c13 h8	15b14bh8bc3w	2	b13
+l11	15d11b	1	n3
+j6 c11 n14 a7 j13 a9 b6 m2	15b14bf13bm11wo9wo7wf6bn6bc2w	1	n3
+e4	15d11b	5	c14
+o7 k3 c11 e5 a12 h14 l4 h10 b3 g4 e11 i8 a14	15a14bh14wa12bc11be11bh10wi8wo7be5wg4wl4bb3bk3w	0	b3
+d2 a12 i11 c8 g15 l2 e13 b4 d6 n6 g11 c5 n12 o14 l15 a9 l3 k7 l11	15b15wd14bj14wa12be12bm12bn12wi11we9ba7be7bc5bj4bn4bh3wk3wl2wd1wg1w	6	m2
+a10 h13 h4 e14 d3 n11 g2 g10 l3 j15 o10 l10 c12 h14 h15 m7 h11	15f15bd13bm12bb11wf9wn9ba8bb8wc8we8bl8ba6wf4wm4bi3we2wf1b	4	m14
+n1 o15 m12 e7 d7 i6 c13 l9 a4	15a15wm13bc12bd9wk7wl7bg6wo4bb1b	1	n3
+h2 i15 k14 k7 l2 j1 c5 f4 c1 h8 e9 g5 o5 a3 f15 g15 d9	15c15bj15wh14bl14ba13wf12wc11bg11wo11bk9wh8wd7be7bk2bf1bg1wi1w	2	b13
+j11	15e10b	6	m2
+n1 g1 i13 j13 f14 j2 c12 c9 a7 h4 l1 b13 i7	15a14ba12bb10wm10wg9bm9bd8wa7wn6bi3wl3bm2wg1b	7	c2
+l1 c14 d1	15a12ba4bn3w	7	c2
+e15 b10 l3 o13 m15 k6	15c15bk15ba13wn10we6wd3b	1	n3
+d12 b5 o10 a13 g10 m7 k7 b9 j11 m2 k3 o7 g11 c15 f5 e7 l14 e6 i11	15c14we13bj11bn11wk10wa9wc9we9bk9wn7wa6bi6bf5bg5bi5bl4bo3wd2bm1w	3	n13
+g1 f15	15a10wo9b	4	m14
+k1 n15 c7 g14 l10 a15 a4 c10 f14 b5 b4 a5 g6 m3 g2 m11	15a14we13wm13wf12bo11bb7wj7bn7bb6bf3wi3bk2wl2ba1wk1wl1b	6	m2
+j10 h8 n14 g10 c1 d2 g12 d5 l2 n12	15a13bb12we12wj9wl9bh8wj6bb4bl2wn2b	5	c14
+e14	15b11b	4	m14
+m9 l3 g14	15b9bm4wg3b	4	m14
+b2 g6 n4 e3 f5 b7 o7 j2 m11 n3 f14 l6 o1 d12	15a15bf14wn14bb13wk13wb12bj11bd10wi10wa9bn9wc5bl4wj2b	3	n13
+f14 c13 c9 o9 n9 a13 h14 b3 l6 e4 a10 n12	15b13we12wl10bc7bn7bo7wa6bn4wa3wc3wf2bh2b	2	b13
+h9 d6 e14 g1 h4 e12 i8 b10 m2 j2 j4 a11	15b13bb10wd10bh9bd8bi8ba7wl5wn5bf4wj2wk1w	7	c2
+b12 e8 o14 f8 k12 h14 e9 e5 a1	15a14bh14we12bn12bk9bj8wk8wk5wo1b	1	n3
+g7 d4 j7 o9 m13 h3 i7 h2 n12 f5 m7 d8 d6	15c13bb12ba9wl8wc7bf7bg7bi7bl6bj5wl4wh3wh2w	1	n3
+n4	15b12b	3	n13
+a7 e1 e6 h5	15a7be6bh5we1w	0	b3
+f12 d10 h8 c11 n12 k10 d4 j3 c6 b13 l8 b3 d14 j13	15b13wj13wd12bc10bh8bl8bd6wk6wc5wf4bn4bb3wj3wd2b	2	b13
+d15 k11 m14 g1 d10 h15 b8 i12 k14 f5 n9 e2 k5 i13	15d15bh15wk14bm14bi13wi12wk11wd10bn9bb8bf5wk5be2wg1w	0	b3
+j6 k4 k11 a3 h15	15a13wk12wj10bk5bh1b	2	b13
+o14	15a14b	1	n3
+a7 j6 o10 b15 b5 c1 e3 e7 i9 l2 k11 j13 e9 h3 h6 h13 n11	15b15wh13wj13wk11bn11bo10be9bi9ba7be7wh6bj6wb5be3bh3wl2wc1w	0	b3
+o12 d4 j6 d3 i14 d12 h10 a6 f10 m14 c8 o7 o5 b13 l8 j15 l7 h11 b2 l4	15b14bd13wd12wl12wo11ba10wj10bl9bo9wc8bl8bf6bh6bh5wd4wo4bb3wi2bm2wj1w	2	b13
+e8 b3 l5 o10 g14 f10 m6 c13 m4 o11 e7 g8 n1 e14 e13 d14 n11 c14	15b15bn13wc12bd11bc10bk9bi8wk8ba6wj6wa5wb5bk3bm3wi2bk2wl2wm2w	3	n13
+d10 e15 i11 j12 b4 k1 f5 a2 c5 n13 m15 b5 h2 h15 k2 j11 n9 f9 o1	15a15be15we14bh14bo14wn12bj11bm11bn11wb7bj7wl6bf5wg5bf4wb3wc1bh1wk1w	3	n13
+j9 a13 o10 k14 b11 a12 d6	15c15wd15we14bj12bg6bb5wf1b	4	m14
+l14 l13 f11 f13 g3 a11 m8 g2 c13 k3 l10	15d14bd13wj13wm13bj11bo11wd10bc8be3wi3bi2w	1	n3
+n10 i9 m15 k7 g14 m11 d6 h2 l6 e10 k1 g12 d15 n15 m7 b10 j10 j4 c5 g15	15a14wf14ba13be13wi13bj12bi11wo11bf10bl10wg9wn8wa7wb7bd7wf5wa4bj4bk3bf2w	6	m2
+f13 e15 e5 n5 l14 f15 g13 k3 a6 o1 n7 g6 b6	15a15we13wb11wk11bi10wn10bo10bb9bi3bj3bd2bj1wk1w	3	n13
+d3 c15 i8	15a13wm12bh7b	4	m14
+e1 b8 n13 b6	15b13bn8wn6wk1b	1	n3
+b9 h5	15b9bh5w	0	b3
+i2 d15 o13 e1 c1 o14 c6 k6 f15 a10 o12	15b15wc15bd15bj11wn9ba6bo5wa4wj3bo3bf1w	6	m2
+n13 k7 l9 g14 e14 e4 k6 m10 m15	15b11bl11wb9wi5wj5bg4ba3bf3wc2b	4	m14
+a2 c15	15a14bc1w	2	b13
+e3 o2 e4 l2 h9 f12 m15 a12 k11 g13 d2 j11 n8 c9 h11	15a14wd14wl14bk13bk12bb8bh7bm7we5bf5wh5bj4wo4wi3wc1b	3	n13
+e8 e12 n10 n5 a15 b14 j10 g7 k15 k3 o13	15a15bb14wd11wh11bi9wf6ba5bm5wf2bk2wc1b	4	m14
+n9 i7 i6 f2 i3 j13	15b10wc7bf7bg7wm6wi2b	5	c14
+o6 g7 j3 a11 k7 o5 d14	15d14ba11wg7wk7bo6bo5wj3b	0	b3
+m10 k4 o7 k10 d5 o6 a5	15c10be10wa7ba6wl5bo5be4w	1	n3
+m12	15c12b	1	n3
+c12 g12 k15 i4 m5 k14 h10 f11 l15 b5 l6 j14 d2 b1	15a14we14wl13bb12bk10wl9wj8bd7wn6wn5wo5bf4bo4be3b	5	c14
+d7 o9 i14 c15	15a13wi12bb7bg1w	4	m14
+l10 l6 o15 j7 j9 n2 c2 f15 j10 h5	15a15bj15wd10bf10bf9bf7wd6wh5wb2wm2b	1	n3
+h12 h10 k11	15d8bf8we5b	4	m14
+j4 i14 m14 a13 e4 i12 h3 a14 o14 d4 k8 o8 j2 o13 l5 f2	15a14bc14bg14wo14wa13wo13wg12wa8we8bd5bf4bk4bl4wh3bf2bj2w	1	n3
+h9 i10 d12 g9 m15 j1 a11 d6 k13 d7 f4 i6 j4 e3 k7 j11 f6 e6 a1	15a13bc11bi11be10wl10bo10wf9wj9wg8bg7wj6bl6bj5wm5wd4bi4wj4we1bo1b	6	m2
+k9 o10 h10 d7 e15 e12 o3 h5 a7 g1 o4	15c15bd15bj15wi11be8wj8ba7wl5wo5bg4wg1b	7	c2
+a10	15a10b	0	b3
+n15 g5 g3 k9	15a14bg11wk7wm7b	6	m2
+m9 l14 e7 f2	15d14wc9bk7bj2w	1	n3
+o11 c13 j6 i13 g4 m9 i6 m4 l10 j4 c8 o1 c1 i11 i15	15a13bh13bm13wd9bf7bk7wm7wo7bd6wf6bj4bd3wi3wa1wk1b	5	c14
+i5 f7 m15 e8 i1 g15 g10 f6 d10 f9	15a13bk9bo9ba7wf7bg6wi6wj6wh5wf4b	6	m2
+d7 e2 k4 e7 i11 d12 m1	15a13bd11bk9bb5wg5wg4bl4w	7	c2
+h11	15e8b	4	m14
+n12	15b12b	1	n3
+i1 k7 n12 k14 n11 b3 o12 d11 c8 l3 d7 k8	15c14wh13bg12bk12wa7bg5wh5wn5wc4wk2bl2bl1b	5	c14
+b14 a5 h2 k5 i9 g3 d7 h7 f15 o3 c4 k4 f4 i4	15c15wd11we11wd9wi9bb8bg8wc7wd6bo6bg4bd3bn2be1w	7	c2
+l8 h5 m14 c2 h11 k3 g11 l6 o4 d5 d14	15b13we12wn12bk9be8wk8bc5wf4wh4bn3bd1b	5	c14
+o4 l15 e1 f3 g8 c1 k12 b14 d2	15b14wo13wn12bo11bm10wh9bd5ba4wl1b	4	m14
+e13 h9 h3 f12 j2 g9 n10 o12 f10	15c11bd10wf10bg9wg8wm8bn6bf2bd1w	4	m14
+o3 a10 b3 b1 o14 j15 i10 h8 h12 i6 l12 e7 f8 d9 f5 a12 n13 i3 j2	15b15bm15bc14bd12ba10wn10bf9bj9wm9wd8bh8wh6bk6bi5wg4wm2bo2wd1wf1w	6	m2
+m10 i3 b11 d1 j1 a3 g11 f5 b6 j5 o9 c1 a12	15a12bb11bg11bm10bo9bb6bf5wj5wa3wi3wc1wd1wj1b	0	b3
+n11 n13 b3 l1 a4 k7 h9 b13 n3 f4 i5 n6 f2 d3 o15 e9	15a15bb13wn13wb11bh9bk9we7wb6wg5bj4wo4bb3bl3wn3bj2bd1w	1	n3
+k1 k13 g2 o2 j9 l14 g9 k14 m2 b6 b14 a14 i10 h8 k10 b11	15a14wb14bk14wl14wk13wb11wi10bk10bg9bj9bh8wb6wg2bm2bo2wk1b	0	b3
+e10 b14 c14 g6 i9 k1 c10 f12 g9 h5 b7 f2 o8 b3 i10 m1 n12 n4 f15 o15	15a15wh15bd14bl14wo13wo11wf9bg9bk8wg7bj7wa6bd6wn6wf5bb3bf3bb2wi2bm2w	6	m2
+j4 l7 j13 f15 l10 i10 h14 e12 n9 e14 e7 o13	15b11wd11wi11ba10wb8bf7wc6bl6bf4bi4wg2bc1w	4	m14
+j3 a7 c10 c6 d13	15c10bm4bf3wj3bg1w	7	c2
+c8	15c8b	0	b3
+d15 b2 h4 i14 f6 f8 f1 n1 b8 k14 k4 k1	15a14wa11wd11bn11wn9wd8ba6bf6bh6wo4bb2wh2b	7	c2
+l1 b10 f10 g5 e7 e14 d1 k13 c6 m3 o10 i6	15d15bl15bc13wi11wg10wm10bk9ba6bj6bn6we3wk2w	3	n13
+b3 f2	15b3bf2w	0	b3
+m4 n1 e2 m13 a7 f6 j4 d8 a12 o7 o12 j9	15b15wk14bc12bf12bj10wa9wo9bl8wf7wa4bo4bc3w	3	n13
+f4 a9 n5 h13 e4 k12 g3 c15 l7 l1 f1 d9	15c15wh13wk12wa9wd9wl7bn5be4bf4bg3bf1bl1w	0	b3
+h11 c3 n7 c4 e1	15c13wd13wa11bk8bg2b	5	c14
+e12 g11 b4	15b12bg5we4b	2	b13
+d9 h12 c12 k9 n4 f15 j13 j11 j14 k11 m7 a9 k13	15b12bc9be7wl7bo7we5wf5wh4wm4be3bf3bf2bj1w	3	n13
+k14 j10 k15 e5 b12 e7 c12 j9 k8 n7 l10 e6 a1 f15 a10	15a15be11we10we9wn9wk8bj7wa6bj6wl6bb4bc4bk2bf1wk1b	2	b13
+c12 f9 c10 d2 i11 c3 m5	15c12bi11bc10bf9wm5bc3wd2w	0	b3
+j9	15f7b	3	n13
+e14 k3 d7 h4 m1 k5 b13 d11 h11 j9 l15 c14 o15 a7 h15 b9 c13	15a15bd15bh15bk14bm14wm13bn13bh11bl11wf9wn9wl7bo7we5wh4we3wc1b	1	n3
+f4	15d10b	5	c14
+c13 e6 d13	15c13bc12bj11w	4	m14
+a1 m1 i12 b9 c7	15a13wl9bg3bi2wa1b	7	c2
+d15 d9 d12 e9 l1 i6	15a12bd12bg12wg11wj7wo4b	4	m14
+h12 g10 o14 k4 i15 m9 b14 l10 n1 c12 e3 e7 c8 l6 a11 l8 f3 h3 b1 j12	15b15bn15be13bf13bh13wk12wl10we9wc8bl8wm7wg6wl6wa5bc4wh4bj4wb2bo2bi1b	2	b13
+o6 g3 i13 k13 b11 l7 k8 c4 d12 j10 n9 j2 e10	15e13wg13bl12bn11bf10wk10bb9be8bd7wa6bm4wi3wf2w	1	n3
+f12 i7 n1 a3 f5 h6 b8 i3 e2 n15 j12 l15 l10 l7 o3 h2 d5 o6	15b15bh14wk14ba13bg13wo13wj11bl11ba10wh10wd9wg9wn8bd6bf4bj4bb1wd1w	3	n13
+d15 c2 g3 g10 o4 k9 k1	15b13wo12bc9bj9wa5bi5wd1b	5	c14
+g2 d3 o5 d10	15c12wj12wb9be1b	5	c14
+l9 h6 c12 m6 c1 o9 e13 n3 h2 h14	15a13bl13bm11bb8bf8wn8wi4bf3wc2wi1w	5	c14
+f8 b15 n8 l2 j15 d12 i14 j14 g8 e5 h7 f5 i5 m8 o8 g10	15a14wd12wk11wh10bk10wf9wh9bi8bb7bk7ba6bb6wn4wh3wh2bh1b	4	m14
+j15 o4	15a12wf1b	3	n13
+l7 o8 g1	15a8wd7bi1b	1	n3
+o3 d9 h9 a2 l1 m10 d4 k13 i15 n11 l3 j1 j8	15b15wd12bi12wi8bo7ba6wh6bm5wa4bc4bj3wk2wc1b	5	c14
+c2 n5 f3 n9	15b13bc10be2wi2w	5	c14
+j10 n7 m11 l14 o7 b7 f15 g5	15f15bl14wm11bj10bb7wn7wo7bg5w	0	b3
+i7 e12 h2 i9 f1 g5 j15 j5 j9 m15 n2	15b14bo13we10wi10bo10bg9bi9wb8be7wa6bl5w	7	c2
+l14 a3 m2 o6 b3 b6 f1 c5 c10 m14 g2 f10 h9	15c14wd14bj10wm10bh9ba6wn6wm5wn3bo3wc2bi2bj1b	1	n3
+j15	15a10b	6	m2
+n11 h14 k10 m7 j11 h9 j7 e12 a11 h7 e15 e6 f6 j4	15e14bi13wf11be10bi10bl10wb8wg8wi8wj6ba5bd5wj5we1b	6	m2
+l13 n4 g5 o8 g6 a4 k1 m3	15d13ba8wi6bi5bb4wo4wc3we1b	1	n3
+c11 e2 j13 h5 g6 e12 j10 h12 b5 h6 j12 l15 j6 a2 c15 g12 e15 f14	15a12wc10bd10bf10bj10bd8wj8wk8wd7wj7bb6wa5bd5wn5wa3be3bk2bn1w	6	m2
+h5 f11 g3 d7 b2 e8 b6 a11 i12 l8 j2	15b14bj14bg13bh11bb10bd9we8wl8wa5wf5wi4b	2	b13
+n8 e11 m3 b10 l7 b15 e3	15a14wf14we11wm11bi4bm3bh2b	4	m14
+k4 e9 m11 k9 k6 e3 i5 c11 i1 j3 d12 h2 g13 m15 i12 d3 o2 l6 j10 c3	15b15bk13bo13wf12wd11bf11bi11wc10wj10ba9be9bl9bb8wm7bc5wi5wc4wl4bc3wk3w	7	c2
+f14 j2 d12 d15 j13 i7 k4 k8 g6 e5 i12 k12	15a12wd12bk11wb10bj9bd7bi7wc6bn6wd5wh5wl5b	4	m14
+c2 f15 k1 o2 a5 c1 k8 d14 n15 d6 o8 l14 h13	15b15bj15wd14wl14wh13ba8be8bl6wo5ba2wm2be1bm1w	1	n3
+f12 g13 c2 j9 i2 e8 i1	15b13bh11wl10bm9wa7bb7bi6w	5	c14
+i14 a14 c2 e1 c15 i2 g9	15b15wa13bn13bo11wg9bb7bn7w	4	m14
+g11 c12 d3 e14 m11 m10 h6 l10 m3 e9 m6 a14 c13 m8 h11 k3 i6	15a14we14wc13bc12wg11bh11bm11bl10wm10we9wm8wh6bi6bm6bd3bk3wm3b	0	b3
+j15 k3 k6 m7 k8 d15 j4 m3 n10 h1 d5 b3 g7 c4 j14 i11 d13 o4	15c14wd13we12bm12bo12wg9ba8wk7wd6bn6bo6bc5wf5bh5bc3wg3wj2bd1w	5	c14
+e15 k14 g2	15a11bn9bb5w	4	m14
+h15 c9 d5 e10 l15 n8 o13 c11 o9 f9 i3 m14	15c15bg15bh14wb13wa12bm9ba8bg6wf5wk4be3wg3w	6	m2
+c14 g11 m11 o13 h5 i2 b14 l6 i15 b5 m9 h3	15b14bk14wb13be9wk8bm8wa7bn7wj4we3bg3bc1w	4	m14
+o1 k6 b12	15a15be10wn4b	3	n13
+f13 e1 e5	15a11we11bm10b	5	c14
+i6 a11 d3 n9 i7 h14 g12 j2 g10 g1 m1 h1 b9 d11 i9 i5 o14 f13	15a14bh14wj13wi12bl11wo11wi10bb9wg9bn9bg7bg6bg5wl3bf2wc1bh1wi1w	1	n3
+d1 n9 j9	15a12bi6bi2w	5	c14
+k3 g14	15b9wm5b	4	m14
+a7 b6 o11 e6 c5 i2 n8	15a11bb8bo7bk6wn6wm5bg2w	1	n3
+g7 k4 j15 o6 g4 h12 j7 f12 c6 c10 o5	15e12wi12ba11ba10wm10bf9bi9bm6wh4wj4wf1b	3	n13
+e1 o11 n13 i4	15a11bd7wm2bk1w	5	c14
+n14 a10 a13 l9 k13 o3 a15 j13	15a13wd7wo6we3bf3wo3bb2bo1b	3	n13
+b12 o12 i6 d6 e7 h8 e14 j6 n10	15d10wi10bj10we9bh8wn6bb4bo4we2b	2	b13
+m7 h10 j11 b5 n7 i3 j10 o6 i4 e14	15e14wj11bh10wj10bm7bn7bo6wb5wi4bi3w	0	b3
+o4 m4 n11 a6 n13 i14 n4 i5 a2 e10 e4 n5 i8	15a14be12bm12wn12bo12bi11wn11wa10wi8be6wn5bn3bi2w	2	b13
+g12 k14 a6 h11 b7 g7 a9	15a10bb9bg9wa7bh5wg4bk2w	2	b13
+b9	15b7b	2	b13
+i14 h6 m5 a1 h14 b13 g1 h8 n12 a12 b10 j12 c6 f1 h2 f14 d10 n6 c3	15a15wf15wg15bh14bc13bm11bc10bh10wn10wh8wb6bd6ba4wj4wn4bb3wf2wh2bi2b	2	b13
+l7 j12 f7	15d9bj9bf4w	3	n13
+j11 d15 c2 j4 n10 a8 c1 k5	15c15bc14bj12wk11wa8wn6bj5bd1w	2	b13
+e13 b9 n4 d7 o7 b14 a5 d14 l7 h15 c10	15b12bo11ba9bd9bl9wn7wm6bk3bl2wn2wh1w	3	n13
+a10 a3 l5 a13 g13 k13 f2 a8 j13 k10 c13 n7 i8 a14 f11 i7 o2 l1 f13 j7	15a14wa13wc13bf13bg13bj13bk13wf11ba10bk10wa8wi8bi7wj7wn7wl5ba3wf2bo2bl1w	0	b3
+i6 d14 o12 c1 j8 g1 m15 l6 b6 i12 f15 k1 n4 o1	15a15we15wi15wm15wb12bd10wg10bn10bf8ba4bg4wl2wc1bj1b	3	n13
+n7 k5 l13 j2 i15 g3 o3 a12	15c15bg14bm12be11wb10wo9bc7wl1w	7	c2
+n7 c3 h8 h14 b1 b6 a12 o3 k8 g13 e2 l9 m1 i8 j2 e15 l12 k13	15b15bm15be14bj14bc13wo13wb10wn9bh8bi8wk8bl7wa4bl4bg3wk3wh2we1w	2	b13
+l7 n12 m14 k12 i11 a3 k13 e7 a6 o1 d2 f12 j1 j5 i15 h1 e13	15a15wf15bh15wl14bo13wf11wo10bd9bk9wg5bb4we4wj4we3bk3bc2bg1b	3	n13
+k13 o5 b14 c2 h10 m5 m14 b6	15b14bj14wn13wf8bc5bb3bk3wk1w	4	m14
+c6 b15 f15 g2 d15 e10 g1 d1 n10 k9 d9 k4 h9 e3 j3 n11 b13 g13 c10	15a14wc14bf13bj13ba12bg12bo12wf11wm11wa10bc9wn9wo9bg8bm6bg5wl5we2wf2b	4	m14
+a1 f8 i8 f6 m13 d5 l15 e12 i11 k9 m2 d8 e8 e4 a2 o6	15a15ba14bm14be12wd11wf10wo10wd8we8bf8wi8bk7wi5be4wm3bl1b	2	b13
+n4 b11 b15 j4 h6	15a14be14wj8bl6wl2b	4	m14
+c6 d2 o12 k7 e10 l3 b1 h8 h12 n12 l10 f4 b11 o9 e1 c3	15a12bb12wh12bn11bd10bk10ba9wh8we7wm6bj4wd3wm3wl2wk1bn1b	1	n3
+g10 d3 l7 b6 b4 c15 e4 b9 f10 h15 h8 m5 d12 b15 e14	15a14wg14wj14wl14ba13wd12bm12wb11bl11bf10bf9ba8wh8bi4bk3w	4	m14
+g12 j9	15d9bg6w	4	m14
+e15	15a11b	4	m14
+m3 h14 h15 f12 o5 m14 b3 k4 l11 n15 k13 d10 k3 j7 b6 f11 h7 n5 a11	15b13bk13bm13bk12wn11wo11bb10bh9bj9wd6wa5bf5wl5bf4wk3bh2wm2wh1bn1w	2	b13
+f15 m5 c15 g11 b3 b7 l3 l2 f2 f10 o3 m2 n15 m1 b6 o13 m15 o9 g10	15b15bc15bj15bm15ba13wi11wi10bj10wa9wn7wn6bc5wa3bd3bn3bc2wd2wj2bc1w	1	n3
+f4 l3 e9 l14 l15 a11 h15 c9 a2	15a12bb12wm12wa8bl6bg5bg3we1wn1b	6	m2
+n5 c6	15b11bm10w	3	n13
+b10 f8 i12 o3 m6 j14 c6 e5 j15 m7	15a13wk11wc10bm10bc9wj8wn6bg4bf2wf1b	3	n13
+g3 c4 a13 d4 a4 o5 a1 b10 h9 i3 h11 e13 l5 d10 h14 n7 n3 c9	15a15bd15bm15bj14wd13wi13wd12wj12wm11wc9bi8bk8bn8bc7we4bc2bg2we1w	5	c14
+j7 e15 b13 g1 c3 a5 a7 m11 g4 a2 b12 n8 h3 n7 n13	15b15we15wg15bl14bm14bc13bo11wa9wd9bc8bg6bk3wg2wh2wm2b	5	c14
+m14 a4 e1 g12 f1 i1 d6 j12 l9 k10 m8 m9 a8 m15 l7 m7 b9	15a13wb13bg13wh13bi13wg12bi12bf11wd10wo9wd7wo6bo5bj4bg2bh1bl1w	6	m2
+l13 o12 i6 g5 d3 j4 h8 n14 b1 h9 o2 l3 a5 o10 o5 l5 f15 i14	15b15be15bj15wl15wn14wc12we12wm12bd10wf9bn9wh8bi8we7wo6bc4ba2be1b	7	c2
+e11 j14 e13 l15 f11 l6 m13 h10 n12 n4 f14 f4 e8 l2 c12 a12 d9 o8 j4 n6	15d14wb12wf12bj12wb10wd10wa8wk8bl7bh6wj5bk5bb4bm4bo4wc3bk3bf2wj2bd1w	3	n13
+i2 a2 h12 g13 f1 k4 j2 o11	15b15wa10bm9wl8bb7bb6bd5wk1w	5	c14
+e6 f11 a9 e12 g7 b12 d11 b14 a12 e7 i3 n2 h2 m6 j5 b9 e10 g1 i14 f4	15b14wf13we10bc9bn9bb8ba7wg7bd6wk6wf5bg5wj5bl5wk4bi2wl2wn2wi1bl1b	7	c2
+m1 o12 g6 d1 o7 n12 l7 g2 g9 i4	15a12wb12wi9ba7bd7bi6bg4wi2wc1bl1w	1	n3
+d13 d9 l14 l11 k11 f7 f6 n15 i13 j4 j14	15a14wb12be12we11bb10bl10wc9bi6wj6bc4bg4w	6	m2
+e11 o10 k4 f9 k6 j6 f14 i5 j2 o14 d14 i15	15b12be11bb10bg10wa7wk7wj6wn6bj5bl5bb1wf1w	4	m14
+f12 a8 f3 g14 a7 j3 b5	15c10wn7wc6bl6be2bg1bh1w	7	c2
+c10 g8 b8 b12 m15 h7 j9 g12 e3 m13 e12 i11 m6 j14 e2 d3 l14 b11	15a13bc13wj13bb12bb10wg10be9wi8wd7wh7wd5bm5bn5bm4wf3bd2we2wh2b	6	m2
+e12 b14	15b14wd11b	4	m14
+j7 l3 d1 h6 k12 i4 m14 j14 j5 e15	15a12bo11wf8wd7we6bg6bn6wl5bc4wn3b	5	c14
+i4 a8 i13 l1 k7 c9 n12 d9 i9 i5 b13 m5 m14 h12 d8 g4 k5	15c14bg13bn13bb12bh12wg9bl9wm9wl8bo8we7bc5we5bg5wg4bi4wd1w	1	n3
+n8 o12 l13 g1 g8 m4 b15 l6 l8 c11 b14 k10 j11 d9 o2 h3 l5	15a14bb14be13wg12wh9bo9wm8we6bf5wc4bh4bj4wk4bl3wh2bd1wn1b	4	m14
+d11 d3 m10 h2 f14 d6 k1 b1 l1 l11 f7	15a14wc12wf12wk12bg10bn10bb8wa5ba4bk4wj3b	5	c14
+d14 n8 b1 h15 h2 c11 c6 o6 e12 k12 k15 m15	15a14bf13bk13wn12bl11bb8bo8wl5wo5bo3wh2wf1w	5	c14
+b3 o2 h15 a15 o14 f13 n3 h9 d13 f4 c6 j6 b15 m5 f7 k11 g14 i9	15a14wb13bn13bj12wc11wf10wm10bj9bg7wh7we5wj3wl3ba2bi2bh1bn1bo1w	3	n13
+b15	15a14b	4	m14
+j2 f8 b14 i14 a8 m3 e9 j9 o5 d7 c15 j5 j6	15c15bb14bi14we9bj9wa8bf8wd7wj6bj5wo5bm3wj2b	0	b3
+a2 g9 l6 a4 k2 h1 e11	15b15bd15wk11bi9wa8wb5bf4b	5	c14
+a7 o7 n1 j13 j3 h13 e9 i14 b2 e15 k2 m8 b6 a11 a8 l7 g4 o6	15b15be14bn14bf13bi12ba10wn10ba9wd9wo9bc8wo8bk7bo5wf3wh3wg2wk1w	3	n13
+a6 g3 n14 e4 h4 n3 o10 j11 o6 l4 d8 i5 f12 h12 m11 l7 i8 m3	15b13wc13wi13wd12wh12bk12wg11wa10bo10bd9wg8bl8ba6bc5bf5wh4wj4bb2b	3	n13
+k14 i10 m8 e14 i1 b13 j1 l4 g10 l6 b11 e3 g1 o5 c12	15c14we14bd13bb11wm11wf9bo9bf7wo7bo6bb5bj4wl4wh3bk1w	4	m14
+b11 h15 m13 m9 j3 e15 k15 m6 g12 c7 i5 h10 d11 i14 m2 a13 k11 g5 g8 k14	15b13bf13wi13wm13bk11bn11wo11bc10be9bn9wj8wo8we7wh7bl7bo5wk4bg3wk2bm1w	7	c2
+d11 g3 f12 c3 j4 c15 c11 g15 j6 a13 c7 c2 c12 j11 h13 d7 a12 n14 i14	15b14we10wj10bl10bb9bc8ba7wm7wd6be4bi4wa3wd3be3bi3bm3wn3wc1wd1b	6	m2
+j3 d1 d10 b7 d12 f8 g3 l11 e11	15d12be11bl11wd10bf8wb7wg3bj3bd1w	0	b3
+e2 c11 c13 b11 e12 k3 b6 l5 o7 l15 e4 m8 b1 g8 j11	15a14bf14bk14wk13wm13bb11bd11bl11bh9wk6bc5we4wo4wh3wg1b	5	c14
+a5 n1 h3 a14 b4 a13 m8 i5 h15 k1 f14 f5 m14	15a14wh13bn13ba11we9wc8bo8be6wn6bd2be1bm1wn1w	7	c2
+j10 g9 o8 k12 j13 d9 o15 k3 n8	15a15bf13be12wf10bi9wl9wa8bb8be3w	1	n3
+e13 b2 j6 f6 e9 d10 a4 d14	15b14wa12bf10wj10be7bd6we3bd2w	2	b13
+i12 g13 n10 h14 k13 b13 g12 d9	15c14wg12wc9wd9bb8wd7bc5bf2b	4	m14
+h13 j8 c11 d10 o4 i12 m1 c15 f8 j10 h6 o12 n13 g10 a15 e7 n6	15a15ba13we13bf12wi11wh10bf9wc8bj8bd7wf6wh6wo3bc2bj2bd1wl1b	4	m14
+k2 l12 l3 d13 a6 m15 m13 l9 i14 b12 c7 n2 n1 m7	15a14bb14wg13wm13bo13wc12bi12wl12wb11bn9bm4wg3bl2wf1b	7	c2
+o5 o6 j14 g10	15a11ba10wi6wf2b	3	n13
+a10 j10 o12 o14 i7 i12 e14 c12 k5 i15 l11 j8 k2 e15	15b15wd15be12bk11bn11bf10wh10wa9wd9wi9ba5wb5bd3wf1b	6	m2
+j12 o9 o3	15a13ba7wf4b	3	n13
+b13 a15 b7 n8 d4 c7 d15 o2 a7 e10	15a14wl12bm9wn9bo9bb8wk6wn3bl1bo1w	3	n13
+g3 j11 b15 k13 b10 i7 i10 h1 b5 k6 c5 i15	15a14bf14bk14bk13bm9bo8wa7wf7bi7we6wc5wj5w	4	m14
+m2 j12 m13 g5 o8 m8 i7 c1 a11 l13 m6 h8 m7	15c13bd13wf12wo11ba8bc8wh8wc7bg7bc6bi5wc2bm1w	1	n3
+d13 h9	15c12bg8w	4	m14
+j10 e9 m14 k7 k2 i7 i8 a8 o13 a10 e11 l2 b13 g8 o8 m15 k12 i3 h3	15c15bh15ba13wb13bn12wd11bi11wn11bf10bh9bi9wm9wm8bh7we5bg5wc2bf1wh1w	6	m2
+d15 k11 d9 a13 g12 i1 l2 e13 j1 a15 c5 l1 j6 i3 a8 h11 n9 d13 c10	15a15wc15wh15bf13bk13ba12bc12wg12bc11wd9be8wm7wo7wj6bo6be5wn4bo4wg2b	4	m14
+b1 l8 k14 l9 c2 g9	15a14bb13bi9wn5bh4wi4w	5	c14
+m5 o7 m13 i10 j11 a3 a12 a1 b3 b13 m14 j1 h9 f8 e2 a4 c11 i6 a14	15a14bm14bb13wm13ba12bc11bj11bi10wh9bf8wo7wi6wm5ba4wa3wb3be2ba1wj1w	0	b3
+i12 a4 j5 c5 m12 f2 o2 o15 h3 i10	15a14bj14wh13bo12wf11bm11wg6wc4bg4ba1w	3	n13
+j2 a3 f13 h4 g3 f15 d5 l14 l12 i14 m8 m12	15c15we12bm10bo10wc9bd8wn7wb6bl4bn4wh3bl3w	5	c14
+m10 k2 g9 e11 m6 a9 c11 b9 j10 a6 m15 g14 e14 k13 b10 m9 b11	15a13bf13bg13wj13bc11wn11wf10bb7wg7bb5be5we3be2bf2bg2wg1wj1w	6	m2
+h6 c1 n9 g2 k9	15a13wb9wf8bi5bi2b	5	c14
+d8	15d8b	0	b3
+c4 g13 j6 d1 a14 m4 n11	15a14bg13wn11bj6bc4bm4wd1w	0	b3
+k14 g12	15b11bd7w	6	m2
+b4 i6 o5 m13 l6 j13 c1 a12 k13 n2	15c13we13bf13wo12wd6bg6wa5bn4bb2wm1b	1	n3
+k5 o2	15a14we11b	3	n13
+d15 a3	15a13wd1b	2	b13
+i15 b7 d11 d2 c13	15a9be4bn4wc3bi2w	6	m2
+b5 l10 h4 a4 l4 g14 e12 b6 d11 n13 o6 m5 o11 h7	15a12wh12bl12bb11bm11wb10wo10bh9wl6wd5bo5be4bn3wg2w	2	b13
+i7 a8 d8 f15 o8 a6 b9 i1 f2 n3 j6 m10 c10 n11 h2 e3 a7 l12 a5	15e15bf15wg15bh15wi14bj13bh12bc11wb10bo10wb8ba7wg7bf6bl4wj3wc2wk2wh1b	5	c14
+o5 d3 e6 o10 n6 g12 g13 f14 a3 a10 l5	15a13bd13wl11bo11be10bn10ba6wo6wg4wg3bf2w	2	b13
+h15 o2 h12 l5 k15 f12 m1 n1 g13 i15	15b15wa14wa13be12wo11bo9wl8bo8bm7bl6w	7	c2
+d9 b12	15b12wd9b	0	b3
+i14 g9	15b9bg7w	6	m2
+a7 j8 a4 d6 f11 d10 a1 e9 n1 j7 o14 n10 o4	15a14bj11bb10wl10wk9wf8wf7wo7bl6wa4bo4bb1bo1b	1	n3
+i1 o1 n1 o10 o9 e5 a7 e7 b8 g13	15a15wb15bg15bk11wk9wo9bn8ba7ba6wi3w	3	n13
+d12 j11 b9 k3 o1 m15 n4 c6 o12 n2	15a15bb14we13wb12bm10wn7bf5wa4bl4bc1w	3	n13
+n3 l2 d2 c14 c12 f11 j15	15b13wd13bn12be10wa6bn4wm2b	4	m14
+e8 c11 o6 k9 j8 k2 d11 h14 j9 l4 l8	15e13we12bh11bb8wg6bh6bg5wn5wh4bl4wj1b	4	m14
+m8 n14 o15 m12 e8 a12 k8 a11 c11 j9 o8 i4	15a15bb14wc12wo12wm11bo11wf9wa8bc8be8bk8bg4w	1	n3
+m15 b1 f7 i15 f11 a14 j15 o10 i1	15b15wi15bf9bo6wf5ba2wi1wj1bm1b	2	b13
+d11 a15 i5 e2 f4 k2 c2 i6	15a15wd11bi6wi5bf4bc2be2wk2w	0	b3
+c13 i9 j1 d9 f11 g1 k10	15c13bf11bk10bd9wi9wg1wj1b	0	b3
+k6 g1 c13	15c13bk6bg1w	0	b3
+g14 j10 c12 i12 e12 e15 n5 a3 g15 b4	15a13wb12wn11bj6wc4be4bi4wg2be1wg1b	2	b13
+e9 d15 g13 o9 o3 g3 k13 e8 o7 h10 j11 i3 o5 n15 a13 m9 o8 j5	15a13bg13wi13wa11bf11wa9ba8bk8wa7wc7wk7bh6wf5be3bi3bo3bb1wl1w	3	n13
+j12 c12 d8 n12 j9 b3 l14 b1 j11 k2 b15 h5 i4	15a14bm14wo14wd13wh12bk8wl7bd6be6bg6bn5wb4bd2w	4	m14
+a5 l14 m11 b4	15b12wa11bm5bl2w	2	b13
+c8 o6 f3 n8 d6 e5 e2 a3 g4 k4 c9 e10 n15 f10 m10 j9 d12 n2 b1 l12	15b15bd12wl12bc10bj10wk10wf9wm9bb8wm8ba6wl6bk5we4wi4bj3bo3wb2wk2bn1b	1	n3
+a15 a9 d11 b8 f8	15a15bd11ba9wb8wf8b	0	b3
+o1 f14 b8 f13 b4 c9 j7 h4 n15 g6 g9 c10 i13 d8 o7 a2 f11 b6 a11 d7	15a15bg15bo14bg10bm9bd8wf7wi7bk6bm6wn6wg4wh4wi3wj3wd2bf2wh2bb1wk1b	7	c2
+f13 c3 j2 a4 d9 b12 i2 j15 e12 m6 l2 d10 i9 e4 i11 e15 c14	15d14bf14bg14bm13wk12wo12wc10wg7bl7bl6wg5bk4bn4wj3bm2bf1wk1w	3	n13
