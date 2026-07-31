@@ -13,6 +13,8 @@ data class SettingsUiState(
     val category: SettingCategory? = null,
     val capabilities: EngineCapabilities = EngineCapabilities(),
     val connected: Boolean = false,
+    /** Show every desktop setting, not just the everyday ones. */
+    val advanced: Boolean = false,
     /** Transient result of an import/export/reset, shown as a banner. */
     val message: String? = null,
 ) {
@@ -21,7 +23,10 @@ data class SettingsUiState(
         get() {
             val q = query.trim()
             return DesktopSettings.ALL.filter { spec ->
-                (category == null || spec.category == category) &&
+                // A search looks through everything: hiding a setting the user
+                // is explicitly asking for by name would be worse than a long list.
+                (advanced || q.isNotEmpty() || DesktopSettings.isEveryday(spec.id)) &&
+                    (category == null || spec.category == category) &&
                     (
                         q.isEmpty() ||
                             spec.label.contains(q, ignoreCase = true) ||
@@ -33,6 +38,13 @@ data class SettingsUiState(
         }
 
     val total: Int get() = DesktopSettings.ALL.size
+
+    /** How many entries the advanced switch would add right now. */
+    val hidden: Int
+        get() = if (advanced || query.isNotBlank()) 0 else
+            DesktopSettings.ALL.count {
+                !DesktopSettings.isEveryday(it.id) && (category == null || it.category == category)
+            }
 
     /**
      * The editor to actually offer: thread and hash maxima are tightened to what

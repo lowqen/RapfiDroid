@@ -49,6 +49,8 @@ data class BoardUiState(
      * (`prove_badge_lines`); null when no prove is running.
      */
     val proveBadge: Pair<String, String>? = null,
+    /** A research run owns the engine right now — shown over the board. */
+    val research: ResearchBanner? = null,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
     val canUndo: Boolean get() = moveCount > 0
@@ -86,3 +88,16 @@ data class BoardUiState(
     fun bestLineLabels(size: Int): String =
         snapshot?.best?.line.orEmpty().joinToString(" ") { it.label(size) }
 }
+
+/**
+ * "Something is running" strip above the board. The desktop signals this by
+ * painting counters over the win-rate graph and by refusing board edits; on a
+ * phone the board is often the only thing on screen, so it says so plainly and
+ * offers the stop button that would otherwise be a tab away.
+ */
+data class ResearchBanner(
+    val title: String,
+    val detail: String = "",
+    val progress: Float? = null,
+    val isProve: Boolean = false,
+)

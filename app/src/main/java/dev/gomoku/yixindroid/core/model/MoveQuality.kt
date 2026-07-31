@@ -118,6 +118,11 @@ data class ReviewData(
     fun record(index: Int): PositionRecord =
         records.getOrElse(index) { PositionRecord() }
 
+    /** Does this data describe the line now on the board? Grades from a review
+     *  are only meaningful while the board still follows the reviewed game. */
+    fun matchesPrefix(line: List<Move>): Boolean =
+        line.size <= moves.size && line.indices.all { moves[it] == line[it] }
+
     /**
      * `wrgraph_maxindex` (main.c:4592): the cursor, extended to the last ply
      * that carries both a real record and a move.
@@ -213,6 +218,36 @@ object MoveGrader {
     private fun mover(blackValue: Double, black: Boolean) = if (black) blackValue else 1.0 - blackValue
 
     private fun mateFor(blackMate: Int, black: Boolean) = if (black) blackMate else -blackMate
+
+    /**
+     * The badge the board shows: the grade of the **current move only**.
+     *
+     * main.c:2114 grades every move but paints just `bn == piecenum` — past
+     * moves already carry their markers in the win-rate graph, and repeating
+     * them on the stones only clutters the board. It needs no review: the
+     * desktop's `wrhistory` is filled by *any* evaluation, engine or database
+     * (`evalbar_set_black_winrate` has exactly those two callers), so a badge
+     * appears as soon as one value arrives.
+     *
+     * Returns null when neither side of the move carries a real record — with
+     * only interpolated values there is nothing to grade (main.c:2117).
+     */
+    fun currentBadge(
+        moves: List<Move>,
+        size: Int,
+        records: List<PositionRecord>,
+        preset: GradingPreset = GradingPreset.DEFAULT,
+        skipOpening: Boolean = true,
+    ): MoveQuality? {
+        val ply = moves.size
+        if (ply < 1) return null
+        val before = records.getOrElse(ply - 1) { PositionRecord() }
+        val after = records.getOrElse(ply) { PositionRecord() }
+        if (!before.recorded && !after.recorded) return null
+        val graded = grade(ReviewData(moves, size, records), preset, skipOpening, cursor = ply)
+            .lastOrNull { it.index == ply } ?: return null
+        return graded.quality.takeIf { it != MoveQuality.NONE }
+    }
 
     private fun classify(
         move: Move,

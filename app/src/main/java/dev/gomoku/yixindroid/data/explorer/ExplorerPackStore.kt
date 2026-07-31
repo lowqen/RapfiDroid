@@ -65,38 +65,85 @@ class ExplorerPackStore @Inject constructor(
         runCatching {
             require(uris.isNotEmpty()) { "선택된 파일이 없습니다" }
             dir.mkdirs()
-            var wroteStats = false
-            var wroteGames = false
+            val took = ArrayList<String>()
+            val rejected = ArrayList<String>()
             for (uri in uris) {
-                when (magicOf(uri)) {
-                    RjStatsPack.MAGIC -> {
-                        copy(uri, statsFile); wroteStats = true
+                // Copy first, then decide what it is by *opening* it. Peeking at
+                // the first bytes of a content stream is not reliable — a short
+                // read (some providers, cloud-backed documents) looks exactly
+                // like a wrong file, which is how a perfectly good pack ends up
+                // rejected.
+                val staged = File(dir, "import.part")
+                val copied = runCatching { copy(uri, staged) }
+                val kind = if (copied.isSuccess) classify(staged) else null
+                when {
+                    copied.isFailure -> {
+                        staged.delete()
+                        rejected.add(
+                            "${name(uri)}: 읽을 수 없음 (${copied.exceptionOrNull()?.message})",
+                        )
                     }
-                    RjGamesPack.MAGIC -> {
-                        copy(uri, gamesFile); wroteGames = true
+                    kind == null -> {
+                        rejected.add("${name(uri)}: ${describe(staged, copied.getOrDefault(0L))}")
+                        staged.delete()
                     }
-                    else -> error(
-                        "오프닝 익스플로러 팩이 아닙니다 — rifdb/rif_pack.py 가 만든 " +
-                            "renju_stats.pack / renju_games.pack 을 고르세요",
-                    )
+                    else -> {
+                        val target = if (kind == RjStatsPack.MAGIC) statsFile else gamesFile
+                        target.delete()
+                        if (!staged.renameTo(target)) {
+                            staged.delete()
+                            error("팩을 저장하지 못했습니다: ${target.name}")
+                        }
+                        took.add(target.name)
+                    }
                 }
             }
+
             val loaded = runCatching { mapBoth() }.getOrNull()
-                ?: error(
-                    when {
-                        !statsFile.exists() -> "renju_stats.pack 이 아직 없습니다"
-                        !gamesFile.exists() -> "renju_games.pack 이 아직 없습니다"
-                        else -> "팩을 읽을 수 없습니다(형식 또는 버전 불일치 — v2 팩이 필요합니다)"
-                    },
+            if (loaded != null) _packs.value = loaded
+
+            val missing = listOfNotNull(
+                "renju_stats.pack".takeIf { !statsFile.isFile },
+                "renju_games.pack".takeIf { !gamesFile.isFile },
+            )
+            when {
+                rejected.isNotEmpty() -> error(
+                    "팩으로 읽지 못한 파일이 있습니다 —\n" + rejected.joinToString("\n") +
+                        "\nrifdb/rif_pack.py 가 만든 v2 팩이어야 합니다.",
                 )
-            _packs.value = loaded
-            val picked = listOfNotNull(
-                "renju_stats.pack".takeIf { wroteStats },
-                "renju_games.pack".takeIf { wroteGames },
-            ).joinToString(" + ")
-            "$picked 불러옴 — 대국 ${loaded.info.totalGames}판 · 국면 ${loaded.info.positions}개"
+                loaded != null ->
+                    "${took.joinToString(" + ")} 불러옴 — 대국 ${loaded.info.totalGames}판 · " +
+                        "국면 ${loaded.info.positions}개"
+                missing.isNotEmpty() ->
+                    "${took.joinToString(" + ")} 저장함 — ${missing.joinToString(", ")} 도 불러오세요"
+                else -> error("팩을 열 수 없습니다(형식 또는 버전 불일치 — v2 팩이 필요합니다)")
+            }
         }
     }
+
+    /** Which pack a staged file is, or null when it is neither. */
+    private fun classify(file: File): String? {
+        val buf = map(file) ?: return null
+        return when {
+            RjStatsPack.open(buf) != null -> RjStatsPack.MAGIC
+            RjGamesPack.open(buf) != null -> RjGamesPack.MAGIC
+            else -> null
+        }
+    }
+
+    /** Enough detail for the user to tell us what went wrong. */
+    private fun describe(file: File, copied: Long): String {
+        val head = runCatching {
+            file.inputStream().use { input ->
+                val b = ByteArray(8)
+                val n = input.read(b).coerceAtLeast(0)
+                String(b, 0, n, Charsets.US_ASCII).filter { it.isLetterOrDigit() }
+            }
+        }.getOrDefault("?")
+        return "${copied / 1024}KB, 머리글 \"$head\" — 팩이 아니거나 v1 팩입니다"
+    }
+
+    private fun name(uri: Uri): String = uri.lastPathSegment?.substringAfterLast('/') ?: "$uri"
 
     /** Forget the imported packs and delete the private copies. */
     suspend fun clear() = withContext(io) {
@@ -130,23 +177,13 @@ class ExplorerPackStore @Inject constructor(
             raf.channel.map(FileChannel.MapMode.READ_ONLY, 0, raf.length())
         }
 
-    private fun magicOf(uri: Uri): String? =
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            val head = ByteArray(4)
-            if (input.read(head) != 4) null else String(head, Charsets.US_ASCII)
-        }
-
-    private fun copy(uri: Uri, target: File) {
-        val tmp = File(target.parentFile, target.name + ".part")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            tmp.outputStream().use { input.copyTo(it, DEFAULT_BUFFER_SIZE) }
-        } ?: error("파일을 열 수 없습니다: $uri")
-        // An existing copy may still be mapped; unlinking it first keeps the
-        // live mapping valid (same inode) and makes the rename unambiguous.
+    /** Streams the document into [target]; returns how many bytes landed. */
+    private fun copy(uri: Uri, target: File): Long {
         target.delete()
-        if (!tmp.renameTo(target)) {
-            tmp.delete()
-            error("팩을 저장하지 못했습니다: ${target.name}")
+        val input = context.contentResolver.openInputStream(uri)
+            ?: error("파일을 열 수 없습니다")
+        return input.use { source ->
+            target.outputStream().use { source.copyTo(it, DEFAULT_BUFFER_SIZE) }
         }
     }
 }

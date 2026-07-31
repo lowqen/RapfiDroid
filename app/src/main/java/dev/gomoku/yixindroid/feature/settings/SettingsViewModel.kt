@@ -48,6 +48,8 @@ class SettingsViewModel @Inject constructor(
 
     fun onCategory(category: SettingCategory?) = _state.update { it.copy(category = category) }
 
+    fun onAdvanced(on: Boolean) = _state.update { it.copy(advanced = on) }
+
     /**
      * Commit one setting. Numbers are first clamped to the *engine-reported*
      * maximum where there is one (threads, hash), because the spec range only

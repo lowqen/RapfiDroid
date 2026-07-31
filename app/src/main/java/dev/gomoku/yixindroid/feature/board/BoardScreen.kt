@@ -48,6 +48,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -70,6 +71,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -141,19 +143,7 @@ fun BoardScreen(
         // While a proof runs the desktop paints its two counters over the win-rate
         // graph (`prove_badge_lines`); here they sit above the board, where the
         // ghost stones of the searched line are.
-        ui.proveBadge?.let { (first, second) ->
-            Column(pad) {
-                Text(first, style = MaterialTheme.typography.labelMedium)
-                if (second.isNotEmpty()) {
-                    Text(
-                        second,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-        }
+        ui.research?.let { ResearchStrip(it, pad, viewModel::onStopResearch) }
         ZoomableBoard(
             ui = ui,
             onTap = viewModel::onTap,
@@ -1253,4 +1243,49 @@ private fun pvLabel(pv: PvSnapshot): String = when {
     pv.mate != null -> "#${pv.index + 1}  -M${-pv.mate}"
     pv.winRate != null -> "#${pv.index + 1}  ${(pv.winRate * 100).toInt()}%"
     else -> "#${pv.index + 1}"
+}
+
+/**
+ * "A search owns the engine right now" — the desktop can leave this implicit
+ * because its counters sit next to the board and its menus grey out; on a phone
+ * the run is started on another tab, so the board has to say so itself, and
+ * carry the stop button.
+ */
+@Composable
+private fun ResearchStrip(
+    banner: dev.gomoku.yixindroid.feature.board.ResearchBanner,
+    modifier: Modifier = Modifier,
+    onStop: () -> Unit,
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = if (banner.isProve) MaterialTheme.colorScheme.tertiaryContainer
+        else MaterialTheme.colorScheme.secondaryContainer,
+        shape = RoundedCornerShape(10.dp),
+    ) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    banner.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onStop) { Text("중지") }
+            }
+            if (banner.detail.isNotEmpty()) {
+                Text(
+                    banner.detail,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+            banner.progress?.let {
+                LinearProgressIndicator(
+                    progress = { it },
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                )
+            }
+        }
+    }
 }

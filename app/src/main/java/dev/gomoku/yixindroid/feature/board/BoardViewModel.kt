@@ -19,9 +19,14 @@ import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.DbState
 import dev.gomoku.yixindroid.core.model.GameReport
 import dev.gomoku.yixindroid.core.model.GameState
+import dev.gomoku.yixindroid.core.model.GradingPreset
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.MoveGrader
 import dev.gomoku.yixindroid.core.model.MoveQuality
 import dev.gomoku.yixindroid.core.model.Position
+import dev.gomoku.yixindroid.core.model.PositionRecord
+import dev.gomoku.yixindroid.core.model.ReviewData
+import dev.gomoku.yixindroid.core.model.ReviewProgress
 import dev.gomoku.yixindroid.core.model.ProveOverlay
 import dev.gomoku.yixindroid.core.model.ProveProgress
 import dev.gomoku.yixindroid.core.model.Swap2Choice
@@ -40,6 +45,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -72,7 +81,13 @@ class BoardViewModel @Inject constructor(
     private var analyzeJob: Job? = null
 
     /** Black-perspective win rate per ply, for the win-rate graph. */
-    private val winRateHistory = MutableStateFlow<List<Double?>>(emptyList())
+    /**
+     * Per-ply evaluation history — the desktop's `wrhistory`/`wrmate`/`wrvalid`
+     * triple (main.c:1215). **Any** value fills it in, engine or database
+     * (`evalbar_set_black_winrate` has exactly those two callers), and that is
+     * what lets the current move carry a grade badge without a review.
+     */
+    private val records = MutableStateFlow<List<PositionRecord>>(emptyList())
 
     /** One-shot user feedback (a refused move or database write, mostly). */
     private val _notice = MutableStateFlow<String?>(null)
@@ -90,6 +105,7 @@ class BoardViewModel @Inject constructor(
         val report: GameReport?,
         val prove: ProveOverlay,
         val proveProgress: ProveProgress,
+        val reviewProgress: ReviewProgress,
         /** Points the engine has been told to ignore (P10 `block`). */
         val blocked: Set<Move>,
     )
@@ -97,7 +113,7 @@ class BoardViewModel @Inject constructor(
     private val panel = combine(
         repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
         game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
-        tools.state,
+        tools.state, review.progress,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -114,11 +130,12 @@ class BoardViewModel @Inject constructor(
             prove = values[10] as ProveOverlay,
             proveProgress = values[11] as ProveProgress,
             blocked = (values[12] as ToolsState).blocked,
+            reviewProgress = values[13] as ReviewProgress,
         )
     }
 
     val uiState: StateFlow<BoardUiState> =
-        combine(position, snapshot, panel, settings, winRateHistory) {
+        combine(position, snapshot, panel, settings, records) {
                 pos, snap, p, config, history ->
             BoardUiState(
                 render = buildRender(pos, snap, p, config),
@@ -128,7 +145,8 @@ class BoardViewModel @Inject constructor(
                 snapshot = snap,
                 multiPv = config.multiPv,
                 previewPv = p.preview,
-                winRateHistory = if (config.showWrGraph) history else emptyList(),
+                winRateHistory =
+                    if (config.showWrGraph) history.map { it.blackWinRate } else emptyList(),
                 showEvalBar = config.showEvalBar,
                 showWrGraph = config.showWrGraph,
                 showWarning = config.showWarning,
@@ -146,10 +164,24 @@ class BoardViewModel @Inject constructor(
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
                 proveBadge = if (p.proveProgress.running) p.proveProgress.badgeLines() else null,
+                research = researchBanner(p),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
     init {
+        // The database reply is the desktop's *other* evaluation source
+        // (`evalbar_update_from_database`, main.c:1750). Without it a position
+        // that is only ever looked up, never searched, would stay ungraded.
+        database.state
+            .map { it.value }
+            .distinctUntilChanged()
+            .onEach { v ->
+                if (v != null) {
+                    recordValue(position.value.moves.size, v.blackWinRate, v.blackMate ?: 0)
+                }
+            }
+            .launchIn(viewModelScope)
+
         // The database follows the board: every position change re-queries it,
         // exactly like the desktop's show_database() call after each move.
         viewModelScope.launch {
@@ -195,7 +227,7 @@ class BoardViewModel @Inject constructor(
 
     /** Discard the game (`clear`), clocks and opening protocol included. */
     fun onReset() = inGame {
-        winRateHistory.value = emptyList()
+        records.value = emptyList()
         game.newGame(resetClock = true)
     }
 
@@ -253,7 +285,7 @@ class BoardViewModel @Inject constructor(
     /** Replace the position with [moves] (transform result / pasted line). */
     private fun applyLine(moves: List<Move>) = inGame {
         previewPv.value = null
-        winRateHistory.value = emptyList()
+        records.value = emptyList()
         game.replaceLine(moves)
     }
 
@@ -374,19 +406,51 @@ class BoardViewModel @Inject constructor(
         analyzeJob = viewModelScope.launch {
             repository.analyze(target, AnalyzeParams(settings.value.multiPv)).collect { snap ->
                 snapshot.value = snap
-                snap.blackWinRate()?.let { recordWinRate(ply, it) }
+                snap.blackWinRate()?.let {
+                    recordValue(ply, it, snap.blackMate() ?: 0, snap.best?.head, gapOf(snap))
+                }
             }
         }
     }
 
-    /** Keep one (latest) win rate per ply so the graph tracks the whole game. */
-    private fun recordWinRate(ply: Int, rate: Double) {
-        winRateHistory.update { current ->
+    /**
+     * Record one position's evaluation, the desktop's `evalbar_set_black_winrate`
+     * (main.c:1642). A mate pins the win rate to 0/1 exactly as it does there.
+     */
+    private fun recordValue(
+        ply: Int,
+        blackRate: Double,
+        blackMate: Int,
+        best: Move? = null,
+        gap: Double? = null,
+    ) {
+        val rate = when {
+            blackMate > 0 -> 1.0
+            blackMate < 0 -> 0.0
+            else -> blackRate.coerceIn(0.0, 1.0)
+        }
+        records.update { current ->
             val out = current.toMutableList()
-            while (out.size <= ply) out.add(null)
-            out[ply] = rate
+            while (out.size <= ply) out.add(PositionRecord())
+            val previous = out[ply]
+            out[ply] = PositionRecord(
+                blackWinRate = rate,
+                blackMate = blackMate,
+                // The engine's own best/gap survive a later database reply, which
+                // carries neither — losing them would drop Brilliant/Great.
+                best = best ?: previous.best,
+                gap = gap ?: previous.gap,
+            )
             out
         }
+    }
+
+    /** Best-vs-second win-rate spread, the "only move" signal (`reviewgap`). */
+    private fun gapOf(snap: AnalysisSnapshot): Double? {
+        val sorted = snap.pvs.sortedBy { it.index }
+        val first = sorted.getOrNull(0)?.winRate ?: return null
+        val second = sorted.getOrNull(1)?.winRate ?: return null
+        return (first - second).coerceAtLeast(0.0)
     }
 
     private fun stopAnalysis() {
@@ -394,6 +458,29 @@ class BoardViewModel @Inject constructor(
         analyzeJob = null
         analyzing.value = false
         game.setAnalyzing(false)
+    }
+
+    /** What to say over the board while a research run holds the engine. */
+    private fun researchBanner(panel: Panel): ResearchBanner? = when {
+        panel.proveProgress.running -> {
+            val (first, second) = panel.proveProgress.badgeLines()
+            ResearchBanner("국면 증명 진행 중", listOfNotNull(
+                first.takeIf { it.isNotEmpty() },
+                second.takeIf { it.isNotEmpty() },
+            ).joinToString("  ·  "), isProve = true)
+        }
+        panel.reviewProgress.running -> ResearchBanner(
+            "게임 리뷰 진행 중",
+            "${panel.reviewProgress.index} / ${panel.reviewProgress.total}수",
+            progress = panel.reviewProgress.fraction.takeIf { panel.reviewProgress.total > 0 },
+        )
+        else -> null
+    }
+
+    fun onStopResearch() {
+        viewModelScope.launch {
+            if (prove.progress.value.running) prove.cancel() else review.cancel()
+        }
     }
 
     private fun buildRender(
@@ -442,7 +529,7 @@ class BoardViewModel @Inject constructor(
             // Review grades, only for the stones actually on the board and only
             // while the line still matches the reviewed one (main.c re-grades on
             // every board refresh; here the report is the source of truth).
-            badges = if (config.showMoveBadge) badgesFor(pos, panel.report) else emptyMap(),
+            badges = if (config.showMoveBadge) badgeFor(pos, panel.report, config) else emptyMap(),
             // Prove overlay: ghost stones of the line under search plus a status
             // marker on every root candidate (main.c:9061 `prove_cell_pixbuf`).
             prove = panel.prove.takeIf { it.active },
@@ -463,14 +550,38 @@ class BoardViewModel @Inject constructor(
      * line, so a prefix of it still matches while the user walks the game; a
      * different line means the badges no longer belong to these stones.
      */
-    private fun badgesFor(pos: Position, report: GameReport?): Map<Move, MoveQuality> {
-        if (report == null || pos.moves.isEmpty()) return emptyMap()
-        val reviewed = report.data.moves
-        if (reviewed.size < pos.moves.size) return emptyMap()
-        for (i in pos.moves.indices) if (reviewed[i] != pos.moves[i]) return emptyMap()
-        return report.moves.take(pos.moves.size)
-            .filter { it.quality != MoveQuality.NONE }
-            .associate { it.move to it.quality }
+    /**
+     * The badge on the **current move only** — main.c:2114 grades every move but
+     * paints just `bn == piecenum`, because past moves already have their markers
+     * in the win-rate graph.
+     *
+     * Two sources feed one record list: the live evaluations collected above
+     * (engine or database), and a review report when the reviewed line still
+     * matches the board. That is why the PC shows a badge the moment a value
+     * arrives, with or without a review.
+     */
+    private fun badgeFor(
+        pos: Position,
+        report: GameReport?,
+        config: AppSettings,
+    ): Map<Move, MoveQuality> {
+        if (pos.moves.isEmpty()) return emptyMap()
+        val ply = pos.moves.size
+        val live = records.value
+        val fromReport = report?.data?.takeIf { it.matchesPrefix(pos.moves) }?.records.orEmpty()
+        val merged = (0..ply).map { i ->
+            // A review searched every position deliberately; prefer its record and
+            // fall back to whatever the board picked up on its own.
+            fromReport.getOrNull(i)?.takeIf { it.recorded } ?: live.getOrNull(i) ?: PositionRecord()
+        }
+        val quality = MoveGrader.currentBadge(
+            moves = pos.moves,
+            size = pos.size,
+            records = merged,
+            preset = GradingPreset.of(config.mqPreset),
+            skipOpening = config.skipOpening,
+        ) ?: return emptyMap()
+        return mapOf(pos.moves.last() to quality)
     }
 
     // ---- database actions (P7) ---------------------------------------------

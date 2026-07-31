@@ -112,6 +112,25 @@ fun SettingsScreen(
                     )
                 }
             }
+            // 67 desktop settings do not fit one phone list. The everyday ones
+            // show by default; the rest are one switch away and always findable
+            // by search.
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("고급 설정", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        if (ui.advanced) "데스크톱의 67개 항목을 모두 표시합니다"
+                        else "자주 쓰지 않는 ${ui.hidden}개를 숨겼습니다 (검색하면 나옵니다)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
+            }
             // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
             SettingsFile.entries.forEach { file ->
                 Row(

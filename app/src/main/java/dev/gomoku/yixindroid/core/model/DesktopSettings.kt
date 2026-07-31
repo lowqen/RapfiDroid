@@ -72,6 +72,34 @@ class SettingSpec internal constructor(
  */
 object DesktopSettings {
 
+    /**
+     * The settings an ordinary session actually touches. Everything else is
+     * real and editable, but hidden behind the "고급 설정" switch — the desktop
+     * spreads its 67 entries over a tabbed dialog and several menus, which a
+     * single phone list cannot imitate without becoming unreadable.
+     *
+     * Nothing is removed: the files still round-trip all 67 lines, and the
+     * hidden ones appear the moment the switch goes on.
+     */
+    val EVERYDAY: Set<String> = setOf(
+        // game
+        "boardSize", "level", "timeoutTurnSec", "timeoutMatchSec",
+        "computerBlack", "computerWhite", "showForbidden", "showClock",
+        // engine
+        "threadNum", "hashSizeMb", "multiPv", "pondering", "style",
+        // display
+        "showNumber", "showAnalysis", "showAnalysisWinrate", "showEvalBar",
+        "showWrGraph", "showMoveBadge", "showBoardText", "boardZoomPercent",
+        "darkMode",
+        // database
+        "useDatabase", "databaseReadonly", "dbAutoSave",
+        // research
+        "mqPreset", "skipOpening",
+    )
+
+    /** Is this one of the everyday settings? */
+    fun isEveryday(id: String): Boolean = id in EVERYDAY
+
     val MAIN: List<SettingSpec> = build(SettingsFile.MAIN) {
         int(
             "boardSize", "board size (10 ~ 22)", "보드 크기", SettingCategory.GAME,
