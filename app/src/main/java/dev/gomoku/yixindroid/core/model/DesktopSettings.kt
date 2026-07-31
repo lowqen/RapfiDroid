@@ -221,12 +221,12 @@ object DesktopSettings {
         )
         bool(
             "blockAutoReset", "block autoreset (0: no, 1: yes)", "차단 자동 해제",
-            SettingCategory.RESEARCH, note = "차단(BLOCK) 기능은 P10",
+            SettingCategory.RESEARCH, note = "엔진 탭 도구에서 사용",
             get = { it.blockAutoReset }, set = { s, v -> s.copy(blockAutoReset = v) },
         )
         bool(
             "blockPathAutoReset", "blockpath autoreset (0: no, 1: yes)", "차단 경로 자동 해제",
-            SettingCategory.RESEARCH, note = "차단(BLOCK) 기능은 P10",
+            SettingCategory.RESEARCH, note = "엔진 탭 도구에서 사용",
             get = { it.blockPathAutoReset }, set = { s, v -> s.copy(blockPathAutoReset = v) },
         )
         bool(

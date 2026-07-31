@@ -42,6 +42,8 @@ data class BoardRender(
     val badges: Map<Move, MoveQuality> = emptyMap(),
     /** Prove overlay while a proof runs; null when none does. */
     val prove: ProveOverlay? = null,
+    /** Points the engine has been told to ignore (`block`, main.c:1899). */
+    val blocked: Set<Move> = emptySet(),
 )
 
 /**
@@ -206,6 +208,16 @@ fun DrawScope.drawBoard(render: BoardRender) {
     }
 
     drawLabels(geometry)
+
+    // blocked points: the engine will not consider these at all, so they are
+    // drawn heavier than a forbidden marker and under everything else
+    render.blocked.forEach { m ->
+        val c = Offset(cx(m.x), cy(m.y))
+        val r = radius * 0.85f
+        drawCircle(Line, radius = r, center = c, alpha = 0.16f)
+        drawLine(Line, Offset(c.x - r, c.y - r), Offset(c.x + r, c.y + r), strokeWidth = hair * 2.4f)
+        drawLine(Line, Offset(c.x - r, c.y + r), Offset(c.x + r, c.y - r), strokeWidth = hair * 2.4f)
+    }
 
     // forbidden markers
     render.forbidden.forEach { m ->

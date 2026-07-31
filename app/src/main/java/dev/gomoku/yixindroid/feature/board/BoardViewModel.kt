@@ -30,6 +30,8 @@ import dev.gomoku.yixindroid.data.board.BoardImageIo
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameRepository
+import dev.gomoku.yixindroid.core.model.ToolsState
+import dev.gomoku.yixindroid.domain.repository.EngineToolsRepository
 import dev.gomoku.yixindroid.domain.repository.ProveRepository
 import dev.gomoku.yixindroid.domain.repository.ReviewRepository
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
@@ -51,6 +53,7 @@ class BoardViewModel @Inject constructor(
     private val game: GameRepository,
     private val review: ReviewRepository,
     private val prove: ProveRepository,
+    private val tools: EngineToolsRepository,
     private val imageIo: BoardImageIo,
 ) : ViewModel() {
 
@@ -87,11 +90,14 @@ class BoardViewModel @Inject constructor(
         val report: GameReport?,
         val prove: ProveOverlay,
         val proveProgress: ProveProgress,
+        /** Points the engine has been told to ignore (P10 `block`). */
+        val blocked: Set<Move>,
     )
 
     private val panel = combine(
         repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
         game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
+        tools.state,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -107,6 +113,7 @@ class BoardViewModel @Inject constructor(
             report = values[9] as GameReport?,
             prove = values[10] as ProveOverlay,
             proveProgress = values[11] as ProveProgress,
+            blocked = (values[12] as ToolsState).blocked,
         )
     }
 
@@ -439,6 +446,7 @@ class BoardViewModel @Inject constructor(
             // Prove overlay: ghost stones of the line under search plus a status
             // marker on every root candidate (main.c:9061 `prove_cell_pixbuf`).
             prove = panel.prove.takeIf { it.active },
+            blocked = panel.blocked,
             showNumbers = config.showNumber,
             palette = TagPalette(
                 losingSaturation = config.lossSaturation,

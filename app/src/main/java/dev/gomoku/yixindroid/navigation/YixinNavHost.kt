@@ -17,12 +17,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dev.gomoku.yixindroid.feature.board.BoardScreen
-import dev.gomoku.yixindroid.feature.connection.ConnectionScreen
 import dev.gomoku.yixindroid.feature.database.DatabaseScreen
 import dev.gomoku.yixindroid.feature.explorer.ExplorerScreen
 import dev.gomoku.yixindroid.feature.rankings.RankingsScreen
 import dev.gomoku.yixindroid.feature.review.ReviewScreen
 import dev.gomoku.yixindroid.feature.settings.SettingsScreen
+import dev.gomoku.yixindroid.feature.tools.EngineScreen
 
 @Composable
 fun YixinApp() {
@@ -77,7 +77,7 @@ fun YixinApp() {
                 SettingsScreen()
             }
             composable(Destination.Connect.route) {
-                ConnectionScreen()
+                EngineScreen()
             }
         }
     }

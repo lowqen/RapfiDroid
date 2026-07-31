@@ -174,6 +174,94 @@ sealed interface EngineCommand {
         override fun serialize(coord: CoordMapper) = line
     }
 
+    // ---- engine tools (P10, main.c `execute_command`) -----------------------
+
+    /** How full the transposition table is (`hash usage`). */
+    data object YxShowHashUsage : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxshowhashusage"
+    }
+
+    /**
+     * Save / restore the transposition table. The path is a **server-side**
+     * path — the engine writes it, not the phone — and travels on its own line
+     * after the verb (main.c:10727-10760).
+     */
+    data class YxHashDump(val path: String) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxhashdump\n$path"
+    }
+
+    data class YxHashLoad(val path: String) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxhashload\n$path"
+    }
+
+    /** Take a point out of the engine's move generation (`block h8`). */
+    data class YxBlock(val cell: Move) : EngineCommand {
+        override fun serialize(coord: CoordMapper) =
+            "yxblock\n${coord.toWire(cell)}\ndone"
+    }
+
+    data class YxBlockUndo(val cell: Move) : EngineCommand {
+        override fun serialize(coord: CoordMapper) =
+            "yxblockundo\n${coord.toWire(cell)}\ndone"
+    }
+
+    data object YxBlockReset : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxblockreset"
+    }
+
+    /**
+     * Block a **continuation**: the current line followed by the points to
+     * forbid. The desktop sends `movepath` first and the extra cells after it,
+     * in one block (main.c:10530-10556).
+     */
+    data class YxBlockPath(
+        val line: List<Move>,
+        val cells: List<Move>,
+        val undo: Boolean = false,
+    ) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = buildString {
+            append(if (undo) "yxblockpathundo" else "yxblockpath")
+            for (m in line + cells) {
+                append('\n')
+                append(coord.toWire(m))
+            }
+            append("\ndone")
+        }
+    }
+
+    data object YxBlockPathReset : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxblockpathreset"
+    }
+
+    /**
+     * Force a point to count as forbidden for one side (`forbid 0 h8`).
+     * Unlike every other position command this one takes its coordinates
+     * **inline**, and the side follows them (main.c:10711).
+     */
+    data class YxForbid(
+        val add: Boolean,
+        val cell: Move,
+        val side: Int,
+    ) : EngineCommand {
+        override fun serialize(coord: CoordMapper) =
+            "yxforbid ${if (add) "add" else "del"} ${coord.toWire(cell).replace(',', ' ')} $side"
+    }
+
+    /** Start the next search at this depth (`search from <d>`). */
+    data class InfoStartDepth(val depth: Int) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "info start_depth $depth"
+    }
+
+    /** Symmetry-aware multi-PV, pushed before `yxnbest` (main.c:10874). */
+    data class InfoNbestSym(val on: Boolean) : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "info nbestsym ${if (on) 1 else 0}"
+    }
+
+    /** Dump the evaluator's feature values for this position. */
+    data object YxPrintFeature : EngineCommand {
+        override fun serialize(coord: CoordMapper) = "yxprintfeature"
+    }
+
     companion object {
         private fun boardBlock(
             head: String,
