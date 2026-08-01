@@ -80,6 +80,9 @@ class BoardViewModel @Inject constructor(
     private val analyzing = MutableStateFlow(false)
     private val previewPv = MutableStateFlow<Int?>(null)
 
+    /** The running search is `searchdefend`, not `nbest` (main.c:10883). */
+    private val defending = MutableStateFlow(false)
+
     /** A balance search is running (desktop `balance1` / `balance2`). */
     private val balancing = MutableStateFlow(false)
 
@@ -116,12 +119,14 @@ class BoardViewModel @Inject constructor(
         /** The user's own toolbar (`function/toolbar*.txt`) and its labels. */
         val toolbar: List<FunctionScripts.ToolbarItem>,
         val language: LngTable,
+        /** The running search enumerates defenses (`searchdefend`). */
+        val defending: Boolean,
     )
 
     private val panel = combine(
         repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
         game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
-        tools.state, review.progress, appearance.toolbar, appearance.language,
+        tools.state, review.progress, appearance.toolbar, appearance.language, defending,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -141,6 +146,7 @@ class BoardViewModel @Inject constructor(
             reviewProgress = values[13] as ReviewProgress,
             toolbar = values[14] as List<FunctionScripts.ToolbarItem>,
             language = values[15] as LngTable,
+            defending = values[16] as Boolean,
         )
     }
 
@@ -152,6 +158,7 @@ class BoardViewModel @Inject constructor(
                 moveCount = pos.moves.size,
                 connection = p.connection,
                 analyzing = p.analyzing,
+                defending = p.defending,
                 snapshot = snap,
                 multiPv = config.multiPv,
                 previewPv = p.preview,
@@ -174,7 +181,9 @@ class BoardViewModel @Inject constructor(
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
                 research = researchBanner(p),
-                toolbar = p.toolbar,
+                // Only the buttons the board row does not already have. With the
+                // desktop defaults that is none of them, so no strip appears.
+                toolbar = p.toolbar.filterNot { FunctionScripts.isBoardRowDuplicate(it.script) },
                 language = p.language,
                 toolbarStyle = config.toolbarStyle,
                 toolbarPos = config.toolbarPos,
@@ -203,7 +212,10 @@ class BoardViewModel @Inject constructor(
             position.collect { pos ->
                 database.setPosition(pos)
                 snapshot.value = null
-                if (analyzing.value) startAnalysis()
+                // Restart in whichever mode was running: someone stepping through
+                // a line with `searchdefend` on wants the defenses for the new
+                // position too, not a sudden switch back to the best moves.
+                if (analyzing.value) startAnalysis(defending.value)
             }
         }
     }
@@ -257,6 +269,24 @@ class BoardViewModel @Inject constructor(
             return
         }
         startAnalysis()
+    }
+
+    /**
+     * `searchdefend` (main.c:10883): instead of the k best moves, every move that
+     * still defends. It is an analysis like any other — same replies, same tags,
+     * same stop button — so it runs through the same path with one flag.
+     */
+    fun onSearchDefend() {
+        researchBusy()?.let {
+            _notice.value = it
+            return
+        }
+        if (!repository.state.value.isLive) return
+        if (game.state.value.thinking) {
+            _notice.value = "대국 착수를 계산하는 중입니다"
+            return
+        }
+        startAnalysis(defend = true)
     }
 
     /**
@@ -410,16 +440,17 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    private fun startAnalysis() {
+    private fun startAnalysis(defend: Boolean = false) {
         analyzeJob?.cancel()
         snapshot.value = null
         analyzing.value = true
+        defending.value = defend
         // The game's forbidden refresh must not push a board mid-search.
         game.setAnalyzing(true)
         val target = position.value
         val ply = target.moves.size
         analyzeJob = viewModelScope.launch {
-            repository.analyze(target, AnalyzeParams(settings.value.multiPv)).collect { snap ->
+            repository.analyze(target, AnalyzeParams(settings.value.multiPv, defend)).collect { snap ->
                 snapshot.value = snap
                 snap.blackWinRate()?.let {
                     recordValue(ply, it, snap.blackMate() ?: 0, snap.best?.head, gapOf(snap))
@@ -472,6 +503,7 @@ class BoardViewModel @Inject constructor(
         analyzeJob?.cancel()
         analyzeJob = null
         analyzing.value = false
+        defending.value = false
         game.setAnalyzing(false)
     }
 

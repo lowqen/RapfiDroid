@@ -92,6 +92,33 @@ object FunctionScripts {
         add("Escape")
     }
 
+    /**
+     * Scripts the board's own control row already runs.
+     *
+     * The desktop's toolbar is a strip above a window that has no other buttons,
+     * so its defaults are the navigation and the search — and [DEFAULT_TOOLBAR]
+     * is exactly those six. Here the same six are already under the board as
+     * icons, and a phone cannot spare a row that repeats what is one finger
+     * higher up. So the user's toolbar shows what the board does *not* have: an
+     * imported `nbest 8` or `dbsave` still gets its button, a second «undo one»
+     * does not.
+     */
+    private val BOARD_ROW_SCRIPTS: Set<String> = setOf(
+        "undo", "undo one", "undo all",
+        "redo", "redo one", "redo all",
+        "thinking start", "thinking stop", "thinking toggle",
+        "clear", "balance1", "balance2", "searchdefend",
+    )
+
+    /** True when the board row already offers [script] verbatim. */
+    fun isBoardRowDuplicate(script: String): Boolean {
+        val lines = script.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        // Only a single-command button can be a duplicate: a script that chains
+        // two commands is something the board row cannot do in one tap.
+        val only = lines.singleOrNull() ?: return false
+        return only.lowercase().replace(Regex("\\s+"), " ") in BOARD_ROW_SCRIPTS
+    }
+
     /** main.c caps both lists; the files past the cap are simply not read. */
     const val MAX_TOOLBAR_ITEMS = 40
     const val MAX_HOTKEY_ITEMS = 20

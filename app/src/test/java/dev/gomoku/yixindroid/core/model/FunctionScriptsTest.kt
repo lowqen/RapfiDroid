@@ -130,4 +130,42 @@ class LngTableTest {
         val table = LngTable.parse("5=a = b = c\n")
         assertThat(table.label(5)).isEqualTo("a = b = c")
     }
+
+    // ---- what the board row already offers ---------------------------------
+
+    /** The desktop defaults are the navigation and the search, which the board
+     *  row has as icons — so importing them adds no buttons at all. */
+    @Test
+    fun theDesktopDefaultToolbarIsEntirelyTheBoardRow() {
+        val extra = FunctionScripts.DEFAULT_TOOLBAR
+            .filterNot { FunctionScripts.isBoardRowDuplicate(it.script) }
+        assertThat(extra).isEmpty()
+    }
+
+    @Test
+    fun aButtonTheBoardRowDoesNotHaveSurvives() {
+        listOf("nbest 8", "dbsave", "yxforbid add h8", "hash clear").forEach {
+            assertThat(FunctionScripts.isBoardRowDuplicate(it)).isFalse()
+        }
+    }
+
+    /** Case and spacing are the parser's, not the file's. */
+    @Test
+    fun theComparisonIgnoresCaseAndRuns() {
+        assertThat(FunctionScripts.isBoardRowDuplicate("  Undo   ALL ")).isTrue()
+    }
+
+    /** Two commands in one tap is something the board row cannot do. */
+    @Test
+    fun aChainedScriptIsNeverADuplicate() {
+        val script = FunctionScripts.parseToolbar("330\r\nsystem-run\r\n\r\nundo all\r\nclear\r\n\r\n")!!
+        assertThat(FunctionScripts.isBoardRowDuplicate(script.script)).isFalse()
+    }
+
+    /** An argument changes what the command does, so it is not the same button. */
+    @Test
+    fun anArgumentMakesItADifferentCommand() {
+        assertThat(FunctionScripts.isBoardRowDuplicate("balance1")).isTrue()
+        assertThat(FunctionScripts.isBoardRowDuplicate("balance1 100")).isFalse()
+    }
 }

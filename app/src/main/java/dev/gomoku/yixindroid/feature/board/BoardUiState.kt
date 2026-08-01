@@ -17,6 +17,8 @@ data class BoardUiState(
     val moveCount: Int = 0,
     val connection: ConnectionState = ConnectionState.Disconnected,
     val analyzing: Boolean = false,
+    /** The running search is `searchdefend` — every defense, not the k best. */
+    val defending: Boolean = false,
     val snapshot: AnalysisSnapshot? = null,
     val multiPv: Int = 1,
     val previewPv: Int? = null,

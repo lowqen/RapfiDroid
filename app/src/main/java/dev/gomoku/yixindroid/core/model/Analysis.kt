@@ -73,4 +73,12 @@ data class AnalysisSnapshot(
 /** Analysis request knobs (grows in later phases: time, depth, rule). */
 data class AnalyzeParams(
     val multiPv: Int = 1,
+    /**
+     * Search every defense instead of the k best moves — the desktop's
+     * `searchdefend` (main.c:10883), which differs from an ordinary analysis
+     * only in the command that starts it: `yxsearchdefend` in place of
+     * `yxnbest`. The replies come back on the same channel, one PV per playable
+     * defense, so everything downstream is unchanged.
+     */
+    val defend: Boolean = false,
 )

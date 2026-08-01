@@ -288,7 +288,14 @@ class EngineRepositoryImpl @Inject constructor(
             // only `yxboard` per analysis (main.c send_board). A START mid-session
             // resets the engine and cost us a redundant round trip.
             dispatch(EngineCommand.YxBoard(position.placements()))
-            dispatch(EngineCommand.YxNbest(params.multiPv.coerceAtLeast(1)))
+            // `searchdefend` is an ordinary analysis with a different opening
+            // command — main.c:10883 pushes the board and sends `yxsearchdefend`
+            // where `nbest` sends `yxnbest`, and reads the answer the same way.
+            if (params.defend) {
+                dispatch(EngineCommand.YxSearchDefend)
+            } else {
+                dispatch(EngineCommand.YxNbest(params.multiPv.coerceAtLeast(1)))
+            }
             connection.markThinking()
 
             awaitClose {

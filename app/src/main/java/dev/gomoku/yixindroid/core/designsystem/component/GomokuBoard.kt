@@ -62,10 +62,20 @@ data class BoardRender(
  */
 data class DbLabel(val text: String, val kind: DbCellKind)
 
+/** Fill, outline and ink of one value chip — three shades of one hue. */
+data class TagColors(val fill: Color, val outline: Color, val ink: Color)
+
 /**
- * Colour rules for the analysis tags, mirroring the desktop's saturation
- * settings (settings.txt lines 39–43: losing/winning move saturation, min/max
- * win-rate saturation, value).
+ * Colour rules for the value labels on the board: the analysis tags and the
+ * database values, which get the same treatment because they say the same thing
+ * — main.c colours both through one function, `winrate2colorstr`.
+ *
+ * The desktop's four saturation settings (settings.txt lines 39–43) still order
+ * the colours, but they drive *strength* within a pastel band rather than raw
+ * HSV saturation. A full board of database values is a hundred chips at once,
+ * and at that density fully saturated fills read as noise and swallow their own
+ * white text. A pale fill with dark ink of the same hue keeps the same ordering
+ * — blue better, rose worse, near-white even — and stays legible on the wood.
  */
 data class TagPalette(
     val losingSaturation: Int = 0,
@@ -74,40 +84,61 @@ data class TagPalette(
     val maxRateSaturation: Int = 80,
     val value: Int = 100,
 ) {
-    /** Tag colour: mate wins/losses use the fixed hues, rates interpolate. */
-    fun colorFor(tag: CellTag): Color = when (tag.kind) {
-        TagKind.WIN -> hsv(WIN_HUE, winningSaturation / 100f, value / 100f)
-        TagKind.LOSE -> hsv(LOSE_HUE, (100 - losingSaturation) / 100f, value / 100f)
-        TagKind.RATE -> rateColor(tag.winRatePct ?: 50)
+    /** Tag colours: mate wins/losses sit at the ends, rates interpolate. */
+    fun colorsFor(tag: CellTag): TagColors = when (tag.kind) {
+        TagKind.WIN -> pastel(WIN_HUE, winningSaturation / 100f)
+        TagKind.LOSE -> pastel(LOSE_HUE, (100 - losingSaturation) / 100f)
+        TagKind.RATE -> rateColors(tag.winRatePct ?: 50)
     }
 
     /**
-     * Database labels use the same scale (main.c colours them with
-     * `winrate2colorstr`: W = 100 %, L = 0 %, D = 50 %, `NN%` = the rate).
-     * Free-form notes get no value colour.
+     * Database labels on the same scale (W = 100 %, L = 0 %, D = 50 %, `NN%` =
+     * the rate). A free-form note is not a value, so it gets parchment instead
+     * of a place on the scale.
      */
-    fun colorForDb(kind: DbCellKind, ratePct: Int?): Color = when (kind) {
-        DbCellKind.WIN -> hsv(WIN_HUE, winningSaturation / 100f, value / 100f)
-        DbCellKind.LOSS -> hsv(LOSE_HUE, (100 - losingSaturation) / 100f, value / 100f)
-        DbCellKind.DRAW -> rateColor(50)
-        DbCellKind.RATE -> rateColor(ratePct ?: 50)
-        DbCellKind.NOTE -> NoteColor
+    fun colorsForDb(kind: DbCellKind, ratePct: Int?): TagColors = when (kind) {
+        DbCellKind.WIN -> pastel(WIN_HUE, winningSaturation / 100f)
+        DbCellKind.LOSS -> pastel(LOSE_HUE, (100 - losingSaturation) / 100f)
+        DbCellKind.DRAW -> DrawColors
+        DbCellKind.RATE -> rateColors(ratePct ?: 50)
+        DbCellKind.NOTE -> NoteColors
     }
 
-    private fun rateColor(percent: Int): Color {
+    /** Distance from even, on the desktop's min..max saturation span. */
+    private fun rateColors(percent: Int): TagColors {
         val pct = percent.coerceIn(0, 100) / 100f
-        val sat = (minRateSaturation + (maxRateSaturation - minRateSaturation) *
+        val strength = (minRateSaturation + (maxRateSaturation - minRateSaturation) *
             kotlin.math.abs(pct - 0.5f) * 2f) / 100f
-        return hsv(if (pct >= 0.5f) WIN_HUE else LOSE_HUE, sat, value / 100f)
+        return pastel(if (pct >= 0.5f) WIN_HUE else LOSE_HUE, strength)
     }
 
-    private fun hsv(hue: Float, saturation: Float, v: Float): Color =
-        Color.hsv(hue, saturation.coerceIn(0f, 1f), v.coerceIn(0.2f, 1f))
+    /**
+     * One hue, three shades. [strength] is the desktop's saturation, 0 for an
+     * even position and 1 for a decided one; the fill barely tints at 0 and
+     * reaches a soft pastel at 1, while the ink stays dark enough to read at
+     * both ends. `value` (line 43) dims the whole chip, as it does on the PC.
+     */
+    private fun pastel(hue: Float, strength: Float): TagColors {
+        val t = strength.coerceIn(0f, 1f)
+        val dim = (value / 100f).coerceIn(0.4f, 1f)
+        return TagColors(
+            fill = Color.hsv(hue, FILL_MIN_S + (FILL_MAX_S - FILL_MIN_S) * t, (0.99f - 0.05f * t) * dim),
+            outline = Color.hsv(hue, 0.30f + 0.28f * t, 0.80f * dim),
+            ink = Color.hsv(hue, 0.55f + 0.25f * t, (0.40f - 0.06f * t) * dim.coerceAtLeast(0.75f)),
+        )
+    }
 
     private companion object {
-        const val WIN_HUE = 210f   // blue = good for the side to move
-        const val LOSE_HUE = 8f    // red
-        val NoteColor = Color(0xFF5B4636)
+        const val WIN_HUE = 204f   // soft sky blue = good for the side to move
+        const val LOSE_HUE = 352f  // soft rose
+        const val FILL_MIN_S = 0.13f
+        const val FILL_MAX_S = 0.48f
+
+        /** A draw is not "half a win": pale sage, so it reads as its own answer. */
+        val DrawColors = TagColors(Color(0xFFDFE7DC), Color(0xFFA8BCA4), Color(0xFF3F5140))
+
+        /** Board text is a note, not a value — parchment and ink. */
+        val NoteColors = TagColors(Color(0xFFF2E7D3), Color(0xFFC9B48E), Color(0xFF57452C))
     }
 }
 
@@ -261,8 +292,8 @@ fun DrawScope.drawBoard(render: BoardRender) {
         render.tags.forEach { (m, tag) ->
             if (tag.label.isNotEmpty() && m !in occupiedCells) {
                 drawTag(
-                    cx(m.x), cy(m.y), radius, tag.label,
-                    render.palette.colorFor(tag), render.textScale,
+                    cx(m.x), cy(m.y), radius, hair, tag.label,
+                    render.palette.colorsFor(tag), render.textScale,
                 )
             }
         }
@@ -274,8 +305,8 @@ fun DrawScope.drawBoard(render: BoardRender) {
         if (label.text.isNotEmpty() && m !in occupiedCells && m !in render.tags) {
             val pct = label.text.dropLast(1).toIntOrNull()
             drawTag(
-                cx(m.x), cy(m.y), radius, label.text,
-                render.palette.colorForDb(label.kind, pct), render.textScale,
+                cx(m.x), cy(m.y), radius, hair, label.text,
+                render.palette.colorsForDb(label.kind, pct), render.textScale,
             )
         }
     }
@@ -434,18 +465,28 @@ private fun DrawScope.drawBadge(cx: Float, cy: Float, r: Float, quality: MoveQua
     )
 }
 
-/** A filled rounded chip with the tag text, sized to sit on one intersection. */
+/**
+ * A value chip on one intersection: pale fill, a ring a few shades deeper, and
+ * the text in ink of the same hue. The ring is what separates a near-white
+ * "even" chip from the board underneath, so it is not decoration.
+ */
 private fun DrawScope.drawTag(
     cx: Float,
     cy: Float,
     r: Float,
+    hair: Float,
     label: String,
-    color: Color,
+    colors: TagColors,
     textScale: Float = 1f,
 ) {
-    drawCircle(color, radius = r * 0.82f, center = Offset(cx, cy), alpha = 0.92f)
+    val center = Offset(cx, cy)
+    drawCircle(colors.fill, radius = r * 0.82f, center = center, alpha = 0.95f)
+    drawCircle(
+        colors.outline, radius = r * 0.82f, center = center, alpha = 0.9f,
+        style = Stroke(width = hair * 1.4f),
+    )
     val paint = android.graphics.Paint().apply {
-        this.color = android.graphics.Color.WHITE
+        color = colors.ink.toArgb()
         // Never wider than the point it sits on, however large the setting.
         textSize = r * (if (label.length >= 4) 0.62f else 0.78f) * textScale.coerceIn(0.6f, 1.4f)
         textAlign = android.graphics.Paint.Align.CENTER

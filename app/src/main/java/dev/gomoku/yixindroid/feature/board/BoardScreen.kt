@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,21 +35,29 @@ import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Balance
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FirstPage
 import androidx.compose.material.icons.filled.Flip
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.OpenWith
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -56,7 +65,6 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -76,6 +84,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -123,6 +132,11 @@ fun BoardScreen(
     /** The two toolbar buttons that open a second row instead of acting at once. */
     var symmetryOpen by remember { mutableStateOf(false) }
     var shiftOpen by remember { mutableStateOf(false) }
+    /** The rarely-used half of the toolbar, folded away by default. */
+    var moreOpen by remember { mutableStateOf(false) }
+    /** The two panels below the analysis, collapsed until wanted. */
+    var dbOpen by remember { mutableStateOf(false) }
+    var gameOpen by remember { mutableStateOf(false) }
 
     // `prove_pulse_tick` (main.c:9206): the focus stone blinks twice a second for
     // as long as a proof runs, and stops dead when it ends.
@@ -186,17 +200,32 @@ fun BoardScreen(
                 )
             }
         }
-        BoardToolbar(
+        BoardControls(
             ui = ui,
             modifier = pad,
+            moreOpen = moreOpen,
             symmetryOpen = symmetryOpen,
             shiftOpen = shiftOpen,
             onFirst = viewModel::onFirst,
             onUndo = viewModel::onUndo,
             onRedo = viewModel::onRedo,
             onLast = viewModel::onLast,
-            onStart = viewModel::onStartAnalyze,
-            onStop = viewModel::onStopAnalyze,
+            // One button for the search: the desktop's own default hotkey is
+            // `thinking toggle` (F1), and a pair where one half is always
+            // disabled wastes the best spot on the row.
+            onToggleAnalyze = {
+                if (ui.busy) viewModel.onStopAnalyze() else viewModel.onStartAnalyze()
+            },
+            onToggleMore = {
+                moreOpen = !moreOpen
+                // Folding the tools away takes their second rows with them, or a
+                // shape row would outlive the button that opened it.
+                if (!moreOpen) {
+                    symmetryOpen = false
+                    shiftOpen = false
+                }
+            },
+            onDefend = viewModel::onSearchDefend,
             onBalance = { showBalance = true },
             onSaveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
             onInfo = { showPosition = true },
@@ -217,14 +246,18 @@ fun BoardScreen(
         )
         // The user's own buttons (`function/toolbar*.txt`), running the same
         // console scripts the desktop runs (main.c:10064 `custom_function`).
-        UserToolbar(
-            items = ui.toolbar,
-            language = ui.language,
-            style = ui.toolbarStyle,
-            enabled = ui.connection.isLive,
-            onRun = viewModel::onRunScript,
-            modifier = pad,
-        )
+        // Anything the board row already does was dropped in the view model, so
+        // this is empty until a toolbar with something new in it is imported.
+        if (moreOpen) {
+            UserToolbar(
+                items = ui.toolbar,
+                language = ui.language,
+                style = ui.toolbarStyle,
+                enabled = ui.connection.isLive,
+                onRun = viewModel::onRunScript,
+                modifier = pad,
+            )
+        }
         // Directly under the toolbar: most notices answer a button that was just
         // pressed, and the page can be scrolled well past its bottom.
         ui.notice?.let { text ->
@@ -236,9 +269,42 @@ fun BoardScreen(
         }
     }
 
+    // What a search produces comes first, because that is what the board is for:
+    // the status fields, then the candidate moves, then the graph. The database
+    // and the game live below them in panels that open when they are wanted —
+    // both are read far less often than the analysis, and on a phone every panel
+    // above the fold pushes the next one off it.
     val sidePane: @Composable ColumnScope.() -> Unit = {
-        GamePanel(
+        StatusBar(ui, pad)
+        PvHeader(multiPv = ui.multiPv, onMultiPv = viewModel::onMultiPvChange, modifier = pad)
+        PvList(
+            pvs = ui.snapshot?.pvs.orEmpty(),
+            size = ui.render.size,
+            previewPv = ui.previewPv,
+            onPreview = viewModel::onPreviewPv,
+            modifier = pad,
+        )
+        // settings_dev.txt line 2.
+        if (ui.showWrGraph) WinRateGraph(ui.winRateHistory, ui.moveCount, pad)
+        DatabaseSection(
             ui = ui,
+            expanded = dbOpen,
+            onToggle = { dbOpen = !dbOpen },
+            modifier = pad,
+            onQueryValue = viewModel::onQueryDbValue,
+            onQueryComment = viewModel::onQueryDbComment,
+            onEditComment = { commentDraft = ui.db.snapshot.comment },
+            onSetBest = viewModel::onDbSetBestMove,
+            onClearBest = viewModel::onDbClearBestMove,
+            onDeleteOne = viewModel::onDbDeleteOne,
+            onSave = viewModel::onDbSave,
+        )
+        GameSection(
+            ui = ui,
+            // A finished game states its result in the header, but the rematch
+            // button is in the body — opening it there saves the tap.
+            expanded = gameOpen || ui.game.result != null,
+            onToggle = { gameOpen = !gameOpen },
             modifier = pad,
             onComputerSide = viewModel::onComputerSide,
             onEngineMove = viewModel::onEngineMove,
@@ -248,28 +314,6 @@ fun BoardScreen(
             onDraw = viewModel::onOfferDraw,
             onResign = { confirmResign = true },
             onToggleForbidden = viewModel::onToggleForbidden,
-        )
-        StatusBar(ui, pad)
-        // settings_dev.txt line 2.
-        if (ui.showWrGraph) WinRateGraph(ui.winRateHistory, ui.moveCount, pad)
-        PvHeader(multiPv = ui.multiPv, onMultiPv = viewModel::onMultiPvChange, modifier = pad)
-        PvList(
-            pvs = ui.snapshot?.pvs.orEmpty(),
-            size = ui.render.size,
-            previewPv = ui.previewPv,
-            onPreview = viewModel::onPreviewPv,
-            modifier = pad,
-        )
-        DatabasePanel(
-            ui = ui,
-            modifier = pad,
-            onQueryValue = viewModel::onQueryDbValue,
-            onQueryComment = viewModel::onQueryDbComment,
-            onEditComment = { commentDraft = ui.db.snapshot.comment },
-            onSetBest = viewModel::onDbSetBestMove,
-            onClearBest = viewModel::onDbClearBestMove,
-            onDeleteOne = viewModel::onDbDeleteOne,
-            onSave = viewModel::onDbSave,
         )
     }
 
@@ -412,14 +456,64 @@ fun BoardScreen(
 }
 
 /**
+ * A panel that states its business in one line and keeps the buttons folded
+ * until asked. The summary is the part that is read; the body is the part that
+ * is used, and on a phone the two do not have to cost the same space.
+ */
+@Composable
+private fun Section(
+    title: String,
+    summary: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(
+            Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onToggle),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(
+                    summary,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "접기" else "펼치기",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (expanded) content()
+        }
+    }
+}
+
+/**
  * The game side of the board: who the engine plays, the two clocks, and the
  * actions the desktop keeps in its Game menu (new game, draw, resign) plus the
  * forbidden-point toggle.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun GamePanel(
+private fun GameSection(
     ui: BoardUiState,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
     onComputerSide: (ComputerSide) -> Unit,
     onEngineMove: () -> Unit,
@@ -429,101 +523,89 @@ private fun GamePanel(
     onToggleForbidden: () -> Unit,
 ) {
     val game = ui.game
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+    val summary = buildString {
+        game.result?.let {
+            append(it.describe())
+            return@buildString
+        }
+        append("${ui.sideToMove.label} 차례")
+        if (game.computerSide != ComputerSide.NONE) append(" · ${game.computerSide.label}")
+        if (game.opening != OpeningProtocol.NONE) append(" · ${game.opening.label}")
+    }
+    Section("대국", summary, expanded, onToggle, modifier) {
+        game.result?.let { result ->
+            Surface(
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(6.dp),
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("대국", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    buildString {
-                        append("${ui.sideToMove.label} 차례")
-                        if (game.opening != OpeningProtocol.NONE) append(" · ${game.opening.label}")
-                    },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    result.describe(),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
+        }
 
-            game.result?.let { result ->
-                Surface(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        result.describe(),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                }
+        // computerside (settings.txt lines 4-5)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            ComputerSide.entries.forEach { side ->
+                FilterChip(
+                    selected = game.computerSide == side,
+                    onClick = { onComputerSide(side) },
+                    label = { Text(side.label) },
+                )
             }
+        }
 
-            // computerside (settings.txt lines 4-5)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                ComputerSide.entries.forEach { side ->
-                    FilterChip(
-                        selected = game.computerSide == side,
-                        onClick = { onComputerSide(side) },
-                        label = { Text(side.label) },
-                    )
-                }
-            }
+        if (ui.showClock) ClockRow(ui)
 
-            if (ui.showClock) ClockRow(ui)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            AssistChip(onClick = onNewGame, label = { Text("새 대국") })
+            AssistChip(
+                onClick = onEngineMove,
+                enabled = ui.engineOnMove,
+                label = { Text("엔진 착수") },
+            )
+            AssistChip(
+                onClick = onDraw,
+                enabled = !game.over && ui.connection.isLive,
+                label = { Text("무승부 제안") },
+            )
+            AssistChip(
+                onClick = onResign,
+                enabled = !game.over && ui.moveCount > 0,
+                label = { Text("기권") },
+            )
+            if (ui.isRenju) {
+                FilterChip(
+                    selected = ui.showForbidden,
+                    onClick = onToggleForbidden,
+                    label = { Text("금수 표시") },
+                )
+            }
+        }
 
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                AssistChip(onClick = onNewGame, label = { Text("새 대국") })
-                AssistChip(
-                    onClick = onEngineMove,
-                    enabled = ui.engineOnMove,
-                    label = { Text("엔진 착수") },
-                )
-                AssistChip(
-                    onClick = onDraw,
-                    enabled = !game.over && ui.connection.isLive,
-                    label = { Text("무승부 제안") },
-                )
-                AssistChip(
-                    onClick = onResign,
-                    enabled = !game.over && ui.moveCount > 0,
-                    label = { Text("기권") },
-                )
-                if (ui.isRenju) {
-                    FilterChip(
-                        selected = ui.showForbidden,
-                        onClick = onToggleForbidden,
-                        label = { Text("금수 표시") },
-                    )
-                }
-            }
-
-            if (ui.openingNeedsOddSize) {
-                Text(
-                    "오프닝 규칙은 판의 정중앙을 기준으로 하므로 홀수 크기 판이 필요합니다 (설정 1행).",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            if (game.offeringFifth) {
-                Text(
-                    "5수 후보 ${game.fifthCount}개를 순서대로 놓으세요. 상대가 그중 하나를 고릅니다.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (game.log.isNotEmpty()) {
-                Text(
-                    game.log.takeLast(2).joinToString("\n"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        if (ui.openingNeedsOddSize) {
+            Text(
+                "오프닝 규칙은 판의 정중앙을 기준으로 하므로 홀수 크기 판이 필요합니다 (설정 1행).",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+        if (game.offeringFifth) {
+            Text(
+                "5수 후보 ${game.fifthCount}개를 순서대로 놓으세요. 상대가 그중 하나를 고릅니다.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (game.log.isNotEmpty()) {
+            Text(
+                game.log.takeLast(2).joinToString("\n"),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -828,7 +910,11 @@ private fun EvalHeader(ui: BoardUiState, modifier: Modifier = Modifier) {
                 append("${ui.moveCount}수")
                 // The redo tail the desktop keeps in `movepath` past the cursor.
                 if (ui.futureCount > 0) append(" (+${ui.futureCount})")
-                if (ui.balancing) append(" · 균형점 탐색") else if (ui.analyzing) append(" · 분석 중")
+                when {
+                    ui.balancing -> append(" · 균형점 탐색")
+                    ui.defending -> append(" · 방어수 탐색")
+                    ui.analyzing -> append(" · 분석 중")
+                }
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -853,10 +939,17 @@ private fun EvalBar(blackWinRate: Double?, mate: Int?, modifier: Modifier = Modi
 }
 
 /**
- * The board's own control strip, in the desktop toolbar's order: navigate the
- * line, run the engine, export, then the shape tools. Each button maps to a
- * desktop command — `undo/redo one|all`, `thinking start|stop`, `balance1|2`,
- * `clear`, `rotate`/`flip`, `move` and `getpos`/`putpos`.
+ * The board's own control strip. Each button maps to a desktop command —
+ * `undo/redo one|all`, `thinking start|stop`, `searchdefend`, `balance1|2`,
+ * `clear`, `rotate`/`flip`, `move` and `getpos`/`putpos` — but not in the
+ * desktop's order, because a mouse and a thumb do not reach the same way.
+ *
+ * The row that is always visible holds only what gets pressed while reading a
+ * position: step through the line, and start or stop the search. The search
+ * button sits in the middle, largest, and toggles — the desktop's own default
+ * hotkey is `thinking toggle`, and a start/stop pair always has one dead half.
+ * Everything else is a tap further, behind «⋯», where it costs nothing until
+ * it is wanted.
  *
  * Rotate/flip and shift open a second row rather than acting immediately: they
  * are repeat-until-right operations, and a menu that closed after every tap
@@ -864,17 +957,19 @@ private fun EvalBar(blackWinRate: Double?, mate: Int?, modifier: Modifier = Modi
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BoardToolbar(
+private fun BoardControls(
     ui: BoardUiState,
     modifier: Modifier = Modifier,
+    moreOpen: Boolean,
     symmetryOpen: Boolean,
     shiftOpen: Boolean,
     onFirst: () -> Unit,
     onUndo: () -> Unit,
     onRedo: () -> Unit,
     onLast: () -> Unit,
-    onStart: () -> Unit,
-    onStop: () -> Unit,
+    onToggleAnalyze: () -> Unit,
+    onToggleMore: () -> Unit,
+    onDefend: () -> Unit,
     onBalance: () -> Unit,
     onSaveImage: () -> Unit,
     onInfo: () -> Unit,
@@ -884,27 +979,49 @@ private fun BoardToolbar(
     onSymmetry: (BoardSymmetry) -> Unit,
     onShift: (BoardShift) -> Unit,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        FlowRow(
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             ToolButton(Icons.Filled.FirstPage, "처음으로", ui.canUndo, onFirst)
             ToolButton(Icons.Filled.ChevronLeft, "한 수 뒤로", ui.canUndo, onUndo)
+            AnalyzeButton(running = ui.busy, enabled = ui.busy || ui.canAnalyze, onClick = onToggleAnalyze)
             ToolButton(Icons.Filled.ChevronRight, "한 수 앞으로", ui.canRedo, onRedo)
             ToolButton(Icons.AutoMirrored.Filled.LastPage, "마지막 수로", ui.canRedo, onLast)
-            ToolDivider()
-            ToolButton(Icons.Filled.PlayArrow, "분석 시작", ui.canAnalyze && !ui.busy, onStart)
-            ToolButton(Icons.Filled.Stop, "정지", ui.busy, onStop)
-            ToolButton(Icons.Filled.Balance, "균형점 찾기", ui.canAnalyze && !ui.busy, onBalance)
-            ToolDivider()
-            ToolButton(Icons.Filled.Image, "이미지 저장", true, onSaveImage)
-            ToolButton(Icons.Filled.Info, "국면 문자열", true, onInfo)
-            ToolDivider()
-            ToolButton(Icons.Filled.Refresh, "판 초기화", true, onReset)
-            ToolButton(Icons.Filled.Flip, "모양 대칭", ui.canTransform, onToggleSymmetry, symmetryOpen)
-            ToolButton(Icons.Filled.OpenWith, "수 이동", ui.canTransform, onToggleShift, shiftOpen)
+            ToolButton(
+                if (moreOpen) Icons.Filled.ExpandLess else Icons.Filled.MoreHoriz,
+                "도구 더보기", true, onToggleMore, moreOpen,
+            )
+        }
+        if (moreOpen) {
+            // Words, not icons: these are used rarely enough that nobody will
+            // have learned their glyphs, and a wrong guess here clears the board.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                ToolChip(
+                    Icons.Filled.Shield, "모든 방어수",
+                    enabled = ui.canAnalyze && !ui.busy, onClick = onDefend,
+                )
+                ToolChip(
+                    Icons.Filled.Balance, "균형점 찾기",
+                    enabled = ui.canAnalyze && !ui.busy, onClick = onBalance,
+                )
+                ToolChip(Icons.Filled.Info, "국면 문자열", enabled = true, onClick = onInfo)
+                ToolChip(Icons.Filled.Image, "이미지 저장", enabled = true, onClick = onSaveImage)
+                ToolChip(
+                    Icons.Filled.Flip, "모양 대칭", enabled = ui.canTransform,
+                    onClick = onToggleSymmetry, active = symmetryOpen,
+                )
+                ToolChip(
+                    Icons.Filled.OpenWith, "수 이동", enabled = ui.canTransform,
+                    onClick = onToggleShift, active = shiftOpen,
+                )
+                ToolChip(Icons.Filled.Refresh, "판 초기화", enabled = true, onClick = onReset)
+            }
         }
         if (symmetryOpen) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -962,9 +1079,63 @@ private fun ToolButton(
     }
 }
 
+/**
+ * Start or stop the search, in one button. It is bigger than its neighbours and
+ * sits in the middle of them because it is pressed more often than all of them
+ * together, and it turns red while something runs so that "is it still
+ * thinking?" is answered by the same pixel that answers it.
+ */
 @Composable
-private fun ToolDivider() {
-    VerticalDivider(modifier = Modifier.height(28.dp).padding(horizontal = 3.dp))
+private fun AnalyzeButton(running: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    FilledIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(54.dp),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = if (running) MaterialTheme.colorScheme.errorContainer
+            else MaterialTheme.colorScheme.primaryContainer,
+            contentColor = if (running) MaterialTheme.colorScheme.onErrorContainer
+            else MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    ) {
+        Icon(
+            if (running) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+            contentDescription = if (running) "정지" else "분석 시작",
+            modifier = Modifier.size(28.dp),
+        )
+    }
+}
+
+/** A labelled action in the overflow row; [active] marks one that opened a row. */
+@Composable
+private fun ToolChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    active: Boolean = false,
+) {
+    val leading: @Composable () -> Unit = {
+        Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+    }
+    if (active) {
+        FilterChip(
+            selected = true,
+            onClick = onClick,
+            enabled = enabled,
+            label = { Text(label) },
+            leadingIcon = leading,
+            colors = FilterChipDefaults.filterChipColors(),
+        )
+    } else {
+        AssistChip(
+            onClick = onClick,
+            enabled = enabled,
+            label = { Text(label) },
+            leadingIcon = leading,
+            colors = AssistChipDefaults.assistChipColors(),
+        )
+    }
 }
 
 @Composable
@@ -1141,8 +1312,10 @@ private fun PvList(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun DatabasePanel(
+private fun DatabaseSection(
     ui: BoardUiState,
+    expanded: Boolean,
+    onToggle: () -> Unit,
     modifier: Modifier = Modifier,
     onQueryValue: () -> Unit,
     onQueryComment: () -> Unit,
@@ -1162,91 +1335,75 @@ private fun DatabasePanel(
         )
         return
     }
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column(
-            Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("데이터베이스", style = MaterialTheme.typography.titleSmall)
-                Text(
-                    buildString {
-                        append("${db.snapshot.cells.size}칸")
-                        if (db.readOnly) append(" · 읽기 전용")
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            val value = ui.dbValue
+    val value = ui.dbValue
+    // The stored value is the whole reason to look at this panel, so it is the
+    // header line rather than the first thing inside it.
+    val summary = when {
+        value?.stmMate != null && value.stmMate > 0 -> "두는 쪽 승 (M${value.stmMate})"
+        value?.stmMate != null -> "두는 쪽 패 (M${-value.stmMate})"
+        value != null -> "흑 ${(value.blackWinRate * 100).toInt()}%"
+        else -> "저장된 값 없음"
+    } + if (db.readOnly) " · 읽기 전용" else ""
+    Section("데이터베이스", summary, expanded, onToggle, modifier) {
+        Text(
+            "이 국면에 ${db.snapshot.cells.size}칸이 표시됩니다",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        db.snapshot.entry?.let { entry ->
             Text(
-                when {
-                    value?.stmMate != null && value.stmMate > 0 -> "저장된 값: 두는 쪽 승 (M${value.stmMate})"
-                    value?.stmMate != null -> "저장된 값: 두는 쪽 패 (M${-value.stmMate})"
-                    value != null -> "저장된 값: 흑 ${(value.blackWinRate * 100).toInt()}%"
-                    else -> "이 국면에는 저장된 값이 없습니다"
-                },
-                style = MaterialTheme.typography.bodyMedium,
-            )
-            db.snapshot.entry?.let { entry ->
-                Text(
-                    entry.summary(),
-                    style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (db.snapshot.comment.isNotBlank()) {
-                // settings.txt line 46 "Database Comment Font" — size only.
-                val base = MaterialTheme.typography.bodySmall
-                Text(
-                    db.snapshot.comment,
-                    style = base.copy(fontSize = base.fontSize * ui.dbCommentFont.scale),
-                )
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                AssistChip(onClick = onQueryValue, label = { Text("값 조회") })
-                AssistChip(onClick = onQueryComment, label = { Text("주석 읽기") })
-                AssistChip(
-                    onClick = onEditComment,
-                    enabled = ui.canEditDb,
-                    label = { Text("주석 편집") },
-                )
-                AssistChip(
-                    onClick = onSetBest,
-                    enabled = ui.canEditDb && ui.moveCount > 0,
-                    label = { Text("최선수 표시") },
-                )
-                AssistChip(
-                    onClick = onClearBest,
-                    enabled = ui.canEditDb && ui.moveCount > 0,
-                    label = { Text("표시 해제") },
-                )
-                AssistChip(
-                    onClick = onDeleteOne,
-                    enabled = ui.canEditDb,
-                    label = { Text("이 국면 삭제") },
-                )
-                AssistChip(onClick = onSave, enabled = ui.canEditDb, label = { Text("DB 저장") })
-            }
-            Text(
-                "빈 점을 길게 누르면 보드 텍스트를 입력합니다 (PC의 Ctrl+클릭).",
-                style = MaterialTheme.typography.labelSmall,
+                entry.summary(),
+                style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (db.log.isNotEmpty()) {
-                Text(
-                    db.log.takeLast(3).joinToString("\n"),
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        }
+        if (db.snapshot.comment.isNotBlank()) {
+            // settings.txt line 46 "Database Comment Font" — size only.
+            val base = MaterialTheme.typography.bodySmall
+            Text(
+                db.snapshot.comment,
+                style = base.copy(fontSize = base.fontSize * ui.dbCommentFont.scale),
+            )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            AssistChip(onClick = onQueryValue, label = { Text("값 조회") })
+            AssistChip(onClick = onQueryComment, label = { Text("주석 읽기") })
+            AssistChip(
+                onClick = onEditComment,
+                enabled = ui.canEditDb,
+                label = { Text("주석 편집") },
+            )
+            AssistChip(
+                onClick = onSetBest,
+                enabled = ui.canEditDb && ui.moveCount > 0,
+                label = { Text("최선수 표시") },
+            )
+            AssistChip(
+                onClick = onClearBest,
+                enabled = ui.canEditDb && ui.moveCount > 0,
+                label = { Text("표시 해제") },
+            )
+            AssistChip(
+                onClick = onDeleteOne,
+                enabled = ui.canEditDb,
+                label = { Text("이 국면 삭제") },
+            )
+            AssistChip(onClick = onSave, enabled = ui.canEditDb, label = { Text("DB 저장") })
+        }
+        Text(
+            "빈 점을 길게 누르면 보드 텍스트를 입력합니다 (PC의 Ctrl+클릭).",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        if (db.log.isNotEmpty()) {
+            Text(
+                db.log.takeLast(3).joinToString("\n"),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
