@@ -262,8 +262,17 @@ class ProveRepositoryImpl @Inject constructor(
         engine.send(EngineCommand.Start(size))
         engine.send(EngineCommand.YxBoard(position.placements()))
         engine.send(EngineCommand.InfoTimeLeft(UNLIMITED_MATCH_MS))
-        if (options.byDepth) { // fixed depth, time wide open
-            engine.send(EngineCommand.Info("timeout_turn", UNLIMITED_TURN_MS.toString()))
+        // Time mode's budget is its own leash; depth mode borrows the seconds
+        // cap for one, because a depth alone does not bound an AND node:
+        // `yxsearchdefend` evaluates *every* defense to max_depth, so its cost
+        // is the number of defenses times one depth-N search, while an OR node's
+        // k is capped at 8. With the clock open the defense step ran until the
+        // watchdog — and the watchdog throws the node away (stop, retry,
+        // exhausted after three) where a `timeout_turn` makes the engine hand
+        // back the best it has (main.c:9484).
+        val leash = if (options.byDepth) options.depthLeashMs else budget
+        if (options.byDepth) {
+            engine.send(EngineCommand.Info("timeout_turn", leash.toString()))
             engine.send(EngineCommand.Info("max_depth", budget.toString()))
         } else {
             engine.send(EngineCommand.Info("timeout_turn", budget.toString()))
@@ -274,8 +283,9 @@ class ProveRepositoryImpl @Inject constructor(
             engine.send(EngineCommand.YxSearchDefend)
         }
         searches++
-        // A depth budget has no time bound; give it a generous fixed leash.
-        armWatchdog(if (options.byDepth) DEPTH_WATCHDOG_SEC else budget / 1000 * 2 + 60)
+        // The watchdog sits above the leash in both modes: it answers a silent
+        // engine, not a slow one.
+        armWatchdog(leash / 1000 * 2 + 60)
         pushProgress()
     }
 
@@ -515,12 +525,10 @@ class ProveRepositoryImpl @Inject constructor(
     }
 
     private companion object {
-        const val UNLIMITED_TURN_MS = 1_000_000_000L
         const val UNLIMITED_MATCH_MS = 2_000_000_000L
 
         /** main.c arms 60 s on a query or an edit (main.c:9440). */
         const val REPLY_TIMEOUT_SEC = 60
-        const val DEPTH_WATCHDOG_SEC = 1200
         const val PULSE_MS = 500L
         const val LOG_LIMIT = 80
     }

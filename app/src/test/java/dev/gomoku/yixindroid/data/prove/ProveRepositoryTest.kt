@@ -302,15 +302,20 @@ class ProveRepositoryTest {
         assertThat(h.prove.progress.value.phase).isEqualTo(ProvePhase.SEARCH)
     }
 
+    /**
+     * The depth is the budget, but the clock is not thrown away: a defense
+     * enumeration at a fixed depth has no bound of its own, and a node that runs
+     * past the watchdog is discarded rather than answered (main.c:9484).
+     */
     @Test
-    fun `a depth budget opens the clock and caps the depth instead`() = proveTest { h ->
+    fun `a depth budget caps the depth and keeps the seconds cap as a leash`() = proveTest { h ->
         h.game.replaceLine(listOf(h8))
-        h.prove.start(options.copy(byDepth = true, depth0 = 14))
+        h.prove.start(options.copy(byDepth = true, depth0 = 14, budgetMaxSec = 120))
         runCurrent()
         h.engine.sent.clear()
         h.record(tag = null)
         runCurrent()
-        assertThat(h.engine.sent).contains("INFO timeout_turn 1000000000")
+        assertThat(h.engine.sent).contains("INFO timeout_turn 120000")
         assertThat(h.engine.sent).contains("INFO max_depth 14")
     }
 

@@ -37,6 +37,15 @@ data class ProveOptions(
 
     val maxBudget: Int get() = if (byDepth) depthMax else budgetMaxSec * 1000
 
+    /**
+     * Depth mode's time leash (main.c:9484). A depth bounds the work of an OR
+     * node, whose candidate count is capped, but not of an AND node, where
+     * `yxsearchdefend` evaluates every defense to that depth. The seconds cap
+     * the dialog already carries is the natural bound, and it keeps the two
+     * modes on one principle: a budget the search always returns from.
+     */
+    val depthLeashMs: Int get() = budgetMaxSec.coerceAtLeast(1) * 1000
+
     /** Budget of a verification node (main.c:9303). */
     val verifyBudget: Int
         get() = if (byDepth) minOf(depth0, VERIFY_DEPTH) else VERIFY_MS

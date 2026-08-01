@@ -70,8 +70,14 @@ class AppearanceRepositoryImpl @Inject constructor(
                     }.mapNotNull { FunctionScripts.parseHotkey(it) }
                 }.orEmpty()
 
+                // The desktop ships seven `.lng` files; this app supports two
+                // languages, so a PC set to Chinese or Japanese would otherwise
+                // put those labels on buttons in an app that speaks neither.
+                // Anything but Korean falls back to English, which is what the
+                // desktop's own `TL(idx, "…")` defaults are written in.
+                val lngIndex = if (languageIndex == LNG_KOREAN) LNG_KOREAN else LNG_ENGLISH
                 val lng = saf.folder("language")
-                    ?.let { saf.readFile(it, "$languageIndex.lng") }
+                    ?.let { saf.readFile(it, "$lngIndex.lng") }
                     ?.let { LngTable.parse(it) }
 
                 if (toolbar.isNotEmpty()) {
@@ -84,12 +90,12 @@ class AppearanceRepositoryImpl @Inject constructor(
                 }
                 if (lng != null && lng.size > 0) {
                     _language.value = lng
-                    val name = lng.languageName.ifEmpty { "$languageIndex.lng" }
+                    val name = lng.languageName.ifEmpty { "$lngIndex.lng" }
                     found += "언어 $name (${lng.size}개)"
                 }
                 if (found.isEmpty()) {
                     error(
-                        "function/toolbar1.txt 도 language/$languageIndex.lng 도 없습니다 — " +
+                        "function/toolbar1.txt 도 language/$lngIndex.lng 도 없습니다 — " +
                             "Yixin.exe 가 있는 폴더를 선택하세요",
                     )
                 }
@@ -120,5 +126,11 @@ class AppearanceRepositoryImpl @Inject constructor(
         val out = ArrayList<String>()
         for (i in 0 until max) out += read(i) ?: break
         return out
+    }
+
+    private companion object {
+        /** `language/<n>.lng` indices this app will read (main.c:14278). */
+        const val LNG_ENGLISH = 0
+        const val LNG_KOREAN = 3
     }
 }

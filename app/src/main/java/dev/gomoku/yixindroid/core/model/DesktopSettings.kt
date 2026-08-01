@@ -116,7 +116,9 @@ object DesktopSettings {
                     ChoiceOption(6, "Tiếng Việt"),
                 ),
             ),
-            note = "앱 UI는 한국어 고정 — 이 값은 PC와 주고받기 위해 보관됩니다(P11에서 적용)",
+            note = "이 앱은 한국어·영어만 지원합니다. 값은 PC 파일 그대로 보관하지만, " +
+                "툴바 라벨은 한국어면 3.lng, 그 밖에는 0.lng(영어)를 읽습니다. " +
+                "앱 화면의 언어는 안드로이드 시스템 언어를 따릅니다",
             get = { it.language }, set = { s, v -> s.copy(language = v) },
         )
         int(

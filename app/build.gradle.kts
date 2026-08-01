@@ -20,6 +20,13 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Two languages, and only two. Without this the APK carries every locale
+    // AndroidX ships and the system offers them, which would put a Compose
+    // screen of Korean literals under a French system label.
+    androidResources {
+        localeFilters += listOf("en", "ko")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

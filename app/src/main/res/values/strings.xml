@@ -1,13 +1,21 @@
+<!--
+  Default (English) resources. Korean lives in values-ko/.
+
+  The app ships exactly two languages, declared in xml/locales_config.xml and
+  enforced by `localeFilters` in build.gradle.kts: a system set to anything else
+  gets this file. Note that most of the UI text is still Korean literals in the
+  Compose sources — see the plan, §5 "언어 지원".
+-->
 <resources>
     <string name="app_name">YixinDroid</string>
 
-    <string name="tab_board">보드</string>
-    <string name="tab_research">연구</string>
+    <string name="tab_board">Board</string>
+    <string name="tab_research">Research</string>
     <string name="tab_database">DB</string>
-    <string name="tab_settings">설정</string>
-    <string name="tab_connect">엔진</string>
+    <string name="tab_settings">Settings</string>
+    <string name="tab_connect">Engine</string>
 
-    <string name="engine_channel_name">엔진 연결</string>
-    <string name="engine_channel_desc">Rapfi 엔진 세션을 유지합니다</string>
-    <string name="engine_notif_title">YixinDroid 엔진</string>
+    <string name="engine_channel_name">Engine link</string>
+    <string name="engine_channel_desc">Keeps the Rapfi engine session alive</string>
+    <string name="engine_notif_title">YixinDroid engine</string>
 </resources>
