@@ -3,6 +3,8 @@ package dev.gomoku.yixindroid.feature.prove
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
+import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.MoveGrader
 import dev.gomoku.yixindroid.core.model.ProveOptions
 import dev.gomoku.yixindroid.core.model.ProveOverlay
@@ -37,20 +39,24 @@ class ProveViewModel @Inject constructor(
     private val notice = MutableStateFlow<String?>(null)
 
     private data class Board(
-        val moves: Int,
+        val moves: List<Move>,
+        val size: Int,
         val connected: Boolean,
         val over: Boolean,
         val dbWritable: Boolean,
+        val showNumbers: Boolean,
     )
 
     private val board = combine(
         game.position, game.state, engine.state, settingsRepository.settings,
     ) { position, state, connection, settings ->
         Board(
-            moves = position.moves.size,
+            moves = position.moves,
+            size = position.size,
             connected = connection.isLive,
             over = state.over,
             dbWritable = settings.useDatabase && !settings.databaseReadonly,
+            showNumbers = settings.showNumber,
         )
     }
 
@@ -66,9 +72,16 @@ class ProveViewModel @Inject constructor(
             options = options,
             outcome = outcome,
             log = log,
-            candidates = rows(overlay, game.position.value.size),
-            moveCount = board.moves,
-            blackToMove = board.moves % 2 == 0,
+            candidates = rows(overlay, board.size),
+            render = BoardRender(
+                size = board.size,
+                stones = board.moves,
+                lastMove = board.moves.lastOrNull(),
+                showNumbers = board.showNumbers,
+                prove = overlay.takeIf { it.active },
+            ),
+            moveCount = board.moves.size,
+            blackToMove = board.moves.size % 2 == 0,
             connected = board.connected,
             dbWritable = board.dbWritable,
             gameOver = board.over,

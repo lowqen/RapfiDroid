@@ -23,7 +23,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -45,6 +47,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -152,6 +155,14 @@ private fun ErrorBanner(message: String, onDismiss: () -> Unit) {
 
 @Composable
 private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Modifier) {
+    // A re-sorted or re-filtered list is a *new* list, and a lazy list keeps the
+    // item that was on screen: it re-finds it by key and scrolls to wherever it
+    // landed, which drops the user into the middle of a ranking they just asked
+    // to see from the top. Reset when the content itself changes — an identical
+    // list (toggling a sort with no dataset loaded) compares equal and is left
+    // alone, so an idle recomposition never yanks the scroll.
+    val gridState = rememberLazyGridState()
+    LaunchedEffect(ui.openingCards) { gridState.scrollToItem(0) }
     Column(modifier) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
@@ -179,6 +190,7 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
         }
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 158.dp),
+            state = gridState,
             modifier = Modifier.fillMaxWidth().weight(1f),
             contentPadding = PaddingValues(12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -225,6 +237,11 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
 
 @Composable
 private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Modifier) {
+    // Same as the 3-move grid: a new ordering starts at the top. Here the keys
+    // usually vanish entirely (이론순 ↔ 실전순 share almost no rows), so the list
+    // falls back to holding the raw index — the middle of the old scroll.
+    val listState = rememberLazyListState()
+    LaunchedEffect(ui.fiveRows) { listState.scrollToItem(0) }
     Column(modifier) {
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
@@ -250,6 +267,7 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
         if (ui.fiveSort == FiveSort.THEORY) GroupChart(ui.groupDist)
         LazyColumn(
             Modifier.fillMaxWidth().weight(1f),
+            state = listState,
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {

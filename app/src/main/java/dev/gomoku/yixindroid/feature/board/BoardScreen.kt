@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -45,10 +47,10 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Snackbar
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -75,6 +77,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
@@ -112,6 +115,18 @@ fun BoardScreen(
     var symmetryOpen by remember { mutableStateOf(false) }
     var shiftOpen by remember { mutableStateOf(false) }
 
+    // `prove_pulse_tick` (main.c:9206): the focus stone blinks twice a second for
+    // as long as a proof runs, and stops dead when it ends.
+    var provePulse by remember { mutableStateOf(false) }
+    val proving = ui.render.prove != null
+    LaunchedEffect(proving) {
+        provePulse = false
+        while (proving) {
+            kotlinx.coroutines.delay(500)
+            provePulse = !provePulse
+        }
+    }
+
     val scope = rememberCoroutineScope()
     // The export launcher outlives recompositions, so it must not capture the
     // frame it was created with.
@@ -140,18 +155,28 @@ fun BoardScreen(
         EvalHeader(ui, pad)
         // settings_dev.txt line 1 — the desktop's own toggle.
         if (ui.showEvalBar) EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate, modifier = pad)
-        // While a proof runs the desktop paints its two counters over the win-rate
-        // graph (`prove_badge_lines`); here they sit above the board, where the
-        // ghost stones of the searched line are.
-        ui.research?.let { ResearchStrip(it, pad, viewModel::onStopResearch) }
-        ZoomableBoard(
-            ui = ui,
-            onTap = viewModel::onTap,
-            onLongPress = { cell ->
-                // Empty points only: a board text belongs to a candidate move.
-                if (ui.dbActive && !ui.render.stones.contains(cell)) labelTarget = cell
-            },
-        )
+        // The desktop paints the review / prove counters straight onto its
+        // drawing area, top-left, in blue and orange (main.c:6861-6905). Here they
+        // go onto the board itself — over the ghost stones of the line under
+        // search, which is the only place a phone user is actually looking.
+        Box {
+            ZoomableBoard(
+                render = ui.render.copy(provePulse = provePulse),
+                scale = ui.boardScale,
+                onTap = viewModel::onTap,
+                onLongPress = { cell ->
+                    // Empty points only: a board text belongs to a candidate move.
+                    if (ui.dbActive && !ui.render.stones.contains(cell)) labelTarget = cell
+                },
+            )
+            ui.research?.let {
+                ResearchBadge(
+                    banner = it,
+                    modifier = Modifier.align(Alignment.TopStart).padding(6.dp),
+                    onStop = viewModel::onStopResearch,
+                )
+            }
+        }
         BoardToolbar(
             ui = ui,
             modifier = pad,
@@ -561,14 +586,14 @@ private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
  */
 @Composable
 private fun ZoomableBoard(
-    ui: BoardUiState,
+    render: BoardRender,
+    scale: Float,
     onTap: (Move) -> Unit,
     onLongPress: (Move) -> Unit,
 ) {
-    val scale = ui.boardScale
     if (scale <= 1f) {
         GomokuBoard(
-            render = ui.render,
+            render = render,
             modifier = Modifier.fillMaxWidth(scale),
             onTap = onTap,
             onLongPress = onLongPress,
@@ -579,7 +604,7 @@ private fun ZoomableBoard(
         val width = maxWidth * scale
         Row(Modifier.horizontalScroll(rememberScrollState())) {
             GomokuBoard(
-                render = ui.render,
+                render = render,
                 modifier = Modifier.width(width),
                 onTap = onTap,
                 onLongPress = onLongPress,
@@ -1245,45 +1270,60 @@ private fun pvLabel(pv: PvSnapshot): String = when {
     else -> "#${pv.index + 1}"
 }
 
+/** `rgba(0.85, 0.45, 0.15, 0.90)` — the desktop's prove badge (main.c:6892). */
+private val ProveBadgeColor = Color(0xE6D97326)
+
+/** `rgba(0.29, 0.62, 1.0, 0.90)` — the desktop's review badge (main.c:6869). */
+private val ReviewBadgeColor = Color(0xE64A9EFF)
+
 /**
- * "A search owns the engine right now" — the desktop can leave this implicit
- * because its counters sit next to the board and its menus grey out; on a phone
- * the run is started on another tab, so the board has to say so itself, and
- * carry the stop button.
+ * The counters the desktop paints in the top-left corner of its drawing area
+ * while a review or a proof runs (main.c:6860-6905): one line of totals, a second
+ * of live search state, white on a filled box. It sits on the board here for the
+ * same reason it does there — that is where the eye already is — and carries the
+ * stop button, which on a phone would otherwise be a tab away.
  */
 @Composable
-private fun ResearchStrip(
+private fun ResearchBadge(
     banner: dev.gomoku.yixindroid.feature.board.ResearchBanner,
     modifier: Modifier = Modifier,
     onStop: () -> Unit,
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = if (banner.isProve) MaterialTheme.colorScheme.tertiaryContainer
-        else MaterialTheme.colorScheme.secondaryContainer,
-        shape = RoundedCornerShape(10.dp),
+        modifier = modifier.widthIn(max = 300.dp),
+        color = if (banner.isProve) ProveBadgeColor else ReviewBadgeColor,
+        shape = RoundedCornerShape(6.dp),
     ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(start = 10.dp, end = 4.dp, top = 5.dp, bottom = 5.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     banner.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f),
+                    color = Color.White,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
-                TextButton(onClick = onStop) { Text("중지") }
+                TextButton(
+                    onClick = onStop,
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                ) {
+                    Text("중지", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                }
             }
             if (banner.detail.isNotEmpty()) {
                 Text(
                     banner.detail,
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = FontFamily.Monospace,
+                    color = Color.White.copy(alpha = 0.92f),
                 )
             }
             banner.progress?.let {
                 LinearProgressIndicator(
                     progress = { it },
-                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 6.dp),
                 )
             }
         }

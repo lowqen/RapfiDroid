@@ -1,5 +1,6 @@
 package dev.gomoku.yixindroid.feature.prove
 
+import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.ProveMark
 import dev.gomoku.yixindroid.core.model.ProveOptions
@@ -21,6 +22,12 @@ data class ProveUiState(
     val outcome: ProveOutcome? = null,
     val log: List<String> = emptyList(),
     val candidates: List<ProveCandidateRow> = emptyList(),
+    /**
+     * The prove root with the live overlay on it. The desktop has one window, so
+     * its board is already in front of you while a proof runs; here the run is
+     * driven from a tab that has no board, so the card carries its own.
+     */
+    val render: BoardRender = BoardRender(),
     /** Stones on the board — the prove root. */
     val moveCount: Int = 0,
     val blackToMove: Boolean = true,

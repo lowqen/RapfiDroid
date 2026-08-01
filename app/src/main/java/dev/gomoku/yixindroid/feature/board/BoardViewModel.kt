@@ -163,7 +163,6 @@ class BoardViewModel @Inject constructor(
                 isRenju = config.isRenju,
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
-                proveBadge = if (p.proveProgress.running) p.proveProgress.badgeLines() else null,
                 research = researchBanner(p),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
@@ -460,18 +459,18 @@ class BoardViewModel @Inject constructor(
         game.setAnalyzing(false)
     }
 
-    /** What to say over the board while a research run holds the engine. */
+    /**
+     * The badge painted on the board while a research run holds the engine —
+     * `prove_badge_lines` verbatim for a proof (totals on top, the live search
+     * below), and the review's own counter (main.c:6864) otherwise.
+     */
     private fun researchBanner(panel: Panel): ResearchBanner? = when {
         panel.proveProgress.running -> {
             val (first, second) = panel.proveProgress.badgeLines()
-            ResearchBanner("국면 증명 진행 중", listOfNotNull(
-                first.takeIf { it.isNotEmpty() },
-                second.takeIf { it.isNotEmpty() },
-            ).joinToString("  ·  "), isProve = true)
+            ResearchBanner(first, second, isProve = true)
         }
         panel.reviewProgress.running -> ResearchBanner(
-            "게임 리뷰 진행 중",
-            "${panel.reviewProgress.index} / ${panel.reviewProgress.total}수",
+            "리뷰 ${panel.reviewProgress.index}/${panel.reviewProgress.total}",
             progress = panel.reviewProgress.fraction.takeIf { panel.reviewProgress.total > 0 },
         )
         else -> null

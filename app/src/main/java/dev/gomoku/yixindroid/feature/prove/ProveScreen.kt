@@ -21,6 +21,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -28,8 +31,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.model.ProveMark
 import dev.gomoku.yixindroid.core.model.ProveOptions
+import kotlinx.coroutines.delay
 
 /**
  * The desktop's "Prove Position" dialog plus its live badge, as a card on the
@@ -156,6 +161,20 @@ fun ProveCard(
 @Composable
 private fun RunningState(ui: ProveUiState) {
     val (first, second) = ui.progress.badgeLines()
+    // The board the proof is working on, with the line under search drawn on it
+    // as ghost stones and every root candidate carrying its marker — the same
+    // overlay the board tab shows, because a proof is watched, not read.
+    var pulse by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500)
+            pulse = !pulse
+        }
+    }
+    GomokuBoard(
+        render = ui.render.copy(provePulse = pulse),
+        modifier = Modifier.fillMaxWidth(),
+    )
     // No total to count towards: the tree grows as the proof goes on, so the
     // desktop shows counters rather than a percentage.
     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())

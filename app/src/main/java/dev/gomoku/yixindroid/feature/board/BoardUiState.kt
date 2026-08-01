@@ -45,11 +45,9 @@ data class BoardUiState(
     /** An opening protocol is selected but the board has no centre point. */
     val openingNeedsOddSize: Boolean = false,
     /**
-     * The two lines the desktop paints over the win-rate graph while a proof runs
-     * (`prove_badge_lines`); null when no prove is running.
+     * A research run owns the engine right now: the badge painted on the board,
+     * carrying `prove_badge_lines` while a proof runs.
      */
-    val proveBadge: Pair<String, String>? = null,
-    /** A research run owns the engine right now — shown over the board. */
     val research: ResearchBanner? = null,
 ) {
     val canAnalyze: Boolean get() = connection.isLive

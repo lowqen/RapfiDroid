@@ -42,6 +42,8 @@ data class BoardRender(
     val badges: Map<Move, MoveQuality> = emptyMap(),
     /** Prove overlay while a proof runs; null when none does. */
     val prove: ProveOverlay? = null,
+    /** Half of the desktop's 500 ms prove heartbeat (`provepulse`, main.c:9212). */
+    val provePulse: Boolean = false,
     /** Points the engine has been told to ignore (`block`, main.c:1899). */
     val blocked: Set<Move> = emptySet(),
 )
@@ -302,7 +304,7 @@ fun DrawScope.drawBoard(render: BoardRender) {
     // prove overlay on top of everything (main.c:9061 `prove_cell_pixbuf`)
     render.prove?.let { prove ->
         prove.ghost.forEach { (m, ply) ->
-            drawProveGhost(cx(m.x), cy(m.y), radius, hair, ply, prove)
+            drawProveGhost(cx(m.x), cy(m.y), radius, hair, ply, prove, render.provePulse)
         }
         prove.marks.forEach { (m, mark) ->
             if (m in prove.ghost) return@forEach
@@ -323,8 +325,9 @@ private val ProveLatent = Color(0xFF8C8F9E)
 /**
  * One stone of the line under search: a translucent stone with its ply number and
  * a ring saying whether that ply is an attack or a defense. The last ply is the
- * focus and gets a heavier ring (the desktop pulses it; a static ring reads the
- * same on a phone and avoids a 500 ms redraw of the whole board).
+ * focus stone, which pulses on the desktop's 500 ms heartbeat (`prove_pulse_tick`,
+ * main.c:9206) — that blink is how the board says the search is still alive, so
+ * it is worth the two redraws a second.
  */
 private fun DrawScope.drawProveGhost(
     cx: Float,
@@ -333,13 +336,14 @@ private fun DrawScope.drawProveGhost(
     hair: Float,
     ply: Int,
     prove: ProveOverlay,
+    pulse: Boolean,
 ) {
     val black = prove.isBlack(ply)
     val focus = ply == prove.ghostLen
-    drawStone(cx, cy, r, black, "", alpha = 0.55f)
+    drawStone(cx, cy, r, black, "", alpha = if (focus && pulse) 0.75f else 0.55f)
     drawCircle(
         if (prove.isAttack(ply)) ProveAttack else ProveDefend,
-        radius = r * 0.90f,
+        radius = r * if (focus && pulse) 0.99f else 0.90f,
         center = Offset(cx, cy),
         alpha = if (focus) 1f else 0.72f,
         style = Stroke(width = hair * if (focus) 3.4f else 2f),
