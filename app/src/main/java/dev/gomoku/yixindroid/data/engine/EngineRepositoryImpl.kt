@@ -134,6 +134,13 @@ class EngineRepositoryImpl @Inject constructor(
                 if (response is EngineResponse.Capability) {
                     _capabilities.update { it.with(response.key, response.value) }
                 }
+                // A bare `y,x` is the end of a search (main.c:13930): the engine
+                // has settled on a move and is listening again. Marking it idle
+                // *here* rather than when we tear the analysis flow down is what
+                // keeps the next database query out of a search that is still
+                // running — the engine would only answer it once the search
+                // ended, which is exactly the delay the board values had.
+                if (response is EngineResponse.BestMove) connection.markSettled()
                 _responses.emit(response)
             }
         }

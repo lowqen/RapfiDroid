@@ -344,6 +344,48 @@ class DatabaseRepositoryTest {
         assertEquals("note here", snapshot.comment)
     }
 
+    // ---- queries wait for the engine to stop searching -----------------------
+
+    /**
+     * The desktop never queries mid-search — every `show_database()` caller stops
+     * the search first. Rapfi does answer a query sent into a running search, but
+     * only once that search ends, so the values would land late and against the
+     * wrong board.
+     */
+    @Test
+    fun `a query is not sent into a running search`() = dbTest { h ->
+        runCurrent()
+        h.engine.stateFlow.value = ConnectionState.Thinking
+        runCurrent()
+        h.engine.sent.clear()
+
+        h.repository.setPosition(Position(moves = path))
+        runCurrent()
+
+        assertTrue(h.engine.sent.isEmpty())
+    }
+
+    /**
+     * …and the engine going idle is what sends it. That edge is the end of a
+     * search (the engine reports its move and goes back to Ready), which is where
+     * main.c:13961 re-reads the database — a search with the database on writes
+     * to it, so the board has to be re-read whether or not the position changed.
+     */
+    @Test
+    fun `the query goes out when the search ends`() = dbTest { h ->
+        runCurrent()
+        h.engine.stateFlow.value = ConnectionState.Thinking
+        runCurrent()
+        h.repository.setPosition(Position(moves = path))
+        runCurrent()
+        h.engine.sent.clear()
+
+        h.engine.stateFlow.value = ConnectionState.Ready
+        runCurrent()
+
+        assertEquals(listOf("yxquerydatabaseallt\n7,7\n6,8\ndone"), h.engine.sent)
+    }
+
     private suspend fun emit(h: Harness, line: String) {
         h.engine.responseFlow.emit(ResponseParser.parse(line, coord))
     }

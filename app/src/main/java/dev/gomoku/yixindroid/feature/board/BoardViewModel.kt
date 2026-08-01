@@ -35,6 +35,7 @@ import dev.gomoku.yixindroid.core.model.ProveProgress
 import dev.gomoku.yixindroid.core.model.Swap2Choice
 import dev.gomoku.yixindroid.core.model.TapResult
 import dev.gomoku.yixindroid.data.board.BoardImageIo
+import dev.gomoku.yixindroid.domain.engine.EngineResponse
 import dev.gomoku.yixindroid.domain.repository.AppearanceRepository
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -87,6 +89,17 @@ class BoardViewModel @Inject constructor(
     private val balancing = MutableStateFlow(false)
 
     private var analyzeJob: Job? = null
+
+    /**
+     * The desktop's `isneedomit` (main.c:4557): the move a stopped search reports
+     * is swallowed when the stop was made to change the board rather than to take
+     * the move. Here that is the restart in [startAnalysis] — the old search's
+     * reply lands while the new one is already running.
+     */
+    private var omitSettles = 0
+
+    /** Gives up waiting for a stop the engine never acknowledged. */
+    private var stopFallbackJob: Job? = null
 
     /** Black-perspective win rate per ply, for the win-rate graph. */
     /**
@@ -206,6 +219,15 @@ class BoardViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
+        // main.c:13930 — a bare `y,x` on its own is the end of a search: the
+        // engine reports the move it settled on. The desktop plays that move and
+        // re-reads the database (main.c:13957-13961); the only replies it throws
+        // away are the ones it asked for while rearranging the board.
+        repository.responses
+            .filterIsInstance<EngineResponse.BestMove>()
+            .onEach { onSearchSettled(it.moves) }
+            .launchIn(viewModelScope)
+
         // The database follows the board: every position change re-queries it,
         // exactly like the desktop's show_database() call after each move.
         viewModelScope.launch {
@@ -292,12 +314,64 @@ class BoardViewModel @Inject constructor(
     /**
      * Stop button: ends whichever search is running — analysis, a balance search
      * or the engine's game turn. All three stop with `YXSTOP`, which makes the
-     * engine report its current best move, exactly like the desktop's stop.
+     * engine report the best move it has found so far.
+     *
+     * The analysis is **not** torn down here. `YXSTOP` is a request, and the
+     * search is over only when the engine answers it with that move; ending the
+     * flow first would throw the answer away, which is why stopping used to leave
+     * the board exactly as it was. [onSearchSettled] does the rest when it lands.
      */
     fun onStopAnalyze() {
-        if (analyzing.value) stopAnalysis()
+        if (analyzing.value) {
+            viewModelScope.launch { runCatching { repository.stop() } }
+            stopFallbackJob?.cancel()
+            stopFallbackJob = viewModelScope.launch {
+                // A stop the engine never acknowledges (a dropped link, mostly)
+                // must not leave the UI searching forever.
+                kotlinx.coroutines.delay(STOP_REPLY_TIMEOUT_MS)
+                if (analyzing.value) {
+                    stopAnalysis()
+                    runCatching { database.refresh() }
+                }
+            }
+        }
         if (balancing.value) viewModelScope.launch { runCatching { repository.stop() } }
         if (game.state.value.thinking) viewModelScope.launch { game.stopThinking() }
+    }
+
+    /**
+     * The engine settled on a move — a search ended, whether the user stopped it
+     * or its own budget ran out. The desktop plays that move onto the board and
+     * re-reads the database for the new position (main.c:13957-13961).
+     *
+     * Only an analysis of ours is claimed here: a game turn belongs to
+     * [GameRepository] (which gates on its own `thinking`), a balance search to
+     * the call that is awaiting it, and a review or proof to its run.
+     */
+    private fun onSearchSettled(moves: List<Move>) {
+        if (!analyzing.value || balancing.value || game.state.value.thinking) return
+        // Checked after the ownership guard, so a reply that was never ours —
+        // a review's, a proof's — cannot spend the count meant for our own.
+        if (omitSettles > 0) {
+            omitSettles--
+            return
+        }
+        stopAnalysis()
+        val target = position.value
+        // The engine may answer with a point that is already occupied when the
+        // board moved on under a late reply; the desktop's `is_legal_move` guard
+        // covers the same case.
+        val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
+        viewModelScope.launch {
+            if (legal.isEmpty()) {
+                // Nothing to play, but the search may well have written to the
+                // database — the values on the board have to be re-read either way.
+                runCatching { database.refresh() }
+                return@launch
+            }
+            game.replaceLine(target.moves + legal)
+            _notice.value = "탐색 종료 · ${legal.joinToString(" ") { it.label(target.size) }} 착수"
+        }
     }
 
     /**
@@ -441,6 +515,11 @@ class BoardViewModel @Inject constructor(
     }
 
     private fun startAnalysis(defend: Boolean = false) {
+        // Restarting on a new position cancels the old search, and the engine
+        // answers that cancel with the move it had — for the position the user
+        // has already left. That reply is the desktop's `isneedomit` case.
+        if (analyzing.value) omitSettles++
+        stopFallbackJob?.cancel()
         analyzeJob?.cancel()
         snapshot.value = null
         analyzing.value = true
@@ -500,6 +579,8 @@ class BoardViewModel @Inject constructor(
     }
 
     private fun stopAnalysis() {
+        stopFallbackJob?.cancel()
+        stopFallbackJob = null
         analyzeJob?.cancel()
         analyzeJob = null
         analyzing.value = false
@@ -554,7 +635,14 @@ class BoardViewModel @Inject constructor(
         // main.c only records tags while `showanalysiswinrate` is on, and draws no
         // analysis overlay at all with `showanalysis` off. While previewing one PV
         // the tags would fight the ghosts for space, so they are hidden there too.
-        val overlay = config.showAnalysis
+        //
+        // **Only while a search runs** (main.c:1901 `showanalysis && isthinking`).
+        // The desktop keeps one array for both, so when a search ends
+        // `show_database()` writes the stored values straight over the analysis
+        // percentages; here they are two maps and the analysis one won, which is
+        // why database values stayed hidden on exactly the points that had just
+        // been analysed.
+        val overlay = config.showAnalysis && panel.analyzing
         val tags = if (overlay && config.showAnalysisWinrate && panel.preview == null) {
             snap?.tags.orEmpty()
         } else {
@@ -705,5 +793,8 @@ class BoardViewModel @Inject constructor(
     private companion object {
         const val GHOST_LIMIT = 8
         const val MULTI_PV_LIMIT = 8
+
+        /** How long a `YXSTOP` may go unanswered before the UI stops waiting. */
+        const val STOP_REPLY_TIMEOUT_MS = 5_000L
     }
 }

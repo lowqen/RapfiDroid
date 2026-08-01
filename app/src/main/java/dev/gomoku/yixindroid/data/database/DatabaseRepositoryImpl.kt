@@ -22,6 +22,7 @@ import dev.gomoku.yixindroid.domain.engine.DbLibImport
 import dev.gomoku.yixindroid.domain.engine.DbMerge
 import dev.gomoku.yixindroid.domain.engine.DbQueryAll
 import dev.gomoku.yixindroid.domain.engine.DbQueryOne
+import dev.gomoku.yixindroid.domain.engine.DbQueryPairing
 import dev.gomoku.yixindroid.domain.engine.DbQueryText
 import dev.gomoku.yixindroid.domain.engine.DbSave
 import dev.gomoku.yixindroid.domain.engine.DbSetBestMove
@@ -51,7 +52,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
 
 /**
  * P7 — the whole yixindb surface of the desktop, over the engine socket.
@@ -90,8 +90,7 @@ class DatabaseRepositoryImpl @Inject constructor(
     override val position: StateFlow<Position> = _position.asStateFlow()
 
     /** Desktop `dbqueryseq` / `dbdoneseq`. Guarded by the single collector. */
-    private var querySeq = 0
-    private var doneSeq = 0
+    private val pairing = DbQueryPairing()
 
     init {
         repoScope.launch {
@@ -122,6 +121,10 @@ class DatabaseRepositoryImpl @Inject constructor(
         // The desktop queries the database as soon as the engine is up
         // (load_setting -> use_database -> show_database). Without this the first
         // board the user sees after connecting would have no values on it.
+        //
+        // The same edge covers the end of every search: the engine goes back to
+        // Ready when it reports the move it settled on, and the desktop's own
+        // handler re-reads the database at that exact point (main.c:13961).
         repoScope.launch {
             engine.state
                 .map { it == ConnectionState.Ready }
@@ -135,13 +138,9 @@ class DatabaseRepositoryImpl @Inject constructor(
 
     private fun onResponse(response: EngineResponse) {
         val snapshot = aggregator.consume(response)
-        if (response is EngineResponse.DbDone) {
-            // Clamp exactly like main.c: a DONE from a non-refresh query (dbval,
-            // dbtext, an edit ack) must not push the counter past the queries.
-            doneSeq = min(doneSeq + 1, querySeq)
-        }
+        if (response is EngineResponse.DbDone) pairing.onDone()
         if (snapshot != null) {
-            val paired = doneSeq == querySeq
+            val paired = pairing.paired
             _state.update { current ->
                 current.copy(
                     snapshot = snapshot,
@@ -210,9 +209,21 @@ class DatabaseRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * `show_database()` — ask for every cell value and text of this position.
+     *
+     * The desktop only ever calls it with the engine idle: each caller stops a
+     * running search first (`stop_search_for_board_edit`), and the reply handler
+     * calls it once the search has ended. A query sent into a running search is
+     * not lost, but Rapfi answers it only when the search finishes, so the values
+     * would arrive minutes late and out of order with the board they belong to.
+     * Deferring here keeps that rule without every caller having to know it: the
+     * Ready edge above re-runs the query the moment the engine is listening.
+     */
     override suspend fun refresh() {
         if (!canQuery()) return
-        querySeq++
+        if (engine.state.value == ConnectionState.Thinking) return
+        pairing.onQuery(System.currentTimeMillis())
         send(DbQueryAll(_position.value.moves))
     }
 
