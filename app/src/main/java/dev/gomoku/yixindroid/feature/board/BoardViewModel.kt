@@ -177,6 +177,9 @@ class BoardViewModel @Inject constructor(
                 toolbar = p.toolbar,
                 language = p.language,
                 toolbarStyle = config.toolbarStyle,
+                toolbarPos = config.toolbarPos,
+                dbCommentFont = FontSpec.parse(config.dbCommentFont),
+                dbCommentEditFont = FontSpec.parse(config.dbCommentFont2),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 

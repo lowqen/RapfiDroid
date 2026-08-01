@@ -88,6 +88,7 @@ import dev.gomoku.yixindroid.core.model.BoardSymmetry
 import dev.gomoku.yixindroid.core.model.ClockSide
 import dev.gomoku.yixindroid.core.model.ComputerSide
 import dev.gomoku.yixindroid.core.model.DbCellKind
+import dev.gomoku.yixindroid.core.model.FontSpec
 import dev.gomoku.yixindroid.core.model.GamePrompt
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.OpeningProtocol
@@ -278,6 +279,19 @@ fun BoardScreen(
                 modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                // settings.txt line 33: 0 is the desktop's "left vertical". With
+                // room for two columns the app can honour it; in portrait there
+                // is none, so the toolbar stays a row above the board.
+                if (ui.toolbarPos == 0) {
+                    UserToolbarColumn(
+                        items = ui.toolbar,
+                        language = ui.language,
+                        style = ui.toolbarStyle,
+                        enabled = ui.connection.isLive,
+                        onRun = viewModel::onRunScript,
+                        modifier = Modifier.padding(start = 6.dp, top = 44.dp),
+                    )
+                }
                 Column(
                     modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -343,6 +357,7 @@ fun BoardScreen(
         CommentDialog(
             initial = initial,
             editable = ui.canEditDb,
+            editFont = ui.dbCommentEditFont,
             onDismiss = { commentDraft = null },
             onConfirm = { text ->
                 commentDraft = null
@@ -1188,7 +1203,12 @@ private fun DatabasePanel(
                 )
             }
             if (db.snapshot.comment.isNotBlank()) {
-                Text(db.snapshot.comment, style = MaterialTheme.typography.bodySmall)
+                // settings.txt line 46 "Database Comment Font" — size only.
+                val base = MaterialTheme.typography.bodySmall
+                Text(
+                    db.snapshot.comment,
+                    style = base.copy(fontSize = base.fontSize * ui.dbCommentFont.scale),
+                )
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 AssistChip(onClick = onQueryValue, label = { Text("값 조회") })
@@ -1292,6 +1312,7 @@ private fun FlowRowChips(values: List<String>, enabled: Boolean, onPick: (String
 private fun CommentDialog(
     initial: String,
     editable: Boolean,
+    editFont: FontSpec,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
@@ -1300,12 +1321,16 @@ private fun CommentDialog(
         onDismissRequest = onDismiss,
         title = { Text("국면 주석") },
         text = {
+            // settings.txt line 47, the desktop's second "Database Comment Font":
+            // the one the editor uses.
+            val base = MaterialTheme.typography.bodyMedium
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
                 enabled = editable,
                 minLines = 3,
                 maxLines = 8,
+                textStyle = base.copy(fontSize = base.fontSize * editFont.scale),
             )
         },
         confirmButton = {

@@ -5,6 +5,7 @@ import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbPositionValue
 import dev.gomoku.yixindroid.core.model.DbState
+import dev.gomoku.yixindroid.core.model.FontSpec
 import dev.gomoku.yixindroid.core.model.FunctionScripts
 import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.LngTable
@@ -56,6 +57,11 @@ data class BoardUiState(
     val language: LngTable = LngTable.EMPTY,
     /** settings.txt line 20 — icon only, or icon with words. */
     val toolbarStyle: Int = 0,
+    /** settings.txt line 33 — 0 puts the toolbar beside the board when there is room. */
+    val toolbarPos: Int = 0,
+    /** settings.txt lines 46-47 — the two "Database Comment Font" entries. */
+    val dbCommentFont: FontSpec = FontSpec.DEFAULT,
+    val dbCommentEditFont: FontSpec = FontSpec.DEFAULT,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
     val canUndo: Boolean get() = moveCount > 0
