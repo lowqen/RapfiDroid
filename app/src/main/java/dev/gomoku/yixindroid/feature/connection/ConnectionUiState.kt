@@ -3,11 +3,14 @@ package dev.gomoku.yixindroid.feature.connection
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.LinkHealth
 
 data class ConnectionUiState(
     val host: String = EngineEndpoint.DEFAULT_HOST,
     val port: String = EngineEndpoint.DEFAULT_PORT.toString(),
     val state: ConnectionState = ConnectionState.Disconnected,
+    /** Drop / reconnect status; [LinkHealth.idle] while nothing is wrong. */
+    val health: LinkHealth = LinkHealth(),
     val console: List<ConsoleLine> = emptyList(),
     val commandDraft: String = "",
     /** settings.txt line 13 — the desktop's "show log". */
@@ -18,8 +21,10 @@ data class ConnectionUiState(
     /** Console font multiplier; 100 % = the app's default size. */
     val logScale: Float get() = (logScalePercent.coerceIn(50, 300)) / 100f
 
+    /** While a reconnect is pending the endpoint is spoken for; don't offer it. */
     val canConnect: Boolean
-        get() = state is ConnectionState.Disconnected || state is ConnectionState.Error
+        get() = !health.reconnecting &&
+            (state is ConnectionState.Disconnected || state is ConnectionState.Error)
 
     val canSend: Boolean
         get() = state.isLive && commandDraft.isNotBlank()

@@ -10,6 +10,7 @@ import dev.gomoku.yixindroid.core.model.DatabaseAttachGuard
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
+import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.engine.CoordMapper
@@ -22,11 +23,13 @@ import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -67,6 +70,26 @@ class EngineRepositoryImpl @Inject constructor(
      */
     private val databaseGuard = DatabaseAttachGuard()
 
+    private val _health = MutableStateFlow(LinkHealth())
+    override val health: StateFlow<LinkHealth> = _health.asStateFlow()
+
+    /** The endpoint to go back to; a reconnect has nowhere to aim without it. */
+    @Volatile
+    private var lastEndpoint: EngineEndpoint? = null
+
+    /**
+     * The user's intent, not the socket's state: true from [connect] until
+     * [disconnect]. Everything the reconnect loop does is gated on it, so a
+     * deliberate hang-up is never undone by the retry.
+     */
+    @Volatile
+    private var wantsConnection = false
+
+    @Volatile
+    private var lastLineAt = 0L
+
+    private var retryJob: Job? = null
+
     override val state: StateFlow<ConnectionState> = connection.state
 
     private val _capabilities = MutableStateFlow(EngineCapabilities())
@@ -94,11 +117,18 @@ class EngineRepositoryImpl @Inject constructor(
             connection.state.collect { state ->
                 if (state is ConnectionState.Disconnected || state is ConnectionState.Error) {
                     databaseGuard.reset()
+                    // The socket died on its own. If the user still wants to be
+                    // connected, that is a problem to solve, not to report.
+                    if (wantsConnection) {
+                        scheduleReconnect((state as? ConnectionState.Error)?.reason)
+                    }
                 }
             }
         }
+        scope.launch { livenessLoop() }
         scope.launch {
             connection.incoming.collect { line ->
+                lastLineAt = System.currentTimeMillis()
                 _console.emit(ConsoleLine(outbound = false, text = line))
                 val response = ResponseParser.parse(line, coord)
                 if (response is EngineResponse.Capability) {
@@ -128,19 +158,97 @@ class EngineRepositoryImpl @Inject constructor(
     }
 
     override suspend fun connect(endpoint: EngineEndpoint) {
+        lastEndpoint = endpoint
+        wantsConnection = true
         EngineService.start(context)
         try {
             connection.open(endpoint)
             handshake()
+            _health.value = LinkHealth()
         } catch (e: Exception) {
             EngineService.stop(context)
+            wantsConnection = false
             throw e
+        }
+    }
+
+    /**
+     * The reconnect loop. A dropped socket is not an error the user should have
+     * to answer: the server is on-demand and the phone's radio sleeps, so the
+     * link goes away routinely and the only sensible response is to keep asking.
+     *
+     * It runs only while [wantsConnection] — set by [connect], cleared by
+     * [disconnect] — so hanging up stays hung up.
+     */
+    private suspend fun reconnectLoop() {
+        val endpoint = lastEndpoint ?: return
+        while (wantsConnection && !connection.state.value.isLive) {
+            val attempt = _health.value.attempt + 1
+            for (left in LinkHealth.delaySecondsFor(attempt) downTo 1) {
+                if (!wantsConnection) return
+                _health.update { it.copy(reconnecting = true, attempt = attempt, retryInSeconds = left) }
+                delay(1_000)
+            }
+            if (!wantsConnection) return
+            _health.update { it.copy(retryInSeconds = 0) }
+            val ok = runCatching {
+                connection.open(endpoint)
+                handshake()
+            }.isSuccess
+            if (ok) {
+                _health.update {
+                    LinkHealth(recovered = it.recovered + 1)
+                }
+                return
+            }
+        }
+    }
+
+    override suspend fun retryNow() {
+        retryJob?.cancel()
+        val endpoint = lastEndpoint ?: return
+        wantsConnection = true
+        _health.update { it.copy(reconnecting = true, retryInSeconds = 0) }
+        runCatching {
+            connection.open(endpoint)
+            handshake()
+        }.onSuccess { _health.update { LinkHealth(recovered = it.recovered) } }
+            .onFailure { scheduleReconnect(it.message) }
+    }
+
+    private fun scheduleReconnect(reason: String?) {
+        if (!wantsConnection) return
+        if (retryJob?.isActive == true) return
+        _health.update { it.copy(reconnecting = true, lastError = reason ?: it.lastError) }
+        retryJob = scope.launch { reconnectLoop() }
+    }
+
+    /**
+     * Liveness. A TCP socket over a VPN can be dead for minutes without either
+     * end noticing, and the symptom — an analysis that never answers — reads as
+     * a hung engine. So when a settled link has been silent for a while, ask it
+     * something harmless: `ABOUT` is answered by every piskvork engine at any
+     * time and costs the search nothing. No answer means the link is gone,
+     * which the reader loop then reports like any other drop.
+     */
+    private suspend fun livenessLoop() {
+        while (true) {
+            delay(1_000)
+            if (connection.state.value !is ConnectionState.Ready) continue
+            val silentFor = (System.currentTimeMillis() - lastLineAt) / 1000
+            if (silentFor < LinkHealth.IDLE_PING_SECONDS) continue
+            val before = lastLineAt
+            runCatching { dispatch(EngineCommand.About, echo = false) }
+            withTimeoutOrNull(LinkHealth.PING_REPLY_SECONDS * 1000L) {
+                while (lastLineAt == before) delay(200)
+            } ?: connection.dropAsDead("응답 없음 (${LinkHealth.IDLE_PING_SECONDS}초)")
         }
     }
 
     override suspend fun send(command: EngineCommand) = dispatch(command)
 
-    private suspend fun dispatch(command: EngineCommand) {
+    /** @param echo false for the liveness ping, which is noise in the console. */
+    private suspend fun dispatch(command: EngineCommand, echo: Boolean = true) {
         // One choke point for the whole app: the handshake, a settings push and
         // the `dbrefresh` console command all come through here, and any of them
         // repeating `usedatabase 1` would cost a second copy of the database.
@@ -148,11 +256,17 @@ class EngineRepositoryImpl @Inject constructor(
             return
         }
         val text = command.serialize(coord)
-        _console.emit(ConsoleLine(outbound = true, text = text))
+        if (echo) _console.emit(ConsoleLine(outbound = true, text = text))
         for (line in text.split('\n')) connection.writeLine(line)
     }
 
     override fun disconnect() {
+        // Order matters: clear the intent before closing, or the state collector
+        // sees the drop and starts reconnecting to the session just ended.
+        wantsConnection = false
+        retryJob?.cancel()
+        retryJob = null
+        _health.value = LinkHealth()
         connection.close()
         EngineService.stop(context)
     }

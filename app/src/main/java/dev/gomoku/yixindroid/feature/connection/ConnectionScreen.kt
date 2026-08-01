@@ -23,11 +23,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -36,6 +38,7 @@ import dev.gomoku.yixindroid.core.designsystem.theme.MonoStyle
 import dev.gomoku.yixindroid.core.designsystem.theme.WinGreen
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
+import dev.gomoku.yixindroid.core.model.LinkHealth
 
 @Composable
 fun ConnectionScreen(
@@ -53,6 +56,7 @@ fun ConnectionScreen(
         onDisconnect = viewModel::onDisconnect,
         onSend = viewModel::onSend,
         onClear = viewModel::onClearConsole,
+        onRetryNow = viewModel::onRetryNow,
     )
 }
 
@@ -67,6 +71,7 @@ private fun ConnectionContent(
     onDisconnect: () -> Unit,
     onSend: () -> Unit,
     onClear: () -> Unit,
+    onRetryNow: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -111,6 +116,8 @@ private fun ConnectionContent(
                 OutlinedButton(onClick = onDisconnect) { Text("연결 해제") }
             }
         }
+
+        LinkHealthRow(ui.health, onRetryNow)
 
         // settings.txt line 13 ("show log") hides the console entirely, like the
         // desktop's View ▸ Log toggle; line 37 scales its text.
@@ -161,6 +168,60 @@ private fun ConnectionContent(
             )
             IconButton(onClick = onSend, enabled = ui.canSend) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "전송")
+            }
+        }
+    }
+}
+
+/**
+ * What happened to the link and what is being done about it. Hidden while the
+ * link is healthy — a status line that is always there is a status line nobody
+ * reads — and it says the attempt number and the countdown, because "재연결
+ * 중…" with no numbers is indistinguishable from a hang.
+ */
+@Composable
+private fun LinkHealthRow(health: LinkHealth, onRetryNow: () -> Unit) {
+    if (health.idle) return
+    Surface(
+        color = if (health.reconnecting) {
+            MaterialTheme.colorScheme.secondaryContainer
+        } else {
+            MaterialTheme.colorScheme.errorContainer
+        },
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    when {
+                        health.reconnecting && health.retryInSeconds > 0 ->
+                            "연결이 끊겼습니다 — ${health.retryInSeconds}초 후 재시도 " +
+                                "(${health.attempt}회째)"
+                        health.reconnecting -> "재연결하는 중… (${health.attempt}회째)"
+                        else -> "연결이 끊겼습니다"
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                health.lastError?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+                if (health.recovered > 0) {
+                    Text(
+                        "이 세션에서 ${health.recovered}회 복구됨",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+            if (health.reconnecting) {
+                TextButton(onClick = onRetryNow) { Text("지금 재시도") }
             }
         }
     }

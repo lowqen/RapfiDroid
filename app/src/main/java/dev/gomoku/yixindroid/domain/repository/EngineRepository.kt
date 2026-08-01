@@ -7,6 +7,7 @@ import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
+import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
@@ -27,9 +28,20 @@ interface EngineRepository {
     /** Limits the engine reported (thread/hash maxima); empty until it does. */
     val capabilities: StateFlow<EngineCapabilities>
 
+    /** Whether the link dropped and what the repository is doing about it. */
+    val health: StateFlow<LinkHealth>
+
     suspend fun connect(endpoint: EngineEndpoint)
     suspend fun send(command: EngineCommand)
+
+    /**
+     * Hang up for good. Unlike a dropped socket this is the user's decision, so
+     * no reconnect is attempted until [connect] is called again.
+     */
     fun disconnect()
+
+    /** Give up waiting for the backoff and try the endpoint again right now. */
+    suspend fun retryNow()
 
     /**
      * Push engine parameters (rule, level, threads, hash, …) and remember them

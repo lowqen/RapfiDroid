@@ -71,6 +71,11 @@ class EngineConnection @Inject constructor(
             withContext(ioDispatcher) {
                 Socket().apply {
                     tcpNoDelay = true
+                    // The far end is on-demand and the path crosses a VPN and a
+                    // phone radio. Keepalive lets the kernel notice a peer that
+                    // vanished without a FIN, which is how these links usually
+                    // die; the repository's own idle ping covers the rest.
+                    keepAlive = true
                     connect(InetSocketAddress(endpoint.host, endpoint.port), CONNECT_TIMEOUT_MS)
                 }
             }
@@ -129,6 +134,24 @@ class EngineConnection @Inject constructor(
 
     fun markSettled() {
         if (_state.value is ConnectionState.Thinking) _state.value = ConnectionState.Ready
+    }
+
+    /**
+     * Tear down a socket that is open as far as the kernel is concerned but has
+     * stopped answering. Unlike [close] this reports an error, so the layer
+     * above treats it as a drop worth reconnecting from rather than a hang-up.
+     */
+    fun dropAsDead(reason: String) {
+        scope?.cancel()
+        scope = null
+        outbox?.close()
+        outbox = null
+        try {
+            socket?.close()
+        } catch (_: Exception) {
+        }
+        socket = null
+        _state.value = ConnectionState.Error(reason)
     }
 
     fun close() {

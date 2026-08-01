@@ -30,21 +30,25 @@ class ConnectionViewModel @Inject constructor(
     private val draft = MutableStateFlow("")
     private val consoleLines = MutableStateFlow(ConsoleBuffer())
 
-    // combine takes five flows at most, so host+port travel as one pair.
-    private val endpoint = combine(host, port) { h, p -> h to p }
+    // combine takes five flows at most, so host+port travel as one pair and the
+    // link state travels with it.
+    private val link = combine(host, port, repository.health) { h, p, health ->
+        Triple(h, p, health)
+    }
 
     val uiState: StateFlow<ConnectionUiState> =
         combine(
-            endpoint,
+            link,
             repository.state,
             consoleLines,
             draft,
             settingsRepository.settings,
-        ) { (h, p), st, buffer, d, config ->
+        ) { (h, p, health), st, buffer, d, config ->
             ConnectionUiState(
                 host = h,
                 port = p,
                 state = st,
+                health = health,
                 console = buffer.lines,
                 commandDraft = d,
                 showLog = config.showLog,
@@ -97,6 +101,11 @@ class ConnectionViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.send(EngineCommand.Raw(line)) }
         }
+    }
+
+    /** Stop waiting out the backoff and try the endpoint again now. */
+    fun onRetryNow() {
+        viewModelScope.launch { runCatching { repository.retryNow() } }
     }
 
     fun onClearConsole() {

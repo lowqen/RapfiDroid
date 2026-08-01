@@ -10,6 +10,7 @@ import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
+import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.core.model.GameEnd
 import dev.gomoku.yixindroid.core.model.GameReport
 import dev.gomoku.yixindroid.core.model.GameResult
@@ -78,6 +79,7 @@ class ProveRepositoryTest {
         override val console: SharedFlow<ConsoleLine> = MutableSharedFlow()
         override val capabilities: StateFlow<EngineCapabilities> =
             MutableStateFlow(EngineCapabilities())
+        override val health: StateFlow<LinkHealth> = MutableStateFlow(LinkHealth())
 
         override suspend fun connect(endpoint: EngineEndpoint) = Unit
         override suspend fun send(command: EngineCommand) {
@@ -85,6 +87,7 @@ class ProveRepositoryTest {
         }
 
         override fun disconnect() = Unit
+        override suspend fun retryNow() = Unit
         override suspend fun applyParams(params: EngineParams) = Unit
         override fun analyze(position: Position, params: AnalyzeParams): Flow<AnalysisSnapshot> =
             emptyFlow()

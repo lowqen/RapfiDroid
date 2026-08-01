@@ -12,9 +12,11 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import dev.gomoku.yixindroid.R
 import dev.gomoku.yixindroid.core.model.ConnectionState
+import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,29 +35,35 @@ class EngineService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
-        startAsForeground(repository.state.value)
+        startAsForeground(repository.state.value, repository.health.value)
+        // A dropped socket now means "reconnecting", not "finished". Stopping
+        // the service there would let the process be killed while it waits out
+        // the backoff, and the session the user is trying to keep would be the
+        // thing that ends it — so the service outlives the socket and only goes
+        // away once nobody is trying to reconnect any more.
         lifecycleScope.launch {
-            repository.state.collectLatest { st ->
-                if (st is ConnectionState.Disconnected) {
-                    stopSelf()
-                } else {
-                    startAsForeground(st)
+            combine(repository.state, repository.health) { st, health -> st to health }
+                .collectLatest { (st, health) ->
+                    if (st is ConnectionState.Disconnected && !health.reconnecting) {
+                        stopSelf()
+                    } else {
+                        startAsForeground(st, health)
+                    }
                 }
-            }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        startAsForeground(repository.state.value)
+        startAsForeground(repository.state.value, repository.health.value)
         return START_NOT_STICKY
     }
 
-    private fun startAsForeground(state: ConnectionState) {
+    private fun startAsForeground(state: ConnectionState, health: LinkHealth) {
         ServiceCompat.startForeground(
             this,
             NOTIF_ID,
-            buildNotification(state),
+            buildNotification(state, health),
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
             } else {
@@ -64,14 +72,17 @@ class EngineService : LifecycleService() {
         )
     }
 
-    private fun buildNotification(state: ConnectionState): Notification {
-        val text = when (state) {
-            ConnectionState.Connecting -> "연결 중…"
-            ConnectionState.Handshaking -> "핸드셰이크…"
-            ConnectionState.Ready -> "연결됨 · 대기"
-            ConnectionState.Thinking -> "분석 중…"
-            is ConnectionState.Error -> "오류: ${state.reason}"
-            ConnectionState.Disconnected -> "연결 종료"
+    private fun buildNotification(state: ConnectionState, health: LinkHealth): Notification {
+        val text = when {
+            health.reconnecting && health.retryInSeconds > 0 ->
+                "재연결 대기 ${health.retryInSeconds}초 (${health.attempt}회째)"
+            health.reconnecting -> "재연결 중… (${health.attempt}회째)"
+            state is ConnectionState.Connecting -> "연결 중…"
+            state is ConnectionState.Handshaking -> "핸드셰이크…"
+            state is ConnectionState.Ready -> "연결됨 · 대기"
+            state is ConnectionState.Thinking -> "분석 중…"
+            state is ConnectionState.Error -> "오류: ${state.reason}"
+            else -> "연결 종료"
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.engine_notif_title))
