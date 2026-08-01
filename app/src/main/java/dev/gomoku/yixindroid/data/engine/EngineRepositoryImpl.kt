@@ -6,6 +6,7 @@ import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
+import dev.gomoku.yixindroid.core.model.DatabaseAttachGuard
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
@@ -59,6 +60,13 @@ class EngineRepositoryImpl @Inject constructor(
     @Volatile
     private var engineParams = EngineParams()
 
+    /**
+     * Whether *this* engine process already holds the database — per-connection
+     * state, reset by the lifecycle collector below rather than by any one call
+     * site, so a reconnect attaches again. See [DatabaseAttachGuard].
+     */
+    private val databaseGuard = DatabaseAttachGuard()
+
     override val state: StateFlow<ConnectionState> = connection.state
 
     private val _capabilities = MutableStateFlow(EngineCapabilities())
@@ -79,6 +87,16 @@ class EngineRepositoryImpl @Inject constructor(
     override val console: SharedFlow<ConsoleLine> = _console.asSharedFlow()
 
     init {
+        // A dead socket means a dead engine process, and the next one starts
+        // with no database. Tying the reset to the state rather than to
+        // disconnect() covers the paths that reconnect on their own.
+        scope.launch {
+            connection.state.collect { state ->
+                if (state is ConnectionState.Disconnected || state is ConnectionState.Error) {
+                    databaseGuard.reset()
+                }
+            }
+        }
         scope.launch {
             connection.incoming.collect { line ->
                 _console.emit(ConsoleLine(outbound = false, text = line))
@@ -123,6 +141,12 @@ class EngineRepositoryImpl @Inject constructor(
     override suspend fun send(command: EngineCommand) = dispatch(command)
 
     private suspend fun dispatch(command: EngineCommand) {
+        // One choke point for the whole app: the handshake, a settings push and
+        // the `dbrefresh` console command all come through here, and any of them
+        // repeating `usedatabase 1` would cost a second copy of the database.
+        if (command is EngineCommand.Info && !databaseGuard.allow(command.key, command.value)) {
+            return
+        }
         val text = command.serialize(coord)
         _console.emit(ConsoleLine(outbound = true, text = text))
         for (line in text.split('\n')) connection.writeLine(line)

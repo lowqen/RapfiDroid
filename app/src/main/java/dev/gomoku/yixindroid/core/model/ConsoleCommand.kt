@@ -95,7 +95,12 @@ sealed interface ConsoleCommand {
     data object PrintFeatures : ConsoleCommand
     data object SendBoard : ConsoleCommand
 
-    /** Re-push `usedatabase` / `database_readonly` and redraw. */
+    /**
+     * Re-push `database_readonly` and redraw. `usedatabase` is deliberately not
+     * re-pushed — the engine turns a repeated `1` into a whole second copy of
+     * the database (see `EngineRepositoryImpl.swallowRedundantDatabaseAttach`),
+     * and the desktop no longer sends it here either (main.c:11414).
+     */
     data object DbRefresh : ConsoleCommand
 
     /*

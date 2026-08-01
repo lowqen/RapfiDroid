@@ -226,9 +226,10 @@ class EngineToolsRepositoryImpl @Inject constructor(
             ConsoleCommand.SendBoard ->
                 engine.send(EngineCommand.YxBoard(game.position.value.placements()))
             ConsoleCommand.DbRefresh -> {
-                val s = settings.settings.value
-                engine.send(EngineCommand.Info("usedatabase", if (s.useDatabase) "1" else "0"))
-                engine.send(EngineCommand.DatabaseReadonly(s.databaseReadonly))
+                // No `usedatabase` re-push: a repeated `1` costs a full second
+                // copy of the database in the engine. main.c:11414 dropped it
+                // for the same reason; the repository would swallow it anyway.
+                engine.send(EngineCommand.DatabaseReadonly(settings.settings.value.databaseReadonly))
             }
 
             // ---- game actions --------------------------------------------------
