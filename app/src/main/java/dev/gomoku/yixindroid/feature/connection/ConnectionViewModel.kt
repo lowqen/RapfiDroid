@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.feature.connection
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.FontSpec
 import dev.gomoku.yixindroid.data.prefs.EndpointStore
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
@@ -53,6 +54,7 @@ class ConnectionViewModel @Inject constructor(
                 commandDraft = d,
                 showLog = config.showLog,
                 logScalePercent = config.logScale,
+                logFont = FontSpec.parse(config.textLogFont),
             )
         }.stateIn(
             scope = viewModelScope,

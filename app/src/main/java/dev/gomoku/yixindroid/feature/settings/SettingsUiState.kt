@@ -15,6 +15,10 @@ data class SettingsUiState(
     val connected: Boolean = false,
     /** Show every desktop setting, not just the everyday ones. */
     val advanced: Boolean = false,
+    /** Where the imported toolbar/hotkeys/labels came from; null = defaults. */
+    val appearanceSource: String? = null,
+    /** Size of the recorded debug log; 0 when there is nothing to hand over. */
+    val debugLogBytes: Long = 0,
     /** Transient result of an import/export/reset, shown as a banner. */
     val message: String? = null,
 ) {

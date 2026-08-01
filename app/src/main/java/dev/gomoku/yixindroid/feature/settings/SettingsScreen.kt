@@ -73,6 +73,13 @@ fun SettingsScreen(
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
     ) { uri -> viewModel.onImport(uri) }
+    val folderLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree(),
+    ) { uri -> if (uri != null) viewModel.onImportAppearance(uri) }
+    val debugLogLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain"),
+    ) { uri -> if (uri != null) viewModel.onExportDebugLog(uri) }
+    var showAbout by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
         Column(
@@ -153,7 +160,57 @@ fun SettingsScreen(
                     }) { Text("내보내기") }
                 }
             }
+            // The desktop's `function/` and `language/` folders — user-defined
+            // toolbar buttons and hotkeys, and the labels their numeric ids
+            // point at. Folder rather than file: the two live side by side next
+            // to Yixin.exe, and picking them one at a time is six taps.
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "툴바 · 핫키 · 언어",
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Text(
+                        ui.appearanceSource?.let { "$it 에서 불러옴" }
+                            ?: "데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text("폴더 선택") }
+                if (ui.appearanceSource != null) {
+                    TextButton(onClick = viewModel::onResetAppearance) { Text("기본값") }
+                }
+            }
+            // settings.txt line 36 stores the flag; this is what makes it useful —
+            // the transcript is only worth recording if it can be handed over.
+            if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "디버그 로그 ${ui.debugLogBytes / 1024}KB",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedButton(
+                        onClick = { debugLogLauncher.launch("yixindroid-debug.log") },
+                        enabled = ui.debugLogBytes > 0,
+                    ) { Text("내보내기") }
+                    TextButton(
+                        onClick = viewModel::onClearDebugLog,
+                        enabled = ui.debugLogBytes > 0,
+                    ) { Text("지우기") }
+                }
+            }
             TextButton(onClick = viewModel::onReset) { Text("PC 기본값으로 되돌리기") }
+            TextButton(onClick = { showAbout = true }) { Text("정보 · 도움말") }
             ui.message?.let { message ->
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -187,6 +244,10 @@ fun SettingsScreen(
                 HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
             }
         }
+    }
+
+    if (showAbout) {
+        AboutDialog(onDismiss = { showAbout = false })
     }
 }
 

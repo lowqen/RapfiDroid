@@ -18,8 +18,11 @@ import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.DbState
 import dev.gomoku.yixindroid.core.model.GameReport
+import dev.gomoku.yixindroid.core.model.FontSpec
+import dev.gomoku.yixindroid.core.model.FunctionScripts
 import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.GradingPreset
+import dev.gomoku.yixindroid.core.model.LngTable
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.MoveGrader
 import dev.gomoku.yixindroid.core.model.MoveQuality
@@ -32,6 +35,7 @@ import dev.gomoku.yixindroid.core.model.ProveProgress
 import dev.gomoku.yixindroid.core.model.Swap2Choice
 import dev.gomoku.yixindroid.core.model.TapResult
 import dev.gomoku.yixindroid.data.board.BoardImageIo
+import dev.gomoku.yixindroid.domain.repository.AppearanceRepository
 import dev.gomoku.yixindroid.domain.repository.DatabaseRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameRepository
@@ -63,6 +67,7 @@ class BoardViewModel @Inject constructor(
     private val review: ReviewRepository,
     private val prove: ProveRepository,
     private val tools: EngineToolsRepository,
+    private val appearance: AppearanceRepository,
     private val imageIo: BoardImageIo,
 ) : ViewModel() {
 
@@ -108,12 +113,15 @@ class BoardViewModel @Inject constructor(
         val reviewProgress: ReviewProgress,
         /** Points the engine has been told to ignore (P10 `block`). */
         val blocked: Set<Move>,
+        /** The user's own toolbar (`function/toolbar*.txt`) and its labels. */
+        val toolbar: List<FunctionScripts.ToolbarItem>,
+        val language: LngTable,
     )
 
     private val panel = combine(
         repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
         game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
-        tools.state, review.progress,
+        tools.state, review.progress, appearance.toolbar, appearance.language,
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -131,6 +139,8 @@ class BoardViewModel @Inject constructor(
             proveProgress = values[11] as ProveProgress,
             blocked = (values[12] as ToolsState).blocked,
             reviewProgress = values[13] as ReviewProgress,
+            toolbar = values[14] as List<FunctionScripts.ToolbarItem>,
+            language = values[15] as LngTable,
         )
     }
 
@@ -164,6 +174,9 @@ class BoardViewModel @Inject constructor(
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
                 research = researchBanner(p),
+                toolbar = p.toolbar,
+                language = p.language,
+                toolbarStyle = config.toolbarStyle,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -476,6 +489,15 @@ class BoardViewModel @Inject constructor(
         else -> null
     }
 
+    /**
+     * Run a user toolbar button or hotkey. It is the same console script the
+     * desktop hands to `custom_function` (main.c:10064), so it goes to the same
+     * interpreter the log input line uses — no second code path for buttons.
+     */
+    fun onRunScript(script: String) {
+        viewModelScope.launch { runCatching { tools.run(script) } }
+    }
+
     fun onStopResearch() {
         viewModelScope.launch {
             if (prove.progress.value.running) prove.cancel() else review.cancel()
@@ -534,6 +556,9 @@ class BoardViewModel @Inject constructor(
             prove = panel.prove.takeIf { it.active },
             blocked = panel.blocked,
             showNumbers = config.showNumber,
+            // settings.txt line 44 "Board Text Font": the PC families are not
+            // here, but the size the user chose is what they were adjusting.
+            textScale = FontSpec.parse(config.boardTextFont).scale,
             palette = TagPalette(
                 losingSaturation = config.lossSaturation,
                 winningSaturation = config.winSaturation,

@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -95,6 +97,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Wide enough for two columns. 640 dp is a landscape phone; below it the board
+ * would be squeezed to a third of the screen and the panels would be unreadable.
+ */
+private val WIDE_LAYOUT_MIN = 640.dp
+
 private val StoneBlack = Color(0xFF1C1A17)
 private val StoneWhite = Color(0xFFEDEAE3)
 
@@ -145,13 +153,13 @@ fun BoardScreen(
     // The board is full-bleed; everything else keeps the page margin.
     val pad = Modifier.padding(horizontal = 12.dp)
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
+    // Portrait is one column, as it has been. Anything wider — a landscape phone,
+    // any tablet — puts the board beside the panels instead of above them: the
+    // board is square, so in landscape a single column wastes both halves of the
+    // screen and buries the analysis below the fold. The two sides scroll
+    // independently, which is what makes the board stay put while the PV list is
+    // read. The desktop has the same split, it just never has to choose.
+    val boardPane: @Composable ColumnScope.() -> Unit = {
         EvalHeader(ui, pad)
         // settings_dev.txt line 1 — the desktop's own toggle.
         if (ui.showEvalBar) EvalBar(blackWinRate = ui.blackWinRate, mate = ui.blackMate, modifier = pad)
@@ -206,6 +214,16 @@ fun BoardScreen(
             onSymmetry = viewModel::onSymmetry,
             onShift = viewModel::onShift,
         )
+        // The user's own buttons (`function/toolbar*.txt`), running the same
+        // console scripts the desktop runs (main.c:10064 `custom_function`).
+        UserToolbar(
+            items = ui.toolbar,
+            language = ui.language,
+            style = ui.toolbarStyle,
+            enabled = ui.connection.isLive,
+            onRun = viewModel::onRunScript,
+            modifier = pad,
+        )
         // Directly under the toolbar: most notices answer a button that was just
         // pressed, and the page can be scrolled well past its bottom.
         ui.notice?.let { text ->
@@ -215,6 +233,9 @@ fun BoardScreen(
                 viewModel.onNoticeShown()
             }
         }
+    }
+
+    val sidePane: @Composable ColumnScope.() -> Unit = {
         GamePanel(
             ui = ui,
             modifier = pad,
@@ -249,6 +270,37 @@ fun BoardScreen(
             onDeleteOne = viewModel::onDbDeleteOne,
             onSave = viewModel::onDbSave,
         )
+    }
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        if (maxWidth >= WIDE_LAYOUT_MIN) {
+            Row(
+                modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    content = boardPane,
+                )
+                Column(
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    content = sidePane,
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                boardPane()
+                sidePane()
+            }
+        }
     }
 
     if (showBalance) {

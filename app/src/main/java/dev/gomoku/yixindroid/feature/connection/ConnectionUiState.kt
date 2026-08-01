@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.feature.connection
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.FontSpec
 import dev.gomoku.yixindroid.core.model.LinkHealth
 
 data class ConnectionUiState(
@@ -17,9 +18,17 @@ data class ConnectionUiState(
     val showLog: Boolean = true,
     /** settings.txt line 37 — console text scale in percent. */
     val logScalePercent: Int = 140,
+    /** settings.txt line 45 — "Text Log Font"; only its size travels. */
+    val logFont: FontSpec = FontSpec.DEFAULT,
 ) {
-    /** Console font multiplier; 100 % = the app's default size. */
-    val logScale: Float get() = (logScalePercent.coerceIn(50, 300)) / 100f
+    /**
+     * Console font multiplier; 100 % = the app's default size. Two settings feed
+     * it because the desktop has two: the log area scale (line 37) and the log
+     * font itself (line 45). Multiplying keeps both live instead of letting one
+     * silently win.
+     */
+    val logScale: Float get() =
+        (logScalePercent.coerceIn(50, 300)) / 100f * logFont.scale
 
     /** While a reconnect is pending the endpoint is spoken for; don't offer it. */
     val canConnect: Boolean

@@ -44,6 +44,13 @@ data class BoardRender(
     val prove: ProveOverlay? = null,
     /** Half of the desktop's 500 ms prove heartbeat (`provepulse`, main.c:9212). */
     val provePulse: Boolean = false,
+    /**
+     * Size of the text drawn on points — analysis tags and database values —
+     * from the desktop's "Board Text Font" (settings.txt line 44). The families
+     * in that setting are PC fonts nobody has here; the size is the part that
+     * transfers, and it is the part being adjusted.
+     */
+    val textScale: Float = 1f,
     /** Points the engine has been told to ignore (`block`, main.c:1899). */
     val blocked: Set<Move> = emptySet(),
 )
@@ -253,7 +260,10 @@ fun DrawScope.drawBoard(render: BoardRender) {
     if (render.tags.isNotEmpty()) {
         render.tags.forEach { (m, tag) ->
             if (tag.label.isNotEmpty() && m !in occupiedCells) {
-                drawTag(cx(m.x), cy(m.y), radius, tag.label, render.palette.colorFor(tag))
+                drawTag(
+                    cx(m.x), cy(m.y), radius, tag.label,
+                    render.palette.colorFor(tag), render.textScale,
+                )
             }
         }
     }
@@ -265,7 +275,7 @@ fun DrawScope.drawBoard(render: BoardRender) {
             val pct = label.text.dropLast(1).toIntOrNull()
             drawTag(
                 cx(m.x), cy(m.y), radius, label.text,
-                render.palette.colorForDb(label.kind, pct),
+                render.palette.colorForDb(label.kind, pct), render.textScale,
             )
         }
     }
@@ -425,11 +435,19 @@ private fun DrawScope.drawBadge(cx: Float, cy: Float, r: Float, quality: MoveQua
 }
 
 /** A filled rounded chip with the tag text, sized to sit on one intersection. */
-private fun DrawScope.drawTag(cx: Float, cy: Float, r: Float, label: String, color: Color) {
+private fun DrawScope.drawTag(
+    cx: Float,
+    cy: Float,
+    r: Float,
+    label: String,
+    color: Color,
+    textScale: Float = 1f,
+) {
     drawCircle(color, radius = r * 0.82f, center = Offset(cx, cy), alpha = 0.92f)
     val paint = android.graphics.Paint().apply {
         this.color = android.graphics.Color.WHITE
-        textSize = r * (if (label.length >= 4) 0.62f else 0.78f)
+        // Never wider than the point it sits on, however large the setting.
+        textSize = r * (if (label.length >= 4) 0.62f else 0.78f) * textScale.coerceIn(0.6f, 1.4f)
         textAlign = android.graphics.Paint.Align.CENTER
         isAntiAlias = true
         isFakeBoldText = true

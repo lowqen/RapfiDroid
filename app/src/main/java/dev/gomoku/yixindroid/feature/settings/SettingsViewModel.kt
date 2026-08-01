@@ -8,7 +8,9 @@ import dev.gomoku.yixindroid.core.model.DesktopSettings
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
 import dev.gomoku.yixindroid.core.model.SettingsFile
+import dev.gomoku.yixindroid.data.engine.DebugLogWriter
 import dev.gomoku.yixindroid.data.settings.SettingsFileIo
+import dev.gomoku.yixindroid.domain.repository.AppearanceRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,7 +24,9 @@ import javax.inject.Inject
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val engine: EngineRepository,
+    private val appearance: AppearanceRepository,
     private val fileIo: SettingsFileIo,
+    private val debugLog: DebugLogWriter,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -41,6 +45,37 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch {
             engine.state.collect { s -> _state.update { it.copy(connected = s.isLive) } }
+        }
+        viewModelScope.launch {
+            appearance.source.collect { src -> _state.update { it.copy(appearanceSource = src) } }
+        }
+        viewModelScope.launch { refreshDebugLogSize() }
+    }
+
+    private suspend fun refreshDebugLogSize() {
+        val bytes = debugLog.size()
+        _state.update { it.copy(debugLogBytes = bytes) }
+    }
+
+    fun onExportDebugLog(target: Uri) {
+        viewModelScope.launch {
+            val result = runCatching { debugLog.export(target) }
+            _state.update {
+                it.copy(
+                    message = result.fold(
+                        onSuccess = { n -> "디버그 로그 ${n / 1024}KB 를 내보냈습니다" },
+                        onFailure = { e -> "내보내기 실패: ${e.message}" },
+                    ),
+                )
+            }
+        }
+    }
+
+    fun onClearDebugLog() {
+        viewModelScope.launch {
+            debugLog.clear()
+            refreshDebugLogSize()
+            _state.update { it.copy(message = "디버그 로그를 지웠습니다") }
         }
     }
 
@@ -109,6 +144,33 @@ class SettingsViewModel @Inject constructor(
                     ),
                 )
             }
+        }
+    }
+
+    /**
+     * Read `function/` and `language/` out of a picked Yixin folder. The language
+     * index is the user's own `language` setting, so the labels arrive in the
+     * language they already chose (main.c:14278 defaults it to Korean).
+     */
+    fun onImportAppearance(tree: Uri) {
+        viewModelScope.launch {
+            val index = settingsRepository.settings.value.language
+            val result = appearance.importFrom(tree, index)
+            _state.update {
+                it.copy(
+                    message = result.fold(
+                        onSuccess = { text -> text },
+                        onFailure = { e -> "불러오기 실패: ${e.message}" },
+                    ),
+                )
+            }
+        }
+    }
+
+    fun onResetAppearance() {
+        viewModelScope.launch {
+            appearance.reset()
+            _state.update { it.copy(message = "툴바·핫키·언어를 기본값으로 되돌렸습니다") }
         }
     }
 

@@ -5,7 +5,9 @@ import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbPositionValue
 import dev.gomoku.yixindroid.core.model.DbState
+import dev.gomoku.yixindroid.core.model.FunctionScripts
 import dev.gomoku.yixindroid.core.model.GameState
+import dev.gomoku.yixindroid.core.model.LngTable
 import dev.gomoku.yixindroid.core.model.SearchStats
 import dev.gomoku.yixindroid.core.model.StoneColor
 
@@ -49,6 +51,11 @@ data class BoardUiState(
      * carrying `prove_badge_lines` while a proof runs.
      */
     val research: ResearchBanner? = null,
+    /** The user's own toolbar (`function/toolbar*.txt`) and the labels for it. */
+    val toolbar: List<FunctionScripts.ToolbarItem> = emptyList(),
+    val language: LngTable = LngTable.EMPTY,
+    /** settings.txt line 20 — icon only, or icon with words. */
+    val toolbarStyle: Int = 0,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
     val canUndo: Boolean get() = moveCount > 0

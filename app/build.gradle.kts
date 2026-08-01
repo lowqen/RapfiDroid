@@ -15,8 +15,8 @@ android {
         applicationId = "dev.gomoku.yixindroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.7.0-p4"
+        versionCode = 6
+        versionName = "0.11.0-p11"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -34,7 +34,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
-    buildFeatures { compose = true }
+    // buildConfig: the About screen states the version, and a version the
+    // user cannot read is a bug report we cannot place.
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     }
