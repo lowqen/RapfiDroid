@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.GameReport
 import dev.gomoku.yixindroid.core.model.GradedMove
 import dev.gomoku.yixindroid.core.model.GradingPreset
@@ -169,10 +170,10 @@ private fun RunCard(
     onSkipOpening: () -> Unit,
     onBadges: () -> Unit,
 ) {
-    Card("게임 리뷰") {
+    Card(tr("게임 리뷰", "Game Review")) {
         Text(
-            "판의 모든 국면을 같은 예산으로 분석해 수마다 등급을 매깁니다. " +
-                "리뷰 중에는 엔진이 계속 점유됩니다.",
+            tr("판의 모든 국면을 같은 예산으로 분석해 수마다 등급을 매깁니다. ", "Analyses every position of the game on the same budget and grades each move.") +
+                tr("리뷰 중에는 엔진이 계속 점유됩니다.", "The engine is busy for the whole run."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -181,32 +182,32 @@ private fun RunCard(
             FilterChip(
                 selected = !budget.byDepth,
                 onClick = { onBudget(budget.copy(byDepth = false)) },
-                label = { Text("초/수") },
+                label = { Text(tr("초/수", "s per move")) },
                 enabled = !ui.running,
             )
             FilterChip(
                 selected = budget.byDepth,
                 onClick = { onBudget(budget.copy(byDepth = true)) },
-                label = { Text("고정 깊이") },
+                label = { Text(tr("고정 깊이", "Fixed depth")) },
                 enabled = !ui.running,
             )
         }
         if (budget.byDepth) {
-            Stepper("깊이", budget.depth, 4, 64, !ui.running) { onBudget(budget.copy(depth = it)) }
+            Stepper(tr("깊이", "Depth"), budget.depth, 4, 64, !ui.running) { onBudget(budget.copy(depth = it)) }
         } else {
-            Stepper("초", budget.seconds, 1, 120, !ui.running) { onBudget(budget.copy(seconds = it)) }
+            Stepper(tr("초", "s"), budget.seconds, 1, 120, !ui.running) { onBudget(budget.copy(seconds = it)) }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             FilterChip(
                 selected = ui.skipOpening,
                 onClick = onSkipOpening,
-                label = { Text("오프닝 1-5수 제외") },
+                label = { Text(tr("오프닝 1-5수 제외", "Skip opening moves 1-5")) },
                 enabled = !ui.running,
             )
             FilterChip(
                 selected = ui.showBadges,
                 onClick = onBadges,
-                label = { Text("보드에 등급 배지") },
+                label = { Text(tr("보드에 등급 배지", "Grade badges on the board")) },
             )
         }
         if (ui.running) {
@@ -217,21 +218,21 @@ private fun RunCard(
             )
             Text(
                 buildString {
-                    progress.queue?.let { append("큐 ${it.index}/${it.total} · ${it.name} · ") }
-                    append("국면 ${progress.index}/${progress.total + 1} · ${progress.budget.label}")
+                    progress.queue?.let { append(tr("큐 ${it.index}/${it.total} · ${it.name} · ", "Queue ${it.index}/${it.total} · ${it.name} ·")) }
+                    append(tr("국면 ${progress.index}/${progress.total + 1} · ${progress.budget.label}", "Position ${progress.index}/${progress.total + 1} · ${progress.budget.label}"))
                 },
                 style = MaterialTheme.typography.labelMedium,
             )
-            OutlinedButton(onClick = onCancel) { Text("중지") }
+            OutlinedButton(onClick = onCancel) { Text(tr("중지", "Stop")) }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onStart, enabled = ui.canReview) {
-                    Text("리뷰 시작 (${ui.lineLength}수)")
+                    Text(tr("리뷰 시작 (${ui.lineLength}수)", "Review (${ui.lineLength} moves)"))
                 }
             }
             if (!ui.connected) {
                 Text(
-                    "엔진에 연결한 뒤 실행하세요.",
+                    tr("엔진에 연결한 뒤 실행하세요.", "Connect to the engine first."),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -242,15 +243,15 @@ private fun RunCard(
 
 @Composable
 private fun FileCard(onLoad: () -> Unit, onSave: () -> Unit, enabled: Boolean, lineLength: Int) {
-    Card("기보 파일") {
+    Card(tr("기보 파일", "Game files")) {
         Text(
-            "PC와 같은 형식입니다 — 불러오기 .psq/.sav/.pos, 저장은 .sav(파일 이름을 .psq로 하면 .psq).",
+            tr("PC와 같은 형식입니다 — 불러오기 .psq/.sav/.pos, 저장은 .sav(파일 이름을 .psq로 하면 .psq).", "The same formats as the PC — .psq/.sav/.pos to load, .sav to save (name it .psq and it writes .psq)."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onLoad, enabled = enabled) { Text("불러오기") }
-            OutlinedButton(onClick = onSave, enabled = enabled && lineLength > 0) { Text("저장") }
+            OutlinedButton(onClick = onLoad, enabled = enabled) { Text(tr("불러오기", "Load")) }
+            OutlinedButton(onClick = onSave, enabled = enabled && lineLength > 0) { Text(tr("저장", "Save")) }
         }
     }
 }
@@ -266,16 +267,16 @@ private fun ReportHeader(
     onExport: (ExportFormat) -> Unit,
     onExportAll: () -> Unit,
 ) {
-    Card("리포트 — ${report.title}") {
+    Card(tr("리포트 — ${report.title}", "Report — ${report.title}")) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Accuracy("흑", report.tally.blackAccuracy)
-            Accuracy("백", report.tally.whiteAccuracy)
+            Accuracy(tr("흑", "Black"), report.tally.blackAccuracy)
+            Accuracy(tr("백", "White"), report.tally.whiteAccuracy)
             Column {
-                Text("수", style = MaterialTheme.typography.labelSmall)
+                Text(tr("수", "moves"), style = MaterialTheme.typography.labelSmall)
                 Text("${report.moveCount}", style = MaterialTheme.typography.titleMedium)
             }
             Column {
-                Text("예산", style = MaterialTheme.typography.labelSmall)
+                Text(tr("예산", "Budget"), style = MaterialTheme.typography.labelSmall)
                 Text(report.budget.label, style = MaterialTheme.typography.titleMedium)
             }
         }
@@ -288,7 +289,7 @@ private fun ReportHeader(
                     shape = RoundedCornerShape(6.dp),
                 ) {
                     Text(
-                        "${quality.symbol} ${quality.korean} $black·$white",
+                        "${quality.symbol} ${quality.display} $black·$white",
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelMedium,
                     )
@@ -296,12 +297,14 @@ private fun ReportHeader(
             }
         }
         if (report.worst.isNotEmpty()) {
-            Text("최악의 수", style = MaterialTheme.typography.titleSmall)
+            Text(tr("최악의 수", "Worst moves"), style = MaterialTheme.typography.titleSmall)
             report.worst.forEach { move ->
                 Text(
                     "#${move.index} ${MoveGrader.coord(move.move, report.size)} " +
-                        "(${if (move.black) "흑" else "백"}) — ${move.quality.korean}, " +
-                        "-${"%.1f".format(move.delta * 100)}%p, 최선은 " +
+                        "(${if (move.black) tr("흑", "Black") else tr("백", "White")}) — " +
+                        "${move.quality.display}, " +
+                        "-${"%.1f".format(move.delta * 100)}%p, " +
+                        tr("최선은 ", "best was ") +
                         MoveGrader.coord(move.best, report.size),
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -320,7 +323,7 @@ private fun ReportHeader(
             ExportFormat.entries.forEach { format ->
                 AssistChip(onClick = { onExport(format) }, label = { Text(format.label) })
             }
-            AssistChip(onClick = onExportAll, label = { Text("앱 폴더에 전부") })
+            AssistChip(onClick = onExportAll, label = { Text(tr("앱 폴더에 전부", "All to the app folder")) })
         }
     }
 }
@@ -328,7 +331,7 @@ private fun ReportHeader(
 @Composable
 private fun Accuracy(side: String, value: Double?) {
     Column {
-        Text("$side 정확도", style = MaterialTheme.typography.labelSmall)
+        Text(tr("$side 정확도", "$side accuracy"), style = MaterialTheme.typography.labelSmall)
         Text(
             if (value == null) "-" else "%.1f%%".format(value),
             style = MaterialTheme.typography.titleMedium,
@@ -344,11 +347,11 @@ private fun MoveTableHeader() {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         HeaderCell("#", 28.dp)
-        HeaderCell("수", 44.dp)
-        HeaderCell("등급", 92.dp)
+        HeaderCell(tr("수", "moves"), 44.dp)
+        HeaderCell(tr("등급", "Grade"), 92.dp)
         HeaderCell("dWR", 60.dp)
-        HeaderCell("승률", 56.dp)
-        HeaderCell("최선", 44.dp)
+        HeaderCell(tr("승률", "Win rate"), 56.dp)
+        HeaderCell(tr("최선", "Best"), 44.dp)
     }
 }
 
@@ -398,7 +401,7 @@ private fun MoveRow(move: GradedMove, size: Int, onClick: () -> Unit) {
                             .size(14.dp)
                             .background(Color(parseHex(move.quality.colorHex)), CircleShape),
                     )
-                    Text(move.quality.korean, style = MaterialTheme.typography.labelMedium)
+                    Text(move.quality.display, style = MaterialTheme.typography.labelMedium)
                 }
             }
             Text(
@@ -445,19 +448,19 @@ private fun QueueCard(
     onClear: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
-    Card("분석 큐 (${ui.queue.size})") {
+    Card(tr("분석 큐 (${ui.queue.size})", "Queue (${ui.queue.size})")) {
         Text(
-            "여러 기보를 차례로 리뷰합니다. 각 대국의 리포트는 앱 폴더에 남길 수 있습니다.",
+            tr("여러 기보를 차례로 리뷰합니다. 각 대국의 리포트는 앱 폴더에 남길 수 있습니다.", "Reviews several games one after another. Each report can be left in the app folder."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            AssistChip(onClick = onAdd, label = { Text("기보 추가") })
-            AssistChip(onClick = onAddCurrent, label = { Text("현재 대국 추가") })
-            AssistChip(onClick = onClear, label = { Text("비우기") })
+            AssistChip(onClick = onAdd, label = { Text(tr("기보 추가", "Add files")) })
+            AssistChip(onClick = onAddCurrent, label = { Text(tr("현재 대국 추가", "Add this game")) })
+            AssistChip(onClick = onClear, label = { Text(tr("비우기", "Empty")) })
         }
         ui.queue.forEach { entry -> QueueRow(entry, ui.running) { onRemove(entry.uri) } }
-        Button(onClick = onStart, enabled = ui.canQueue) { Text("큐 실행") }
+        Button(onClick = onStart, enabled = ui.canQueue) { Text(tr("큐 실행", "Run the queue")) }
     }
 }
 
@@ -489,7 +492,7 @@ private fun QueueRow(entry: QueueEntry, running: Boolean, onRemove: () -> Unit) 
         }
         if (!running) {
             Text(
-                "삭제",
+                tr("삭제", "Remove"),
                 modifier = Modifier.clickable(onClick = onRemove),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
@@ -500,7 +503,7 @@ private fun QueueRow(entry: QueueEntry, running: Boolean, onRemove: () -> Unit) 
 
 @Composable
 private fun LogCard(log: List<String>) {
-    Card("기록") {
+    Card(tr("기록", "Log")) {
         log.takeLast(8).forEach {
             Text(it, style = MaterialTheme.typography.labelSmall)
         }

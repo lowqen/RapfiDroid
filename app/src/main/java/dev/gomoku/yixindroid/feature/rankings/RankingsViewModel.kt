@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.Opening26
 import dev.gomoku.yixindroid.core.model.PlayerRef
 import dev.gomoku.yixindroid.domain.repository.RankingsRepository
@@ -30,8 +31,8 @@ class RankingsViewModel @Inject constructor(
             val dist = repo.groupDistribution()
             val total = repo.shapeTotal()
             val dataError = repo.rank5Error()?.let {
-                "랭킹 데이터(rank5)를 불러오지 못했습니다: $it. " +
-                    "앱을 완전히 종료 후 재설치하거나 Android Studio에서 Clean+Rebuild 하세요."
+                tr("랭킹 데이터(rank5)를 불러오지 못했습니다: $it. ", "The ranking data (rank5) could not be opened: $it.") +
+                    tr("앱을 완전히 종료 후 재설치하거나 Android Studio에서 Clean+Rebuild 하세요.", "Close the app fully and reinstall, or Clean+Rebuild in Android Studio.")
             }
             _state.update {
                 it.copy(
@@ -74,7 +75,7 @@ class RankingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     importing = false,
-                    error = result.exceptionOrNull()?.let { e -> "임포트 실패: ${e.message}" },
+                    error = result.exceptionOrNull()?.let { e -> tr("임포트 실패: ${e.message}", "Import failed: ${e.message}") },
                 )
             }
         }
@@ -180,7 +181,7 @@ class RankingsViewModel @Inject constructor(
         OpeningCard(
             index = i,
             abbr = Opening26.abbr[i],
-            korean = Opening26.korean[i],
+            korean = Opening26.name(i),
             romaji = Opening26.romaji[i],
             direct = Opening26.isDirect(i),
             moves = Opening26.representative(i),

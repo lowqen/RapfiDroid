@@ -1,6 +1,7 @@
 package dev.gomoku.yixindroid.feature.prove
 
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.ProveMark
 import dev.gomoku.yixindroid.core.model.ProveOptions
@@ -44,9 +45,9 @@ data class ProveUiState(
     val blocker: String?
         get() = when {
             running -> null
-            !connected -> "엔진에 연결한 뒤 실행하세요."
-            !dbWritable -> "데이터베이스를 켜고 읽기 전용을 해제하세요 — 증명 결과는 DB에 기록됩니다."
-            gameOver -> "이미 승부가 결정된 국면입니다."
+            !connected -> tr("엔진에 연결한 뒤 실행하세요.", "Connect to the engine first.")
+            !dbWritable -> tr("데이터베이스를 켜고 읽기 전용을 해제하세요 — 증명 결과는 DB에 기록됩니다.", "Turn the database on and read-only off — a proof writes its conclusions there.")
+            gameOver -> tr("이미 승부가 결정된 국면입니다.", "This position is already decided.")
             else -> null
         }
 }

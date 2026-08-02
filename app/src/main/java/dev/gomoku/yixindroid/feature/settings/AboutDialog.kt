@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.gomoku.yixindroid.BuildConfig
+import dev.gomoku.yixindroid.core.i18n.tr
 
 /**
  * The desktop's Help ▸ About, plus the two things a phone user cannot see for
@@ -28,7 +29,7 @@ import dev.gomoku.yixindroid.BuildConfig
 fun AboutDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text("확인") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("확인", "OK")) } },
         title = { Text("YixinDroid") },
         text = {
             Column(
@@ -36,37 +37,37 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    "버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    tr("버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"),
                     style = MaterialTheme.typography.labelLarge,
                     fontFamily = FontFamily.Monospace,
                 )
                 Section(
-                    "이 앱은 무엇인가",
-                    "PC용 Yixin-Board 분석 강화판을 안드로이드로 옮긴 것입니다. " +
-                        "엔진은 들어 있지 않습니다 — piskvork 프로토콜로 원격 Rapfi 에 접속하는 " +
-                        "클라이언트이고, PC의 engine.exe(투명 TCP 릴레이)가 하던 일을 " +
-                        "앱이 직접 합니다. 그래서 서버가 꺼져 있으면 분석·데이터베이스 기능은 " +
-                        "쓸 수 없습니다.",
+                    tr("이 앱은 무엇인가", "What this app is"),
+                    tr("PC용 Yixin-Board 분석 강화판을 안드로이드로 옮긴 것입니다. ", "An Android port of the analysis build of Yixin-Board for the PC.") +
+                        tr("엔진은 들어 있지 않습니다 — piskvork 프로토콜로 원격 Rapfi 에 접속하는 ", "There is no engine inside it: this is a client that speaks piskvork to a") +
+                        tr("클라이언트이고, PC의 engine.exe(투명 TCP 릴레이)가 하던 일을 ", "remote Rapfi, doing itself what engine.exe (a transparent TCP relay) does") +
+                        tr("앱이 직접 합니다. 그래서 서버가 꺼져 있으면 분석·데이터베이스 기능은 ", "on the PC. With the server down, analysis and the database are") +
+                        tr("쓸 수 없습니다.", "simply unavailable."),
                 )
                 Section(
-                    "PC와 파일 주고받기",
-                    "설정은 PC와 같은 settings.txt / settings_dev.txt 형식이라 그대로 " +
-                        "불러오고 내보낼 수 있습니다. 툴바·핫키·언어는 Yixin 폴더의 " +
-                        "function/ 과 language/ 를 읽습니다. 기보는 .psq/.sav/.pos, " +
-                        "리포트는 PC와 같은 HTML 입니다.",
+                    tr("PC와 파일 주고받기", "Moving files to and from the PC"),
+                    tr("설정은 PC와 같은 settings.txt / settings_dev.txt 형식이라 그대로 ", "Settings are the PC's own settings.txt / settings_dev.txt, so they load") +
+                        tr("불러오고 내보낼 수 있습니다. 툴바·핫키·언어는 Yixin 폴더의 ", "and export as they are. Toolbar, hotkeys and language come from") +
+                        tr("function/ 과 language/ 를 읽습니다. 기보는 .psq/.sav/.pos, ", "function/ and language/ in the Yixin folder. Game files are .psq/.sav/.pos,") +
+                        tr("리포트는 PC와 같은 HTML 입니다.", "and a report is the same HTML the PC writes."),
                 )
                 Section(
-                    "데이터 · 라이선스",
-                    "오프닝 랭킹(rank5)은 앱에 들어 있습니다. " +
-                        "오프닝 익스플로러 팩과 실전 빈도 데이터는 RenjuNet 대국 DB에서 " +
-                        "나온 것이라 앱에 넣지 않습니다 — 사용자가 직접 만들어 기기로 " +
-                        "가져오며, 비상업·오프라인 사용만 허용됩니다. 웹에 올리거나 " +
-                        "재배포하지 마세요.",
+                    tr("데이터 · 라이선스", "Data and licence"),
+                    tr("오프닝 랭킹(rank5)은 앱에 들어 있습니다. ", "The opening rankings (rank5) ship with the app.") +
+                        tr("오프닝 익스플로러 팩과 실전 빈도 데이터는 RenjuNet 대국 DB에서 ", "The explorer packs and the frequency data come from the RenjuNet game") +
+                        tr("나온 것이라 앱에 넣지 않습니다 — 사용자가 직접 만들어 기기로 ", "database and are not shipped: you build them yourself and bring them to") +
+                        tr("가져오며, 비상업·오프라인 사용만 허용됩니다. 웹에 올리거나 ", "the device. Non-commercial, offline use only — do not upload them or") +
+                        tr("재배포하지 마세요.", "pass them on."),
                 )
                 Section(
-                    "데이터베이스에 쓸 때",
-                    "국면 증명과 분석 결과는 서버의 공용 yixindb 에 기록됩니다. " +
-                        "지우는 명령은 기본적으로 잠겨 있고, 되돌릴 수 없습니다.",
+                    tr("데이터베이스에 쓸 때", "Writing to the database"),
+                    tr("국면 증명과 분석 결과는 서버의 공용 yixindb 에 기록됩니다. ", "Proofs and search results are written to the shared yixindb on the server.") +
+                        tr("지우는 명령은 기본적으로 잠겨 있고, 되돌릴 수 없습니다.", "The commands that delete are locked by default, and nothing can be undone."),
                 )
             }
         },

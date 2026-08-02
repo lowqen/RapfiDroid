@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * Position prove (main.c:8918-9979). Proves — or refutes — a win for the side to
  * move by an AND/OR search driven entirely by the engine:
@@ -52,7 +54,7 @@ data class ProveOptions(
 
     /** The log line's budget part (main.c:9970 / 9974). */
     val label: String
-        get() = if (byDepth) "d$depth0..$depthMax" else "$budget0Sec..${budgetMaxSec}초"
+        get() = if (byDepth) "d$depth0..$depthMax" else tr("$budget0Sec..${budgetMaxSec}초", "$budget0Sec..${budgetMaxSec}s")
 
     /**
      * Clamped to the dialog's spin ranges (main.c:9894-9915) with the two
@@ -147,7 +149,7 @@ data class ProveOverlay(
     /** Budget label of an OPEN candidate (main.c:9124). */
     fun budgetLabel(move: Move): String {
         val v = budgets[move] ?: return ""
-        return if (v > 99) "99+" else if (byDepth) "d$v" else "${v}초"
+        return if (v > 99) "99+" else if (byDepth) "d$v" else tr("${v}초", "${v}s")
     }
 
     companion object {
@@ -186,9 +188,9 @@ data class ProveProgress(
      * live search — empty unless one is running.
      */
     fun badgeLines(): Pair<String, String> {
-        val first = "증명: 해결 $resolved / 탐색 $searches / 미결 $open"
+        val first = tr("증명: 해결 $resolved / 탐색 $searches / 미결 $open", "Prove: $resolved settled / $searches searches / $open open")
         if (phase != ProvePhase.SEARCH) return first to ""
-        val side = if (attack) "공격" else "방어"
+        val side = if (attack) tr("공격", "attack") else tr("방어", "defend")
         val value = if (mate != 0) "M${if (mate > 0) mate else -mate}" else "$winRatePct%"
         val second = buildString {
             if (byDepth) {
@@ -196,7 +198,7 @@ data class ProveProgress(
             } else {
                 append("$side  d$depth $value  ${elapsedSec}s/${budget / 1000}s")
             }
-            if (candTotal > 0) append("  후보 $candIndex/$candTotal")
+            if (candTotal > 0) append(tr("  후보 $candIndex/$candTotal", "  candidate $candIndex/$candTotal"))
         }
         return first to second
     }
@@ -216,21 +218,21 @@ data class ProveOutcome(
     /** Attacker win rate estimate when the run ended unresolved. */
     val attackerWinRatePct: Int,
 ) {
-    val title: String get() = if (cancelled) "증명 취소" else "증명 완료"
+    val title: String get() = if (cancelled) tr("증명 취소", "Prove cancelled") else tr("증명 완료", "Prove done")
 
     /** The dialog body, string for string as main.c builds it. */
     val message: String
         get() = if (resolved) {
-            val side = if (blackToMove) "흑 (차례)" else "백 (차례)"
-            val verdict = if (win) "승리 증명됨" else "승리 불가 (방어 성립/무승부)"
+            val side = if (blackToMove) tr("흑 (차례)", "Black (to move)") else tr("백 (차례)", "White (to move)")
+            val verdict = if (win) tr("승리 증명됨", "WIN PROVEN") else tr("승리 불가 (방어 성립/무승부)", "cannot win (defence holds / draw)")
             val by = when (kind) {
-                ProveKind.MATE -> "메이트"
-                ProveKind.DB -> "데이터베이스"
-                else -> "승률"
+                ProveKind.MATE -> tr("메이트", "mate")
+                ProveKind.DB -> tr("데이터베이스", "database")
+                else -> tr("승률", "win rate")
             }
-            "$side: $verdict ($by)\n탐색 ${searches}회, 결론 ${conclusions}개, DB 기록 ${dbWrites}개"
+            tr("$side: $verdict ($by)\n탐색 ${searches}회, 결론 ${conclusions}개, DB 기록 ${dbWrites}개", "$side: $verdict ($by)\n$searches searches, $conclusions conclusions, $dbWrites database records")
         } else {
-            "미결 (예산 소진), 공격측 승률 ~$attackerWinRatePct%\n" +
-                "탐색 ${searches}회, 결론 ${conclusions}개. 다시 실행하면 이어서 계산합니다 (DB 유지)."
+            tr("미결 (예산 소진), 공격측 승률 ~$attackerWinRatePct%\n", "Unresolved (budget exhausted), attacker win rate ~$attackerWinRatePct%\n") +
+                tr("탐색 ${searches}회, 결론 ${conclusions}개. 다시 실행하면 이어서 계산합니다 (DB 유지).", "$searches searches, $conclusions conclusions. Run it again to carry on where it stopped (the database is kept).")
         }
 }

@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * Move-order (transposition) enumeration — a port of the desktop
  * `Yixin-Board/moveorder.h` (880 lines), the core behind 수순 탐색기.
@@ -599,14 +601,14 @@ class MoveOrderSet private constructor(
 
         /** Orientation names, keyed by transform id (`mo_xform_name`). */
         fun xformName(t: Int): String = when (t) {
-            0 -> "원래 방향"
-            1 -> "90° 회전"
-            2 -> "180° 회전"
-            3 -> "270° 회전"
-            4 -> "좌우 반전"
-            5 -> "상하 반전"
-            6 -> "\\ 대각 반전"
-            else -> "/ 대각 반전"
+            0 -> tr("원래 방향", "As played")
+            1 -> tr("90° 회전", "Rotated 90°")
+            2 -> tr("180° 회전", "Rotated 180°")
+            3 -> tr("270° 회전", "Rotated 270°")
+            4 -> tr("좌우 반전", "Mirrored ↔")
+            5 -> tr("상하 반전", "Mirrored ↕")
+            6 -> tr("\\ 대각 반전", "Mirrored \\")
+            else -> tr("/ 대각 반전", "Mirrored /")
         }
 
         /** The two canonical move-2 cells (displayed h9 / i9), or null on an

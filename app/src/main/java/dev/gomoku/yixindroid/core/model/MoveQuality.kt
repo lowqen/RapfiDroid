@@ -1,5 +1,6 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
 import kotlin.math.abs
 import kotlin.math.exp
 import kotlin.math.roundToInt
@@ -42,6 +43,9 @@ enum class MoveQuality(val label: String, val symbol: String, val colorHex: Stri
             FORCED -> "강제"
         }
 
+    /** The grade name to show: Korean from the desktop table, else [label]. */
+    val display: String get() = tr(korean, label)
+
     companion object {
         /** The grades a report enumerates, in the desktop's order. */
         val GRADED: List<MoveQuality> = entries.filter { it != NONE }
@@ -50,9 +54,9 @@ enum class MoveQuality(val label: String, val symbol: String, val colorHex: Stri
 
 /** `mqpreset` (settings_dev line 3): the threshold scale for the dWR grades. */
 enum class GradingPreset(val scale: Double, val label: String) {
-    STRICT(0.6, "엄격"),
-    DEFAULT(1.0, "기본"),
-    LENIENT(1.5, "관대"),
+    STRICT(0.6, tr("엄격", "Strict")),
+    DEFAULT(1.0, tr("기본", "Default")),
+    LENIENT(1.5, tr("관대", "Lenient")),
     ;
 
     companion object {

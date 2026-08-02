@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * The 26 standard renju openings ("주형"), a **pure-computation** port of the
  * desktop `mo_opening26` classifier (main.c) and the name tables in
@@ -31,6 +33,9 @@ object Opening26 {
         "신월", "서성", "산월", "유성", "장성", "협월", "항성", "수월", "유성",
         "운월", "포월", "람월", "은월", "명성", "사월", "명월", "혜성",
     )
+
+    /** The name to show: Korean, or the romaji every other language uses. */
+    fun name(id: Int): String = tr(korean[id], romaji[id])
 
     /** Romaji names, faithful to freq35 OPROMAJI. */
     val romaji: List<String> = listOf(

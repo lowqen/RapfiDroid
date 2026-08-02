@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.CallbackConfig
 import dev.gomoku.yixindroid.core.model.ToolScripts
 import dev.gomoku.yixindroid.core.model.ToolsState
@@ -53,7 +54,7 @@ import dev.gomoku.yixindroid.feature.connection.ConnectionScreen
 @Composable
 fun EngineScreen(modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val titles = remember { listOf("연결", "도구") }
+    val titles = remember { listOf(tr("연결", "Connect"), tr("도구", "Tools")) }
 
     Column(modifier = modifier.fillMaxSize()) {
         TabRow(selectedTabIndex = tab) {
@@ -102,13 +103,13 @@ fun ToolsScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            ToolCard("탐색 도구") {
+            ToolCard(tr("탐색 도구", "Search tools")) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip({ viewModel.run("searchdefend") }, { Text("모든 방어수") })
-                    AssistChip({ viewModel.run("nbest") }, { Text("멀티 PV") })
-                    AssistChip({ viewModel.run("balance1") }, { Text("균형점 1수") })
-                    AssistChip({ viewModel.run("balance2") }, { Text("균형점 2수") })
-                    AssistChip({ viewModel.run("send board") }, { Text("국면 전송") })
+                    AssistChip({ viewModel.run("searchdefend") }, { Text(tr("모든 방어수", "All defences")) })
+                    AssistChip({ viewModel.run("nbest") }, { Text(tr("멀티 PV", "Multi-PV")) })
+                    AssistChip({ viewModel.run("balance1") }, { Text(tr("균형점 1수", "Balance, one move")) })
+                    AssistChip({ viewModel.run("balance2") }, { Text(tr("균형점 2수", "Balance, two moves")) })
+                    AssistChip({ viewModel.run("send board") }, { Text(tr("국면 전송", "Send position")) })
                 }
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -117,75 +118,75 @@ fun ToolsScreen(
                     OutlinedTextField(
                         value = ui.startDepth,
                         onValueChange = viewModel::onStartDepthChange,
-                        label = { Text("시작 깊이") },
+                        label = { Text(tr("시작 깊이", "Start depth")) },
                         singleLine = true,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = KeyboardType.Number,
                         ),
                         modifier = Modifier.width(120.dp),
                     )
-                    OutlinedButton(onClick = viewModel::onSearchFrom) { Text("이 깊이부터") }
+                    OutlinedButton(onClick = viewModel::onSearchFrom) { Text(tr("이 깊이부터", "From this depth")) }
                 }
             }
         }
 
         item {
-            ToolCard("해시 (전치표)") {
+            ToolCard(tr("해시 (전치표)", "Hash (transposition table)")) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip({ viewModel.run("hash clear") }, { Text("지우기") })
-                    AssistChip({ viewModel.run("hash usage") }, { Text("사용량") })
+                    AssistChip({ viewModel.run("hash clear") }, { Text(tr("지우기", "Clear")) })
+                    AssistChip({ viewModel.run("hash usage") }, { Text(tr("사용량", "Usage")) })
                     FilterChip(
                         selected = ui.settings.hashAutoClear,
                         onClick = viewModel::onToggleHashAutoClear,
-                        label = { Text("탐색 전 자동 지우기") },
+                        label = { Text(tr("탐색 전 자동 지우기", "Clear before every search")) },
                     )
                 }
                 OutlinedTextField(
                     value = ui.hashPath,
                     onValueChange = viewModel::onHashPathChange,
-                    label = { Text("서버 경로 (엔진이 읽고 씁니다)") },
+                    label = { Text(tr("서버 경로 (엔진이 읽고 씁니다)", "Server path (the engine reads and writes it)")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = viewModel::onHashDump) { Text("저장") }
-                    OutlinedButton(onClick = viewModel::onHashLoad) { Text("복원") }
+                    OutlinedButton(onClick = viewModel::onHashDump) { Text(tr("저장", "Save")) }
+                    OutlinedButton(onClick = viewModel::onHashLoad) { Text(tr("복원", "Restore")) }
                 }
             }
         }
 
         item {
-            ToolCard("차단 (${ui.blockedCount}점)") {
+            ToolCard(tr("차단 (${ui.blockedCount}점)", "Blocked (${ui.blockedCount} points)")) {
                 Text(
-                    "차단한 점은 엔진이 후보에서 제외합니다. 보드에 ✕ 로 표시됩니다.",
+                    tr("차단한 점은 엔진이 후보에서 제외합니다. 보드에 ✕ 로 표시됩니다.", "The engine leaves blocked points out of its candidates. They carry an ✕ on the board."),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip({ viewModel.run("block reset") }, { Text("차단 해제") })
-                    AssistChip({ viewModel.run("blockpath reset") }, { Text("경로 차단 해제") })
+                    AssistChip({ viewModel.run("block reset") }, { Text(tr("차단 해제", "Clear blocks")) })
+                    AssistChip({ viewModel.run("blockpath reset") }, { Text(tr("경로 차단 해제", "Clear blocked paths")) })
                     FilterChip(
                         selected = ui.settings.blockAutoReset,
                         onClick = viewModel::onToggleBlockAutoReset,
-                        label = { Text("착수 후 자동 해제") },
+                        label = { Text(tr("착수 후 자동 해제", "Auto-clear after a move")) },
                     )
                     FilterChip(
                         selected = ui.settings.blockPathAutoReset,
                         onClick = viewModel::onToggleBlockPathAutoReset,
-                        label = { Text("경로 자동 해제") },
+                        label = { Text(tr("경로 자동 해제", "Auto-clear paths")) },
                     )
                 }
                 Text(
-                    "점 지정은 콘솔로: block h8i8 · block undo h8 · blockpath h8h7 · " +
-                        "block compare h8 (이 점만 남기고 전부 차단)",
+                    tr("점 지정은 콘솔로: block h8i8 · block undo h8 · blockpath h8h7 · ", "Points are named on the console: block h8i8 · block undo h8 · blockpath h8h7 ·") +
+                        tr("block compare h8 (이 점만 남기고 전부 차단)", "block compare h8 (blocks everything but these)"),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
         }
 
         item {
-            ToolCard("국면 슬롯") {
+            ToolCard(tr("국면 슬롯", "Position slots")) {
                 Text(
-                    "현재 국면을 10칸에 담아 두고 되돌립니다 (pushpos / poppos).",
+                    tr("현재 국면을 10칸에 담아 두고 되돌립니다 (pushpos / poppos).", "Parks the current position in one of ten slots and brings it back (pushpos / poppos)."),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -198,30 +199,30 @@ fun ToolsScreen(
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { viewModel.run("getpos") }) { Text("국면 문자열") }
+                    OutlinedButton(onClick = { viewModel.run("getpos") }) { Text(tr("국면 문자열", "Position string")) }
                 }
                 Text(
-                    "빈 칸을 누르면 저장, ↺ 는 되돌리기. 저장된 칸: " +
-                        (ui.filledSlots.joinToString(", ").ifEmpty { "없음" }),
+                    tr("빈 칸을 누르면 저장, ↺ 는 되돌리기. 저장된 칸: ", "An empty slot stores, ↺ restores. In use:") +
+                        (ui.filledSlots.joinToString(", ").ifEmpty { tr("없음", "none") }),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
         }
 
         item {
-            ToolCard("엔진 유지보수") {
+            ToolCard(tr("엔진 유지보수", "Engine maintenance")) {
                 Text(
-                    "데스크톱 툴바와 같은 스크립트를 그대로 보냅니다 " +
-                        "(command on → 엔진 명령 → command off).",
+                    tr("데스크톱 툴바와 같은 스크립트를 그대로 보냅니다 ", "Sends the same scripts the desktop toolbar does") +
+                        tr("(command on → 엔진 명령 → command off).", "(command on → engine command → command off)."),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip(viewModel::onBench, { Text("Bench") })
                     AssistChip(viewModel::onTrace, { Text("Trace") })
-                    AssistChip({ viewModel.run("print features") }, { Text("특징값") })
-                    AssistChip({ viewModel.run("dbrefresh") }, { Text("DB 플래그 재전송") })
+                    AssistChip({ viewModel.run("print features") }, { Text(tr("특징값", "Features")) })
+                    AssistChip({ viewModel.run("dbrefresh") }, { Text(tr("DB 플래그 재전송", "Re-send DB flags")) })
                 }
-                Text("평가 모드 — 엔진 설정 파일을 다시 읽습니다", style = MaterialTheme.typography.labelSmall)
+                Text(tr("평가 모드 — 엔진 설정 파일을 다시 읽습니다", "Evaluation mode — reloads the engine's config file"), style = MaterialTheme.typography.labelSmall)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     for ((label, file) in ToolScripts.evaluationModes) {
                         AssistChip({ viewModel.onReload(file) }, { Text(label) })
@@ -231,9 +232,9 @@ fun ToolsScreen(
         }
 
         item {
-            ToolCard("콜백") {
+            ToolCard(tr("콜백", "Callbacks")) {
                 Text(
-                    "엔진이 승/패/무를 알리거나 수를 둘 때 스크립트를 실행합니다.",
+                    tr("엔진이 승/패/무를 알리거나 수를 둘 때 스크립트를 실행합니다.", "Runs a script when the engine reports a win, a loss, a draw, or plays a move."),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Row(
@@ -245,17 +246,17 @@ fun ToolsScreen(
                         onClick = {
                             viewModel.run(if (ui.tools.callbacksSuspended) "callback on" else "callback off")
                         },
-                        label = { Text(if (ui.tools.callbacksActive) "동작 중" else "정지") },
+                        label = { Text(if (ui.tools.callbacksActive) tr("동작 중", "running") else tr("정지", "Stop")) },
                     )
                     OutlinedButton(onClick = { viewModel.onEditCallbacks(true) }) {
-                        Text("스크립트 편집")
+                        Text(tr("스크립트 편집", "Edit scripts"))
                     }
                 }
             }
         }
 
         item {
-            ToolCard("콘솔") {
+            ToolCard(tr("콘솔", "Console")) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -264,22 +265,22 @@ fun ToolsScreen(
                         value = ui.draft,
                         onValueChange = viewModel::onDraftChange,
                         label = {
-                            Text(if (ui.tools.commandMode) "엔진으로 그대로 전달" else "명령 (help)")
+                            Text(if (ui.tools.commandMode) tr("엔진으로 그대로 전달", "Pass straight to the engine") else tr("명령 (help)", "Command (help)"))
                         },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedButton(onClick = viewModel::onSubmitDraft) { Text("실행") }
+                    OutlinedButton(onClick = viewModel::onSubmitDraft) { Text(tr("실행", "Run")) }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip({ viewModel.run("help") }, { Text("도움말") })
-                    AssistChip(viewModel::onClearLog, { Text("지우기") })
+                    AssistChip({ viewModel.run("help") }, { Text(tr("도움말", "Help")) })
+                    AssistChip(viewModel::onClearLog, { Text(tr("지우기", "Clear")) })
                     FilterChip(
                         selected = ui.tools.commandMode,
                         onClick = {
                             viewModel.run(if (ui.tools.commandMode) "command off" else "command on")
                         },
-                        label = { Text("전달 모드") },
+                        label = { Text(tr("전달 모드", "Pass-through")) },
                     )
                 }
             }
@@ -316,7 +317,7 @@ private fun CallbackDialog(
     var draft by remember { mutableStateOf(config) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("콜백 스크립트") },
+        title = { Text(tr("콜백 스크립트", "Callback scripts")) },
         text = {
             Column(
                 Modifier.verticalScroll(rememberScrollState()).heightIn(max = 460.dp),
@@ -325,33 +326,33 @@ private fun CallbackDialog(
                 FilterChip(
                     selected = draft.enabled,
                     onClick = { draft = draft.copy(enabled = !draft.enabled) },
-                    label = { Text(if (draft.enabled) "사용" else "사용 안 함") },
+                    label = { Text(if (draft.enabled) tr("사용", "on") else tr("사용 안 함", "off")) },
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    NumberField("무승부 횟수", draft.drawCount, Modifier.weight(1f)) {
+                    NumberField(tr("무승부 횟수", "Draw count"), draft.drawCount, Modifier.weight(1f)) {
                         draft = draft.copy(drawCount = it)
                     }
-                    NumberField("최소 수", draft.minPly, Modifier.weight(1f)) {
+                    NumberField(tr("최소 수", "Minimum moves"), draft.minPly, Modifier.weight(1f)) {
                         draft = draft.copy(minPly = it)
                     }
-                    NumberField("최대 수", draft.maxPly, Modifier.weight(1f)) {
+                    NumberField(tr("최대 수", "Maximum moves"), draft.maxPly, Modifier.weight(1f)) {
                         draft = draft.copy(maxPly = it)
                     }
                 }
-                ScriptField("승리 감지", draft.onMate) { draft = draft.copy(onMate = it) }
-                ScriptField("패배 감지", draft.onMated) { draft = draft.copy(onMated = it) }
-                ScriptField("무승부 감지", draft.onDraw) { draft = draft.copy(onDraw = it) }
-                ScriptField("착수", draft.onMove) { draft = draft.copy(onMove = it) }
-                ScriptField("착수 (최소 수 이하)", draft.onMoveMinPly) {
+                ScriptField(tr("승리 감지", "On win"), draft.onMate) { draft = draft.copy(onMate = it) }
+                ScriptField(tr("패배 감지", "On loss"), draft.onMated) { draft = draft.copy(onMated = it) }
+                ScriptField(tr("무승부 감지", "On draw"), draft.onDraw) { draft = draft.copy(onDraw = it) }
+                ScriptField(tr("착수", "On move"), draft.onMove) { draft = draft.copy(onMove = it) }
+                ScriptField(tr("착수 (최소 수 이하)", "On move (below the minimum)"), draft.onMoveMinPly) {
                     draft = draft.copy(onMoveMinPly = it)
                 }
-                ScriptField("착수 (최대 수 이상)", draft.onMoveMaxPly) {
+                ScriptField(tr("착수 (최대 수 이상)", "On move (above the maximum)"), draft.onMoveMaxPly) {
                     draft = draft.copy(onMoveMaxPly = it)
                 }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(draft) }) { Text("저장") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } },
+        confirmButton = { TextButton(onClick = { onSave(draft) }) { Text(tr("저장", "Save")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) } },
     )
 }
 
@@ -361,7 +362,7 @@ private fun ScriptField(label: String, value: String, onChange: (String) -> Unit
         value = value,
         onValueChange = onChange,
         label = { Text(label) },
-        placeholder = { Text("예: echo 승리!", style = MaterialTheme.typography.labelSmall) },
+        placeholder = { Text(tr("예: echo 승리!", "e.g. echo Win!"), style = MaterialTheme.typography.labelSmall) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 1,
         maxLines = 3,

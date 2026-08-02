@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * The three saved-game formats the desktop reads (`load_game_file`,
  * main.c:3536) and the two it writes (`show_dialog_save` / `queue_add_current`).
@@ -11,13 +13,13 @@ package dev.gomoku.yixindroid.core.model
  */
 enum class GameFileFormat(val extension: String, val label: String) {
     /** Piskvork: header line, then `col,row,time` 1-based, terminated by `-1`. */
-    PSQ("psq", "Piskvork 기보"),
+    PSQ("psq", tr("Piskvork 기보", "Piskvork game")),
 
     /** Yixin: size, size, count, then `row col` per line. */
-    SAV("sav", "Yixin 저장 국면"),
+    SAV("sav", tr("Yixin 저장 국면", "Yixin saved position")),
 
     /** Yixin binary: a count byte, then one byte per move (`col * 15 + row`). */
-    POS("pos", "POS 국면"),
+    POS("pos", tr("POS 국면", "POS position")),
     ;
 
     companion object {

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.AppSettings
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
@@ -91,9 +92,9 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("설정 ${ui.visible.size}/${ui.total}", style = MaterialTheme.typography.titleMedium)
+                Text(tr("설정 ${ui.visible.size}/${ui.total}", "Settings ${ui.visible.size}/${ui.total}"), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    if (ui.connected) "엔진 연결됨 — 변경 즉시 반영" else "엔진 미연결 — 연결 시 반영",
+                    if (ui.connected) tr("엔진 연결됨 — 변경 즉시 반영", "Engine connected — changes apply at once") else tr("엔진 미연결 — 연결 시 반영", "Engine not connected — changes apply when it is"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -101,7 +102,7 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = ui.query,
                 onValueChange = viewModel::onQuery,
-                label = { Text("설정 검색 (이름·주석·INFO 키)") },
+                label = { Text(tr("설정 검색 (이름·주석·INFO 키)", "Search settings (name, comment, INFO key)")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -109,7 +110,7 @@ fun SettingsScreen(
                 FilterChip(
                     selected = ui.category == null,
                     onClick = { viewModel.onCategory(null) },
-                    label = { Text("전체") },
+                    label = { Text(tr("전체", "All")) },
                 )
                 SettingCategory.entries.forEach { category ->
                     FilterChip(
@@ -128,10 +129,10 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("고급 설정", style = MaterialTheme.typography.bodyMedium)
+                    Text(tr("고급 설정", "Advanced"), style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        if (ui.advanced) "데스크톱의 67개 항목을 모두 표시합니다"
-                        else "자주 쓰지 않는 ${ui.hidden}개를 숨겼습니다 (검색하면 나옵니다)",
+                        if (ui.advanced) tr("데스크톱의 67개 항목을 모두 표시합니다", "Shows all 67 desktop entries")
+                        else tr("자주 쓰지 않는 ${ui.hidden}개를 숨겼습니다 (검색하면 나옵니다)", "${ui.hidden} rarely-used entries are hidden (search finds them)"),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -146,18 +147,18 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "${file.fileName} (${file.lineCount}줄)",
+                        tr("${file.fileName} (${file.lineCount}줄)", "${file.fileName} (${file.lineCount} lines)"),
                         style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedButton(onClick = {
                         viewModel.prepare(file)
                         importLauncher.launch(arrayOf("*/*"))
-                    }) { Text("불러오기") }
+                    }) { Text(tr("불러오기", "Load")) }
                     OutlinedButton(onClick = {
                         viewModel.prepare(file)
                         exportLauncher.launch(file.fileName)
-                    }) { Text("내보내기") }
+                    }) { Text(tr("내보내기", "Export")) }
                 }
             }
             // The desktop's `function/` and `language/` folders — user-defined
@@ -171,19 +172,19 @@ fun SettingsScreen(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "툴바 · 핫키 · 언어",
+                        tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"),
                         style = MaterialTheme.typography.labelMedium,
                     )
                     Text(
-                        ui.appearanceSource?.let { "$it 에서 불러옴" }
-                            ?: "데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)",
+                        ui.appearanceSource?.let { tr("$it 에서 불러옴", "from $it") }
+                            ?: tr("데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)", "Desktop defaults (pick a Yixin folder to use your own)"),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text("폴더 선택") }
+                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
                 if (ui.appearanceSource != null) {
-                    TextButton(onClick = viewModel::onResetAppearance) { Text("기본값") }
+                    TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
                 }
             }
             // settings.txt line 36 stores the flag; this is what makes it useful —
@@ -195,22 +196,22 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        "디버그 로그 ${ui.debugLogBytes / 1024}KB",
+                        tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log, ${ui.debugLogBytes / 1024}KB"),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.weight(1f),
                     )
                     OutlinedButton(
                         onClick = { debugLogLauncher.launch("yixindroid-debug.log") },
                         enabled = ui.debugLogBytes > 0,
-                    ) { Text("내보내기") }
+                    ) { Text(tr("내보내기", "Export")) }
                     TextButton(
                         onClick = viewModel::onClearDebugLog,
                         enabled = ui.debugLogBytes > 0,
-                    ) { Text("지우기") }
+                    ) { Text(tr("지우기", "Clear")) }
                 }
             }
-            TextButton(onClick = viewModel::onReset) { Text("PC 기본값으로 되돌리기") }
-            TextButton(onClick = { showAbout = true }) { Text("정보 · 도움말") }
+            TextButton(onClick = viewModel::onReset) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
+            TextButton(onClick = { showAbout = true }) { Text(tr("정보 · 도움말", "About · help")) }
             ui.message?.let { message ->
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,
@@ -222,7 +223,7 @@ fun SettingsScreen(
                     ) {
                         Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
                         IconButton(onClick = viewModel::dismissMessage) {
-                            Icon(Icons.Filled.Close, contentDescription = "닫기")
+                            Icon(Icons.Filled.Close, contentDescription = tr("닫기", "Close"))
                         }
                     }
                 }
@@ -266,9 +267,9 @@ private fun SettingRow(
                 Text(spec.label, style = MaterialTheme.typography.bodyLarge)
                 Text(
                     buildString {
-                        append("${spec.file.fileName} ${spec.line}행")
+                        append(tr("${spec.file.fileName} ${spec.line}행", "${spec.file.fileName} line ${spec.line}"))
                         spec.engineKey?.let { append("  ·  INFO $it") }
-                        if (!isDefault) append("  ·  PC 기본값과 다름")
+                        if (!isDefault) append(tr("  ·  PC 기본값과 다름", "  ·  differs from the PC default"))
                     },
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -400,7 +401,7 @@ private fun ChoiceEditor(
                 }
             },
             confirmButton = {
-                Button(onClick = { open = false }) { Text("닫기") }
+                Button(onClick = { open = false }) { Text(tr("닫기", "Close")) }
             },
         )
     }

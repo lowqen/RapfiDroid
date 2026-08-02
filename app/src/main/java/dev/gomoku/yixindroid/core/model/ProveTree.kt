@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /** One node of the proof tree (`ProveNode`, main.c:8949). Mutable, as there. */
 class ProveNode(
     /** The line below the prove root that reaches this node. */
@@ -203,7 +205,7 @@ class ProveTree(
             val a = p.alt[p.altNext++]
             val c = addChild(parent, a.move, a.winRate, verify = false, pvMate = a.mate)
             if (c >= 0) {
-                log("증명: 공격 후보 ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}")
+                log(tr("증명: 공격 후보 ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}", "Prove: attack candidate ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}"))
             }
         }
     }
@@ -257,7 +259,7 @@ class ProveTree(
                 n.pending.clear()
                 deferred.forEach { addChild(i, it, 0.98, verify = true, pvMate = 0) }
             } else if (n.pending.isNotEmpty()) {
-                log("증명: 약한 방어 ${n.pending.size}개 보류 (나중에 검증)")
+                log(tr("증명: 약한 방어 ${n.pending.size}개 보류 (나중에 검증)", "Prove: ${n.pending.size} weak defences deferred (verified later)"))
             }
         }
     }
@@ -323,7 +325,7 @@ class ProveTree(
             ProveKind.DB -> "db"
             else -> "wr"
         }
-        log("증명: $verdict $by($note) ${path(i)}")
+        log(tr("증명: $verdict $by($note) ${path(i)}", "Prove: $verdict $by($note) ${path(i)}"))
         // Records read out of the database need no re-write.
         if (kind != ProveKind.DB) queueWrite(i)
         if (n.parent >= 0) propagate(n.parent)
@@ -378,7 +380,7 @@ class ProveTree(
                 val deferred = p.pending.toList()
                 p.pending.clear()
                 deferred.forEach { addChild(parent, it, 0.98, verify = true, pvMate = 0) }
-                log("증명: 보류한 방어 ${deferred.size}개 검증")
+                log(tr("증명: 보류한 방어 ${deferred.size}개 검증", "Prove: verifying ${deferred.size} deferred defences"))
                 return
             }
             resolve(parent, ProveResult.WIN, weakest, bestValue, p.recDepth + 1, "all defenses lose")
@@ -425,7 +427,7 @@ class ProveTree(
         if (!n.expanded || n.isOr) expand(i, pvs) // OR nodes re-expand, dedup inside
         if (n.budget >= options.maxBudget) {
             n.state = ProveState.EXHAUSTED
-            log("증명: 예산 소진 EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}")
+            log(tr("증명: 예산 소진 EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}", "Prove: EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}"))
             orWiden(n.parent)
         } else if (options.byDepth) {
             // +2 plies costs roughly what a time doubling does.

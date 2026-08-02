@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.feature.explorer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.MO_GUI_NODES
 import dev.gomoku.yixindroid.core.model.MO_MAX_STONES
 import dev.gomoku.yixindroid.core.model.Move
@@ -55,10 +56,10 @@ data class MoveOrderRow(
 )
 
 data class MoveOrderUiState(
-    val headline: String = "보드에 돌을 먼저 놓으세요.",
+    val headline: String = tr("보드에 돌을 먼저 놓으세요.", "Put some stones on the board first."),
     val note: String = "",
     val openingLabel: String? = null,
-    val breadcrumb: String = "처음부터",
+    val breadcrumb: String = tr("처음부터", "from the start"),
     val orientation: String? = null,
     val rows: List<MoveOrderRow> = emptyList(),
     val prefix: List<Int> = emptyList(),
@@ -115,10 +116,10 @@ class MoveOrderViewModel @Inject constructor(
                 _ui.update {
                     it.copy(
                         computing = false,
-                        headline = "보드에 돌을 먼저 놓으세요.",
+                        headline = tr("보드에 돌을 먼저 놓으세요.", "Put some stones on the board first."),
                         note = "", openingLabel = null, rows = emptyList(),
                         prefix = emptyList(), ghosts = emptyList(),
-                        breadcrumb = "처음부터", orientation = null,
+                        breadcrumb = tr("처음부터", "from the start"), orientation = null,
                         canBack = false, canApply = false, selected = null,
                     )
                 }
@@ -141,7 +142,7 @@ class MoveOrderViewModel @Inject constructor(
                 _ui.update {
                     it.copy(
                         computing = false,
-                        headline = "국면이 너무 큽니다 — 색깔당 최대 ${MO_MAX_STONES}개까지.",
+                        headline = tr("국면이 너무 큽니다 — 색깔당 최대 ${MO_MAX_STONES}개까지.", "Too many stones — ${MO_MAX_STONES} per colour at most."),
                         note = "", rows = emptyList(), prefix = emptyList(),
                         ghosts = emptyList(), canBack = false, canApply = false,
                     )
@@ -203,13 +204,13 @@ class MoveOrderViewModel @Inject constructor(
     )
 
     private fun headline(s: MoveOrderSet): String {
-        val stones = "흑 ${s.blackCount} · 백 ${s.whiteCount}"
+        val stones = tr("흑 ${s.blackCount} · 백 ${s.whiteCount}", "Black ${s.blackCount} · White ${s.whiteCount}")
         return when {
-            s.overflow -> "$stones — 경우의 수가 너무 많아 정확한 집계 생략"
-            s.total <= 0.0 -> "$stones — 이 규칙에서는 만들 수 없는 배치"
+            s.overflow -> tr("$stones — 경우의 수가 너무 많아 정확한 집계 생략", "$stones — too many orders to count exactly")
+            s.total <= 0.0 -> tr("$stones — 이 규칙에서는 만들 수 없는 배치", "$stones — this rule cannot produce that shape")
             s.variantCount > 1 ->
-                "$stones — 수순 ${MoveOrderFormat.count(s.total)}가지 (배치 ${s.variantCount}종)"
-            else -> "$stones — 수순 ${MoveOrderFormat.count(s.total)}가지"
+                tr("$stones — 수순 ${MoveOrderFormat.count(s.total)}가지 (배치 ${s.variantCount}종)", "$stones — ${MoveOrderFormat.count(s.total)} orders (${s.variantCount} placements)")
+            else -> tr("$stones — 수순 ${MoveOrderFormat.count(s.total)}가지", "$stones — ${MoveOrderFormat.count(s.total)} orders")
         }
     }
 
@@ -219,14 +220,14 @@ class MoveOrderViewModel @Inject constructor(
         val size = _ui.value.boardSize
         val opts = _ui.value.options
         if (s.total > 0.0 && opts.symmetry && s.variantCount > 1) {
-            return "(회전·반전 ${s.variantCount}종을 같은 모양으로 합산)"
+            return tr("(회전·반전 ${s.variantCount}종을 같은 모양으로 합산)", "(${s.variantCount} rotations and mirrors counted as one shape)")
         }
         if (s.total > 0.0 || s.overflow || !opts.openingRule) return ""
-        if (size % 2 == 0) return "(오프닝 규칙은 홀수 판에서만 적용됩니다)"
+        if (size % 2 == 0) return tr("(오프닝 규칙은 홀수 판에서만 적용됩니다)", "(opening rules apply on odd-sized boards only)")
         val ctr = size / 2
         val tengen = ctr * size + ctr
         if (line.none { it.y * size + it.x == tengen }) {
-            return "(천원에 흑돌이 없습니다: 1수는 반드시 중앙이어야 합니다)"
+            return tr("(천원에 흑돌이 없습니다: 1수는 반드시 중앙이어야 합니다)", "(no black stone on the centre point: move 1 has to be there)")
         }
         val r2 = MoveOrderSet.rule2Cells(size)
         if (opts.move2Fix && r2 != null) {
@@ -237,11 +238,11 @@ class MoveOrderViewModel @Inject constructor(
                 }
             }
             if (!hasR2) {
-                return if (opts.symmetry) "(어떤 배치에서도 2수가 H9/I9에 오지 않습니다)"
-                else "(H9/I9에 백돌이 없습니다 — 환원을 켜 보세요)"
+                return if (opts.symmetry) tr("(어떤 배치에서도 2수가 H9/I9에 오지 않습니다)", "(no placement puts move 2 on H9 or I9)")
+                else tr("(H9/I9에 백돌이 없습니다 — 환원을 켜 보세요)", "(no white stone on H9 or I9 — try folding rotations)")
             }
         }
-        return "(3×3 / 5×5 / 7×7 상자를 만족하는 수순이 없습니다)"
+        return tr("(3×3 / 5×5 / 7×7 상자를 만족하는 수순이 없습니다)", "(no order satisfies the 3×3 / 5×5 / 7×7 boxes)")
     }
 
     /** The opening follows the **drilled** order once it is 3+ plies deep —
@@ -255,18 +256,18 @@ class MoveOrderViewModel @Inject constructor(
         }
         val id = MoveOrderFormat.opening26(src[0], src[1], src[2], size) ?: return null
         val tag = if (id < 13) "D${id + 1}" else "I${id - 12}"
-        return "주형: ${Opening26.korean[id]} ($tag)"
+        return tr("주형: ", "Opening: ") + "${Opening26.name(id)} ($tag)"
     }
 
     private fun breadcrumb(s: MoveOrderSet, size: Int): String =
-        if (s.prefix.isEmpty()) "처음부터"
-        else "수순: " + s.prefix.joinToString(" ") { MoveOrderFormat.cellName(it, size) }
+        if (s.prefix.isEmpty()) tr("처음부터", "from the start")
+        else tr("수순: ", "Order:") + s.prefix.joinToString(" ") { MoveOrderFormat.cellName(it, size) }
 
     private fun orientation(s: MoveOrderSet): String? {
         if (!_ui.value.options.symmetry || s.variantCount <= 1) return null
         val alive = s.aliveCount()
         return if (alive == 1) MoveOrderSet.xformName(s.soleAliveTransform() ?: 0)
-        else "배치 ${alive}종 진행 중"
+        else tr("배치 ${alive}종 진행 중", "${alive} placements still live")
     }
 
     // ---- interaction --------------------------------------------------------
@@ -321,21 +322,23 @@ class MoveOrderViewModel @Inject constructor(
         viewModelScope.launch {
             val done = lock.withLock { withContext(Dispatchers.Default) { s.complete() } }
             if (done == null) {
-                _ui.update { it.copy(notice = "여기서 완성할 수 있는 수순이 없습니다") }
+                _ui.update { it.copy(notice = tr("여기서 완성할 수 있는 수순이 없습니다", "No order can be completed from here")) }
                 return@launch
             }
             if (done.transform != 0 && !confirmed) {
                 _ui.update {
                     it.copy(
-                        applyPrompt = "이 수순은 ${MoveOrderSet.xformName(done.transform)} 배치에 " +
-                            "있습니다 — 돌 위치가 지금 보드와 달라집니다. 그래도 놓을까요?",
+                        applyPrompt = tr("이 수순은 ", "This order is in the ") +
+                            MoveOrderSet.xformName(done.transform) +
+                            tr(" 배치에 ", " placement") +
+                            tr("있습니다 — 돌 위치가 지금 보드와 달라집니다. 그래도 놓을까요?", " — the stones will sit differently from the board. Place it anyway?"),
                     )
                 }
                 return@launch
             }
             game.replaceLine(done.order.map { Move(it % size, it / size) })
             _ui.update {
-                it.copy(applyPrompt = null, notice = "보드를 이 수순으로 다시 놓았습니다")
+                it.copy(applyPrompt = null, notice = tr("보드를 이 수순으로 다시 놓았습니다", "The board has been replayed in this order"))
             }
         }
     }
@@ -351,8 +354,8 @@ class MoveOrderViewModel @Inject constructor(
     /** Board writes are refused while a research run owns the engine
      *  (main.c:6225 — `reviewactive || proveactive || queueactive`). */
     private fun busy(): String? = when {
-        review.progress.value.running -> "게임 리뷰가 진행 중입니다 — 먼저 중지하세요"
-        prove.progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다 — 먼저 중지하세요", "A game review is running — stop it first")
+        prove.progress.value.running -> tr("국면 증명이 진행 중입니다 — 먼저 중지하세요", "A proof is running — stop it first")
         else -> null
     }
 }

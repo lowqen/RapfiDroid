@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * yixindb (the engine-side opening database) as the desktop models it.
  *
@@ -179,13 +181,13 @@ data class DbPositionValue(
 
 /** Which record set a bulk delete touches (`yxdeletedatabaseall <filter>`). */
 enum class DbDeleteFilter(val wire: String, val title: String) {
-    ALL("", "모든 분기"),
-    NON_WL("nonwl", "승/패가 아닌 기록"),
-    WL("wl", "승/패 기록"),
-    WIN("w", "승 기록"),
-    LOSE("l", "패 기록"),
-    WL_NO_STEP("wlnostep", "수순 없는 승/패"),
-    WL_IN_STEP("wlinstep", "N수 이내 승/패"),
+    ALL("", tr("모든 분기", "Every branch")),
+    NON_WL("nonwl", tr("승/패가 아닌 기록", "Records that are neither a win nor a loss")),
+    WL("wl", tr("승/패 기록", "Win and loss records")),
+    WIN("w", tr("승 기록", "Win records")),
+    LOSE("l", tr("패 기록", "Loss records")),
+    WL_NO_STEP("wlnostep", tr("수순 없는 승/패", "Wins and losses with no move count")),
+    WL_IN_STEP("wlinstep", tr("N수 이내 승/패", "Wins and losses within N moves")),
 }
 
 /**
@@ -208,8 +210,8 @@ data class DbDeleteScope(
     }
 
     fun title(): String = buildString {
-        append(if (filter == DbDeleteFilter.WL_IN_STEP) "${step}수 이내 승/패" else filter.title)
-        if (recursive && filter != DbDeleteFilter.ALL) append(" (하위 분기까지)")
+        append(if (filter == DbDeleteFilter.WL_IN_STEP) tr("${step}수 이내 승/패", "Wins and losses within ${step} moves") else filter.title)
+        if (recursive && filter != DbDeleteFilter.ALL) append(tr(" (하위 분기까지)", " (including sub-branches)"))
     }
 }
 

@@ -62,6 +62,7 @@ import dev.gomoku.yixindroid.core.designsystem.component.MiniBoard
 import dev.gomoku.yixindroid.core.designsystem.theme.DrawGray
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
 import dev.gomoku.yixindroid.core.designsystem.theme.WinGreen
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ResultSplit
 
 @Composable
@@ -83,10 +84,10 @@ fun RankingsScreen(
         TabRow(selectedTabIndex = ui.tab.ordinal) {
             Tab(selected = ui.tab == RankTab.THREE_MOVE,
                 onClick = { viewModel.onSelectTab(RankTab.THREE_MOVE) },
-                text = { Text("3수 (주형)") })
+                text = { Text(tr("3수 (주형)", "Move 3 (openings)")) })
             Tab(selected = ui.tab == RankTab.FIVE_MOVE,
                 onClick = { viewModel.onSelectTab(RankTab.FIVE_MOVE) },
-                text = { Text("5수 모양") })
+                text = { Text(tr("5수 모양", "Move 5 shapes")) })
         }
 
         when (ui.tab) {
@@ -107,16 +108,16 @@ private fun Header(ui: RankingsUiState, onFilter: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("오프닝 랭킹", style = MaterialTheme.typography.titleLarge)
+            Text(tr("오프닝 랭킹", "Opening rankings"), style = MaterialTheme.typography.titleLarge)
             val sub = if (ui.freqLoaded) {
-                "실전 %,d판 · 이론 %,d형".format(ui.freqGameCount, ui.shapeTotal)
+                tr("실전 %,d판 · 이론 %,d형", "%,d games · %,d shapes").format(ui.freqGameCount, ui.shapeTotal)
             } else {
-                "이론 %,d형 (rank5) · 실전 데이터 없음".format(ui.shapeTotal)
+                tr("이론 %,d형 (rank5) · 실전 데이터 없음", "%,d shapes (rank5) · no game data").format(ui.shapeTotal)
             }
             Text(sub, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        val badge = if (ui.filterActive) "필터·" + selectedLabel(ui) else "필터"
+        val badge = if (ui.filterActive) tr("필터·", "Filter ·") + selectedLabel(ui) else tr("필터", "Filter")
         AssistChip(onClick = onFilter, label = { Text(badge) },
             leadingIcon = { Icon(Icons.Filled.FilterList, contentDescription = null) })
     }
@@ -125,7 +126,7 @@ private fun Header(ui: RankingsUiState, onFilter: () -> Unit) {
 private fun selectedLabel(ui: RankingsUiState): String = buildString {
     if (ui.selectedPlayers.isNotEmpty()) append(ui.selectedPlayers.first().name)
     val rules = ui.filter.ruleIndices.size
-    if (rules > 0) { if (isNotEmpty()) append("·"); append("룰$rules") }
+    if (rules > 0) { if (isNotEmpty()) append("·"); append(tr("룰$rules", "rule$rules")) }
     val extra = ui.selectedPlayers.size - 1
     if (extra > 0) append(" +$extra")
 }
@@ -146,7 +147,7 @@ private fun ErrorBanner(message: String, onDismiss: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically) {
             Text(message, color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-            TextButton(onClick = onDismiss) { Text("닫기") }
+            TextButton(onClick = onDismiss) { Text(tr("닫기", "Close")) }
         }
     }
 }
@@ -172,18 +173,18 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
             DirectFilter.entries.forEach { df ->
                 FilterChip(selected = ui.directFilter == df, onClick = { vm.onDirectFilter(df) },
                     label = { Text(when (df) {
-                        DirectFilter.ALL -> "전체"; DirectFilter.DIRECT -> "직접(直)"
-                        DirectFilter.INDIRECT -> "간접(間)"
+                        DirectFilter.ALL -> tr("전체", "All"); DirectFilter.DIRECT -> tr("직접(直)", "Direct")
+                        DirectFilter.INDIRECT -> tr("간접(間)", "Indirect")
                     }) })
             }
             Spacer(Modifier.weight(1f))
             if (ui.freqLoaded) {
                 FilterChip(selected = ui.sortThreeByFreq, onClick = { vm.onToggleThreeSort() },
-                    label = { Text(if (ui.sortThreeByFreq) "실전순" else "번호순") })
+                    label = { Text(if (ui.sortThreeByFreq) tr("실전순", "By games") else tr("번호순", "By number")) })
             }
         }
         if (ui.freqLoaded) {
-            Text("필터 대국 %,d판".format(ui.threeTotalGames),
+            Text(tr("필터 대국 %,d판", "%,d games match").format(ui.threeTotalGames),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp))
@@ -220,12 +221,12 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
             Spacer(Modifier.height(6.dp))
             if (freqLoaded && card.split != null && card.split.total > 0) {
                 val pct = if (totalGames > 0) card.split.total * 100.0 / totalGames else 0.0
-                Text("%,d판 · %.1f%%".format(card.split.total, pct),
+                Text(tr("%,d판 · %.1f%%", "%,d games · %.1f%%").format(card.split.total, pct),
                     style = MaterialTheme.typography.labelMedium)
                 Spacer(Modifier.height(4.dp))
                 ResultBar(card.split)
             } else {
-                Text("이론 ${card.theoryShapeCount}형",
+                Text(tr("이론 ${card.theoryShapeCount}형", "${card.theoryShapeCount} shapes"),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -249,9 +250,9 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
             verticalAlignment = Alignment.CenterVertically,
         ) {
             FilterChip(selected = ui.fiveSort == FiveSort.THEORY,
-                onClick = { vm.onFiveSort(FiveSort.THEORY) }, label = { Text("이론순") })
+                onClick = { vm.onFiveSort(FiveSort.THEORY) }, label = { Text(tr("이론순", "By theory")) })
             FilterChip(selected = ui.fiveSort == FiveSort.EMPIRICAL, enabled = ui.freqLoaded,
-                onClick = { vm.onFiveSort(FiveSort.EMPIRICAL) }, label = { Text("실전순") })
+                onClick = { vm.onFiveSort(FiveSort.EMPIRICAL) }, label = { Text(tr("실전순", "By games")) })
             Spacer(Modifier.weight(1f))
             BoardScope.entries.forEach { sc ->
                 FilterChip(selected = ui.boardScope == sc, onClick = { vm.onBoardScope(sc) },
@@ -261,7 +262,7 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
         }
         OutlinedTextField(
             value = ui.fiveQuery, onValueChange = vm::onFiveQueryChange,
-            label = { Text("수순 검색 (예: h8 i9)") }, singleLine = true,
+            label = { Text(tr("수순 검색 (예: h8 i9)", "Search a move order (e.g. h8 i9)")) }, singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         )
         if (ui.fiveSort == FiveSort.THEORY) GroupChart(ui.groupDist)
@@ -283,7 +284,7 @@ private fun GroupChart(dist: List<Pair<Int, Int>>) {
     if (dist.isEmpty()) return
     val total = dist.sumOf { it.second }.coerceAtLeast(1)
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Text("경우의 수 그룹 분포", style = MaterialTheme.typography.labelMedium,
+        Text(tr("경우의 수 그룹 분포", "Distribution of order counts"), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
         Row(Modifier.fillMaxWidth().height(16.dp).clip(RoundedCornerShape(4.dp))) {
@@ -333,7 +334,7 @@ private fun FiveRowView(row: FiveRow) {
                         style = MaterialTheme.typography.labelMedium,
                         color = if (row.openingIndex in 0..12) WinBlue else WinGreen)
                     row.empiricalCount?.let {
-                        Text("실전 %,d판".format(it), style = MaterialTheme.typography.labelSmall,
+                        Text(tr("실전 %,d판", "%,d games").format(it), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -356,7 +357,7 @@ private fun ResultBar(split: ResultSplit) {
             Box(Modifier.weight(split.draws.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(DrawGray))
             Box(Modifier.weight(split.whiteWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(WinGreen))
         }
-        Text("흑 ${pct(split.blackWins, decided)} · 무 ${pct(split.draws, decided)} · 백 ${pct(split.whiteWins, decided)}",
+        Text(tr("흑 ${pct(split.blackWins, decided)} · 무 ${pct(split.draws, decided)} · 백 ${pct(split.whiteWins, decided)}", "Black ${pct(split.blackWins, decided)} · draw ${pct(split.draws, decided)} · White ${pct(split.whiteWins, decided)}"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -374,32 +375,32 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
     ModalBottomSheet(onDismissRequest = vm::onCloseFilter, sheetState = sheetState) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("필터", style = MaterialTheme.typography.titleLarge)
+            Text(tr("필터", "Filter"), style = MaterialTheme.typography.titleLarge)
 
             // dataset
             if (ui.freqLoaded) {
-                Text("실전 데이터: %,d판 (%s)".format(ui.freqGameCount, ui.freqGenerated ?: "-"),
+                Text(tr("실전 데이터: %,d판 (%s)", "Game data: %,d games (%s)").format(ui.freqGameCount, ui.freqGenerated ?: "-"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                Text("실전 데이터가 없습니다. freq_data.json을 임포트하면 실전 빈도·승률이 표시됩니다. " +
-                    "(RenjuNet 파생 — 기기 반입 전용, 재배포 금지)",
+                Text(tr("실전 데이터가 없습니다. freq_data.json을 임포트하면 실전 빈도·승률이 표시됩니다. ", "No game data. Import freq_data.json to see how often each opening is played and how it scores.") +
+                    tr("(RenjuNet 파생 — 기기 반입 전용, 재배포 금지)", "(RenjuNet derived — bring it to the device yourself, do not redistribute)"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = onImport, label = { Text("freq 임포트") },
+                AssistChip(onClick = onImport, label = { Text(tr("freq 임포트", "Import freq")) },
                     leadingIcon = { Icon(Icons.Filled.UploadFile, contentDescription = null) })
                 if (ui.freqLoaded) {
-                    AssistChip(onClick = vm::onClearFreq, label = { Text("데이터 해제") })
+                    AssistChip(onClick = vm::onClearFreq, label = { Text(tr("데이터 해제", "Forget the data")) })
                 }
-                if (ui.importing) Text("불러오는 중…", style = MaterialTheme.typography.labelMedium)
+                if (ui.importing) Text(tr("불러오는 중…", "Loading…"), style = MaterialTheme.typography.labelMedium)
             }
 
             if (ui.freqLoaded) {
                 // player search
                 OutlinedTextField(value = ui.playerQuery, onValueChange = vm::onPlayerQueryChange,
-                    label = { Text("선수 검색 (이름/국가)") }, singleLine = true,
+                    label = { Text(tr("선수 검색 (이름/국가)", "Search a player (name or country)")) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth())
                 if (ui.playerSuggestions.isNotEmpty()) {
                     Surface(tonalElevation = 2.dp, shape = RoundedCornerShape(8.dp)) {
@@ -419,7 +420,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
                         ui.selectedPlayers.forEach { p ->
                             InputChip(selected = true, onClick = { vm.onRemovePlayer(p) },
                                 label = { Text(p.name) },
-                                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = "제거",
+                                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = tr("제거", "Remove"),
                                     modifier = Modifier.size(16.dp)) })
                         }
                     }
@@ -427,7 +428,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
 
                 // rule chips
                 if (ui.ruleOptions.isNotEmpty()) {
-                    Text("룰", style = MaterialTheme.typography.labelLarge)
+                    Text(tr("룰", "Rule"), style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ui.ruleOptions.forEach { (idx, name) ->
                             FilterChip(selected = idx in ui.filter.ruleIndices,
@@ -437,9 +438,9 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = vm::onClearFilter) { Text("필터 초기화") }
+                    TextButton(onClick = vm::onClearFilter) { Text(tr("필터 초기화", "Reset the filter")) }
                     Spacer(Modifier.weight(1f))
-                    TextButton(onClick = vm::onCloseFilter) { Text("적용") }
+                    TextButton(onClick = vm::onCloseFilter) { Text(tr("적용", "Apply")) }
                 }
             }
         }

@@ -1,14 +1,16 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * Which colours the engine plays — the desktop's `computerside` bitmask
  * (main.c:74, persisted as settings.txt lines 4 and 5).
  */
 enum class ComputerSide(val bits: Int, val label: String) {
-    NONE(0, "사람 대 사람"),
-    BLACK(1, "컴퓨터 흑"),
-    WHITE(2, "컴퓨터 백"),
-    BOTH(3, "컴퓨터 양쪽"),
+    NONE(0, tr("사람 대 사람", "Human vs human")),
+    BLACK(1, tr("컴퓨터 흑", "Computer Black")),
+    WHITE(2, tr("컴퓨터 백", "Computer White")),
+    BOTH(3, tr("컴퓨터 양쪽", "Computer both")),
     ;
 
     fun plays(color: StoneColor): Boolean = when (color) {
@@ -41,15 +43,15 @@ enum class ComputerSide(val bits: Int, val label: String) {
  * desktop inconsistency; the file is what both sides persist, so the file wins.
  */
 enum class OpeningProtocol(val label: String) {
-    NONE("없음"),
+    NONE(tr("없음", "None")),
     /** rule 4: the first three moves are entered by hand, near the centre. */
-    RIF("RIF 오프닝"),
+    RIF(tr("RIF 오프닝", "RIF opening")),
     /** rule 3: opponent may take over after move 1. */
-    SWAP_FIRST("첫 수 이후 교환"),
+    SWAP_FIRST(tr("첫 수 이후 교환", "Swap after the first move")),
     /** rule 5: the full Soosorv-8 negotiation, including N fifth moves. */
     SOOSORV("Soosorv-8"),
     /** rule 6: three stones, swap or add two more. */
-    SWAP2("스왑2"),
+    SWAP2(tr("스왑2", "Swap2")),
     ;
 
     /** Openings where the engine must not be asked to move before move 3. */
@@ -58,18 +60,18 @@ enum class OpeningProtocol(val label: String) {
 
 /** How a game ended. The winner is null for a draw. */
 enum class GameEnd(val label: String) {
-    FIVE("5목 완성"),
-    BOARD_FULL("판이 다 찼습니다"),
-    RESIGNED("기권"),
-    DRAW_AGREED("무승부 합의"),
-    TIMEOUT("시간 초과"),
+    FIVE(tr("5목 완성", "five in a row")),
+    BOARD_FULL(tr("판이 다 찼습니다", "the board is full")),
+    RESIGNED(tr("기권", "resignation")),
+    DRAW_AGREED(tr("무승부 합의", "draw agreed")),
+    TIMEOUT(tr("시간 초과", "time out")),
 }
 
 data class GameResult(val end: GameEnd, val winner: StoneColor?) {
     fun describe(): String = when {
         winner == null -> end.label
-        winner == StoneColor.BLACK -> "흑 승 · ${end.label}"
-        else -> "백 승 · ${end.label}"
+        winner == StoneColor.BLACK -> tr("흑 승 · ${end.label}", "Black wins · ${end.label}")
+        else -> tr("백 승 · ${end.label}", "White wins · ${end.label}")
     }
 }
 

@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.DesktopSettings
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
@@ -63,8 +64,8 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { n -> "디버그 로그 ${n / 1024}KB 를 내보냈습니다" },
-                        onFailure = { e -> "내보내기 실패: ${e.message}" },
+                        onSuccess = { n -> tr("디버그 로그 ${n / 1024}KB 를 내보냈습니다", "Exported ${n / 1024}KB of debug log") },
+                        onFailure = { e -> tr("내보내기 실패: ${e.message}", "Export failed: ${e.message}") },
                     ),
                 )
             }
@@ -75,7 +76,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             debugLog.clear()
             refreshDebugLogSize()
-            _state.update { it.copy(message = "디버그 로그를 지웠습니다") }
+            _state.update { it.copy(message = tr("디버그 로그를 지웠습니다", "Debug log cleared")) }
         }
     }
 
@@ -105,7 +106,7 @@ class SettingsViewModel @Inject constructor(
     fun onReset() {
         viewModelScope.launch {
             settingsRepository.resetToDefaults()
-            _state.update { it.copy(message = "설정을 PC 기본값으로 되돌렸습니다") }
+            _state.update { it.copy(message = tr("설정을 PC 기본값으로 되돌렸습니다", "Settings are back to the PC defaults")) }
         }
     }
 
@@ -121,8 +122,8 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { "${file.fileName} ${file.lineCount}줄을 내보냈습니다" },
-                        onFailure = { e -> "내보내기 실패: ${e.message}" },
+                        onSuccess = { tr("${file.fileName} ${file.lineCount}줄을 내보냈습니다", "Exported ${file.lineCount} lines to ${file.fileName}") },
+                        onFailure = { e -> tr("내보내기 실패: ${e.message}", "Export failed: ${e.message}") },
                     ),
                 )
             }
@@ -139,8 +140,8 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { n -> "${file.fileName} ${n}줄을 불러왔습니다" },
-                        onFailure = { e -> "불러오기 실패: ${e.message}" },
+                        onSuccess = { n -> tr("${file.fileName} ${n}줄을 불러왔습니다", "Read ${n} lines from ${file.fileName}") },
+                        onFailure = { e -> tr("불러오기 실패: ${e.message}", "Import failed: ${e.message}") },
                     ),
                 )
             }
@@ -160,7 +161,7 @@ class SettingsViewModel @Inject constructor(
                 it.copy(
                     message = result.fold(
                         onSuccess = { text -> text },
-                        onFailure = { e -> "불러오기 실패: ${e.message}" },
+                        onFailure = { e -> tr("불러오기 실패: ${e.message}", "Import failed: ${e.message}") },
                     ),
                 )
             }
@@ -170,7 +171,7 @@ class SettingsViewModel @Inject constructor(
     fun onResetAppearance() {
         viewModelScope.launch {
             appearance.reset()
-            _state.update { it.copy(message = "툴바·핫키·언어를 기본값으로 되돌렸습니다") }
+            _state.update { it.copy(message = tr("툴바·핫키·언어를 기본값으로 되돌렸습니다", "Toolbar, hotkeys and language are back to their defaults")) }
         }
     }
 

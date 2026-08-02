@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ProveMark
 import dev.gomoku.yixindroid.core.model.ProveOptions
 import kotlinx.coroutines.delay
@@ -63,10 +64,10 @@ fun ProveCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("국면 증명", style = MaterialTheme.typography.titleSmall)
+            Text(tr("국면 증명", "Prove Position"), style = MaterialTheme.typography.titleSmall)
             Text(
-                "차례인 쪽이 이 국면에서 이기는지 AND/OR 탐색으로 증명합니다. " +
-                    "결론(메이트)은 엔진의 데이터베이스에 기록되므로 PC에서도 그대로 보입니다.",
+                tr("차례인 쪽이 이 국면에서 이기는지 AND/OR 탐색으로 증명합니다. ", "Proves whether the side to move wins this position, by AND/OR search.") +
+                    tr("결론(메이트)은 엔진의 데이터베이스에 기록되므로 PC에서도 그대로 보입니다.", "A mate is written to the engine's database, so the PC sees it too."),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -77,55 +78,59 @@ fun ProveCard(
                 FilterChip(
                     selected = !options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = false)) },
-                    label = { Text("초/노드") },
+                    label = { Text(tr("초/노드", "s per node")) },
                     enabled = editable,
                 )
                 FilterChip(
                     selected = options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = true)) },
-                    label = { Text("깊이/노드") },
+                    label = { Text(tr("깊이/노드", "plies per node")) },
                     enabled = editable,
                 )
             }
             if (options.byDepth) {
-                Stepper("초기 깊이", options.depth0, 4, 64, editable) {
+                Stepper(tr("초기 깊이", "Starting depth"), options.depth0, 4, 64, editable) {
                     viewModel.onOptions(options.copy(depth0 = it))
                 }
-                Stepper("최대 깊이", options.depthMax, 4, 128, editable) {
+                Stepper(tr("최대 깊이", "Depth cap"), options.depthMax, 4, 128, editable) {
                     viewModel.onOptions(options.copy(depthMax = it))
                 }
             } else {
-                Stepper("초기 예산(초)", options.budget0Sec, 1, 600, editable) {
+                Stepper(tr("초기 예산(초)", "Starting budget (s)"), options.budget0Sec, 1, 600, editable) {
                     viewModel.onOptions(options.copy(budget0Sec = it))
                 }
-                Stepper("최대 예산(초)", options.budgetMaxSec, 1, 3600, editable) {
+                Stepper(tr("최대 예산(초)", "Budget cap (s)"), options.budgetMaxSec, 1, 3600, editable) {
                     viewModel.onOptions(options.copy(budgetMaxSec = it))
                 }
             }
-            Stepper("공격 후보 수", options.nbest, 1, ProveOptions.NBEST_MAX, editable) {
+            Stepper(tr("공격 후보 수", "Attack candidates"), options.nbest, 1, ProveOptions.NBEST_MAX, editable) {
                 viewModel.onOptions(options.copy(nbest = it))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = options.bestFirst,
                     onClick = { viewModel.onOptions(options.copy(bestFirst = !options.bestFirst)) },
-                    label = { Text("최선 공격수 먼저") },
+                    label = { Text(tr("최선 공격수 먼저", "Best attack first")) },
                     enabled = editable,
                 )
                 FilterChip(
                     selected = options.probe,
                     onClick = { viewModel.onOptions(options.copy(probe = !options.probe)) },
-                    label = { Text("최강 방어 조기 탐침") },
+                    label = { Text(tr("최강 방어 조기 탐침", "Probe the strongest defence early")) },
                     enabled = editable,
                 )
             }
 
             if (ui.running) {
                 RunningState(ui)
-                OutlinedButton(onClick = viewModel::onCancel) { Text("중지") }
+                OutlinedButton(onClick = viewModel::onCancel) { Text(tr("중지", "Stop")) }
             } else {
                 Button(onClick = viewModel::onStart, enabled = ui.canStart) {
-                    Text("증명 시작 (${if (ui.blackToMove) "흑" else "백"} 차례, ${ui.moveCount}수)")
+                    Text(
+                        tr("증명 시작 (", "Prove (") +
+                            (if (ui.blackToMove) tr("흑", "Black") else tr("백", "White")) +
+                            tr(" 차례, ${ui.moveCount}수)", " to move, ${ui.moveCount} moves)"),
+                    )
                 }
                 ui.blocker?.let {
                     Text(
@@ -137,7 +142,7 @@ fun ProveCard(
             }
 
             if (ui.log.isNotEmpty()) {
-                Text("기록", style = MaterialTheme.typography.labelMedium)
+                Text(tr("기록", "Log"), style = MaterialTheme.typography.labelMedium)
                 ui.log.takeLast(6).forEach {
                     Text(it, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
                 }
@@ -149,7 +154,7 @@ fun ProveCard(
         AlertDialog(
             onDismissRequest = viewModel::onDismissOutcome,
             confirmButton = {
-                TextButton(onClick = viewModel::onDismissOutcome) { Text("확인") }
+                TextButton(onClick = viewModel::onDismissOutcome) { Text(tr("확인", "OK")) }
             },
             title = { Text(outcome.title) },
             text = { Text(outcome.message) },
@@ -183,7 +188,7 @@ private fun RunningState(ui: ProveUiState) {
         Text(second, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
     }
     Text(
-        "탐색 중인 수순: ${ui.progress.path}",
+        tr("탐색 중인 수순: ${ui.progress.path}", "Searching: ${ui.progress.path}"),
         style = MaterialTheme.typography.labelSmall,
         fontFamily = FontFamily.Monospace,
     )
@@ -214,7 +219,7 @@ private fun markLabel(mark: ProveMark): String = when (mark) {
     ProveMark.WIN -> "✓"
     ProveMark.LOSS -> "✗"
     ProveMark.EXH -> "!"
-    ProveMark.LATENT -> "대기"
+    ProveMark.LATENT -> tr("대기", "idle")
     else -> "…"
 }
 

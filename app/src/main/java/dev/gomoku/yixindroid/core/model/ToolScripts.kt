@@ -1,5 +1,7 @@
 package dev.gomoku.yixindroid.core.model
 
+import dev.gomoku.yixindroid.core.i18n.tr
+
 /**
  * The engine-maintenance scripts, copied verbatim from the desktop's own
  * toolbar definitions (`test-yixin/function/toolbar33-36.txt`).
@@ -37,7 +39,7 @@ object ToolScripts {
 
     /** The evaluation modes the deployment actually ships a config for. */
     val evaluationModes: List<Pair<String, String>> = listOf(
-        "NNUE (기본)" to CONFIG_NNUE,
-        "Classic (사활)" to CONFIG_CLASSIC,
+        tr("NNUE (기본)", "NNUE (default)") to CONFIG_NNUE,
+        tr("Classic (사활)", "Classic (life and death)") to CONFIG_CLASSIC,
     )
 }

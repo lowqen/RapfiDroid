@@ -2,6 +2,7 @@ package dev.gomoku.yixindroid.feature.database
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbDeleteFilter
 import dev.gomoku.yixindroid.core.model.DbDeleteScope
@@ -180,7 +181,7 @@ class DatabaseViewModel @Inject constructor(
     private fun runWithPath(block: suspend (String) -> DbOpResult) {
         val path = pathDraft.value.trim()
         if (path.isEmpty()) {
-            notice.value = "엔진 쪽 파일 경로를 입력하세요"
+            notice.value = tr("엔진 쪽 파일 경로를 입력하세요", "Type a path on the engine's machine")
             return
         }
         viewModelScope.launch {

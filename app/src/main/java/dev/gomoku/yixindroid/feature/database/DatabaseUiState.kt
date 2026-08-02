@@ -1,5 +1,6 @@
 package dev.gomoku.yixindroid.feature.database
 
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbDeleteScope
 import dev.gomoku.yixindroid.core.model.DbState
@@ -28,15 +29,15 @@ data class DatabaseUiState(
 
     /** Current path as board labels, e.g. "H8 I9 J10" (empty board = "빈 판"). */
     fun pathLabels(): String =
-        if (position.moves.isEmpty()) "빈 판"
+        if (position.moves.isEmpty()) tr("빈 판", "empty board")
         else position.moves.joinToString(" ") { it.label(position.size) }
 
     fun valueSummary(): String {
-        val value = db.value ?: return "저장된 값 없음"
+        val value = db.value ?: return tr("저장된 값 없음", "No stored value")
         return when {
-            value.stmMate != null && value.stmMate > 0 -> "두는 쪽 승 · M${value.stmMate}"
-            value.stmMate != null -> "두는 쪽 패 · M${-value.stmMate}"
-            else -> "흑 ${(value.blackWinRate * 100).toInt()}%"
+            value.stmMate != null && value.stmMate > 0 -> tr("두는 쪽 승 · M${value.stmMate}", "Side to move wins · M${value.stmMate}")
+            value.stmMate != null -> tr("두는 쪽 패 · M${-value.stmMate}", "Side to move loses · M${-value.stmMate}")
+            else -> tr("흑 ${(value.blackWinRate * 100).toInt()}%", "Black ${(value.blackWinRate * 100).toInt()}%")
         }
     }
 }

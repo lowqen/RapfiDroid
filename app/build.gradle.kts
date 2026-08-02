@@ -15,8 +15,8 @@ android {
         applicationId = "dev.gomoku.yixindroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.11.2"
+        versionCode = 9
+        versionName = "0.12.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -49,6 +49,16 @@ android {
     }
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    }
+
+    testOptions {
+        unitTests.all {
+            // A good many tests assert user-facing text, and that text is now
+            // whichever side of `tr()` the JVM's default locale selects. Pin it,
+            // or the suite passes on a Korean machine and fails on any other.
+            it.systemProperty("user.language", "ko")
+            it.systemProperty("user.country", "KR")
+        }
     }
 }
 

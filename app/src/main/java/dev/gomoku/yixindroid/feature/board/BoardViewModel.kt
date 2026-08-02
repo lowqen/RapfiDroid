@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.designsystem.component.DbLabel
 import dev.gomoku.yixindroid.core.designsystem.component.TagPalette
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.AppSettings
@@ -287,7 +288,7 @@ class BoardViewModel @Inject constructor(
             return
         }
         if (game.state.value.thinking) {
-            _notice.value = "대국 착수를 계산하는 중입니다"
+            _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move")
             return
         }
         startAnalysis()
@@ -305,7 +306,7 @@ class BoardViewModel @Inject constructor(
         }
         if (!repository.state.value.isLive) return
         if (game.state.value.thinking) {
-            _notice.value = "대국 착수를 계산하는 중입니다"
+            _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move")
             return
         }
         startAnalysis(defend = true)
@@ -370,7 +371,8 @@ class BoardViewModel @Inject constructor(
                 return@launch
             }
             game.replaceLine(target.moves + legal)
-            _notice.value = "탐색 종료 · ${legal.joinToString(" ") { it.label(target.size) }} 착수"
+            val played = legal.joinToString(" ") { it.label(target.size) }
+            _notice.value = tr("탐색 종료 · $played 착수", "Search over · played $played")
         }
     }
 
@@ -395,7 +397,7 @@ class BoardViewModel @Inject constructor(
         if (pos.moves.isEmpty()) return
         val shifted = BoardTransform.shift(pos.moves, pos.size, direction)
         if (shifted == null) {
-            _notice.value = "판 밖으로 나가는 수가 있어 이동할 수 없습니다"
+            _notice.value = tr("판 밖으로 나가는 수가 있어 이동할 수 없습니다", "A stone would leave the board, so nothing was moved")
             return
         }
         applyLine(shifted)
@@ -413,11 +415,11 @@ class BoardViewModel @Inject constructor(
         val size = position.value.size
         val moves = BoardTransform.fromPositionString(text.trim(), size)
         if (moves.isEmpty()) {
-            _notice.value = "국면 문자열을 읽을 수 없습니다"
+            _notice.value = tr("국면 문자열을 읽을 수 없습니다", "That position string could not be read")
             return
         }
         applyLine(moves)
-        _notice.value = "${moves.size}수를 불러왔습니다"
+        _notice.value = tr("${moves.size}수를 불러왔습니다", "Loaded ${moves.size} moves")
     }
 
     /**
@@ -442,11 +444,12 @@ class BoardViewModel @Inject constructor(
             if (position.value != target) return@launch
             val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
             if (legal.isEmpty()) {
-                _notice.value = "균형점을 찾지 못했습니다"
+                _notice.value = tr("균형점을 찾지 못했습니다", "No balancing move was found")
                 return@launch
             }
             game.replaceLine(target.moves + legal)
-            _notice.value = "균형점: ${legal.joinToString(" ") { it.label(target.size) }}"
+            _notice.value = tr("균형점: ", "Balance: ") +
+                legal.joinToString(" ") { it.label(target.size) }
         }
     }
 
@@ -508,8 +511,8 @@ class BoardViewModel @Inject constructor(
     fun onSaveImage(uri: Uri, bytes: ByteArray) {
         viewModelScope.launch {
             _notice.value = runCatching { imageIo.write(uri, bytes) }.fold(
-                onSuccess = { "보드 이미지를 저장했습니다" },
-                onFailure = { e -> "이미지 저장 실패: ${e.message}" },
+                onSuccess = { tr("보드 이미지를 저장했습니다", "Board image saved") },
+                onFailure = { e -> tr("이미지 저장 실패: ${e.message}", "Could not save the image: ${e.message}") },
             )
         }
     }
@@ -599,7 +602,7 @@ class BoardViewModel @Inject constructor(
             ResearchBanner(first, second, isProve = true)
         }
         panel.reviewProgress.running -> ResearchBanner(
-            "리뷰 ${panel.reviewProgress.index}/${panel.reviewProgress.total}",
+            tr("리뷰 ${panel.reviewProgress.index}/${panel.reviewProgress.total}", "Review ${panel.reviewProgress.index}/${panel.reviewProgress.total}"),
             progress = panel.reviewProgress.fraction.takeIf { panel.reviewProgress.total > 0 },
         )
         else -> null
@@ -777,8 +780,8 @@ class BoardViewModel @Inject constructor(
      * push a `TURN` into the middle of the run's own conversation.
      */
     private fun researchBusy(): String? = when {
-        review.progress.value.running -> "게임 리뷰가 진행 중입니다 — 먼저 중지하세요"
-        prove.progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다 — 먼저 중지하세요", "A game review is running — stop it first")
+        prove.progress.value.running -> tr("국면 증명이 진행 중입니다 — 먼저 중지하세요", "A proof is running — stop it first")
         else -> null
     }
 

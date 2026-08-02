@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.BoardGeometry
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.MoveOrderFormat
 import kotlin.math.roundToInt
 
@@ -79,13 +80,13 @@ fun MoveOrderSection(
     ui.applyPrompt?.let { prompt ->
         AlertDialog(
             onDismissRequest = viewModel::onDismissApplyPrompt,
-            title = { Text("돌 위치가 바뀝니다") },
+            title = { Text(tr("돌 위치가 바뀝니다", "The stones will move")) },
             text = { Text(prompt) },
             confirmButton = {
-                TextButton(onClick = { viewModel.onApply(confirmed = true) }) { Text("놓기") }
+                TextButton(onClick = { viewModel.onApply(confirmed = true) }) { Text(tr("놓기", "Place")) }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::onDismissApplyPrompt) { Text("취소") }
+                TextButton(onClick = viewModel::onDismissApplyPrompt) { Text(tr("취소", "Cancel")) }
             },
         )
     }
@@ -135,13 +136,13 @@ fun MoveOrderSection(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             OutlinedButton(onClick = viewModel::onBack, enabled = ui.canBack) {
-                                Text("한 수 뒤로")
+                                Text(tr("한 수 뒤로", "Back one"))
                             }
                             OutlinedButton(onClick = viewModel::onRoot, enabled = ui.canBack) {
-                                Text("처음으로")
+                                Text(tr("처음으로", "To start"))
                             }
                             Button(onClick = { viewModel.onApply() }, enabled = ui.canApply) {
-                                Text("보드에 놓기")
+                                Text(tr("보드에 놓기", "Put on the board"))
                             }
                         }
                     }
@@ -160,7 +161,7 @@ fun MoveOrderSection(
             if (ui.rows.isNotEmpty()) {
                 item {
                     Text(
-                        "다음 수 후보 ${ui.rows.size}가지 — 누르면 그 갈래로 들어갑니다",
+                        tr("다음 수 후보 ${ui.rows.size}가지 — 누르면 그 갈래로 들어갑니다", "${ui.rows.size} continuations — tap one to follow it"),
                         style = MaterialTheme.typography.titleSmall,
                     )
                 }
@@ -185,24 +186,24 @@ private fun OptionChips(ui: MoveOrderUiState, onChange: (MoveOrderOptions) -> Un
         FilterChip(
             selected = o.openingRule,
             onClick = { onChange(o.copy(openingRule = !o.openingRule)) },
-            label = { Text("오프닝 규칙") },
+            label = { Text(tr("오프닝 규칙", "Opening rule")) },
         )
         FilterChip(
             selected = o.move2Fix,
             // H9/I9 is a sub-rule of the opening rule (main.c:6140)
             enabled = o.openingRule,
             onClick = { onChange(o.copy(move2Fix = !o.move2Fix)) },
-            label = { Text("2수 H9/I9") },
+            label = { Text(tr("2수 H9/I9", "Move 2 at H9/I9")) },
         )
         FilterChip(
             selected = o.noFive,
             onClick = { onChange(o.copy(noFive = !o.noFive)) },
-            label = { Text("중간 오목 금지") },
+            label = { Text(tr("중간 오목 금지", "No five before the end")) },
         )
         FilterChip(
             selected = o.symmetry,
             onClick = { onChange(o.copy(symmetry = !o.symmetry)) },
-            label = { Text("환원(회전·반전)") },
+            label = { Text(tr("환원(회전·반전)", "Fold rotations and mirrors")) },
         )
     }
 }
@@ -228,13 +229,13 @@ private fun CandidateRow(
             )
             Column(Modifier.weight(1f).padding(start = 10.dp)) {
                 Text(
-                    row.label + if (row.actual) "  ← 실제 대국" else "",
+                    row.label + if (row.actual) tr("  ← 실제 대국", "  ← this game") else "",
                     style = MaterialTheme.typography.titleSmall,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 )
                 Text(
-                    "수순 ${row.countText}가지 · ${row.sharePercent}%",
+                    tr("수순 ${row.countText}가지 · ${row.sharePercent}%", "${row.countText} orders · ${row.sharePercent}%"),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }

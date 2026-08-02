@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.feature.explorer
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ExplorerGames
 import dev.gomoku.yixindroid.core.model.ExplorerPosition
 import dev.gomoku.yixindroid.core.model.ExplorerStatus
@@ -96,7 +97,7 @@ class OpeningExplorerViewModel @Inject constructor(
             _ui.update {
                 it.copy(
                     importing = false,
-                    notice = result.getOrElse { e -> e.message ?: "팩을 불러오지 못했습니다" },
+                    notice = result.getOrElse { e -> e.message ?: tr("팩을 불러오지 못했습니다", "The packs could not be loaded") },
                 )
             }
         }
@@ -105,7 +106,7 @@ class OpeningExplorerViewModel @Inject constructor(
     fun onClearPacks() {
         viewModelScope.launch {
             repository.clearPacks()
-            _ui.update { it.copy(notice = "팩을 지웠습니다", selected = null) }
+            _ui.update { it.copy(notice = tr("팩을 지웠습니다", "Packs cleared"), selected = null) }
         }
     }
 
@@ -138,7 +139,7 @@ class OpeningExplorerViewModel @Inject constructor(
         viewModelScope.launch {
             val reason = repository.loadGame(id)
             _ui.update {
-                it.copy(notice = reason ?: "기보 #$id 을(를) 보드에 올렸습니다")
+                it.copy(notice = reason ?: tr("기보 #$id 을(를) 보드에 올렸습니다", "Game #$id is on the board"))
             }
         }
     }

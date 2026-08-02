@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ExplorerGameRow
 import dev.gomoku.yixindroid.core.model.ExplorerNext
 import dev.gomoku.yixindroid.core.model.ExplorerPosition
@@ -87,16 +88,16 @@ fun OpeningExplorerSection(
     confirmLoad?.let { id ->
         AlertDialog(
             onDismissRequest = { confirmLoad = null },
-            title = { Text("기보를 보드에 올릴까요?") },
-            text = { Text("지금 보드의 대국은 이 기보로 바뀝니다.") },
+            title = { Text(tr("기보를 보드에 올릴까요?", "Put this game on the board?")) },
+            text = { Text(tr("지금 보드의 대국은 이 기보로 바뀝니다.", "The game on the board is replaced by this one.")) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.onLoadGame(id)
                     confirmLoad = null
-                }) { Text("올리기") }
+                }) { Text(tr("올리기", "Put it on")) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmLoad = null }) { Text("취소") }
+                TextButton(onClick = { confirmLoad = null }) { Text(tr("취소", "Cancel")) }
             },
         )
     }
@@ -116,7 +117,7 @@ fun OpeningExplorerSection(
                 item { KpiRow(pos) }
                 if (pos.next.isNotEmpty()) {
                     item {
-                        SectionTitle("다음 수 ${pos.next.size}가지 — 누르면 보드에 둡니다")
+                        SectionTitle(tr("다음 수 ${pos.next.size}가지 — 누르면 보드에 둡니다", "${pos.next.size} continuations — tap one to play it"))
                     }
                     items(pos.next, key = { it.move.x * 100 + it.move.y }) { row ->
                         NextRow(row, ui.barScale, pos.games) { viewModel.onPlayNext(row.move) }
@@ -129,15 +130,15 @@ fun OpeningExplorerSection(
                     OutlinedTextField(
                         value = ui.filter,
                         onValueChange = viewModel::onFilterChange,
-                        label = { Text("선수 이름 검색 (라틴 문자)") },
+                        label = { Text(tr("선수 이름 검색 (라틴 문자)", "Search a player name (Latin letters)")) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
                 item {
                     SectionTitle(
-                        "대국 ${ui.games.shown} / ${ui.games.matched}" +
-                            if (ui.games.matched > ui.games.shown) " (표시 상한 1,000)" else "",
+                        tr("대국 ${ui.games.shown} / ${ui.games.matched}", "Games ${ui.games.shown} / ${ui.games.matched}") +
+                            if (ui.games.matched > ui.games.shown) tr(" (표시 상한 1,000)", " (1,000 shown at most)") else "",
                     )
                 }
                 items(ui.games.rows, key = { it.id }) { row ->
@@ -166,23 +167,23 @@ private fun HeaderCard(
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when (ui.status) {
                 ExplorerStatus.NO_PACKS -> {
-                    Text("오프닝 익스플로러 팩이 없습니다", style = MaterialTheme.typography.titleMedium)
+                    Text(tr("오프닝 익스플로러 팩이 없습니다", "No opening explorer packs"), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "RenjuNet 공식 DB(.rif)를 renju.net 에서 내려받아 PC의 rifdb 스크립트 " +
-                            "3개(rif_import → rif_aggregate → rif_pack)로 renju_stats.pack / " +
-                            "renju_games.pack 을 만든 뒤 여기서 두 파일을 고르세요.\n" +
-                            "RenjuNet 라이선스는 비상업·오프라인 전용이라 팩은 앱에 동봉되지 않고, " +
-                            "이 기기 밖으로 나가지도 않습니다.",
+                        tr("RenjuNet 공식 DB(.rif)를 renju.net 에서 내려받아 PC의 rifdb 스크립트 ", "Download the official RenjuNet database (.rif) from renju.net, run the three rifdb scripts on the PC") +
+                            tr("3개(rif_import → rif_aggregate → rif_pack)로 renju_stats.pack / ", "(rif_import → rif_aggregate → rif_pack) to build renju_stats.pack and") +
+                            tr("renju_games.pack 을 만든 뒤 여기서 두 파일을 고르세요.\n", "renju_games.pack, then pick both files here.\n") +
+                            tr("RenjuNet 라이선스는 비상업·오프라인 전용이라 팩은 앱에 동봉되지 않고, ", "The RenjuNet licence is non-commercial and offline only, so the packs are not shipped with the app") +
+                            tr("이 기기 밖으로 나가지도 않습니다.", "and never leave this device."),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
                 ExplorerStatus.WRONG_SIZE ->
-                    Text("익스플로러는 15×15 판에서만 동작합니다", style = MaterialTheme.typography.titleMedium)
+                    Text(tr("익스플로러는 15×15 판에서만 동작합니다", "The explorer works on a 15×15 board only"), style = MaterialTheme.typography.titleMedium)
                 ExplorerStatus.NO_STATS -> {
-                    Text("이 국면의 통계가 없습니다", style = MaterialTheme.typography.titleMedium)
+                    Text(tr("이 국면의 통계가 없습니다", "No statistics for this position"), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "팩은 시작 ${ui.packs?.maxPlies ?: 20}수 이내, " +
-                            "${ui.packs?.minGames ?: 2}판 이상 나온 국면만 담습니다.",
+                        tr("팩은 시작 ${ui.packs?.maxPlies ?: 20}수 이내, ", "The packs hold positions within the first ${ui.packs?.maxPlies ?: 20} moves") +
+                            tr("${ui.packs?.minGames ?: 2}판 이상 나온 국면만 담습니다.", "that occur in at least ${ui.packs?.minGames ?: 2} games."),
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
@@ -193,23 +194,23 @@ private fun HeaderCard(
                         fontFamily = FontFamily.Monospace,
                     )
                     ui.position?.openingLabel?.let {
-                        Text("주형(RIF): $it", style = MaterialTheme.typography.bodySmall)
+                        Text(tr("주형(RIF): $it", "Opening (RIF): $it"), style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
             ui.packs?.let {
                 Text(
-                    "팩: 대국 ${it.totalGames}판 · 국면 ${it.positions}개 · ${it.dateText} 생성",
+                    tr("팩: 대국 ${it.totalGames}판 · 국면 ${it.positions}개 · ${it.dateText} 생성", "Packs: ${it.totalGames} games · ${it.positions} positions · built ${it.dateText}"),
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
             if (ui.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = onImport, enabled = !ui.importing) {
-                    Text(if (ui.packs == null) "팩 불러오기" else "다시 불러오기")
+                    Text(if (ui.packs == null) tr("팩 불러오기", "Load packs") else tr("다시 불러오기", "Load again"))
                 }
                 if (ui.packs != null) {
-                    OutlinedButton(onClick = onClear, enabled = !ui.importing) { Text("지우기") }
+                    OutlinedButton(onClick = onClear, enabled = !ui.importing) { Text(tr("지우기", "Clear")) }
                 }
             }
         }
@@ -220,10 +221,10 @@ private fun HeaderCard(
 @Composable
 private fun KpiRow(pos: ExplorerPosition) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Kpi("전체", pos.games, null, null, Modifier.weight(1f))
-        Kpi("흑승", pos.blackWins, pos.percent(pos.blackWins), Color(0xFF3F83C6), Modifier.weight(1f))
-        Kpi("백승", pos.whiteWins, pos.percent(pos.whiteWins), Color(0xFF3F9D63), Modifier.weight(1f))
-        Kpi("무승부", pos.draws, pos.percent(pos.draws), null, Modifier.weight(1f))
+        Kpi(tr("전체", "All"), pos.games, null, null, Modifier.weight(1f))
+        Kpi(tr("흑승", "Black"), pos.blackWins, pos.percent(pos.blackWins), Color(0xFF3F83C6), Modifier.weight(1f))
+        Kpi(tr("백승", "White"), pos.whiteWins, pos.percent(pos.whiteWins), Color(0xFF3F9D63), Modifier.weight(1f))
+        Kpi(tr("무승부", "Draw"), pos.draws, pos.percent(pos.draws), null, Modifier.weight(1f))
     }
 }
 
@@ -268,7 +269,7 @@ private fun NextRow(row: ExplorerNext, scale: Int, parentGames: Int, onPlay: () 
                     fontFamily = FontFamily.Monospace,
                     modifier = Modifier.width(52.dp),
                 )
-                Text("${row.games}판", style = MaterialTheme.typography.bodySmall)
+                Text(tr("${row.games}판", "${row.games} games"), style = MaterialTheme.typography.bodySmall)
                 if (parentGames > 0) {
                     Text(
                         "  (%.1f%%)".format(100.0 * row.games / parentGames),
@@ -337,7 +338,7 @@ private fun GameRow(
                 style = MaterialTheme.typography.titleSmall,
                 fontFamily = FontFamily.Monospace,
             )
-            TextButton(onClick = onLoad) { Text("올리기") }
+            TextButton(onClick = onLoad) { Text(tr("올리기", "Put it on")) }
         }
     }
 }
@@ -351,16 +352,16 @@ private fun GameDetail(g: RjGame, rule: String?, opening: String?) {
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("대국 #${g.id}", style = MaterialTheme.typography.titleSmall)
+            Text(tr("대국 #${g.id}", "Game #${g.id}"), style = MaterialTheme.typography.titleSmall)
             Text("● ${mark(g.result, 0)} ${g.black}${country(g.blackCountry)}")
             Text("○ ${mark(g.result, 2)} ${g.white}${country(g.whiteCountry)}")
             Divider(Modifier.padding(vertical = 4.dp))
             val bits = buildList {
-                rule?.let { add("규칙 $it") }
-                if (g.rated) add("레이팅")
-                add("${g.cells.size}수")
-                if (useful(g.swap)) add("스왑 ${g.swap}")
-                if (useful(g.alt)) add("대체 ${g.alt}")
+                rule?.let { add(tr("규칙 $it", "Rule $it")) }
+                if (g.rated) add(tr("레이팅", "Rating"))
+                add(tr("${g.cells.size}수", "${g.cells.size} moves"))
+                if (useful(g.swap)) add(tr("스왑 ${g.swap}", "Swap ${g.swap}"))
+                if (useful(g.alt)) add(tr("대체 ${g.alt}", "Alt ${g.alt}"))
                 if (useful(g.info)) add(g.info)
             }
             Text(bits.joinToString("  ·  "), style = MaterialTheme.typography.bodySmall)
@@ -374,14 +375,14 @@ private fun GameDetail(g: RjGame, rule: String?, opening: String?) {
             val tour = listOfNotNull(
                 dates.takeIf { it.isNotEmpty() },
                 g.tourCountry.takeIf { useful(it) },
-                g.round.takeIf { useful(it) }?.let { "라운드 $it" },
+                g.round.takeIf { useful(it) }?.let { tr("라운드 $it", "Round $it") },
             )
             if (tour.isNotEmpty()) {
                 Text(tour.joinToString("  ·  "), style = MaterialTheme.typography.labelSmall)
             }
-            opening?.let { Text("주형: $it", style = MaterialTheme.typography.bodySmall) }
+            opening?.let { Text(tr("주형: $it", "Opening: $it"), style = MaterialTheme.typography.bodySmall) }
             Text(
-                "renju.net 기보 번호 #${g.id}",
+                tr("renju.net 기보 번호 #${g.id}", "renju.net game #${g.id}"),
                 style = MaterialTheme.typography.labelSmall,
             )
         }

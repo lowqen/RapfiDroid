@@ -92,6 +92,7 @@ import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.BoardShift
 import dev.gomoku.yixindroid.core.model.BoardSymmetry
 import dev.gomoku.yixindroid.core.model.ClockSide
@@ -379,7 +380,7 @@ fun BoardScreen(
                 showPosition = false
                 viewModel.onLoadPositionString(text)
             },
-            onCopied = { viewModel.onNotice("국면 문자열을 복사했습니다") },
+            onCopied = { viewModel.onNotice(tr("국면 문자열을 복사했습니다", "Position string copied")) },
         )
     }
 
@@ -413,16 +414,16 @@ fun BoardScreen(
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
-            title = { Text("판을 초기화할까요?") },
-            text = { Text("${ui.moveCount}수를 모두 지웁니다. 되돌릴 수 없습니다.") },
+            title = { Text(tr("판을 초기화할까요?", "Clear the board?")) },
+            text = { Text(tr("${ui.moveCount}수를 모두 지웁니다. 되돌릴 수 없습니다.", "Removes all ${ui.moveCount} moves. This cannot be undone.")) },
             confirmButton = {
                 Button(onClick = {
                     confirmReset = false
                     viewModel.onReset()
-                }) { Text("초기화") }
+                }) { Text(tr("초기화", "Clear")) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmReset = false }) { Text("취소") }
+                TextButton(onClick = { confirmReset = false }) { Text(tr("취소", "Cancel")) }
             },
         )
     }
@@ -430,15 +431,15 @@ fun BoardScreen(
     if (confirmResign) {
         AlertDialog(
             onDismissRequest = { confirmResign = false },
-            title = { Text("기권할까요?") },
-            text = { Text("엔진에 `yxresign`을 보내고 이 대국을 끝냅니다.") },
+            title = { Text(tr("기권할까요?", "Resign?")) },
+            text = { Text(tr("엔진에 `yxresign`을 보내고 이 대국을 끝냅니다.", "Sends `yxresign` to the engine and ends this game.")) },
             confirmButton = {
                 Button(onClick = {
                     confirmResign = false
                     viewModel.onResign()
-                }) { Text("기권") }
+                }) { Text(tr("기권", "Resign")) }
             },
-            dismissButton = { TextButton(onClick = { confirmResign = false }) { Text("취소") } },
+            dismissButton = { TextButton(onClick = { confirmResign = false }) { Text(tr("취소", "Cancel")) } },
         )
     }
 
@@ -494,7 +495,7 @@ private fun Section(
                 )
                 Icon(
                     if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = if (expanded) "접기" else "펼치기",
+                    contentDescription = if (expanded) tr("접기", "Collapse") else tr("펼치기", "Expand"),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -528,11 +529,11 @@ private fun GameSection(
             append(it.describe())
             return@buildString
         }
-        append("${ui.sideToMove.label} 차례")
+        append(tr("${ui.sideToMove.label} 차례", "${ui.sideToMove.label} to move"))
         if (game.computerSide != ComputerSide.NONE) append(" · ${game.computerSide.label}")
         if (game.opening != OpeningProtocol.NONE) append(" · ${game.opening.label}")
     }
-    Section("대국", summary, expanded, onToggle, modifier) {
+    Section(tr("대국", "Game"), summary, expanded, onToggle, modifier) {
         game.result?.let { result ->
             Surface(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
@@ -561,41 +562,41 @@ private fun GameSection(
         if (ui.showClock) ClockRow(ui)
 
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            AssistChip(onClick = onNewGame, label = { Text("새 대국") })
+            AssistChip(onClick = onNewGame, label = { Text(tr("새 대국", "New game")) })
             AssistChip(
                 onClick = onEngineMove,
                 enabled = ui.engineOnMove,
-                label = { Text("엔진 착수") },
+                label = { Text(tr("엔진 착수", "Engine move")) },
             )
             AssistChip(
                 onClick = onDraw,
                 enabled = !game.over && ui.connection.isLive,
-                label = { Text("무승부 제안") },
+                label = { Text(tr("무승부 제안", "Offer draw")) },
             )
             AssistChip(
                 onClick = onResign,
                 enabled = !game.over && ui.moveCount > 0,
-                label = { Text("기권") },
+                label = { Text(tr("기권", "Resign")) },
             )
             if (ui.isRenju) {
                 FilterChip(
                     selected = ui.showForbidden,
                     onClick = onToggleForbidden,
-                    label = { Text("금수 표시") },
+                    label = { Text(tr("금수 표시", "Show forbidden")) },
                 )
             }
         }
 
         if (ui.openingNeedsOddSize) {
             Text(
-                "오프닝 규칙은 판의 정중앙을 기준으로 하므로 홀수 크기 판이 필요합니다 (설정 1행).",
+                tr("오프닝 규칙은 판의 정중앙을 기준으로 하므로 홀수 크기 판이 필요합니다 (설정 1행).", "An opening rule works from the exact centre of the board, so the board size has to be odd (settings line 1)."),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
             )
         }
         if (game.offeringFifth) {
             Text(
-                "5수 후보 ${game.fifthCount}개를 순서대로 놓으세요. 상대가 그중 하나를 고릅니다.",
+                tr("5수 후보 ${game.fifthCount}개를 순서대로 놓으세요. 상대가 그중 하나를 고릅니다.", "Place ${game.fifthCount} candidate 5th moves in order. Your opponent picks one of them."),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -618,7 +619,7 @@ private fun ClockRow(ui: BoardUiState) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        listOf(ClockSide.COMPUTER to "컴퓨터", ClockSide.HUMAN to "사람").forEach { (side, name) ->
+        listOf(ClockSide.COMPUTER to tr("컴퓨터", "Computer"), ClockSide.HUMAN to tr("사람", "Human")).forEach { (side, name) ->
             Column(Modifier.weight(1f)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(name, style = MaterialTheme.typography.labelMedium)
@@ -627,13 +628,13 @@ private fun ClockRow(ui: BoardUiState) {
                     }
                 }
                 Text(
-                    "남음 ${clock.label(side)}",
+                    tr("남음 ${clock.label(side)}", "left ${clock.label(side)}"),
                     style = MaterialTheme.typography.labelSmall
                         .copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
-                    "사용 ${clock.usedLabel(side)}",
+                    tr("사용 ${clock.usedLabel(side)}", "used ${clock.usedLabel(side)}"),
                     style = MaterialTheme.typography.labelSmall
                         .copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -660,38 +661,38 @@ private fun GamePromptDialog(
     when (prompt) {
         is GamePrompt.Swap -> AlertDialog(
             onDismissRequest = { onSwap(false) },
-            title = { Text("교환하시겠습니까?") },
+            title = { Text(tr("교환하시겠습니까?", "Swap?")) },
             text = {
                 Text(
                     buildString {
-                        append("돌을 바꿔 잡으면 이후 컴퓨터가 반대 색을 둡니다.")
-                        prompt.fifthCount?.let { append("\n5수 후보 수 N = $it") }
+                        append(tr("돌을 바꿔 잡으면 이후 컴퓨터가 반대 색을 둡니다.", "Swapping colours makes the computer play the other side from here on."))
+                        prompt.fifthCount?.let { append(tr("\n5수 후보 수 N = $it", "\nCandidate 5th moves N = $it")) }
                     },
                 )
             },
-            confirmButton = { Button(onClick = { onSwap(true) }) { Text("교환") } },
-            dismissButton = { TextButton(onClick = { onSwap(false) }) { Text("그대로") } },
+            confirmButton = { Button(onClick = { onSwap(true) }) { Text(tr("교환", "Swap")) } },
+            dismissButton = { TextButton(onClick = { onSwap(false) }) { Text(tr("그대로", "Keep")) } },
         )
 
         GamePrompt.Swap2 -> AlertDialog(
             onDismissRequest = { onSwap2(Swap2Choice.STAY_WHITE) },
-            title = { Text("하나를 선택하세요") },
-            text = { Text("스왑2: 백을 유지하거나, 돌을 바꾸거나, 2수를 더 놓습니다.") },
+            title = { Text(tr("하나를 선택하세요", "Choose one")) },
+            text = { Text(tr("스왑2: 백을 유지하거나, 돌을 바꾸거나, 2수를 더 놓습니다.", "Swap2: keep White, swap colours, or add two more moves.")) },
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { onSwap2(Swap2Choice.STAY_WHITE) }) { Text("백 유지") }
-                    TextButton(onClick = { onSwap2(Swap2Choice.SWAP) }) { Text("교환") }
-                    Button(onClick = { onSwap2(Swap2Choice.ADD_TWO) }) { Text("2수 추가") }
+                    TextButton(onClick = { onSwap2(Swap2Choice.STAY_WHITE) }) { Text(tr("백 유지", "Keep White")) }
+                    TextButton(onClick = { onSwap2(Swap2Choice.SWAP) }) { Text(tr("교환", "Swap")) }
+                    Button(onClick = { onSwap2(Swap2Choice.ADD_TWO) }) { Text(tr("2수 추가", "Add two")) }
                 }
             },
         )
 
         GamePrompt.FifthCount -> AlertDialog(
             onDismissRequest = { onFifthCount(1) },
-            title = { Text("5수 후보 개수 (1~8)") },
+            title = { Text(tr("5수 후보 개수 (1~8)", "Number of 5th-move candidates (1-8)")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("상대에게 제시할 5수의 개수 N을 고르세요.")
+                    Text(tr("상대에게 제시할 5수의 개수 N을 고르세요.", "Choose N, how many 5th moves to offer your opponent."))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..8).forEach { n ->
                             AssistChip(onClick = { onFifthCount(n) }, label = { Text("$n") })
@@ -702,19 +703,19 @@ private fun GamePromptDialog(
             confirmButton = {},
         )
 
-        GamePrompt.SwapInfo -> InfoDialog("교환", "상대가 돌을 바꿔 잡았습니다.", onDismiss)
+        GamePrompt.SwapInfo -> InfoDialog(tr("교환", "Swap"), tr("상대가 돌을 바꿔 잡았습니다.", "Your opponent swapped colours."), onDismiss)
         GamePrompt.IllegalOpening -> InfoDialog(
-            "표준 오프닝이 아닙니다",
-            "첫 3수는 정중앙 근처(2수는 ±1, 3수는 ±2)여야 합니다. 판을 초기화했습니다.",
+            tr("표준 오프닝이 아닙니다", "Illegal Opening"),
+            tr("첫 3수는 정중앙 근처(2수는 ±1, 3수는 ±2)여야 합니다. 판을 초기화했습니다.", "The first three moves must sit near the centre (move 2 within ±1, move 3 within ±2). The board has been cleared."),
             onDismiss,
         )
         is GamePrompt.Forbidden -> InfoDialog(
-            "금수",
-            "${prompt.cell.label(size)}는 흑의 금수입니다.",
+            tr("금수", "Forbidden"),
+            tr("${prompt.cell.label(size)}는 흑의 금수입니다.", "${prompt.cell.label(size)} is forbidden for Black."),
             onDismiss,
         )
-        GamePrompt.Timeout -> InfoDialog("시간 초과", "제한 시간을 모두 사용했습니다.", onDismiss)
-        is GamePrompt.Info -> InfoDialog("대국", prompt.text, onDismiss)
+        GamePrompt.Timeout -> InfoDialog(tr("시간 초과", "Time out"), tr("제한 시간을 모두 사용했습니다.", "The time limit has run out."), onDismiss)
+        is GamePrompt.Info -> InfoDialog(tr("대국", "Game"), prompt.text, onDismiss)
     }
 }
 
@@ -724,7 +725,7 @@ private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text) },
-        confirmButton = { Button(onClick = onDismiss) { Text("확인") } },
+        confirmButton = { Button(onClick = onDismiss) { Text(tr("확인", "OK")) } },
     )
 }
 
@@ -782,11 +783,11 @@ private fun WinRateGraph(history: List<Double?>, currentPly: Int, modifier: Modi
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text("승률 그래프 (흑 기준)", style = MaterialTheme.typography.labelSmall,
+            Text(tr("승률 그래프 (흑 기준)", "Win rate (Black)"), style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             val latest = history.getOrNull(currentPly) ?: history.lastOrNull { it != null }
             Text(
-                latest?.let { "%.0f%% · %d점".format(it * 100, samples) } ?: "—",
+                latest?.let { tr("%.0f%% · %d점", "%.0f%% · %d pts").format(it * 100, samples) } ?: "—",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -895,8 +896,8 @@ private fun StatusBar(ui: BoardUiState, modifier: Modifier = Modifier) {
 @Composable
 private fun EvalHeader(ui: BoardUiState, modifier: Modifier = Modifier) {
     val eval = when {
-        ui.blackMate != null -> if (ui.blackMate!! > 0) "흑 M${ui.blackMate}" else "백 M${-ui.blackMate!!}"
-        ui.blackWinRate != null -> "흑 ${(ui.blackWinRate!! * 100).toInt()}%"
+        ui.blackMate != null -> if (ui.blackMate!! > 0) tr("흑 M${ui.blackMate}", "Black M${ui.blackMate}") else tr("백 M${-ui.blackMate!!}", "White M${-ui.blackMate!!}")
+        ui.blackWinRate != null -> tr("흑 ${(ui.blackWinRate!! * 100).toInt()}%", "Black ${(ui.blackWinRate!! * 100).toInt()}%")
         else -> "—"
     }
     Row(
@@ -907,13 +908,13 @@ private fun EvalHeader(ui: BoardUiState, modifier: Modifier = Modifier) {
         Text("$eval  ·  depth ${ui.depth}", style = MaterialTheme.typography.titleMedium)
         Text(
             buildString {
-                append("${ui.moveCount}수")
+                append(tr("${ui.moveCount}수", "${ui.moveCount} moves"))
                 // The redo tail the desktop keeps in `movepath` past the cursor.
                 if (ui.futureCount > 0) append(" (+${ui.futureCount})")
                 when {
-                    ui.balancing -> append(" · 균형점 탐색")
-                    ui.defending -> append(" · 방어수 탐색")
-                    ui.analyzing -> append(" · 분석 중")
+                    ui.balancing -> append(tr(" · 균형점 탐색", " · balancing"))
+                    ui.defending -> append(tr(" · 방어수 탐색", " · defences"))
+                    ui.analyzing -> append(tr(" · 분석 중", " · analysing"))
                 }
             },
             style = MaterialTheme.typography.bodyMedium,
@@ -985,14 +986,14 @@ private fun BoardControls(
             horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ToolButton(Icons.Filled.FirstPage, "처음으로", ui.canUndo, onFirst)
-            ToolButton(Icons.Filled.ChevronLeft, "한 수 뒤로", ui.canUndo, onUndo)
+            ToolButton(Icons.Filled.FirstPage, tr("처음으로", "To start"), ui.canUndo, onFirst)
+            ToolButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one"), ui.canUndo, onUndo)
             AnalyzeButton(running = ui.busy, enabled = ui.busy || ui.canAnalyze, onClick = onToggleAnalyze)
-            ToolButton(Icons.Filled.ChevronRight, "한 수 앞으로", ui.canRedo, onRedo)
-            ToolButton(Icons.AutoMirrored.Filled.LastPage, "마지막 수로", ui.canRedo, onLast)
+            ToolButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one"), ui.canRedo, onRedo)
+            ToolButton(Icons.AutoMirrored.Filled.LastPage, tr("마지막 수로", "To end"), ui.canRedo, onLast)
             ToolButton(
                 if (moreOpen) Icons.Filled.ExpandLess else Icons.Filled.MoreHoriz,
-                "도구 더보기", true, onToggleMore, moreOpen,
+                tr("도구 더보기", "More tools"), true, onToggleMore, moreOpen,
             )
         }
         if (moreOpen) {
@@ -1003,24 +1004,24 @@ private fun BoardControls(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 ToolChip(
-                    Icons.Filled.Shield, "모든 방어수",
+                    Icons.Filled.Shield, tr("모든 방어수", "All defences"),
                     enabled = ui.canAnalyze && !ui.busy, onClick = onDefend,
                 )
                 ToolChip(
-                    Icons.Filled.Balance, "균형점 찾기",
+                    Icons.Filled.Balance, tr("균형점 찾기", "Balance"),
                     enabled = ui.canAnalyze && !ui.busy, onClick = onBalance,
                 )
-                ToolChip(Icons.Filled.Info, "국면 문자열", enabled = true, onClick = onInfo)
-                ToolChip(Icons.Filled.Image, "이미지 저장", enabled = true, onClick = onSaveImage)
+                ToolChip(Icons.Filled.Info, tr("국면 문자열", "Position string"), enabled = true, onClick = onInfo)
+                ToolChip(Icons.Filled.Image, tr("이미지 저장", "Save image"), enabled = true, onClick = onSaveImage)
                 ToolChip(
-                    Icons.Filled.Flip, "모양 대칭", enabled = ui.canTransform,
+                    Icons.Filled.Flip, tr("모양 대칭", "Rotate / flip"), enabled = ui.canTransform,
                     onClick = onToggleSymmetry, active = symmetryOpen,
                 )
                 ToolChip(
-                    Icons.Filled.OpenWith, "수 이동", enabled = ui.canTransform,
+                    Icons.Filled.OpenWith, tr("수 이동", "Shift"), enabled = ui.canTransform,
                     onClick = onToggleShift, active = shiftOpen,
                 )
-                ToolChip(Icons.Filled.Refresh, "판 초기화", enabled = true, onClick = onReset)
+                ToolChip(Icons.Filled.Refresh, tr("판 초기화", "Clear board"), enabled = true, onClick = onReset)
             }
         }
         if (symmetryOpen) {
@@ -1029,10 +1030,10 @@ private fun BoardControls(
                 SymmetryChip("90°", BoardSymmetry.ROTATE_90, onSymmetry)
                 SymmetryChip("180°", BoardSymmetry.ROTATE_180, onSymmetry)
                 SymmetryChip("270°", BoardSymmetry.ROTATE_270, onSymmetry)
-                SymmetryChip("좌우", BoardSymmetry.MIRROR_LEFT_RIGHT, onSymmetry)
-                SymmetryChip("상하", BoardSymmetry.MIRROR_UP_DOWN, onSymmetry)
-                SymmetryChip("대각 ＼", BoardSymmetry.MIRROR_DIAGONAL, onSymmetry)
-                SymmetryChip("대각 ／", BoardSymmetry.MIRROR_ANTI_DIAGONAL, onSymmetry)
+                SymmetryChip(tr("좌우", "Mirror ↔"), BoardSymmetry.MIRROR_LEFT_RIGHT, onSymmetry)
+                SymmetryChip(tr("상하", "Mirror ↕"), BoardSymmetry.MIRROR_UP_DOWN, onSymmetry)
+                SymmetryChip(tr("대각 ＼", "Diagonal ＼"), BoardSymmetry.MIRROR_DIAGONAL, onSymmetry)
+                SymmetryChip(tr("대각 ／", "Diagonal ／"), BoardSymmetry.MIRROR_ANTI_DIAGONAL, onSymmetry)
             }
         }
         if (shiftOpen) {
@@ -1040,18 +1041,18 @@ private fun BoardControls(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                ToolButton(Icons.Filled.ArrowUpward, "위로", true, { onShift(BoardShift.UP) })
-                ToolButton(Icons.Filled.ArrowDownward, "아래로", true, { onShift(BoardShift.DOWN) })
+                ToolButton(Icons.Filled.ArrowUpward, tr("위로", "Up"), true, { onShift(BoardShift.UP) })
+                ToolButton(Icons.Filled.ArrowDownward, tr("아래로", "Down"), true, { onShift(BoardShift.DOWN) })
                 ToolButton(
-                    Icons.AutoMirrored.Filled.ArrowBack, "왼쪽으로", true,
+                    Icons.AutoMirrored.Filled.ArrowBack, tr("왼쪽으로", "Left"), true,
                     { onShift(BoardShift.LEFT) },
                 )
                 ToolButton(
-                    Icons.AutoMirrored.Filled.ArrowForward, "오른쪽으로", true,
+                    Icons.AutoMirrored.Filled.ArrowForward, tr("오른쪽으로", "Right"), true,
                     { onShift(BoardShift.RIGHT) },
                 )
                 Text(
-                    "모든 수가 한 칸씩 이동합니다",
+                    tr("모든 수가 한 칸씩 이동합니다", "Every stone moves one point"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1100,7 +1101,7 @@ private fun AnalyzeButton(running: Boolean, enabled: Boolean, onClick: () -> Uni
     ) {
         Icon(
             if (running) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-            contentDescription = if (running) "정지" else "분석 시작",
+            contentDescription = if (running) tr("정지", "Stop") else tr("분석 시작", "Analyze"),
             modifier = Modifier.size(28.dp),
         )
     }
@@ -1151,7 +1152,7 @@ private fun PvHeader(multiPv: Int, onMultiPv: (Int) -> Unit, modifier: Modifier 
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("후보 수 (멀티 PV)", style = MaterialTheme.typography.labelMedium,
+        Text(tr("후보 수 (멀티 PV)", "Candidate moves (multi-PV)"), style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onMultiPv(multiPv - 1) }) {
@@ -1176,29 +1177,29 @@ private fun BalanceDialog(onDismiss: () -> Unit, onConfirm: (Boolean, Int) -> Un
     val value = bias.trim().toIntOrNull() ?: 0
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("균형점 찾기") },
+        title = { Text(tr("균형점 찾기", "Balance")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. " +
-                        "찾은 수는 바로 판에 놓입니다.",
+                    tr("엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. ", "The engine looks for the move that brings the position closest to even (50 %).") +
+                        tr("찾은 수는 바로 판에 놓입니다.", "What it finds is played straight onto the board."),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 OutlinedTextField(
                     value = bias,
                     onValueChange = { bias = it },
                     singleLine = true,
-                    label = { Text("치우침 (0 = 완전 균형)") },
+                    label = { Text(tr("치우침 (0 = 완전 균형)", "Bias (0 = dead even)")) },
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(false, value) }) { Text("한 수") }
+            Button(onClick = { onConfirm(false, value) }) { Text(tr("한 수", "One move")) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onDismiss) { Text("취소") }
-                Button(onClick = { onConfirm(true, value) }) { Text("두 수") }
+                TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) }
+                Button(onClick = { onConfirm(true, value) }) { Text(tr("두 수", "Two moves")) }
             }
         },
     )
@@ -1220,16 +1221,16 @@ private fun PositionDialog(
     var draft by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("국면 문자열") },
+        title = { Text(tr("국면 문자열", "Position string")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    ui.positionString.ifEmpty { "(빈 판)" },
+                    ui.positionString.ifEmpty { tr("(빈 판)", "(empty board)") },
                     style = MaterialTheme.typography.bodyMedium
                         .copy(fontFamily = FontFamily.Monospace),
                 )
                 Text(
-                    "${ui.moveCount}수" + if (ui.futureCount > 0) " · 되돌린 ${ui.futureCount}수는 제외" else "",
+                    tr("${ui.moveCount}수", "${ui.moveCount} moves") + if (ui.futureCount > 0) tr(" · 되돌린 ${ui.futureCount}수는 제외", " · ${ui.futureCount} undone moves excluded") else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1237,7 +1238,7 @@ private fun PositionDialog(
                     value = draft,
                     onValueChange = { draft = it },
                     singleLine = true,
-                    label = { Text("불러올 문자열 (예: h8i9g7)") },
+                    label = { Text(tr("불러올 문자열 (예: h8i9g7)", "String to load (e.g. h8i9g7)")) },
                 )
             }
         },
@@ -1249,14 +1250,14 @@ private fun PositionDialog(
                         onCopied()
                     },
                     enabled = ui.positionString.isNotEmpty(),
-                ) { Text("복사") }
+                ) { Text(tr("복사", "Copy")) }
                 TextButton(onClick = { draft = clipboard.getText()?.text.orEmpty() }) {
-                    Text("붙여넣기")
+                    Text(tr("붙여넣기", "Paste"))
                 }
-                Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text("불러오기") }
+                Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text(tr("불러오기", "Load")) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("닫기") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close")) } },
     )
 }
 
@@ -1328,7 +1329,7 @@ private fun DatabaseSection(
     val db = ui.db
     if (!db.enabled) {
         Text(
-            "데이터베이스 사용이 꺼져 있습니다 (설정 32행)",
+            tr("데이터베이스 사용이 꺼져 있습니다 (설정 32행)", "The database is turned off (settings line 32)"),
             modifier = modifier,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1339,14 +1340,14 @@ private fun DatabaseSection(
     // The stored value is the whole reason to look at this panel, so it is the
     // header line rather than the first thing inside it.
     val summary = when {
-        value?.stmMate != null && value.stmMate > 0 -> "두는 쪽 승 (M${value.stmMate})"
-        value?.stmMate != null -> "두는 쪽 패 (M${-value.stmMate})"
-        value != null -> "흑 ${(value.blackWinRate * 100).toInt()}%"
-        else -> "저장된 값 없음"
-    } + if (db.readOnly) " · 읽기 전용" else ""
-    Section("데이터베이스", summary, expanded, onToggle, modifier) {
+        value?.stmMate != null && value.stmMate > 0 -> tr("두는 쪽 승 (M${value.stmMate})", "Side to move wins (M${value.stmMate})")
+        value?.stmMate != null -> tr("두는 쪽 패 (M${-value.stmMate})", "Side to move loses (M${-value.stmMate})")
+        value != null -> tr("흑 ${(value.blackWinRate * 100).toInt()}%", "Black ${(value.blackWinRate * 100).toInt()}%")
+        else -> tr("저장된 값 없음", "No stored value")
+    } + if (db.readOnly) tr(" · 읽기 전용", " · read-only") else ""
+    Section(tr("데이터베이스", "Database"), summary, expanded, onToggle, modifier) {
         Text(
-            "이 국면에 ${db.snapshot.cells.size}칸이 표시됩니다",
+            tr("이 국면에 ${db.snapshot.cells.size}칸이 표시됩니다", "${db.snapshot.cells.size} points carry a value here"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1369,32 +1370,32 @@ private fun DatabaseSection(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            AssistChip(onClick = onQueryValue, label = { Text("값 조회") })
-            AssistChip(onClick = onQueryComment, label = { Text("주석 읽기") })
+            AssistChip(onClick = onQueryValue, label = { Text(tr("값 조회", "Read value")) })
+            AssistChip(onClick = onQueryComment, label = { Text(tr("주석 읽기", "Read comment")) })
             AssistChip(
                 onClick = onEditComment,
                 enabled = ui.canEditDb,
-                label = { Text("주석 편집") },
+                label = { Text(tr("주석 편집", "Edit comment")) },
             )
             AssistChip(
                 onClick = onSetBest,
                 enabled = ui.canEditDb && ui.moveCount > 0,
-                label = { Text("최선수 표시") },
+                label = { Text(tr("최선수 표시", "Mark best move")) },
             )
             AssistChip(
                 onClick = onClearBest,
                 enabled = ui.canEditDb && ui.moveCount > 0,
-                label = { Text("표시 해제") },
+                label = { Text(tr("표시 해제", "Clear mark")) },
             )
             AssistChip(
                 onClick = onDeleteOne,
                 enabled = ui.canEditDb,
-                label = { Text("이 국면 삭제") },
+                label = { Text(tr("이 국면 삭제", "Delete this position")) },
             )
-            AssistChip(onClick = onSave, enabled = ui.canEditDb, label = { Text("DB 저장") })
+            AssistChip(onClick = onSave, enabled = ui.canEditDb, label = { Text(tr("DB 저장", "Save DB")) })
         }
         Text(
-            "빈 점을 길게 누르면 보드 텍스트를 입력합니다 (PC의 Ctrl+클릭).",
+            tr("빈 점을 길게 누르면 보드 텍스트를 입력합니다 (PC의 Ctrl+클릭).", "Long-press an empty point to write board text (Ctrl+click on the PC)."),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1424,7 +1425,7 @@ private fun BoardTextDialog(
     var text by remember(cell) { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("보드 텍스트  ${cell.label(size)}") },
+        title = { Text(tr("보드 텍스트  ${cell.label(size)}", "Board text  ${cell.label(size)}")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
@@ -1432,11 +1433,11 @@ private fun BoardTextDialog(
                     onValueChange = { if (it.length <= 6) text = it },
                     singleLine = true,
                     enabled = editable,
-                    label = { Text("최대 6자") },
+                    label = { Text(tr("최대 6자", "6 characters max")) },
                 )
                 Text(
-                    if (editable) "비우고 확인하면 라벨이 삭제됩니다."
-                    else "읽기 전용 상태에서는 편집할 수 없습니다.",
+                    if (editable) tr("비우고 확인하면 라벨이 삭제됩니다.", "Confirming an empty value deletes the label.")
+                    else tr("읽기 전용 상태에서는 편집할 수 없습니다.", "Nothing can be edited while the database is read-only."),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1448,9 +1449,9 @@ private fun BoardTextDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(text) }, enabled = editable) { Text("확인") }
+            Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("확인", "OK")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) } },
     )
 }
 
@@ -1476,7 +1477,7 @@ private fun CommentDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("국면 주석") },
+        title = { Text(tr("국면 주석", "Position comment")) },
         text = {
             // settings.txt line 47, the desktop's second "Database Comment Font":
             // the one the editor uses.
@@ -1491,9 +1492,9 @@ private fun CommentDialog(
             )
         },
         confirmButton = {
-            Button(onClick = { onConfirm(text) }, enabled = editable) { Text("저장") }
+            Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("저장", "Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) } },
     )
 }
 
@@ -1541,7 +1542,7 @@ private fun ResearchBadge(
                     onClick = onStop,
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                 ) {
-                    Text("중지", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text(tr("중지", "Stop"), color = Color.White, style = MaterialTheme.typography.labelMedium)
                 }
             }
             if (banner.detail.isNotEmpty()) {
