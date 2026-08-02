@@ -132,9 +132,13 @@ class SettingsCodecTest {
         val reserved = DesktopSettings.DEV[8]
         assertThat(reserved.id).isEqualTo("reservedFitBoard")
         assertThat(reserved.line).isEqualTo(9)
-        val text = SettingsCodec.render(AppSettings(reservedFitBoard = 7), SettingsFile.DEV)
+        // The next line carries a non-default value, so reading it back proves
+        // the reserved slot did not swallow it — a default would prove nothing.
+        val text = SettingsCodec.render(
+            AppSettings(reservedFitBoard = 7, dbAutoSave = true),
+            SettingsFile.DEV,
+        )
         assertThat(text.lines()[8]).isEqualTo("7\t;reserved (was: fit board to window)")
-        // and it must not swallow the next setting
         assertThat(SettingsCodec.parse(text, SettingsFile.DEV).dbAutoSave).isTrue()
     }
 
@@ -266,8 +270,8 @@ class SettingsCodecTest {
             "1\t;prove mode attacker candidates (yxnbest k)",
             "100\t;board zoom scale percent (60~300)",
             "0\t;reserved (was: fit board to window)",
-            "1\t;auto-save database periodically (0: no, 1: yes)",
-            "5\t;database auto-save interval in minutes",
+            "0\t;auto-save database periodically (0: no, 1: yes)",
+            "30\t;database auto-save interval in minutes",
             "1\t;prove best attack move first (0: no, 1: yes)",
             "1\t;prove early probe of strongest defense (0: no, 1: yes)",
             "0\t;review budget unit (0: seconds, 1: depth)",

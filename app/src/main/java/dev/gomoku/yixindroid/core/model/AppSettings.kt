@@ -132,9 +132,9 @@ data class AppSettings(
      *     files by position, so this line is read and written but never reused. */
     val reservedFitBoard: Int = 0,
     /** 10. periodic `YXSAVEDATABASE` (P7). */
-    val dbAutoSave: Boolean = true,
+    val dbAutoSave: Boolean = false,
     /** 11. auto-save interval, minutes (P7). */
-    val dbAutoSaveMinutes: Int = 5,
+    val dbAutoSaveMinutes: Int = 30,
     /** 12. prove: best attack move first (P8). */
     val proveBestFirst: Boolean = true,
     /** 13. prove: early probe of the strongest defense (P8). */

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -15,8 +17,8 @@ android {
         applicationId = "dev.gomoku.yixindroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "0.12.1"
+        versionCode = 11
+        versionName = "0.12.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -27,8 +29,39 @@ android {
         localeFilters += listOf("en", "ko")
     }
 
+    // Sideloading needs a signed APK — an unsigned one will not install. The
+    // keystore and its passwords are the user's, so they live in
+    // `keystore.properties` beside this file, which is gitignored; without that
+    // file the release build still runs and produces the unsigned APK it always
+    // did, so nobody is blocked by a secret they do not have.
+    //
+    //   keystore.properties:
+    //     storeFile=C:/Users/User/gomoku-dev/yixindroid.jks
+    //     storePassword=...
+    //     keyAlias=yixindroid
+    //     keyPassword=...
+    //
+    //   create it once with:
+    //     keytool -genkeypair -v -keystore yixindroid.jks -alias yixindroid     //             -keyalg RSA -keysize 2048 -validity 10000
+    val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exists() }
+        ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
+
+    signingConfigs {
+        if (keystoreProperties != null) {
+            create("release") {
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (keystoreProperties != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

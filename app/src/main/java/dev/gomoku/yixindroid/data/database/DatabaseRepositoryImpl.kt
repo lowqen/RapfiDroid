@@ -6,6 +6,7 @@ import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbDeleteScope
 import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.DbState
+import dev.gomoku.yixindroid.core.model.EngineBusy
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.StoneColor
@@ -77,6 +78,7 @@ class DatabaseRepositoryImpl @Inject constructor(
     private val engine: EngineRepository,
     private val settings: SettingsRepository,
     private val prefs: DbPreferences,
+    private val busy: EngineBusy,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : DatabaseRepository {
 
@@ -94,15 +96,27 @@ class DatabaseRepositoryImpl @Inject constructor(
     private val pairing = DbQueryPairing()
 
     /**
-     * Whether the engine finished reading the database file. UNKNOWN means no
-     * load was seen at all — it may have happened before this connection, so
-     * there is nothing to conclude; LOADING means a load started and has not
-     * reported DONE, which is the one state where saving destroys data.
+     * Whether the engine finished reading the database file.
+     *
+     * NONE is not "we cannot tell" — the server's config has
+     * `enable_by_default = false`, so an engine that has not reported a load
+     * holds no database at all and reads the file only once
+     * `INFO usedatabase 1` arrives. Saving from either NONE or LOADING would
+     * write far less than the file already contains.
      */
-    private enum class LoadState { UNKNOWN, LOADING, LOADED }
+    private enum class LoadState { NONE, LOADING, LOADED }
 
     @Volatile
-    private var loadState = LoadState.UNKNOWN
+    private var loadState = LoadState.NONE
+
+    /**
+     * A save the engine has begun and not finished. It rewrites the whole file,
+     * so two overlapping saves interleave into one truncated result — which is
+     * what a 5-minute timer did to a database that takes longer than that to
+     * write. Null when nothing is in flight; otherwise when it started.
+     */
+    @Volatile
+    private var savingSince: Long? = null
 
     init {
         repoScope.launch {
@@ -143,6 +157,17 @@ class DatabaseRepositoryImpl @Inject constructor(
                 .distinctUntilChanged()
                 .collect { ready -> if (ready) refresh() }
         }
+        // A new engine process holds nothing this one told us about: the proxy
+        // spawns one Rapfi per connection, so a `LOADED` remembered across a
+        // drop would let a save go out against a database that was never read.
+        repoScope.launch {
+            engine.state.collect { state ->
+                if (state is ConnectionState.Disconnected || state is ConnectionState.Error) {
+                    loadState = LoadState.NONE
+                    savingSince = null
+                }
+            }
+        }
         repoScope.launch { autoSaveLoop() }
     }
 
@@ -178,14 +203,26 @@ class DatabaseRepositoryImpl @Inject constructor(
                     else -> "불러오기 완료"
                 },
             ).also {
-                if (!response.started && response.saving) {
-                    _state.update { it.copy(lastSaveAt = System.currentTimeMillis()) }
-                }
-                // A save writes the engine's whole in-memory database over the
-                // file, so it must never go out while that memory is known to be
-                // incomplete — a load that started and never finished would
-                // replace a complete file with a half-read one.
-                if (!response.saving) {
+                // The engine's own account of what it is doing to the file, which
+                // is the only thing that makes a save safe to send: it says when
+                // the database became complete in memory, and when a write it
+                // began has finished.
+                if (response.saving) {
+                    if (response.started) {
+                        savingSince = System.currentTimeMillis()
+                    } else {
+                        savingSince?.let {
+                            log(
+                                tr(
+                                    "저장 완료 (${(System.currentTimeMillis() - it) / 1000}초)",
+                                    "Saved in ${(System.currentTimeMillis() - it) / 1000}s",
+                                ),
+                            )
+                        }
+                        savingSince = null
+                        _state.update { it.copy(lastSaveAt = System.currentTimeMillis()) }
+                    }
+                } else {
                     loadState = if (response.started) LoadState.LOADING else LoadState.LOADED
                 }
             }
@@ -322,18 +359,74 @@ class DatabaseRepositoryImpl @Inject constructor(
 
     /**
      * `yxsavedatabase`. Not an append — the engine writes its whole in-memory
-     * database over the file, so a save made while that memory is incomplete
-     * replaces a good file with a partial one. Every caller goes through here,
-     * including the prove run's save at the end of a proof.
+     * database over the file, so every condition that makes that unsafe is
+     * checked here rather than at the call sites. A caller that forgets one
+     * destroys data, which is how the auto-save timer came to be the only path
+     * that knew searching mattered.
+     *
+     * A save goes out only when: the database is in use, the user has not asked
+     * for read-only (both in [guarded]), the engine finished reading the file,
+     * it is not searching, and no earlier save is still running.
      */
-    override suspend fun save(): DbOpResult {
-        if (loadState == LoadState.LOADING) {
-            return DbOpResult.Refused(
+    override suspend fun save(): DbOpResult = save(attachIfMissing = true)
+
+    /**
+     * @param attachIfMissing whether a missing database may be attached from
+     *   here. True when a person asked for the save; **false for the timer** —
+     *   an attach reloads the whole file into the engine, and a timer that did
+     *   that every interval would be the RAM disaster of session 48 on a loop.
+     */
+    private suspend fun save(attachIfMissing: Boolean): DbOpResult {
+        // Connected, database on, not read-only — asked first because they are
+        // the answers the user can act on, and because attaching a database the
+        // user turned off would be answering a question nobody asked.
+        guarded(write = true) { }.let { if (it is DbOpResult.Refused) return it }
+        when (loadState) {
+            LoadState.NONE -> {
+                // Nothing worth writing yet. If a person asked, attach the
+                // database and let the next save go out once the engine reports
+                // it read; `0` first because the attach guard passes that
+                // through and re-arms the `1` (P11).
+                if (!attachIfMissing) return DbOpResult.Refused("")
+                send(EngineCommand.Info("usedatabase", "0"))
+                send(EngineCommand.Info("usedatabase", "1"))
+                return DbOpResult.Refused(
+                    tr(
+                        "아직 데이터베이스를 불러오지 않았습니다 — 지금 불러오는 중이니 잠시 뒤 다시 저장하세요",
+                        "No database is loaded yet — loading it now, save again in a moment",
+                    ),
+                )
+            }
+            LoadState.LOADING -> return DbOpResult.Refused(
                 tr(
                     "불러오기가 끝나지 않았습니다 — 지금 저장하면 파일이 읽다 만 사본으로 덮입니다",
                     "The load never finished — saving now would replace the file with a partial copy",
                 ),
             )
+            LoadState.LOADED -> Unit
+        }
+        if (engineBusy()) {
+            return DbOpResult.Refused(
+                tr(
+                    "엔진이 탐색 중입니다 — 끝난 뒤에 저장합니다",
+                    "The engine is still searching — the save waits for it",
+                ),
+            )
+        }
+        savingSince?.let { since ->
+            val elapsed = System.currentTimeMillis() - since
+            if (elapsed < SAVE_MAX_MS) {
+                return DbOpResult.Refused(
+                    tr(
+                        "이전 저장이 ${elapsed / 1000}초째 진행 중입니다 — 겹쳐 쓰면 파일이 잘립니다",
+                        "The previous save has run for ${elapsed / 1000}s — overlapping writes truncate the file",
+                    ),
+                )
+            }
+            // Past any plausible duration the DONE is not coming (a dropped
+            // socket, an engine that died mid-write). Let this one through
+            // rather than never saving again.
+            savingSince = null
         }
         return guarded(write = true) {
             send(DbSave)
@@ -430,6 +523,14 @@ class DatabaseRepositoryImpl @Inject constructor(
     private fun canQuery(): Boolean = _state.value.enabled && engine.state.value.isLive
 
     /**
+     * Is a search running? `Thinking` covers an analysis or a balance search;
+     * [EngineBusy] covers a review or a proof, which drive the engine directly
+     * and would otherwise look idle for their whole run.
+     */
+    private fun engineBusy(): Boolean =
+        engine.state.value == ConnectionState.Thinking || busy.isBusy
+
+    /**
      * Run [block] if the guards allow it. Mirrors the desktop's preconditions:
      * `usedatabase` on (`show_database` no-ops otherwise), not read-only for
      * writes, plus this port's extra lock on destructive operations.
@@ -451,10 +552,10 @@ class DatabaseRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Periodic `yxsavedatabase`, the port of `db_autosave_tick`: only while the
-     * database is on, writable and the engine is **idle**, so records that live
-     * in engine memory get flushed without disturbing a search. The engine skips
-     * the disk write when nothing is dirty.
+     * Periodic `yxsavedatabase`, the port of `db_autosave_tick`. Every
+     * precondition lives in [save] now, so the timer cannot be the one path that
+     * knows a rule the buttons do not — which is exactly how it came to be the
+     * only caller that checked whether the engine was searching.
      */
     private suspend fun autoSaveLoop() {
         // Ticks once a minute and counts, so changing the interval takes effect
@@ -463,23 +564,23 @@ class DatabaseRepositoryImpl @Inject constructor(
         while (true) {
             delay(60_000L)
             elapsed++
-            val config = settings.settings.value
-            val interval = config.dbAutoSaveMinutes.coerceAtLeast(1)
+            val interval = settings.settings.value.dbAutoSaveMinutes.coerceAtLeast(1)
             if (elapsed < interval) continue
             elapsed = 0
-            val idle = engine.state.value == ConnectionState.Ready
-            // Through save(), so the timer cannot do what a button is refused.
-            if (config.dbAutoSave && config.useDatabase && !config.databaseReadonly && idle) {
-                val result = runCatching { save() }.getOrNull()
-                if (result is DbOpResult.Sent) {
-                    log(tr("자동 저장 (${interval}분 주기)", "Auto-saved (every $interval min)"))
-                }
+            if (!settings.settings.value.dbAutoSave) continue
+            val result = runCatching { save(attachIfMissing = false) }.getOrNull()
+            if (result is DbOpResult.Sent) {
+                log(tr("자동 저장 (${interval}분 주기)", "Auto-saved (every $interval min)"))
             }
         }
     }
 
     private companion object {
         const val LOG_LIMIT = 200
+
+        /** Longer than any plausible save; past it a missing DONE means the save
+         *  is gone, not slow. */
+        const val SAVE_MAX_MS = 10L * 60 * 1000
         val DB_MESSAGE_KEYWORDS = listOf(
             "database", "db ", "record", "delete", "deleted", "merge", "split",
             "lib", "saved", "loading", "loaded", "txt",

@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.data.prove
 import dev.gomoku.yixindroid.core.common.IoDispatcher
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AppSettings
+import dev.gomoku.yixindroid.core.model.EngineBusy
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.ProveKind
@@ -70,6 +71,7 @@ class ProveRepositoryImpl @Inject constructor(
     private val review: ReviewRepository,
     private val settingsRepository: SettingsRepository,
     private val databaseSaver: DatabaseSaver,
+    private val busy: EngineBusy,
     @IoDispatcher io: CoroutineDispatcher,
 ) : ProveRepository {
 
@@ -147,6 +149,9 @@ class ProveRepositoryImpl @Inject constructor(
         _progress.value = ProveProgress(
             running = true, byDepth = this.options.byDepth, nodes = 1, open = 1,
         )
+        // The engine is ours until finish(): a database save now would rewrite
+        // the file this run is still adding records to.
+        busy.acquire(EngineBusy.PROVE)
         _overlay.value = tree.overlay(null, rootMoves.size)
 
         // The run owns the engine's limits until it finishes (main.c:9964).
@@ -441,6 +446,7 @@ class ProveRepositoryImpl @Inject constructor(
         latest = null
         _progress.value = ProveProgress(byDepth = options.byDepth)
         _overlay.value = ProveOverlay.EMPTY
+        busy.release(EngineBusy.PROVE)
         runCatching { restoreLevel() }
         // Through the database repository, not straight at the engine: a save
         // writes the engine's whole in-memory database over the file, and that

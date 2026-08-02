@@ -8,6 +8,7 @@ import dev.gomoku.yixindroid.core.model.ComputerSide
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
+import dev.gomoku.yixindroid.core.model.EngineBusy
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.LinkHealth
@@ -211,7 +212,7 @@ class ReviewRepositoryTest {
         val files = FakeFiles()
         val prove = FakeProve()
         val repository = ReviewRepositoryImpl(
-            engine, game, FakeSettings(settings), files, Provider { prove },
+            engine, game, FakeSettings(settings), files, Provider { prove }, EngineBusy(),
             StandardTestDispatcher(testScheduler),
         )
         val h = Harness(engine, game, files, prove, repository)

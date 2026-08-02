@@ -20,7 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -355,7 +355,7 @@ private fun GameDetail(g: RjGame, rule: String?, opening: String?) {
             Text(tr("대국 #${g.id}", "Game #${g.id}"), style = MaterialTheme.typography.titleSmall)
             Text("● ${mark(g.result, 0)} ${g.black}${country(g.blackCountry)}")
             Text("○ ${mark(g.result, 2)} ${g.white}${country(g.whiteCountry)}")
-            Divider(Modifier.padding(vertical = 4.dp))
+            HorizontalDivider(Modifier.padding(vertical = 4.dp))
             val bits = buildList {
                 rule?.let { add(tr("규칙 $it", "Rule $it")) }
                 if (g.rated) add(tr("레이팅", "Rating"))

@@ -9,6 +9,7 @@ import dev.gomoku.yixindroid.core.model.DbDeleteFilter
 import dev.gomoku.yixindroid.core.model.DbDeleteScope
 import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
+import dev.gomoku.yixindroid.core.model.EngineBusy
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.LinkHealth
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -121,6 +123,7 @@ class DatabaseRepositoryTest {
         val engine: FakeEngine,
         val settings: FakeSettings,
         val prefs: FakePrefs,
+        val busy: EngineBusy,
         val repository: DatabaseRepository,
     )
 
@@ -133,9 +136,10 @@ class DatabaseRepositoryTest {
         val engine = FakeEngine().apply { stateFlow.value = state }
         val fakeSettings = FakeSettings(settings)
         val prefs = FakePrefs(unlocked)
+        val busy = EngineBusy()
         return Harness(
-            engine, fakeSettings, prefs,
-            DatabaseRepositoryImpl(engine, fakeSettings, prefs, dispatcher),
+            engine, fakeSettings, prefs, busy,
+            DatabaseRepositoryImpl(engine, fakeSettings, prefs, busy, dispatcher),
         )
     }
 
@@ -423,16 +427,99 @@ class DatabaseRepositoryTest {
         assertEquals(listOf("yxsavedatabase"), h.engine.sent)
     }
 
-    /** No load seen at all says nothing: the engine may have read the file before
-     *  this connection existed, and refusing every save would be worse. */
+    /**
+     * "No load seen" used to allow the save, on the theory that the engine might
+     * have read the file before this connection existed. With the server's
+     * `enable_by_default = false` that is backwards: an engine that has not
+     * reported a load holds *no* database, and saving would write nothing over
+     * everything. A person asking for it gets the database attached instead.
+     */
     @Test
-    fun `a save is allowed when no load was ever seen`() = dbTest { h ->
+    fun `no database loaded attaches one instead of saving`() = dbTest { h ->
         runCurrent()
         h.engine.sent.clear()
 
-        assertEquals(DbOpResult.Sent, h.repository.save())
+        assertTrue(h.repository.save() is DbOpResult.Refused)
         runCurrent()
-        assertEquals(listOf("yxsavedatabase"), h.engine.sent)
+
+        assertEquals(listOf("INFO usedatabase 0", "INFO usedatabase 1"), h.engine.sent)
+    }
+
+    /** …but the timer must never attach: that reloads the whole file into the
+     *  engine, and on a timer it is session 48's RAM exhaustion on a loop. */
+    @Test
+    fun `the auto-save timer never attaches a database`() = dbTest(
+        settings = AppSettings(dbAutoSave = true, dbAutoSaveMinutes = 1),
+    ) { h ->
+        runCurrent()
+        h.engine.sent.clear()
+
+        advanceTimeBy(70_000)
+        runCurrent()
+
+        assertTrue(h.engine.sent.isEmpty())
+    }
+
+    /** A save the engine has begun rewrites the whole file; a second one on top
+     *  of it interleaves into a truncated result. */
+    @Test
+    fun `a save is refused while the previous one is still running`() = dbTest { h ->
+        runCurrent()
+        emit(h, "MESSAGE DATABASE LOAD START rapfi.db")
+        emit(h, "MESSAGE DATABASE LOAD DONE")
+        runCurrent()
+        assertEquals(DbOpResult.Sent, h.repository.save())
+        emit(h, "MESSAGE DATABASE SAVE START rapfi.db")
+        runCurrent()
+        h.engine.sent.clear()
+
+        assertTrue(h.repository.save() is DbOpResult.Refused)
+        runCurrent()
+        assertTrue(h.engine.sent.isEmpty())
+
+        // …and allowed again once the engine says it finished.
+        emit(h, "MESSAGE DATABASE SAVE DONE")
+        runCurrent()
+        assertEquals(DbOpResult.Sent, h.repository.save())
+    }
+
+    /**
+     * A review or a proof drives the engine directly, so the connection stays
+     * `Ready` for its whole run. Without [EngineBusy] the timer read that as
+     * "idle" and rewrote the file out from under a search still adding to it.
+     */
+    @Test
+    fun `a save is refused while a review or proof holds the engine`() = dbTest { h ->
+        runCurrent()
+        emit(h, "MESSAGE DATABASE LOAD START rapfi.db")
+        emit(h, "MESSAGE DATABASE LOAD DONE")
+        runCurrent()
+        h.busy.acquire(EngineBusy.PROVE)
+        h.engine.sent.clear()
+
+        assertTrue(h.repository.save() is DbOpResult.Refused)
+        runCurrent()
+        assertTrue(h.engine.sent.isEmpty())
+
+        h.busy.release(EngineBusy.PROVE)
+        assertEquals(DbOpResult.Sent, h.repository.save())
+    }
+
+    /** A new engine process holds nothing the old one told us about. */
+    @Test
+    fun `a dropped connection forgets that the database was loaded`() = dbTest { h ->
+        runCurrent()
+        emit(h, "MESSAGE DATABASE LOAD START rapfi.db")
+        emit(h, "MESSAGE DATABASE LOAD DONE")
+        runCurrent()
+
+        h.engine.stateFlow.value = ConnectionState.Error("dropped")
+        runCurrent()
+        h.engine.stateFlow.value = ConnectionState.Ready
+        runCurrent()
+        h.engine.sent.clear()
+
+        assertTrue(h.repository.save() is DbOpResult.Refused)
     }
 
     private suspend fun emit(h: Harness, line: String) {

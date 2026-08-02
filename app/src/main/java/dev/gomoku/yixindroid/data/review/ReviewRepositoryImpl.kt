@@ -4,6 +4,7 @@ import dev.gomoku.yixindroid.core.common.IoDispatcher
 import dev.gomoku.yixindroid.core.model.AnalysisSnapshot
 import dev.gomoku.yixindroid.core.model.AppSettings
 import dev.gomoku.yixindroid.core.model.GameFile
+import dev.gomoku.yixindroid.core.model.EngineBusy
 import dev.gomoku.yixindroid.core.model.GameFileContent
 import dev.gomoku.yixindroid.core.model.GameFileFormat
 import dev.gomoku.yixindroid.core.model.GameReport
@@ -76,6 +77,7 @@ class ReviewRepositoryImpl @Inject constructor(
      * *this* one — the guard is the only thing that needs it.
      */
     private val prove: Provider<ProveRepository>,
+    private val busy: EngineBusy,
     @IoDispatcher io: CoroutineDispatcher,
 ) : ReviewRepository {
 
@@ -183,6 +185,9 @@ class ReviewRepositoryImpl @Inject constructor(
             running = true, index = 0, total = total, budget = budget,
             queue = queueProgress(),
         )
+        // The engine is ours until finish(): a database save now would rewrite
+        // the file out from under a search that is still adding to it.
+        busy.acquire(EngineBusy.REVIEW)
         note("게임 리뷰 시작: ${total + 1}개 국면, 수당 ${budget.label}")
         sendBudget()
         analyzeCurrent()
@@ -344,6 +349,7 @@ class ReviewRepositoryImpl @Inject constructor(
         searching = false
         aggregator = null
         _progress.value = ReviewProgress(budget = budget)
+        busy.release(EngineBusy.REVIEW)
         runCatching { restoreLevel() }
 
         if (cancelled) {

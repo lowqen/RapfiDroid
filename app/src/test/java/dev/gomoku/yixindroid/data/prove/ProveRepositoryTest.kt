@@ -8,6 +8,7 @@ import dev.gomoku.yixindroid.core.model.ComputerSide
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
+import dev.gomoku.yixindroid.core.model.EngineBusy
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.LinkHealth
@@ -215,6 +216,7 @@ class ProveRepositoryTest {
         val repository = ProveRepositoryImpl(
             engine, game, review, FakeSettings(settings),
             DatabaseSaver { saveCount++; DbOpResult.Sent },
+            EngineBusy(),
             StandardTestDispatcher(testScheduler),
         )
         val h = Harness(engine, game, review, repository) { saveCount }
