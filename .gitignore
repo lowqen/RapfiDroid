@@ -10,3 +10,11 @@
 local.properties
 /app/build/
 .kotlin/
+
+# Signing: the keystore and its passwords are the user's, never the repo's.
+keystore.properties
+*.jks
+*.keystore
+
+# Release build output (Android Studio writes the signed APK here).
+/app/release/
