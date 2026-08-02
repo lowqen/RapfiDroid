@@ -386,6 +386,55 @@ class DatabaseRepositoryTest {
         assertEquals(listOf("yxquerydatabaseallt\n7,7\n6,8\ndone"), h.engine.sent)
     }
 
+    // ---- saving cannot destroy the file --------------------------------------
+
+    /**
+     * A save is not an append: the engine writes its whole in-memory database
+     * over the file. A load that started and never reported DONE leaves that
+     * memory incomplete, and saving then replaces a good file with a partial one
+     * — which is how a 700 MB database came back as 10 MB.
+     */
+    @Test
+    fun `a save is refused while a load has not finished`() = dbTest { h ->
+        runCurrent()
+        emit(h, "MESSAGE DATABASE LOAD START rapfi.db")
+        runCurrent()
+        h.engine.sent.clear()
+
+        val result = h.repository.save()
+        runCurrent()
+
+        assertTrue(result is DbOpResult.Refused)
+        assertTrue(h.engine.sent.isEmpty())
+    }
+
+    @Test
+    fun `a save goes out once the load has finished`() = dbTest { h ->
+        runCurrent()
+        emit(h, "MESSAGE DATABASE LOAD START rapfi.db")
+        emit(h, "MESSAGE DATABASE LOAD DONE")
+        runCurrent()
+        h.engine.sent.clear()
+
+        val result = h.repository.save()
+        runCurrent()
+
+        assertEquals(DbOpResult.Sent, result)
+        assertEquals(listOf("yxsavedatabase"), h.engine.sent)
+    }
+
+    /** No load seen at all says nothing: the engine may have read the file before
+     *  this connection existed, and refusing every save would be worse. */
+    @Test
+    fun `a save is allowed when no load was ever seen`() = dbTest { h ->
+        runCurrent()
+        h.engine.sent.clear()
+
+        assertEquals(DbOpResult.Sent, h.repository.save())
+        runCurrent()
+        assertEquals(listOf("yxsavedatabase"), h.engine.sent)
+    }
+
     private suspend fun emit(h: Harness, line: String) {
         h.engine.responseFlow.emit(ResponseParser.parse(line, coord))
     }

@@ -1,6 +1,7 @@
 package dev.gomoku.yixindroid.data.database
 
 import dev.gomoku.yixindroid.core.common.IoDispatcher
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.DbDeleteScope
 import dev.gomoku.yixindroid.core.model.DbOpResult
@@ -92,6 +93,17 @@ class DatabaseRepositoryImpl @Inject constructor(
     /** Desktop `dbqueryseq` / `dbdoneseq`. Guarded by the single collector. */
     private val pairing = DbQueryPairing()
 
+    /**
+     * Whether the engine finished reading the database file. UNKNOWN means no
+     * load was seen at all — it may have happened before this connection, so
+     * there is nothing to conclude; LOADING means a load started and has not
+     * reported DONE, which is the one state where saving destroys data.
+     */
+    private enum class LoadState { UNKNOWN, LOADING, LOADED }
+
+    @Volatile
+    private var loadState = LoadState.UNKNOWN
+
     init {
         repoScope.launch {
             engine.responses.collect { response -> onResponse(response) }
@@ -168,6 +180,13 @@ class DatabaseRepositoryImpl @Inject constructor(
             ).also {
                 if (!response.started && response.saving) {
                     _state.update { it.copy(lastSaveAt = System.currentTimeMillis()) }
+                }
+                // A save writes the engine's whole in-memory database over the
+                // file, so it must never go out while that memory is known to be
+                // incomplete — a load that started and never finished would
+                // replace a complete file with a half-read one.
+                if (!response.saving) {
+                    loadState = if (response.started) LoadState.LOADING else LoadState.LOADED
                 }
             }
             is EngineResponse.Message -> if (looksLikeDbMessage(response.text)) log(response.text)
@@ -301,9 +320,25 @@ class DatabaseRepositoryImpl @Inject constructor(
 
     // ---- files -------------------------------------------------------------
 
-    override suspend fun save(): DbOpResult = guarded(write = true) {
-        send(DbSave)
-        log("저장 요청")
+    /**
+     * `yxsavedatabase`. Not an append — the engine writes its whole in-memory
+     * database over the file, so a save made while that memory is incomplete
+     * replaces a good file with a partial one. Every caller goes through here,
+     * including the prove run's save at the end of a proof.
+     */
+    override suspend fun save(): DbOpResult {
+        if (loadState == LoadState.LOADING) {
+            return DbOpResult.Refused(
+                tr(
+                    "불러오기가 끝나지 않았습니다 — 지금 저장하면 파일이 읽다 만 사본으로 덮입니다",
+                    "The load never finished — saving now would replace the file with a partial copy",
+                ),
+            )
+        }
+        return guarded(write = true) {
+            send(DbSave)
+            log(tr("저장 요청", "Save requested"))
+        }
     }
 
     override suspend fun openFile(path: String): DbOpResult = guarded(write = true) {
@@ -433,10 +468,11 @@ class DatabaseRepositoryImpl @Inject constructor(
             if (elapsed < interval) continue
             elapsed = 0
             val idle = engine.state.value == ConnectionState.Ready
+            // Through save(), so the timer cannot do what a button is refused.
             if (config.dbAutoSave && config.useDatabase && !config.databaseReadonly && idle) {
-                runCatching {
-                    send(DbSave)
-                    log("자동 저장 (${interval}분 주기)")
+                val result = runCatching { save() }.getOrNull()
+                if (result is DbOpResult.Sent) {
+                    log(tr("자동 저장 (${interval}분 주기)", "Auto-saved (every $interval min)"))
                 }
             }
         }

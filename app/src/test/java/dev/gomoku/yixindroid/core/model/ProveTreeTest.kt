@@ -350,6 +350,61 @@ class ProveTreeTest {
         assertThat(t.root.state).isEqualTo(ProveState.OPEN) // no candidates left to try
     }
 
+    /**
+     * The defect that filled the shared database with mates that were not mates:
+     * a defender node was settled by whichever line the engine happened to put
+     * first, so one refuted defense "proved" the attack while other defenses were
+     * still holding.
+     */
+    @Test
+    fun `one refuted defense does not prove the attack`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        val step = t.onSearchResult(
+            and,
+            listOf(
+                pv("I9", 0.0, mate = -5, depth = 20),  // this defense is lost…
+                pv("G7", 0.42, mate = 0, depth = 20),  // …but this one holds
+            ),
+        )
+        assertThat(step).isNotEqualTo(ProveStep.RESOLVED)
+        assertThat(t[and].state).isEqualTo(ProveState.OPEN)
+        assertThat(t[and].result).isEqualTo(ProveResult.NONE)
+    }
+
+    @Test
+    fun `every defense refuted does prove the attack`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        val step = t.onSearchResult(
+            and,
+            listOf(
+                pv("I9", 0.0, mate = -5, depth = 20),
+                pv("G7", 0.0, mate = -7, depth = 20),
+            ),
+        )
+        assertThat(step).isEqualTo(ProveStep.RESOLVED)
+        assertThat(t[and].result).isEqualTo(ProveResult.WIN)
+        assertThat(t[and].kind).isEqualTo(ProveKind.MATE)
+    }
+
+    /** The node is judged by the mover's best line, not by the engine's first. */
+    @Test
+    fun `the best line decides, whatever order the engine sent`() {
+        val t = tree()
+        val step = t.onSearchResult(
+            0,
+            listOf(
+                pv("G7", 0.10, mate = 0, depth = 9),   // engine's first, and worse
+                pv("H8", 0.99, mate = 3, depth = 21),  // the mover's actual best
+            ),
+        )
+        assertThat(step).isEqualTo(ProveStep.RESOLVED)
+        assertThat(t.root.result).isEqualTo(ProveResult.WIN)
+        assertThat(t.root.value).isEqualTo(30000 - 3)
+        assertThat(t.root.recDepth).isEqualTo(21)
+    }
+
     @Test
     fun `getting mated at an attacker node ends that branch`() {
         val t = tree()

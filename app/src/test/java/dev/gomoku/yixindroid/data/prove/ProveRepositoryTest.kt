@@ -16,6 +16,7 @@ import dev.gomoku.yixindroid.core.model.GameReport
 import dev.gomoku.yixindroid.core.model.GameResult
 import dev.gomoku.yixindroid.core.model.GameState
 import dev.gomoku.yixindroid.core.model.GradingPreset
+import dev.gomoku.yixindroid.core.model.DbOpResult
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.ProveKind
@@ -34,6 +35,7 @@ import dev.gomoku.yixindroid.domain.engine.CoordMapper
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.engine.EngineResponse
 import dev.gomoku.yixindroid.domain.engine.ResponseParser
+import dev.gomoku.yixindroid.domain.repository.DatabaseSaver
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameRepository
 import dev.gomoku.yixindroid.domain.repository.ProveStart
@@ -167,11 +169,15 @@ class ProveRepositoryTest {
         override fun clearReport() = Unit
     }
 
+    /** `saves` counts the run's database saves; they go through DatabaseSaver
+     *  now, not straight at the engine, so that the read-only and
+     *  unfinished-load refusals apply to a proof's save as well. */
     private class Harness(
         val engine: FakeEngine,
         val game: FakeGame,
         val review: FakeReview,
         val prove: ProveRepositoryImpl,
+        val saves: () -> Int,
     ) {
         suspend fun receive(line: String) {
             engine.responseFlow.emit(ResponseParser.parse(line, CoordMapper()))
@@ -205,10 +211,13 @@ class ProveRepositoryTest {
         val engine = FakeEngine()
         val game = FakeGame()
         val review = FakeReview()
+        var saveCount = 0
         val repository = ProveRepositoryImpl(
-            engine, game, review, FakeSettings(settings), StandardTestDispatcher(testScheduler),
+            engine, game, review, FakeSettings(settings),
+            DatabaseSaver { saveCount++; DbOpResult.Sent },
+            StandardTestDispatcher(testScheduler),
         )
-        val h = Harness(engine, game, review, repository)
+        val h = Harness(engine, game, review, repository) { saveCount }
         try {
             runCurrent()
             body(h)
@@ -340,7 +349,7 @@ class ProveRepositoryTest {
         // Nothing is written back: the record was already there.
         assertThat(outcome.dbWrites).isEqualTo(0)
         assertThat(h.engine.sent).doesNotContain("yxedittvddatabase")
-        assertThat(h.engine.sent.last()).isEqualTo("yxsavedatabase")
+        assertThat(h.saves()).isEqualTo(1)
         assertThat(h.prove.progress.value.running).isFalse()
     }
 
@@ -499,7 +508,7 @@ class ProveRepositoryTest {
         runCurrent()
 
         assertThat(h.engine.sent).contains("YXSTOP")
-        assertThat(h.engine.sent).contains("yxsavedatabase")
+        assertThat(h.saves()).isEqualTo(1)
         assertThat(h.engine.sent.any { it.startsWith("INFO max_node") }).isTrue()
         assertThat(h.prove.progress.value.running).isFalse()
         assertThat(h.prove.overlay.value.active).isFalse()

@@ -398,25 +398,35 @@ class ProveTree(
         val n = nodes[i]
         if (pvs.isEmpty()) return onTimeout(i)
         n.retries = 0
-        val first = pvs.first()
-        val mate = first.mate
+        // The mover's *best* line, not the engine's first. `expand` below re-sorts
+        // by mover win rate precisely because the incoming order is not
+        // guaranteed, and a node judged by a worse line than the mover actually
+        // has available says nothing about the node.
+        val best = pvs.maxByOrNull { it.winRate } ?: pvs.first()
+        val mate = best.mate
         val value = when {
             mate > 0 -> 30000 - mate
             mate < 0 -> -30000 - mate
-            else -> ((first.winRate - 0.5) * 2000).toInt()
+            else -> ((best.winRate - 0.5) * 2000).toInt()
         }
-        n.wratt = if (n.isOr) first.winRate else 1.0 - first.winRate
+        n.wratt = if (n.isOr) best.winRate else 1.0 - best.winRate
         if (mate > 0) {
             resolve(
                 i, if (n.isOr) ProveResult.WIN else ProveResult.NOWIN,
-                ProveKind.MATE, value, first.depth, "search",
+                ProveKind.MATE, value, best.depth, "search",
             )
             return ProveStep.RESOLVED
         }
-        if (mate < 0) {
+        // An AND node is the defender's turn, and it is won for the attacker only
+        // when *every* defense loses. One refuted line is not that proof, however
+        // good the line was: take the shortcut only when every defense the engine
+        // returned is refuted too, and otherwise expand and settle them one at a
+        // time through `propagate`. That is what "all defenses lose" has to mean.
+        val everyDefenseRefuted = n.isOr || pvs.all { it.mate < 0 }
+        if (mate < 0 && everyDefenseRefuted) {
             resolve(
                 i, if (n.isOr) ProveResult.NOWIN else ProveResult.WIN,
-                ProveKind.MATE, value, first.depth, "search",
+                ProveKind.MATE, value, best.depth, "search",
             )
             return ProveStep.RESOLVED
         }

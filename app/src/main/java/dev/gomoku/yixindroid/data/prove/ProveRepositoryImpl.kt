@@ -19,10 +19,10 @@ import dev.gomoku.yixindroid.core.model.ProveStep
 import dev.gomoku.yixindroid.core.model.ProveTree
 import dev.gomoku.yixindroid.domain.engine.DbEditRecord
 import dev.gomoku.yixindroid.domain.engine.DbQueryOne
-import dev.gomoku.yixindroid.domain.engine.DbSave
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.engine.EngineResponse
 import dev.gomoku.yixindroid.domain.engine.SearchAggregator
+import dev.gomoku.yixindroid.domain.repository.DatabaseSaver
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.domain.repository.GameRepository
 import dev.gomoku.yixindroid.domain.repository.ProveRepository
@@ -69,6 +69,7 @@ class ProveRepositoryImpl @Inject constructor(
     private val game: GameRepository,
     private val review: ReviewRepository,
     private val settingsRepository: SettingsRepository,
+    private val databaseSaver: DatabaseSaver,
     @IoDispatcher io: CoroutineDispatcher,
 ) : ProveRepository {
 
@@ -441,7 +442,11 @@ class ProveRepositoryImpl @Inject constructor(
         _progress.value = ProveProgress(byDepth = options.byDepth)
         _overlay.value = ProveOverlay.EMPTY
         runCatching { restoreLevel() }
-        runCatching { engine.send(DbSave) }
+        // Through the database repository, not straight at the engine: a save
+        // writes the engine's whole in-memory database over the file, and that
+        // is refused while a load is unfinished or the database is read-only.
+        // A proof ending is no reason to skip either check.
+        runCatching { databaseSaver.saveDatabase() }
 
         val root = tree?.root
         val outcome = ProveOutcome(
