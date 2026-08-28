@@ -69,7 +69,11 @@ class ExplorerRepositoryImpl @Inject constructor(
     }
 
     init {
-        combine(game.position, store.packs) { pos, packs -> pos to packs }
+        // the opening tables are a third input: importing names or grades has
+        // to redraw the current position, not wait for the next move
+        combine(game.position, store.packs, store.tables) { pos, packs, _ ->
+            pos to packs
+        }
             .onEach { (pos, packs) -> sync(pos, packs) }
             .launchIn(scope)
     }
@@ -96,8 +100,10 @@ class ExplorerRepositoryImpl @Inject constructor(
             }
             val found = ExplorerLookup.lookup(packs.stats, packs.games, pos)
             if (found == null) {
+                // no statistics is not no information: a grade is a fact about
+                // the position, so the graded moves still get their rows
                 _status.value = ExplorerStatus.NO_STATS
-                _position.value = null
+                _position.value = ExplorerLookup.theoryOnly(pos)
                 return@withContext
             }
             current = found.stat

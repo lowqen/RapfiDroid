@@ -23,26 +23,8 @@ class RankingsViewModel @Inject constructor(
     private val _state = MutableStateFlow(RankingsUiState())
     val uiState: StateFlow<RankingsUiState> = _state.asStateFlow()
 
-    private var openingShapeCounts: Map<String, Int> = emptyMap()
-
     init {
-        viewModelScope.launch {
-            openingShapeCounts = repo.openingShapeCounts()
-            val dist = repo.groupDistribution()
-            val total = repo.shapeTotal()
-            val dataError = repo.rank5Error()?.let {
-                tr("랭킹 데이터(rank5)를 불러오지 못했습니다: $it. ", "The ranking data (rank5) could not be opened: $it.") +
-                    tr("앱을 완전히 종료 후 재설치하거나 Android Studio에서 Clean+Rebuild 하세요.", "Close the app fully and reinstall, or Clean+Rebuild in Android Studio.")
-            }
-            _state.update {
-                it.copy(
-                    groupDist = dist, shapeTotal = total, openingCards = baseCards(),
-                    dataError = dataError,
-                )
-            }
-            refresh3()
-            refresh5()
-        }
+        _state.update { it.copy(openingCards = baseCards()) }
         viewModelScope.launch { repo.restoreFreq() }
         viewModelScope.launch {
             repo.freq.collect { bundle ->
@@ -90,7 +72,6 @@ class RankingsViewModel @Inject constructor(
                     selectedPlayers = emptyList(),
                     playerQuery = "",
                     playerSuggestions = emptyList(),
-                    fiveSort = FiveSort.THEORY,
                 )
             }
         }
@@ -160,18 +141,8 @@ class RankingsViewModel @Inject constructor(
         refresh3()
     }
 
-    fun onFiveSort(sort: FiveSort) {
-        _state.update { it.copy(fiveSort = sort) }
-        refresh5()
-    }
-
     fun onFiveQueryChange(q: String) {
         _state.update { it.copy(fiveQuery = q) }
-        refresh5()
-    }
-
-    fun onBoardScope(scope: BoardScope) {
-        _state.update { it.copy(boardScope = scope) }
         refresh5()
     }
 
@@ -185,7 +156,6 @@ class RankingsViewModel @Inject constructor(
             romaji = Opening26.romaji[i],
             direct = Opening26.isDirect(i),
             moves = Opening26.representative(i),
-            theoryShapeCount = openingShapeCounts[Opening26.abbr[i]] ?: 0,
         )
     }
 
@@ -211,56 +181,27 @@ class RankingsViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The 5-move list is empirical only: how often each distinct shape was
+     * actually played, in the user's own dataset. There is no theoretical list
+     * behind it, so with no dataset imported the tab is simply empty.
+     */
     private fun refresh5() {
         viewModelScope.launch {
             val s = _state.value
-            val rows: List<FiveRow> = if (s.fiveSort == FiveSort.EMPIRICAL && s.freqLoaded) {
-                val q = s.fiveQuery.trim().lowercase()
-                val empirical = repo.fiveMoveRanking(s.filter, top = 250)
-                // Join matched shapes to rank5 for the authoritative opening +
-                // canonical representative (a shape can be reached by several
-                // move orders, so the shape's own rep opening is ambiguous).
-                val byRank = repo.shapesByRank(
-                    empirical.mapNotNull { it.shape.theoryRankRaw.takeIf { r -> r > 0 } }.toSet(),
-                )
-                empirical.map { row ->
-                    val sr = byRank[row.shape.theoryRankRaw]
-                    if (sr != null) {
-                        FiveRow(
-                            rankRaw = sr.rankRaw, opening = sr.opening,
-                            openingIndex = sr.openingIndex, moves = sr.moves(),
-                            repMoves = sr.repMoves, group = sr.group,
-                            empiricalCount = row.count, split = row.split,
-                        )
-                    } else {
-                        val moves = row.shape.moves()
-                        FiveRow(
-                            rankRaw = 0, opening = "—",
-                            openingIndex = Opening26.classify(moves), moves = moves,
-                            repMoves = row.shape.repMoves, group = row.shape.theoryCountRaw,
-                            empiricalCount = row.count, split = row.split,
-                        )
-                    }
-                }.filter { q.isEmpty() || it.repMoves.lowercase().contains(q) }
-            } else {
-                val counts = repo.countsByTheoryRank(s.filter)
-                repo.searchShapes(
-                    repContains = s.fiveQuery.ifBlank { null },
-                    opening = null,
-                    m5Max = s.boardScope.m5Max,
-                    limit = 250,
-                ).map { sr ->
+            val q = s.fiveQuery.trim().lowercase()
+            val rows = repo.fiveMoveRanking(s.filter, top = 250)
+                .filter { q.isEmpty() || it.shape.repMoves.lowercase().contains(q) }
+                .map { row ->
+                    val moves = row.shape.moves()
                     FiveRow(
-                        rankRaw = sr.rankRaw,
-                        opening = sr.opening,
-                        openingIndex = sr.openingIndex,
-                        moves = sr.moves(),
-                        repMoves = sr.repMoves,
-                        group = sr.group,
-                        empiricalCount = counts[sr.rankRaw],
+                        openingIndex = Opening26.classify(moves),
+                        moves = moves,
+                        repMoves = row.shape.repMoves,
+                        count = row.count,
+                        split = row.split,
                     )
                 }
-            }
             _state.update { it.copy(fiveRows = rows) }
         }
     }

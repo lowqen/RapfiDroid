@@ -1,8 +1,10 @@
 package dev.gomoku.yixindroid.data.explorer
 
 import com.google.common.truth.Truth.assertThat
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ExplorerGames
 import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.Opening26
 import dev.gomoku.yixindroid.core.model.PosKey
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.RjGame
@@ -273,24 +275,42 @@ class ExplorerLookupTest {
         assertThat(ExplorerLookup.openingIndex("")).isNull()
     }
 
-    /** The opening is shown in the opening phase only (main.c:5388). */
+    /**
+     * Each next-move row carries the name that move would *make*, so browsing a
+     * position is browsing the names of the moves out of it, ordered by how
+     * often they are played. Names are looked up in the board frame, which is
+     * the step that could silently pair a name with its mirror image.
+     */
     @Test
-    fun theOpeningLabelAppearsOnlyForShortLines() {
-        val games = gamesPack(
-            listOf(game(1, opening = 4)),
-            openings = listOf(Triple(4, "d4", "Kagetsu")),
-        )
-        val pos = line("h8", "i9")
-        val id = PosKey.of(pos.moves, size)
-        val stats = statsPack(listOf(Row(id.key, 5, 3, 0, 2, gameIds = listOf(1))))
-        val found = ExplorerLookup.lookup(stats, games, pos)!!
-        assertThat(found.position.openingLabel).isEqualTo("화월 (d4)")
+    fun nextMovesCarryTheNameTheyWouldMake() {
+        val games = gamesPack(listOf(game(1)), openings = emptyList())
 
-        val long = Position(size, listOf("h8", "i9", "j10", "k11", "g7", "f6", "e5", "d4", "c3")
-            .map { move(it) })
-        val longId = PosKey.of(long.moves, size)
-        val longStats = statsPack(listOf(Row(longId.key, 5, 3, 0, 2, gameIds = listOf(1))))
-        assertThat(ExplorerLookup.lookup(longStats, games, long)!!.position.openingLabel).isNull()
+        fun namesOf(pos: Position, vararg candidates: String): Map<String, String?> {
+            val id = PosKey.of(pos.moves, size)
+            val stats = statsPack(listOf(Row(
+                id.key, 9, 5, 0, 4,
+                next = candidates.map {
+                    Next(PosKey.tf(id.transform, size, move(it)), 3, 2, 0, 1)
+                },
+                gameIds = listOf(1),
+            )))
+            return ExplorerLookup.lookup(stats, games, pos)!!
+                .position.next.associate { it.move.label(size) to it.name }
+        }
+
+        // after 천원, the candidates are the two ways to block it
+        val blocks = namesOf(line("h8"), "h9", "i9")
+        assertThat(blocks["H9"]).isEqualTo(tr("직접막기", "Direct block"))
+        assertThat(blocks["I9"]).isEqualTo(tr("간접막기", "Indirect block"))
+
+        // after a 2nd move, the candidates are the 26 openings
+        val openings = namesOf(line("h8", "h9"), "h10", "g9")
+        assertThat(openings["H10"]).isEqualTo(Opening26.name(0))   // 한성
+        assertThat(openings["G9"]).isEqualTo(Opening26.name(3))    // 화월
+
+        // names stop at the 4th move — 렌주 has no per-shape 5수 name
+        val fifth = namesOf(line("h8", "h9", "g9", "g8"), "f7")
+        assertThat(fifth["F7"]).isNull()
     }
 
     @Test

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 13+ themed icon: one colour, chosen by the system from the wallpaper.
+  With no colours left to separate them, the two stones part by *shape* — the
+  black one filled, the white one an outline — which is the same trick the board
+  itself falls back on in greyscale.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108"
+    android:tint="#000000">
+
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="2.6"
+        android:strokeAlpha="0.55"
+        android:pathData="M33,33 h42 M33,54 h42 M33,75 h42 M33,33 v42 M54,33 v42 M75,33 v42" />
+
+    <path
+        android:strokeColor="#000000"
+        android:strokeWidth="3.2"
+        android:pathData="M75,33 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0" />
+
+    <path
+        android:fillColor="#000000"
+        android:pathData="M54,54 m-13,0 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0" />
+</vector>

@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import dev.gomoku.yixindroid.core.designsystem.theme.BoardSkin
 import java.io.ByteArrayOutputStream
 
 /**
@@ -24,7 +25,11 @@ const val BOARD_PNG_SIZE_PX = 1440
  * value it is given, and needs no composition or real density (all of its
  * geometry is in pixels).
  */
-fun renderBoardPng(render: BoardRender, sizePx: Int = BOARD_PNG_SIZE_PX): ByteArray {
+fun renderBoardPng(
+    render: BoardRender,
+    skin: BoardSkin = BoardSkin.Light,
+    sizePx: Int = BOARD_PNG_SIZE_PX,
+): ByteArray {
     val side = sizePx.coerceIn(320, 4096)
     val bitmap = ImageBitmap(side, side)
     CanvasDrawScope().draw(
@@ -33,7 +38,7 @@ fun renderBoardPng(render: BoardRender, sizePx: Int = BOARD_PNG_SIZE_PX): ByteAr
         canvas = Canvas(bitmap),
         size = Size(side.toFloat(), side.toFloat()),
     ) {
-        drawBoard(render)
+        drawBoard(render, skin)
     }
     return ByteArrayOutputStream().use { out ->
         bitmap.asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, out)

@@ -81,4 +81,86 @@ class SearchAggregatorTest {
         val snap = agg.consume(line("INFO PV DONE"))
         assertThat(snap!!.blackMate()).isEqualTo(5)
     }
+
+    /** One `INFO PV <i>` … `INFO PV DONE` block, with only the fields given. */
+    private fun SearchAggregator.block(
+        index: Int,
+        depth: Int,
+        bestline: String,
+        eval: String? = null,
+        winRate: String? = null,
+    ) {
+        consume(line("INFO PV $index"))
+        consume(line("INFO DEPTH $depth"))
+        eval?.let { consume(line("INFO EVAL $it")) }
+        winRate?.let { consume(line("INFO WINRATE $it")) }
+        consume(line("INFO BESTLINE $bestline"))
+        consume(line("INFO PV DONE"))
+    }
+
+    private val h8 = Move(x = 7, y = 7)
+    private val i7 = Move(x = 8, y = 6)
+
+    /**
+     * A tag dies when its round ends, not when a deeper one starts. main.c
+     * compares depths, and two deepening rounds can report the same depth — so a
+     * cell that had dropped out of the candidate set kept its old label right
+     * next to the current round's percentages, which reads as one more move that
+     * loses. Rounds cannot tie with themselves.
+     */
+    @Test
+    fun aTagFromAnEarlierRoundDoesNotSurviveAtTheSameDepth() {
+        val agg = SearchAggregator(StoneColor.BLACK)
+        agg.consume(line("INFO NUMPV 2"))
+        agg.block(0, depth = 20, bestline = "7,7", winRate = "0.55")
+        agg.block(1, depth = 20, bestline = "6,8", eval = "-M40")
+
+        // Next round, same depth, and 6,8 is no longer among the candidates.
+        agg.consume(line("INFO NUMPV 1"))
+        agg.block(0, depth = 20, bestline = "7,7", winRate = "0.58")
+
+        assertThat(agg.snapshot().tags.keys).containsExactly(h8)
+        assertThat(agg.snapshot().tags[h8]!!.label).isEqualTo("58%")
+    }
+
+    /**
+     * `INFO NUMPV` is the only thing that can end a round early, and it is not
+     * resent by every search. When it overstates the round the sweep never runs,
+     * so the next round's `INFO PV 0` has to do it instead.
+     */
+    @Test
+    fun aRoundThatNeverReachesItsNumPvIsStillSweptEventually() {
+        val agg = SearchAggregator(StoneColor.BLACK)
+        agg.consume(line("INFO NUMPV 5")) // more than the engine will actually send
+        agg.block(0, depth = 18, bestline = "7,7", winRate = "0.51")
+        agg.block(1, depth = 18, bestline = "6,8", eval = "-M40")
+
+        agg.block(0, depth = 19, bestline = "7,7", winRate = "0.53")
+        // Round 2 has not ended yet, so round 1's leftovers are still shown …
+        assertThat(agg.snapshot().tags.keys).contains(i7)
+        // … and are gone once round 3 opens.
+        agg.consume(line("INFO PV 0"))
+        assertThat(agg.snapshot().tags.keys).containsExactly(h8)
+    }
+
+    /**
+     * What a finished search established is the *last* round, whatever the
+     * rounds before it reported. A deeper round may return fewer PVs than a
+     * shallower one, and the leftovers kept a valid coordinate with a stale
+     * value — which the prove pipeline then read as one of this round's answers.
+     */
+    @Test
+    fun finalPvsAreTheLastRoundOnly() {
+        val agg = SearchAggregator(StoneColor.BLACK)
+        agg.block(0, depth = 18, bestline = "7,7", winRate = "0.51")
+        agg.block(1, depth = 18, bestline = "6,8", eval = "-M40")
+        agg.block(2, depth = 18, bestline = "5,9", eval = "-M20")
+        // The deeper round finds only one line worth reporting.
+        agg.block(0, depth = 22, bestline = "7,7", winRate = "0.10")
+
+        val last = agg.finalPvs()
+        assertThat(last.map { it.index }).containsExactly(0)
+        assertThat(last.single().winRate).isWithin(1e-9).of(0.10)
+        assertThat(last.single().mate).isNull()
+    }
 }

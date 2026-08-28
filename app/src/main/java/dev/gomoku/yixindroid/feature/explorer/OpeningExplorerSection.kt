@@ -2,6 +2,7 @@ package dev.gomoku.yixindroid.feature.explorer
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,14 +10,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -25,9 +32,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,24 +42,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.EmptyState
+import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.yixindroid.core.designsystem.component.MiniBoard
+import dev.gomoku.yixindroid.core.designsystem.component.ReadingWidth
+import dev.gomoku.yixindroid.core.designsystem.component.drawGradeMark
+import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ExplorerGameRow
 import dev.gomoku.yixindroid.core.model.ExplorerNext
 import dev.gomoku.yixindroid.core.model.ExplorerPosition
 import dev.gomoku.yixindroid.core.model.ExplorerStatus
+import dev.gomoku.yixindroid.core.model.Move
+import dev.gomoku.yixindroid.core.model.OpeningEval
 import dev.gomoku.yixindroid.core.model.RjGame
-
-/** renju.net-style colours for the three result bars (main.c:5376-5378). */
-private val BlackBar = Color(0xFF6FB1E4)
-private val WhiteBar = Color(0xFF7FCE97)
-private val DrawBar = Color(0xFFC9CED6)
+import dev.gomoku.yixindroid.feature.bundle.DataImportCard
 
 /**
  * 오프닝 익스플로러 — RenjuNet statistics for the position on the board
@@ -71,7 +85,9 @@ fun OpeningExplorerSection(
     viewModel: OpeningExplorerViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
+    // The app's one snackbar, not a second host inside a tab — a notice raised
+    // here used to appear in a different place from one raised on the board.
+    val snackbar = LocalSnackbarHostState.current
     var confirmLoad by remember { mutableStateOf<Int?>(null) }
 
     val pick = rememberLauncherForActivityResult(
@@ -102,56 +118,81 @@ fun OpeningExplorerSection(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item { HeaderCard(ui, onImport = { pick.launch(arrayOf("*/*")) }, onClear = viewModel::onClearPacks) }
+    LazyColumn(
+        modifier = modifier.fillMaxHeight().wrapContentWidth().widthIn(max = ReadingWidth),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item { HeaderCard(ui, onImport = { pick.launch(arrayOf("*/*")) }, onClear = viewModel::onClearPacks) }
 
-            ui.position?.let { pos ->
+        // With no packs the folder import is the thing to do next, so it is
+        // offered here rather than only on the settings screen.
+        if (ui.status == ExplorerStatus.NO_PACKS) item { DataImportCard() }
+
+        // 환원 is pure computation from the board, so it goes outside the
+        // position block: just as true with no packs and no statistics.
+        if (ui.transpositions.isNotEmpty()) {
+            item { TranspositionCard(ui.transpositions) }
+        }
+
+        ui.position?.let { pos ->
+            if (pos.games > 0) {
                 item { KpiRow(pos) }
-                if (pos.next.isNotEmpty()) {
-                    item {
-                        SectionTitle(tr("다음 수 ${pos.next.size}가지 — 누르면 보드에 둡니다", "${pos.next.size} continuations — tap one to play it"))
-                    }
-                    items(pos.next, key = { it.move.x * 100 + it.move.y }) { row ->
-                        NextRow(row, ui.barScale, pos.games) { viewModel.onPlayNext(row.move) }
+                item { FrequencyLine(pos, ui.packs?.totalGames ?: 0) }
+            }
+            pos.grade?.let { g ->
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            tr("이 국면: ", "This position: "),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        GradeMark(g, size = 18.dp)
                     }
                 }
             }
-
-            if (ui.status == ExplorerStatus.OK) {
+            item { GradedBoard(pos, ui.stones) }
+            if (pos.next.isNotEmpty()) {
                 item {
-                    OutlinedTextField(
-                        value = ui.filter,
-                        onValueChange = viewModel::onFilterChange,
-                        label = { Text(tr("선수 이름 검색 (라틴 문자)", "Search a player name (Latin letters)")) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-                item {
+                    val graded = pos.next.count { it.grade != null }
                     SectionTitle(
-                        tr("대국 ${ui.games.shown} / ${ui.games.matched}", "Games ${ui.games.shown} / ${ui.games.matched}") +
-                            if (ui.games.matched > ui.games.shown) tr(" (표시 상한 1,000)", " (1,000 shown at most)") else "",
+                        tr("다음 수 ${pos.next.size}가지 — 누르면 보드에 둡니다", "${pos.next.size} continuations — tap one to play it") +
+                            if (graded > 0) tr(" · 유불리 ${graded}개", " · $graded graded") else "",
                     )
                 }
-                items(ui.games.rows, key = { it.id }) { row ->
-                    GameRow(
-                        row = row,
-                        selected = ui.selected?.id == row.id,
-                        onSelect = { viewModel.onSelectGame(row.id) },
-                        onLoad = { confirmLoad = row.id },
-                    )
+                items(pos.next, key = { it.move.x * 100 + it.move.y }) { row ->
+                    NextRow(row, ui.barScale, pos.games) { viewModel.onPlayNext(row.move) }
                 }
-                ui.selected?.let { g ->
-                    item { GameDetail(g, ui.selectedRule, ui.selectedOpening) }
-                }
+            }
+        }
+
+        if (ui.status == ExplorerStatus.OK) {
+            item {
+                OutlinedTextField(
+                    value = ui.filter,
+                    onValueChange = viewModel::onFilterChange,
+                    label = { Text(tr("선수 이름 검색 (라틴 문자)", "Search a player name (Latin letters)")) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            item {
+                SectionTitle(
+                    tr("대국 ${ui.games.shown} / ${ui.games.matched}", "Games ${ui.games.shown} / ${ui.games.matched}") +
+                        if (ui.games.matched > ui.games.shown) tr(" (표시 상한 1,000)", " (1,000 shown at most)") else "",
+                )
+            }
+            items(ui.games.rows, key = { it.id }) { row ->
+                GameRow(
+                    row = row,
+                    selected = ui.selected?.id == row.id,
+                    onSelect = { viewModel.onSelectGame(row.id) },
+                    onLoad = { confirmLoad = row.id },
+                )
+            }
+            ui.selected?.let { g ->
+                item { GameDetail(g, ui.selectedRule, ui.selectedOpening) }
             }
         }
     }
@@ -166,17 +207,17 @@ private fun HeaderCard(
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when (ui.status) {
-                ExplorerStatus.NO_PACKS -> {
-                    Text(tr("오프닝 익스플로러 팩이 없습니다", "No opening explorer packs"), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        tr("RenjuNet 공식 DB(.rif)를 renju.net 에서 내려받아 PC의 rifdb 스크립트 ", "Download the official RenjuNet database (.rif) from renju.net, run the three rifdb scripts on the PC") +
-                            tr("3개(rif_import → rif_aggregate → rif_pack)로 renju_stats.pack / ", "(rif_import → rif_aggregate → rif_pack) to build renju_stats.pack and") +
-                            tr("renju_games.pack 을 만든 뒤 여기서 두 파일을 고르세요.\n", "renju_games.pack, then pick both files here.\n") +
-                            tr("RenjuNet 라이선스는 비상업·오프라인 전용이라 팩은 앱에 동봉되지 않고, ", "The RenjuNet licence is non-commercial and offline only, so the packs are not shipped with the app") +
-                            tr("이 기기 밖으로 나가지도 않습니다.", "and never leave this device."),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+                // The app's one empty state (see [EmptyState]). How to *get*
+                // the packs is the card below; what stays here is the part that
+                // is true whatever the user does — the licence, and that the
+                // names and grades work regardless.
+                ExplorerStatus.NO_PACKS -> EmptyState(
+                    icon = Icons.Filled.Inventory2,
+                    title = tr("오프닝 익스플로러 팩이 없습니다", "No opening explorer packs"),
+                    body = tr("아래에서 PC 의 자료 폴더를 고르면 됩니다. RenjuNet 라이선스가 비상업·오프라인 ", "Pick the PC's data folder below. The RenjuNet licence is non-commercial and offline only, ") +
+                        tr("전용이라 팩은 앱에 동봉되지 않고 이 기기 밖으로 나가지도 않습니다. ", "so the packs are not shipped with the app and never leave this device. ") +
+                        tr("오프닝 이름과 흑 5수 유불리는 팩 없이도 그대로 나옵니다.", "Opening names and the black-5 grades work without them."),
+                )
                 ExplorerStatus.WRONG_SIZE ->
                     Text(tr("익스플로러는 15×15 판에서만 동작합니다", "The explorer works on a 15×15 board only"), style = MaterialTheme.typography.titleMedium)
                 ExplorerStatus.NO_STATS -> {
@@ -187,17 +228,17 @@ private fun HeaderCard(
                         style = MaterialTheme.typography.bodySmall,
                     )
                 }
-                ExplorerStatus.OK -> {
+                ExplorerStatus.OK ->
                     Text(
                         ui.position?.line.orEmpty(),
                         style = MaterialTheme.typography.titleMedium,
                         fontFamily = FontFamily.Monospace,
                     )
-                    ui.position?.openingLabel?.let {
-                        Text(tr("주형(RIF): $it", "Opening (RIF): $it"), style = MaterialTheme.typography.bodySmall)
-                    }
-                }
             }
+            // The chain is computed from the board alone, so it belongs
+            // outside the `when`: it is just as true with no packs and no
+            // statistics as with them (main.c `rjexp_sync`).
+            NameChain(ui.nameChain)
             ui.packs?.let {
                 Text(
                     tr("팩: 대국 ${it.totalGames}판 · 국면 ${it.positions}개 · ${it.dateText} 생성", "Packs: ${it.totalGames} games · ${it.positions} positions · built ${it.dateText}"),
@@ -217,14 +258,151 @@ private fun HeaderCard(
     }
 }
 
-/** All / Black won / White won / Draw, like the desktop's four stat cards. */
+/**
+ * "천원 › 간접막기 › 화월" — the named steps of this line, earlier ones dimmed
+ * and the deepest one in bold, so the eye lands on the name that just changed.
+ * Empty chain draws nothing at all: most positions have no name, and that is
+ * the normal case rather than a gap to apologise for.
+ */
+@Composable
+private fun NameChain(chain: List<String>) {
+    if (chain.isEmpty()) return
+    val dim = MaterialTheme.colorScheme.onSurfaceVariant
+    Text(
+        buildAnnotatedString {
+            chain.forEachIndexed { i, name ->
+                if (i == chain.lastIndex) {
+                    withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(name) }
+                } else {
+                    withStyle(SpanStyle(color = dim)) { append("$name › ") }
+                }
+            }
+        },
+        style = MaterialTheme.typography.titleSmall,
+    )
+}
+
+/**
+ * The desktop's four stat cards, with the labels saying which question they
+ * answer. Three of them are the **result** split of the games that reached
+ * here — not how often the shape appears, which is [FrequencyLine] below.
+ * Running the two together is exactly the confusion this wording removes.
+ */
 @Composable
 private fun KpiRow(pos: ExplorerPosition) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Kpi(tr("전체", "All"), pos.games, null, null, Modifier.weight(1f))
-        Kpi(tr("흑승", "Black"), pos.blackWins, pos.percent(pos.blackWins), Color(0xFF3F83C6), Modifier.weight(1f))
-        Kpi(tr("백승", "White"), pos.whiteWins, pos.percent(pos.whiteWins), Color(0xFF3F9D63), Modifier.weight(1f))
-        Kpi(tr("무승부", "Draw"), pos.draws, pos.percent(pos.draws), null, Modifier.weight(1f))
+        val colors = YixinTheme.colors
+        Kpi(tr("대국", "Games"), pos.games, null, null, Modifier.weight(1f))
+        Kpi(tr("결과 흑승", "Result B"), pos.blackWins, pos.percent(pos.blackWins), colors.resultBlack, Modifier.weight(1f))
+        Kpi(tr("결과 백승", "Result W"), pos.whiteWins, pos.percent(pos.whiteWins), colors.resultWhite, Modifier.weight(1f))
+        Kpi(tr("결과 무승부", "Result D"), pos.draws, pos.percent(pos.draws), null, Modifier.weight(1f))
+    }
+}
+
+/** How *often* this position was reached — the other half of the pair above. */
+@Composable
+private fun FrequencyLine(pos: ExplorerPosition, total: Int) {
+    val parts = listOfNotNull(
+        pos.shareOfParent?.let { tr("직전 국면의 %.1f%%", "%.1f%% of the move before").format(it) },
+        pos.shareOfAll(total)?.let {
+            tr("전체 대비 %.2f%% (%,d판)", "%.2f%% of all games (%,d)").format(it, total)
+        },
+    )
+    if (parts.isEmpty()) return
+    Text(
+        tr("빈도: ", "Frequency: ") + parts.joinToString(" · "),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/**
+ * The 흑 5수 유불리 grade as the user's evaluation table draws it: a coloured
+ * shape plus its name.
+ *
+ * Deliberately not the engine's winrate colour ramp — that is a number the
+ * engine computed and this is one a person wrote down, and painting them alike
+ * would make the two indistinguishable on the same screen.
+ */
+@Composable
+private fun GradeMark(grade: OpeningEval.Grade, size: Dp = 14.dp, withName: Boolean = true) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Canvas(Modifier.size(size)) {
+            val side = this.size.minDimension
+            drawGradeMark(grade, Offset(side / 2f, side / 2f), side * 0.46f)
+        }
+        if (withName) {
+            Text(
+                "  " + tr(grade.ko, grade.en),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
+
+/**
+ * 환원 — the other move orders that reach these very stones.
+ *
+ * Computed, never stored: three black stones and two white ones have twelve
+ * orders at most, and the renju rules throw nearly all of them away (1.1 left
+ * on average). Each surviving order earns its own name, which is the point —
+ * the same picture is 한성's 4th move down one path and an indirect opening's
+ * down another. The evaluation, being a fact about the position, is one number
+ * for all of them.
+ */
+@Composable
+private fun TranspositionCard(rows: List<Transposition>) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp).fillMaxWidth()) {
+            Text(
+                tr("환원 — 같은 모양에 이르는 다른 수순 ${rows.size}가지",
+                    "${rows.size} other move orders reaching the same stones"),
+                style = MaterialTheme.typography.labelLarge,
+            )
+            for (r in rows) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        r.chain.joinToString(" › ").ifEmpty { tr("이름 없음", "unnamed") },
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        r.line,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The position with every graded fifth move on it — the same picture the user's
+ * evaluation table draws, and the same rows as the list below it.
+ *
+ * The desktop puts this beside its table for the same reason: eleven grades
+ * over a dozen points are a shape, not a column of words.
+ */
+@Composable
+private fun GradedBoard(pos: ExplorerPosition, stones: List<Move>) {
+    val marks = pos.next.mapNotNull { row -> row.grade?.let { row.move to it } }
+    if (marks.isEmpty()) return
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.padding(12.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            MiniBoard(
+                stones = stones,
+                modifier = Modifier.size(260.dp),
+                marks = marks,
+            )
+        }
     }
 }
 
@@ -244,20 +422,27 @@ private fun Kpi(
             Text(label, style = MaterialTheme.typography.labelSmall)
             Text(
                 "$value",
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineSmall.tabular(),
                 fontWeight = FontWeight.Bold,
                 color = color ?: MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 percent?.let { "%.1f%%".format(it) } ?: " ",
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.tabular(),
             )
         }
     }
 }
 
-/** One next-move row: the move, its game count, then three bars on one shared
- *  scale (`rj_barcell` — the widths are the counts). */
+/**
+ * One next-move row: the move, the name it makes, its grade, how often it was
+ * played, then three result bars on one shared scale (`rj_barcell` — the widths
+ * are the counts) and black's score rate.
+ *
+ * [parentGames] is this position's own game count, so the share reads "of the
+ * games that got here". A row with no games at all is one the table knows and
+ * the packs do not; it shows an em dash rather than a misleading zero.
+ */
 @Composable
 private fun NextRow(row: ExplorerNext, scale: Int, parentGames: Int, onPlay: () -> Unit) {
     Card(Modifier.fillMaxWidth().clickable(onClick = onPlay)) {
@@ -267,20 +452,51 @@ private fun NextRow(row: ExplorerNext, scale: Int, parentGames: Int, onPlay: () 
                     row.move.label(),
                     style = MaterialTheme.typography.titleSmall,
                     fontFamily = FontFamily.Monospace,
-                    modifier = Modifier.width(52.dp),
+                    // A minimum, not a width: at 200 % font scale a fixed 52dp
+                    // clipped the coordinate it exists to show.
+                    modifier = Modifier.widthIn(min = 52.dp),
                 )
-                Text(tr("${row.games}판", "${row.games} games"), style = MaterialTheme.typography.bodySmall)
-                if (parentGames > 0) {
+                row.name?.let {
                     Text(
-                        "  (%.1f%%)".format(100.0 * row.games / parentGames),
-                        style = MaterialTheme.typography.labelSmall,
+                        it,
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(end = 8.dp),
                     )
                 }
+                row.grade?.let {
+                    GradeMark(it)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Spacer(Modifier.weight(1f))
+                if (row.games > 0) {
+                    Text(tr("${row.games}판", "${row.games} games"), style = MaterialTheme.typography.bodySmall.tabular())
+                    if (parentGames > 0) {
+                        Text(
+                            "  %.1f%%".format(100.0 * row.games / parentGames),
+                            style = MaterialTheme.typography.labelSmall.tabular(),
+                        )
+                    }
+                } else {
+                    Text("—", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-                Bar(row.blackWins, scale, BlackBar, Modifier.weight(1f))
-                Bar(row.draws, scale, DrawBar, Modifier.weight(1f))
-                Bar(row.whiteWins, scale, WhiteBar, Modifier.weight(1f))
+            if (row.games > 0) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    val colors = YixinTheme.colors
+                    Bar(row.blackWins, scale, colors.resultBlack, Modifier.weight(1f))
+                    Bar(row.draws, scale, colors.resultDraw, Modifier.weight(1f))
+                    Bar(row.whiteWins, scale, colors.resultWhite, Modifier.weight(1f))
+                    Text(
+                        row.blackScore?.let { "%.0f%%".format(it) } ?: " ",
+                        style = MaterialTheme.typography.labelSmall.tabular(),
+                        modifier = Modifier.width(40.dp),
+                        textAlign = TextAlign.End,
+                    )
+                }
             }
         }
     }
@@ -293,14 +509,14 @@ private fun Bar(count: Int, scale: Int, color: Color, modifier: Modifier = Modif
         Box(
             Modifier.fillMaxWidth(fraction.coerceAtLeast(if (count > 0) 0.18f else 0f))
                 .height(18.dp)
-                .background(color, RoundedCornerShape(3.dp)),
+                .background(color, MaterialTheme.shapes.extraSmall),
             contentAlignment = Alignment.Center,
         ) {
             if (count > 0) {
                 Text(
                     "$count",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color(0xFF12314E),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
+                    color = YixinTheme.colors.onResult,
                     textAlign = TextAlign.Center,
                 )
             }

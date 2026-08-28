@@ -110,12 +110,25 @@ enum class ProvePhase { IDLE, QUERY, SEARCH, EDIT }
 /** Status drawn on a root candidate (`PM_*`, main.c:9115). */
 enum class ProveMark { NONE, OPEN, WIN, LOSS, EXH, LATENT }
 
-/** One PV of a prove search: `provepvmove/wr/mate/depth[i]` in one value. */
+/**
+ * One PV of a prove search: `provepvmove/wr/mate/depth[i]` in one value.
+ *
+ * [winRate] is nullable on purpose. A PV block that carried no `INFO WINRATE` is
+ * a block whose win rate is *unknown*, and storing 0.0 for it does not merely
+ * lose information — it asserts something false and strictly worse than any real
+ * value. Several such blocks then tie at "0 %", the pick falls back to whatever
+ * order the engine happened to send, and a third-choice move's loss gets written
+ * to the database as the value of the whole position.
+ */
 data class ProvePv(
     val move: Move,
-    /** Mover-perspective win rate, 0..1. */
-    val winRate: Double,
-    /** Mover-perspective mate distance; 0 = none. */
+    /** Mover-perspective win rate 0..1, or null when the block carried none. */
+    val winRate: Double?,
+    /**
+     * Mover-perspective mate distance; 0 = none. This one needs no "unknown":
+     * a block with no `INFO EVAL` makes no mate claim, and no claim and "no
+     * mate" lead to the same conclusion, which is none.
+     */
     val mate: Int = 0,
     val depth: Int = 0,
 )

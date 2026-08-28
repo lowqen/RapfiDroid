@@ -15,10 +15,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -26,9 +27,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -46,6 +44,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.GameReport
 import dev.gomoku.yixindroid.core.model.GradedMove
@@ -68,7 +68,7 @@ fun ReviewScreen(
     viewModel: ReviewViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
+    val snackbar = LocalSnackbarHostState.current
 
     val loadGame = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::onLoadGame)
@@ -91,69 +91,74 @@ fun ReviewScreen(
         }
     }
 
-    Scaffold(
+    // Two columns on anything wider than a phone. This screen is a stack of
+    // self-contained cards, so on a tablet a single column left two thirds of
+    // the screen empty and pushed the report below the fold. The move table is
+    // the one thing that must not be split — it is a table — so it spans.
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 360.dp),
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
-                RunCard(
-                    ui = ui,
-                    onBudget = viewModel::onBudgetChange,
-                    onStart = viewModel::onStartReview,
-                    onCancel = viewModel::onCancel,
-                    onSkipOpening = viewModel::onToggleSkipOpening,
-                    onBadges = viewModel::onToggleBadges,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            RunCard(
+                ui = ui,
+                onBudget = viewModel::onBudgetChange,
+                onStart = viewModel::onStartReview,
+                onCancel = viewModel::onCancel,
+                onSkipOpening = viewModel::onToggleSkipOpening,
+                onBadges = viewModel::onToggleBadges,
+            )
+        }
+        item {
+            FileCard(
+                onLoad = { loadGame.launch(arrayOf("*/*")) },
+                onSave = { saveGame.launch("game.sav") },
+                enabled = !ui.running,
+                lineLength = ui.lineLength,
+            )
+        }
+        ui.report?.let { report ->
+            item(span = { GridItemSpan(maxLineSpan) }) {
+                ReportHeader(
+                    report = report,
+                    preset = ui.preset,
+                    onPreset = viewModel::onPreset,
+                    onExport = { format ->
+                        exportFormat = format
+                        exportReport.launch("${report.title}.${format.extension}")
+                    },
+                    onExportAll = viewModel::onExportAll,
                 )
             }
-            item {
-                FileCard(
-                    onLoad = { loadGame.launch(arrayOf("*/*")) },
-                    onSave = { saveGame.launch("game.sav") },
-                    enabled = !ui.running,
-                    lineLength = ui.lineLength,
-                )
+            item(span = { GridItemSpan(maxLineSpan) }) { MoveTableHeader() }
+            items(
+                report.moves,
+                key = { it.index },
+                span = { GridItemSpan(maxLineSpan) },
+            ) { move ->
+                MoveRow(move, report.size) { viewModel.onJumpTo(move.index) }
             }
-            ui.report?.let { report ->
-                item {
-                    ReportHeader(
-                        report = report,
-                        preset = ui.preset,
-                        onPreset = viewModel::onPreset,
-                        onExport = { format ->
-                            exportFormat = format
-                            exportReport.launch("${report.title}.${format.extension}")
-                        },
-                        onExportAll = viewModel::onExportAll,
-                    )
-                }
-                item { MoveTableHeader() }
-                items(report.moves, key = { it.index }) { move ->
-                    MoveRow(move, report.size) { viewModel.onJumpTo(move.index) }
-                }
-            }
-            item {
-                // The desktop's Analysis menu holds Prove Position next to Game
-                // Review, and both drive the same engine, so they share a screen.
-                ProveCard(onNotice = { viewModel.onExternalNotice(it) })
-            }
-            item {
-                QueueCard(
-                    ui = ui,
-                    onAdd = { addToQueue.launch(arrayOf("*/*")) },
-                    onAddCurrent = viewModel::onEnqueueCurrent,
-                    onStart = viewModel::onStartQueue,
-                    onClear = viewModel::onClearQueue,
-                    onRemove = viewModel::onRemoveQueued,
-                )
-            }
-            if (ui.log.isNotEmpty()) {
-                item { LogCard(ui.log) }
-            }
+        }
+        item {
+            // The desktop's Analysis menu holds Prove Position next to Game
+            // Review, and both drive the same engine, so they share a screen.
+            ProveCard(onNotice = { viewModel.onExternalNotice(it) })
+        }
+        item {
+            QueueCard(
+                ui = ui,
+                onAdd = { addToQueue.launch(arrayOf("*/*")) },
+                onAddCurrent = viewModel::onEnqueueCurrent,
+                onStart = viewModel::onStartQueue,
+                onClear = viewModel::onClearQueue,
+                onRemove = viewModel::onRemoveQueued,
+            )
+        }
+        if (ui.log.isNotEmpty()) {
+            item { LogCard(ui.log) }
         }
     }
 }
@@ -273,7 +278,7 @@ private fun ReportHeader(
             Accuracy(tr("백", "White"), report.tally.whiteAccuracy)
             Column {
                 Text(tr("수", "moves"), style = MaterialTheme.typography.labelSmall)
-                Text("${report.moveCount}", style = MaterialTheme.typography.titleMedium)
+                Text("${report.moveCount}", style = MaterialTheme.typography.titleMedium.tabular())
             }
             Column {
                 Text(tr("예산", "Budget"), style = MaterialTheme.typography.labelSmall)
@@ -285,8 +290,10 @@ private fun ReportHeader(
                 val (black, white) = report.tally.counts[quality] ?: (0 to 0)
                 if (black + white == 0) return@forEach
                 Surface(
+                    // The grade's own colour, at the weight a container has —
+                    // the grades come from the desktop and keep their hues.
                     color = Color(parseHex(quality.colorHex)).copy(alpha = 0.22f),
-                    shape = RoundedCornerShape(6.dp),
+                    shape = MaterialTheme.shapes.small,
                 ) {
                     Text(
                         "${quality.symbol} ${quality.display} $black·$white",
@@ -432,7 +439,7 @@ private fun MoveRow(move: GradedMove, size: Int, onClick: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -515,8 +522,8 @@ private fun LogCard(log: List<String>) {
 @Composable
 private fun Card(title: String, content: @Composable () -> Unit) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

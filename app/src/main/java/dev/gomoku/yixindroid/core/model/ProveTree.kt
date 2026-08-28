@@ -33,6 +33,15 @@ class ProveNode(
     /** Has had at least one search, so its early probe is spent. */
     var probed: Boolean = false
 
+    /**
+     * Known to have dropped moves it was told about — a defence past the pending
+     * cap, or a PV the engine sent without a coordinate. The node may still be
+     * searched and may still be refuted by a single holding defence, but it can
+     * never be *proven*: "every defence loses" is a claim about a complete set,
+     * and this node knows its set is not complete.
+     */
+    var incomplete: Boolean = false
+
     /** Defenses deferred by optimistic pruning, verified in one batch later. */
     val pending: MutableList<Move> = mutableListOf()
 
@@ -203,7 +212,7 @@ class ProveTree(
         if (children(parent).any { nodes[it].state == ProveState.OPEN }) return
         if (p.altNext < p.alt.size) {
             val a = p.alt[p.altNext++]
-            val c = addChild(parent, a.move, a.winRate, verify = false, pvMate = a.mate)
+            val c = addChild(parent, a.move, a.winRate ?: UNKNOWN_WR, verify = false, pvMate = a.mate)
             if (c >= 0) {
                 log(tr("증명: 공격 후보 ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}", "Prove: attack candidate ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}"))
             }
@@ -221,36 +230,56 @@ class ProveTree(
         if (n.ply >= TREE_PLIES) return
         if (n.isOr) {
             val limit = if (n.k > 0) n.k else options.nbest
-            val ordered = orderAttack(pvs.take(limit))
+            val ordered = order(pvs.take(limit))
             var live = children(i).any { nodes[it].state == ProveState.OPEN }
             for (pv in ordered) {
                 val mate = if (pv.mate > 0) pv.mate else 0
                 if (knownMove(i, pv.move)) continue
                 if (!options.bestFirst || !live) {
-                    if (addChild(i, pv.move, pv.winRate, verify = false, pvMate = mate) >= 0 &&
+                    if (addChild(i, pv.move, pv.winRate ?: UNKNOWN_WR, verify = false, pvMate = mate) >= 0 &&
                         options.bestFirst
                     ) {
                         live = true
                     }
                 } else if (n.alt.size < ProveOptions.NBEST_MAX) {
                     n.alt += pv.copy(mate = mate)
+                } else {
+                    // An attacker candidate we cannot even keep latent. Harmless
+                    // on its own — one winning move is all an OR node needs — so
+                    // it does not make the node incomplete.
+                    log(tr("증명: 공격 후보 ${MoveGrader.coord(pv.move, size)} 보관 한도 초과", "Prove: attack candidate ${MoveGrader.coord(pv.move, size)} past the latent cap"))
                 }
             }
         } else {
-            var kept = 0
+            // An AND node is re-expanded now, so the caps count what is already
+            // here and a defence that is already a child, latent or deferred is
+            // skipped — otherwise a second search would double every defence.
+            var kept = children(i).size
+            var dropped = 0
             // Defenses in the defender's own order: the ones that look like they
-            // hold come first.
-            for (pv in pvs.sortedWithStable { a, b -> b.winRate.compareTo(a.winRate) }) {
-                if (pv.winRate > PRUNE_WR && kept < DEFEND_KEEP) {
+            // hold come first. A defence with no win rate is *not* a hopeless
+            // one — unknown is not zero — so it is expanded, not deferred.
+            for (pv in order(pvs)) {
+                if (knownMove(i, pv.move) || pv.move in n.pending) continue
+                val defenderWr = pv.winRate ?: UNKNOWN_WR
+                if ((pv.winRate ?: 1.0) > PRUNE_WR && kept < DEFEND_KEEP) {
                     // A defender-perspective mate below zero means the attacker mates.
                     addChild(
-                        i, pv.move, 1.0 - pv.winRate, verify = false,
+                        i, pv.move, 1.0 - defenderWr, verify = false,
                         pvMate = if (pv.mate < 0) -pv.mate else 0,
                     )
                     kept++
                 } else if (n.pending.size < MAX_PENDING) {
                     n.pending += pv.move
+                } else {
+                    // Neither a child nor deferred: this defence has been thrown
+                    // away, and with it any claim that every defence loses.
+                    dropped++
+                    n.incomplete = true
                 }
+            }
+            if (dropped > 0) {
+                log(tr("증명: 방어 ${dropped}개를 담지 못해 이 국면은 «모든 방어가 진다» 로 결론내지 않는다", "Prove: $dropped defences did not fit, so this node can no longer be proven"))
             }
             if (kept == 0 && n.pending.isNotEmpty()) {
                 // Nothing viable: verify the deferred moves right away, otherwise
@@ -269,19 +298,43 @@ class ProveTree(
         children(i).any { nodes[it].lastMove == move } || nodes[i].alt.any { it.move == move }
 
     /**
-     * `prove_pv_before` (main.c:9653): a mate visible in the PV comes first
-     * (shortest mate first), otherwise the higher win rate.
+     * The one order in this file, from the mover's point of view — `prove_pv_before`
+     * (main.c:9653) widened until it can rank every PV against every other.
+     *
+     * The desktop had two: the expansion sorted mates ahead of everything, while
+     * the "which line is this node's value?" pick looked at win rate alone. So a
+     * mate and a non-mate were never compared on the same scale, and inside one
+     * state machine the same set of PVs had two different best elements.
+     *
+     * Three tiers, and within them:
+     *  - **the mover mates** — soonest first;
+     *  - **no mate either way** — highest win rate first, and a PV whose win
+     *    rate is *unknown* sorts below every known one. It may be the best move
+     *    on the board; it is not evidence that it is;
+     *  - **the mover is mated** — latest first, because if everything loses then
+     *    lasting longest is the best of them.
      */
-    private fun orderAttack(pvs: List<ProvePv>): List<ProvePv> =
-        pvs.sortedWithStable { a, b ->
-            val ma = if (a.mate > 0) a.mate else 0
-            val mb = if (b.mate > 0) b.mate else 0
-            if (ma != mb) {
-                if (ma > 0 && (mb == 0 || ma < mb)) -1 else 1
-            } else {
-                b.winRate.compareTo(a.winRate)
-            }
+    private fun order(pvs: List<ProvePv>): List<ProvePv> =
+        pvs.sortedWithStable { a, b -> if (before(a, b)) -1 else 1 }
+
+    /** Is [a] strictly ahead of [b] in that order? Equal keys answer false. */
+    private fun before(a: ProvePv, b: ProvePv): Boolean {
+        val ta = tier(a)
+        val tb = tier(b)
+        if (ta != tb) return ta < tb
+        return when (ta) {
+            // +M: sooner is better.  -M: later is better (mate is negative, so
+            // "more negative" is "further away") — one comparison serves both.
+            TIER_WIN, TIER_LOSS -> a.mate < b.mate
+            else -> (a.winRate ?: UNKNOWN_RANK) > (b.winRate ?: UNKNOWN_RANK)
         }
+    }
+
+    private fun tier(pv: ProvePv): Int = when {
+        pv.mate > 0 -> TIER_WIN
+        pv.mate < 0 -> TIER_LOSS
+        else -> TIER_OPEN
+    }
 
     /**
      * main.c orders with an insertion sort over a "x before y?" predicate, which
@@ -383,6 +436,14 @@ class ProveTree(
                 log(tr("증명: 보류한 방어 ${deferred.size}개 검증", "Prove: verifying ${deferred.size} deferred defences"))
                 return
             }
+            if (p.incomplete) {
+                // Every defence we know of loses — but this node knows it was
+                // never told all of them, so "all defenses lose" is not a
+                // sentence it is allowed to say. It stays open for a wider
+                // search; a single holding defence can still refute it.
+                log(tr("증명: 방어 목록이 불완전해 결론 보류 ${path(parent)}", "Prove: defence list incomplete, no conclusion at ${path(parent)}"))
+                return
+            }
             resolve(parent, ProveResult.WIN, weakest, bestValue, p.recDepth + 1, "all defenses lose")
         }
     }
@@ -394,22 +455,27 @@ class ProveTree(
      * node: a 99 % win rate is evidence, not proof, so it merely keeps the search
      * going with a bigger budget.
      */
-    fun onSearchResult(i: Int, pvs: List<ProvePv>): ProveStep {
+    fun onSearchResult(i: Int, pvs: List<ProvePv>, complete: Boolean = true): ProveStep {
         val n = nodes[i]
         if (pvs.isEmpty()) return onTimeout(i)
         n.retries = 0
-        // The mover's *best* line, not the engine's first. `expand` below re-sorts
-        // by mover win rate precisely because the incoming order is not
-        // guaranteed, and a node judged by a worse line than the mover actually
-        // has available says nothing about the node.
-        val best = pvs.maxByOrNull { it.winRate } ?: pvs.first()
+        if (!complete) n.incomplete = true
+        // The mover's *best* line, not the engine's first, and "best" by the one
+        // order in this class — a node judged by a worse line than the mover
+        // actually has available says nothing about the node, and a node judged
+        // by a *better* one says something false about it.
+        var bestIndex = 0
+        for (j in 1 until pvs.size) if (before(pvs[j], pvs[bestIndex])) bestIndex = j
+        val best = pvs[bestIndex]
         val mate = best.mate
         val value = when {
             mate > 0 -> 30000 - mate
             mate < 0 -> -30000 - mate
-            else -> ((best.winRate - 0.5) * 2000).toInt()
+            else -> (((best.winRate ?: UNKNOWN_WR) - 0.5) * 2000).toInt()
         }
-        n.wratt = if (n.isOr) best.winRate else 1.0 - best.winRate
+        // An unknown win rate leaves the estimate where it was rather than
+        // rewriting it with a number nobody reported.
+        best.winRate?.let { n.wratt = if (n.isOr) it else 1.0 - it }
         if (mate > 0) {
             resolve(
                 i, if (n.isOr) ProveResult.WIN else ProveResult.NOWIN,
@@ -417,13 +483,22 @@ class ProveTree(
             )
             return ProveStep.RESOLVED
         }
-        // An AND node is the defender's turn, and it is won for the attacker only
-        // when *every* defense loses. One refuted line is not that proof, however
-        // good the line was: take the shortcut only when every defense the engine
-        // returned is refuted too, and otherwise expand and settle them one at a
-        // time through `propagate`. That is what "all defenses lose" has to mean.
-        val everyDefenseRefuted = n.isOr || pvs.all { it.mate < 0 }
-        if (mate < 0 && everyDefenseRefuted) {
+        // The mover is being mated in the best line it has. Concluding from that
+        // is a claim about *every* move, so it needs the whole set:
+        //
+        //  - every PV that came back is refuted too. One line that is merely bad
+        //    is not a refutation of it, however bad;
+        //  - nothing was dropped on the way here (`complete`), because a PV with
+        //    no coordinate leaves the "every" satisfied by an empty seat;
+        //  - and at an OR node, the losing line must be the engine's own first
+        //    choice. In multi-PV, PV k's score is the value of *playing that
+        //    move*, not the value of the position; the moment the pick lands
+        //    anywhere but PV 0, a third-choice move's loss is about to be
+        //    written down as the position's. main.c guarded only AND nodes here,
+        //    and this is the shape the false mate took.
+        val everyLineRefuted = complete && !n.incomplete && pvs.all { it.mate < 0 }
+        val orderAgreesWithEngine = !n.isOr || (bestIndex == 0 && best.winRate != null)
+        if (mate < 0 && everyLineRefuted && orderAgreesWithEngine) {
             resolve(
                 i, if (n.isOr) ProveResult.NOWIN else ProveResult.WIN,
                 ProveKind.MATE, value, best.depth, "search",
@@ -434,7 +509,11 @@ class ProveTree(
         // and a mate the creating PV promised did not appear.
         n.probed = true
         n.pvMate = 0
-        if (!n.expanded || n.isOr) expand(i, pvs) // OR nodes re-expand, dedup inside
+        // Both kinds re-expand. main.c expanded an AND node once and never
+        // again, so a first `yxsearchdefend` cut short by its leash froze that
+        // node's defence set for the rest of the run — no later, richer search
+        // could put the missing defences back. `knownMove` does the deduplication.
+        expand(i, pvs)
         if (n.budget >= options.maxBudget) {
             n.state = ProveState.EXHAUSTED
             log(tr("증명: 예산 소진 EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}", "Prove: EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}"))
@@ -531,5 +610,18 @@ class ProveTree(
 
         /** Searches of one node before it is given up on. */
         const val RETRY_MAX = 3
+
+        /**
+         * Stand-in win rate when the engine reported none. Even odds: it is a
+         * prior for scheduling, never evidence — nothing concludes from it.
+         */
+        const val UNKNOWN_WR = 0.5
+
+        /** …but in a *ranking*, an unknown win rate goes below every known one. */
+        private const val UNKNOWN_RANK = -1.0
+
+        private const val TIER_WIN = 0
+        private const val TIER_OPEN = 1
+        private const val TIER_LOSS = 2
     }
 }

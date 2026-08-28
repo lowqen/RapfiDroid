@@ -7,13 +7,16 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.gomoku.yixindroid.core.designsystem.component.QuietSwitch
+import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.feature.explorer.MoveOrderSection
 import dev.gomoku.yixindroid.feature.explorer.OpeningExplorerSection
 import dev.gomoku.yixindroid.feature.rankings.RankingsScreen
@@ -31,9 +34,20 @@ import dev.gomoku.yixindroid.feature.review.ReviewScreen
 @Composable
 fun ResearchScreen(modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val titles = remember { listOf("리뷰·증명", "오프닝", "수순", "랭킹") }
+    val titles = remember {
+        listOf(
+            tr("리뷰·증명", "Review"),
+            tr("오프닝", "Openings"),
+            tr("수순", "Move order"),
+            tr("랭킹", "Rankings"),
+        )
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
+        YixinTopBar(
+            title = tr("연구", "Research"),
+            subtitle = titles.getOrNull(tab),
+        )
         ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
             titles.forEachIndexed { i, title ->
                 Tab(
@@ -43,11 +57,16 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
                 )
             }
         }
-        when (tab) {
-            0 -> ReviewScreen()
-            1 -> OpeningExplorerSection()
-            2 -> MoveOrderSection()
-            else -> RankingsScreen()
+        // A crossfade, not a slide: four panes that swap in place, on a screen
+        // whose content is mostly boards and numbers. Sliding one board off
+        // while another arrives is motion sickness, not polish.
+        QuietSwitch(tab, Modifier.fillMaxSize()) { index ->
+            when (index) {
+                0 -> ReviewScreen()
+                1 -> OpeningExplorerSection()
+                2 -> MoveOrderSection()
+                else -> RankingsScreen()
+            }
         }
     }
 }

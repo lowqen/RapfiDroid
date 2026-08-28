@@ -2,13 +2,16 @@ package dev.gomoku.yixindroid
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,6 +57,16 @@ class MainActivity : ComponentActivity() {
         debugLog.start()
         setContent {
             val current by settings.settings.collectAsStateWithLifecycle()
+            // The system bars follow *this app's* dark mode (settings.txt line
+            // 27), not the phone's. Without this, a user running the app dark on
+            // a light phone got dark status-bar icons on a dark bar — invisible.
+            LaunchedEffect(current.darkMode) {
+                val style = SystemBarStyle.auto(
+                    Color.TRANSPARENT,
+                    Color.TRANSPARENT,
+                ) { current.darkMode }
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+            }
             YixinDroidTheme(darkTheme = current.darkMode) {
                 YixinApp()
             }

@@ -26,6 +26,13 @@ data class Position(
     val sideToMove: StoneColor
         get() = if (moves.size % 2 == 0) StoneColor.BLACK else StoneColor.WHITE
 
+    /**
+     * Empty intersections. An upper bound on the moves the side to move has —
+     * renju's forbidden points are the engine's to know, not ours — which is the
+     * useful direction for anything asking "have I accounted for every move?".
+     */
+    val emptyPoints: Int get() = size * size - moves.size
+
     fun colorAt(index: Int): StoneColor =
         if (index % 2 == 0) StoneColor.BLACK else StoneColor.WHITE
 

@@ -52,11 +52,20 @@ class FreqStore @Inject constructor(
             .onSuccess { _bundle.value = it }
     }
 
-    /** Import a freshly picked document; persists the grant + URI on success. */
-    suspend fun import(uri: Uri): Result<FreqBundle> = runCatching {
-        context.contentResolver.takePersistableUriPermission(
-            uri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
-        )
+    /**
+     * Import a freshly picked document; persists the grant + URI on success.
+     *
+     * [ownGrant] is false when the URI came out of a folder pick: a document
+     * URI derived from a tree cannot be persisted on its own (the platform
+     * throws), and it does not need to be — the caller persisted the tree, and
+     * that grant covers every child of it.
+     */
+    suspend fun import(uri: Uri, ownGrant: Boolean = true): Result<FreqBundle> = runCatching {
+        if (ownGrant) {
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
+            )
+        }
         val parsed = parse(uri)
         context.freqDataStore.edit { it[uriKey] = uri.toString() }
         _bundle.value = parsed

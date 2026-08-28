@@ -40,6 +40,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.QuietSwitch
+import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.CallbackConfig
 import dev.gomoku.yixindroid.core.model.ToolScripts
@@ -57,6 +59,7 @@ fun EngineScreen(modifier: Modifier = Modifier) {
     val titles = remember { listOf(tr("연결", "Connect"), tr("도구", "Tools")) }
 
     Column(modifier = modifier.fillMaxSize()) {
+        YixinTopBar(title = tr("엔진", "Engine"), subtitle = titles.getOrNull(tab))
         TabRow(selectedTabIndex = tab) {
             titles.forEachIndexed { i, title ->
                 Tab(
@@ -66,9 +69,11 @@ fun EngineScreen(modifier: Modifier = Modifier) {
                 )
             }
         }
-        when (tab) {
-            0 -> ConnectionScreen()
-            else -> ToolsScreen()
+        QuietSwitch(tab, Modifier.fillMaxSize()) { index ->
+            when (index) {
+                0 -> ConnectionScreen()
+                else -> ToolsScreen()
+            }
         }
     }
 }

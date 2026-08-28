@@ -20,7 +20,7 @@ class ProveTreeTest {
 
     private fun m(label: String) = Move.fromLabel(label)!!
 
-    private fun pv(label: String, wr: Double, mate: Int = 0, depth: Int = 10) =
+    private fun pv(label: String, wr: Double?, mate: Int = 0, depth: Int = 10) =
         ProvePv(m(label), wr, mate, depth)
 
     // ---- shape --------------------------------------------------------------
@@ -474,6 +474,240 @@ class ProveTreeTest {
         t.onTimeout(a)
         t.onSearchResult(a, listOf(pv("I9", 0.5)))
         assertThat(t[a].retries).isEqualTo(0)
+    }
+
+    // ---- the false mate -----------------------------------------------------
+    //
+    // Every case below is a way the search used to answer "this position is lost
+    // in N" about a position that was not lost at all. They share one mistake in
+    // three disguises: treating the PVs that came back as the position's whole
+    // set of moves, and treating a value the engine did not send as a value of
+    // zero.
+
+    /**
+     * The report this whole section came from, in its smallest form: a position
+     * whose moves are worth 10 %, mate-in-20 and mate-in-40 is a position worth
+     * 10 %. It came out as `M40` — the longest of the losses, because among
+     * losses the longest is the best one — because a mate found in PV k was read
+     * as the value of the position rather than of the move that PV plays.
+     */
+    @Test
+    fun `an attacker node is not lost because some of its candidates are`() {
+        val t = tree()
+        val step = t.onSearchResult(
+            0,
+            listOf(
+                pv("H8", 0.10, mate = 0, depth = 20),   // still alive
+                pv("I9", 0.0, mate = -20, depth = 20),
+                pv("G7", 0.0, mate = -40, depth = 20),
+            ),
+        )
+        assertThat(step).isNotEqualTo(ProveStep.RESOLVED)
+        assertThat(t.root.state).isEqualTo(ProveState.OPEN)
+        assertThat(t.root.result).isEqualTo(ProveResult.NONE)
+        assertThat(t.hasWrites).isFalse()
+    }
+
+    /**
+     * The same position as it actually arrived: with the refuted lines sent
+     * first and no `INFO WINRATE` on any of them. Recorded as 0 % all three tied
+     * at the bottom, the pick fell back to the order the engine happened to
+     * send, and the position was written into the shared database as
+     * mate-in-40 — with a move worth 10 % sitting right there.
+     */
+    @Test
+    fun `a position with no win rates is not decided by the order the engine sent`() {
+        val t = tree()
+        val step = t.onSearchResult(
+            0,
+            listOf(
+                pv("G7", null, mate = -40, depth = 20),
+                pv("I9", null, mate = -20, depth = 20),
+                pv("H8", null, mate = 0, depth = 20), // still alive, and sent last
+            ),
+        )
+        assertThat(step).isNotEqualTo(ProveStep.RESOLVED)
+        assertThat(t.root.result).isEqualTo(ProveResult.NONE)
+        assertThat(t.hasWrites).isFalse()
+    }
+
+    /**
+     * And a node whose first line has no win rate at all cannot be concluded
+     * either: the one number that would let us check the engine's order against
+     * ours is the one number that is missing.
+     */
+    @Test
+    fun `an attacker node with no win rate on its first line does not conclude`() {
+        val t = tree()
+        val step = t.onSearchResult(
+            0,
+            listOf(pv("H8", null, mate = -40), pv("I9", null, mate = -5)),
+        )
+        assertThat(step).isNotEqualTo(ProveStep.RESOLVED)
+        assertThat(t.root.result).isEqualTo(ProveResult.NONE)
+    }
+
+    /**
+     * Even when every line loses, the loss has to be the engine's own first
+     * choice. If our order says PV 2 survives longest while the engine put PV 0
+     * first, the two disagree about the position and neither may be written down
+     * as its value.
+     */
+    @Test
+    fun `an attacker node refuses a loss its own first line does not agree with`() {
+        val t = tree()
+        val step = t.onSearchResult(
+            0,
+            listOf(
+                pv("H8", 0.0, mate = -5, depth = 20),
+                pv("I9", 0.0, mate = -40, depth = 20), // survives far longer
+            ),
+        )
+        assertThat(step).isNotEqualTo(ProveStep.RESOLVED)
+        assertThat(t.root.result).isEqualTo(ProveResult.NONE)
+    }
+
+    /** With the engine's order and ours agreeing, the loss is accepted. */
+    @Test
+    fun `an attacker node whose every line loses is refuted`() {
+        val t = tree()
+        val step = t.onSearchResult(
+            0,
+            listOf(
+                pv("H8", 0.0, mate = -40, depth = 20),
+                pv("I9", 0.0, mate = -5, depth = 20),
+            ),
+        )
+        assertThat(step).isEqualTo(ProveStep.RESOLVED)
+        assertThat(t.root.result).isEqualTo(ProveResult.NOWIN)
+        assertThat(t.root.value).isEqualTo(-30000 + 40)
+    }
+
+    /**
+     * A PV block the engine sent and we could not place is a move we know
+     * exists and cannot name. Dropping it silently leaves "every defence loses"
+     * satisfied by an empty seat.
+     */
+    @Test
+    fun `an unreadable PV blocks the conclusion`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        val step = t.onSearchResult(
+            and,
+            listOf(pv("I9", 0.0, mate = -5), pv("G7", 0.0, mate = -7)),
+            complete = false,
+        )
+        assertThat(step).isNotEqualTo(ProveStep.RESOLVED)
+        assertThat(t[and].result).isEqualTo(ProveResult.NONE)
+        assertThat(t[and].incomplete).isTrue()
+    }
+
+    /** And it stays blocked afterwards, however the children settle. */
+    @Test
+    fun `a node that lost a defence is never proven by propagation`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        t.onSearchResult(and, listOf(pv("I9", 0.30), pv("G7", 0.40)), complete = false)
+        t.children(and).forEach {
+            t.resolve(it, ProveResult.WIN, ProveKind.MATE, 29990, 4, "search")
+        }
+        assertThat(t[and].state).isEqualTo(ProveState.OPEN)
+        assertThat(t[and].result).isEqualTo(ProveResult.NONE)
+    }
+
+    /**
+     * Defences past the deferred cap used to be dropped without a word, and the
+     * node then reasoned about "every defence" over a set it had thrown part of
+     * away. It takes a board bigger than 15×15 for the caps to be reachable at
+     * all, which is exactly why nothing noticed.
+     */
+    @Test
+    fun `a node that could not hold every defence marks itself incomplete`() {
+        val big = ProveTree(ProveOptions().sanitized(), size = 20)
+        val and = big.addChild(0, Move(0, 0), 0.6, verify = false, pvMate = 0)
+        val total = ProveTree.DEFEND_KEEP + ProveTree.MAX_PENDING + 5
+        val pvs = (0 until total).map { ProvePv(Move(x = it % 20, y = 1 + it / 20), 0.5) }
+        big.expand(and, pvs)
+        assertThat(big[and].incomplete).isTrue()
+        assertThat(big.children(and)).hasSize(ProveTree.DEFEND_KEEP)
+        assertThat(big[and].pending).hasSize(ProveTree.MAX_PENDING)
+    }
+
+    /**
+     * A defender node used to be expanded once and never again, so a first
+     * `yxsearchdefend` cut short by its leash froze that node's defence set for
+     * the rest of the run — no later search could put the missing ones back.
+     */
+    @Test
+    fun `a defender node takes in defences a later search finds`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        t.onSearchResult(and, listOf(pv("I9", 0.30), pv("G7", 0.40)))
+        assertThat(t.children(and)).hasSize(2)
+        // The same two, plus one the first (leashed) search never reported.
+        t.onSearchResult(and, listOf(pv("I9", 0.30), pv("G7", 0.40), pv("J10", 0.35)))
+        assertThat(t.children(and).map { t[it].lastMove })
+            .containsExactly(m("I9"), m("G7"), m("J10"))
+    }
+
+    @Test
+    fun `re-expanding a defender node does not duplicate what it already knows`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        t.expand(and, listOf(pv("I9", 0.30), pv("G7", 0.001)))
+        val before = t.children(and).size + t[and].pending.size
+        t.expand(and, listOf(pv("I9", 0.31), pv("G7", 0.002)))
+        assertThat(t.children(and).size + t[and].pending.size).isEqualTo(before)
+    }
+
+    /**
+     * "No win rate" is not "0 %". Stored as zero it is not merely a lost value
+     * but a false one, and a false one that is worse than anything real: several
+     * such blocks tie at the bottom and the pick falls back to whatever order
+     * the engine happened to send.
+     */
+    @Test
+    fun `a defence with no win rate is expanded, not written off as hopeless`() {
+        val t = tree()
+        val and = t.addChild(0, m("H8"), 0.6, verify = false, pvMate = 0)
+        t.expand(and, listOf(pv("I9", null), pv("G7", 0.001)))
+        assertThat(t.children(and).map { t[it].lastMove }).containsExactly(m("I9"))
+        assertThat(t[and].pending).containsExactly(m("G7"))
+    }
+
+    @Test
+    fun `an unknown win rate never outranks a known one`() {
+        val t = tree(ProveOptions(bestFirst = true))
+        t.expand(0, listOf(pv("H8", null), pv("I9", 0.10)))
+        assertThat(t[t.children(0).single()].lastMove).isEqualTo(m("I9"))
+    }
+
+    @Test
+    fun `an unknown win rate never becomes the node's estimate`() {
+        val t = tree()
+        val a = t.addChild(0, m("H8"), 0.62, verify = false, pvMate = 0)
+        t.onSearchResult(a, listOf(pv("I9", null), pv("G7", null)))
+        assertThat(t[a].wratt).isWithin(1e-9).of(0.62)
+    }
+
+    /**
+     * Mates and non-mates go on one scale, in both directions: a mate for the
+     * mover beats any percentage, and any percentage beats being mated.
+     */
+    @Test
+    fun `mates and percentages are ranked against each other`() {
+        val t = tree(ProveOptions(bestFirst = false, nbest = 4))
+        t.expand(
+            0,
+            listOf(
+                pv("H8", 0.01, mate = -3),  // worst: mated soon
+                pv("I9", 0.99, mate = 0),   // good, but only a number
+                pv("G7", 0.20, mate = 5),   // best: a mate is a fact
+                pv("F6", 0.01, mate = -30), // bad, but lasts
+            ),
+        )
+        assertThat(t.children(0).map { t[it].lastMove })
+            .containsExactly(m("G7"), m("I9"), m("F6"), m("H8")).inOrder()
     }
 
     // ---- overlay ------------------------------------------------------------

@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -36,6 +35,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.DbDeleteFilter
 import kotlinx.coroutines.delay
@@ -56,19 +56,25 @@ fun DatabaseScreen(
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        YixinTopBar(
+            title = tr("데이터베이스", "Database"),
+            subtitle = tr("서버의 yixindb 파일", "the yixindb file on the server"),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
         StatusSection(ui, viewModel)
         PositionSection(ui, viewModel)
         RecordSection(ui, viewModel)
         FileSection(ui, viewModel)
         BulkDeleteSection(ui, viewModel)
         LogSection(ui, viewModel)
+        }
     }
 
     ui.pendingDelete?.let { scope ->
@@ -372,8 +378,8 @@ private fun LogSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

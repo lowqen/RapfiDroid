@@ -8,6 +8,14 @@ data class PvSnapshot(
     val mate: Int?,       // +n = side-to-move mates in n, -n = gets mated; null = none
     val eval: Int?,       // score from INFO EVAL when it is not a mate
     val line: List<Move>, // BESTLINE, already in board coordinates
+    /**
+     * Which deepening round produced this PV, counted from the `INFO PV 0` that
+     * opened it. Rounds do not have to be the same width: a deeper one may
+     * return fewer PVs than the one before it, and without this the leftovers of
+     * the wider round look like part of the narrower one — a stale line then
+     * gets read as one of this round's answers.
+     */
+    val round: Int = 0,
 ) {
     val head: Move? get() = line.firstOrNull()
 }
@@ -18,14 +26,19 @@ enum class TagKind { RATE, WIN, LOSE }
 /**
  * A label drawn on one cell, as the desktop does on each `INFO PV DONE`:
  * `W<n>`/`L<n>` when the PV shows a mate, otherwise the win rate as `nn%`.
- * [depth] is kept so shallower tags can be cleared once a deeper iteration lands
- * (main.c clears every tag whose depth < curdepth on the last PV of a round).
+ *
+ * [round] is what decides when a tag dies. main.c compares depths instead, and
+ * a tag from an *earlier* round at the *same* depth therefore survives — so a
+ * cell that has dropped out of the candidate set keeps showing its old `L40`
+ * next to the current round's percentages. A round number cannot tie with
+ * itself the way a depth can.
  */
 data class CellTag(
     val label: String,
     val kind: TagKind,
     val depth: Int,
     val winRatePct: Int? = null,
+    val round: Int = 0,
 )
 
 /** Realtime candidate state from `MESSAGE REALTIME POS` (live) / `DONE` (settled). */

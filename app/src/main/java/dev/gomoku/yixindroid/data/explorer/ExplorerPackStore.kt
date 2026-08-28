@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.yixindroid.core.common.IoDispatcher
+import dev.gomoku.yixindroid.core.model.OpeningTables
 import dev.gomoku.yixindroid.core.model.PackInfo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,9 +39,24 @@ class ExplorerPackStore @Inject constructor(
     private val dir: File get() = File(context.filesDir, "packs")
     private val statsFile: File get() = File(dir, "renju_stats.pack")
     private val gamesFile: File get() = File(dir, "renju_games.pack")
+    private val namesFile: File get() = File(dir, NAMES)
+    private val evalsFile: File get() = File(dir, EVALS)
 
     private val _packs = MutableStateFlow<Packs?>(null)
     val packs: StateFlow<Packs?> = _packs.asStateFlow()
+
+    /**
+     * Bumped whenever the opening tables change, so the explorer re-syncs after
+     * a late import. The tables themselves live in [OpeningTables] — a name is
+     * a property of a position, not something every caller carries.
+     */
+    private val _tables = MutableStateFlow(0)
+    val tables: StateFlow<Int> = _tables.asStateFlow()
+
+    /** What the two tables hold right now, for the notice on screen. */
+    @Volatile
+    var tableNote: String = ""
+        private set
 
     /** Both packs plus their header numbers; the explorer needs the pair, like
      *  the desktop's `rj_load` which only reports success when both map. */
@@ -48,10 +64,45 @@ class ExplorerPackStore @Inject constructor(
 
     /** Map the previously imported copies, if they are still there. */
     suspend fun restore() {
+        loadTables()
         if (_packs.value != null) return
         withContext(io) { runCatching { mapBoth() }.getOrNull() }
             ?.let { _packs.value = it }
     }
+
+    /**
+     * Read the two opening tables into [OpeningTables].
+     *
+     * Both ship in assets. `opening_names.txt` is the user's own work;
+     * `opening_evals.txt` comes from Renju Atlas under **CC0 1.0**, a public
+     * domain dedication, so bundling and redistributing it is unencumbered —
+     * unlike the RenjuNet packs above, which is why only those are imported.
+     * The source is credited in the file header and the about box.
+     *
+     * An imported copy of either still wins over the bundled one, which is what
+     * lets a user refresh a table without waiting for a new build.
+     */
+    suspend fun loadTables() = withContext(io) {
+        val nameText = readTable(namesFile, NAMES)
+        val evalText = readTable(evalsFile, EVALS)
+        val names = OpeningTables.parseNames(nameText.orEmpty())
+        val evals = OpeningTables.parseEvals(evalText.orEmpty())
+        OpeningTables.names = names.rows
+        OpeningTables.evals = evals.rows
+        tableNote = buildString {
+            append("이름 ${names.rows.size}개 · 유불리 ${evals.rows.size}개")
+            val bad = names.bad + evals.bad
+            if (bad > 0) append(" (읽지 못한 줄 ${bad}개)")
+        }
+        _tables.value = _tables.value + 1
+    }
+
+    /** The imported copy if there is one, else the bundled asset, else null. */
+    private fun readTable(file: File, asset: String): String? =
+        runCatching { if (file.isFile) file.readText() else null }.getOrNull()
+            ?: runCatching {
+                context.assets.open(asset).use { it.readBytes().toString(Charsets.UTF_8) }
+            }.getOrNull()
 
     /**
      * Import freshly picked documents. Either order, and either one or both:
@@ -88,17 +139,23 @@ class ExplorerPackStore @Inject constructor(
                         staged.delete()
                     }
                     else -> {
-                        val target = if (kind == RjStatsPack.MAGIC) statsFile else gamesFile
+                        val target = when (kind) {
+                            RjStatsPack.MAGIC -> statsFile
+                            RjGamesPack.MAGIC -> gamesFile
+                            NAMES -> namesFile
+                            else -> evalsFile
+                        }
                         target.delete()
                         if (!staged.renameTo(target)) {
                             staged.delete()
-                            error("팩을 저장하지 못했습니다: ${target.name}")
+                            error("파일을 저장하지 못했습니다: ${target.name}")
                         }
                         took.add(target.name)
                     }
                 }
             }
 
+            if (took.any { it == NAMES || it == EVALS }) loadTables()
             val loaded = runCatching { mapBoth() }.getOrNull()
             if (loaded != null) _packs.value = loaded
 
@@ -106,11 +163,14 @@ class ExplorerPackStore @Inject constructor(
                 "renju_stats.pack".takeIf { !statsFile.isFile },
                 "renju_games.pack".takeIf { !gamesFile.isFile },
             )
+            val onlyTables = took.isNotEmpty() && took.all { it == NAMES || it == EVALS }
             when {
                 rejected.isNotEmpty() -> error(
-                    "팩으로 읽지 못한 파일이 있습니다 —\n" + rejected.joinToString("\n") +
-                        "\nrifdb/rif_pack.py 가 만든 v2 팩이어야 합니다.",
+                    "읽지 못한 파일이 있습니다 —\n" + rejected.joinToString("\n") +
+                        "\nrifdb/rif_pack.py 가 만든 v2 팩이거나, " +
+                        "$NAMES / $EVALS 여야 합니다.",
                 )
+                onlyTables -> "${took.joinToString(" + ")} 불러옴 — $tableNote"
                 loaded != null ->
                     "${took.joinToString(" + ")} 불러옴 — 대국 ${loaded.info.totalGames}판 · " +
                         "국면 ${loaded.info.positions}개"
@@ -121,12 +181,31 @@ class ExplorerPackStore @Inject constructor(
         }
     }
 
-    /** Which pack a staged file is, or null when it is neither. */
+    /** What a staged file is, or null when it is none of the four. */
     private fun classify(file: File): String? {
-        val buf = map(file) ?: return null
+        val buf = map(file)
+        if (buf != null) {
+            if (RjStatsPack.open(buf) != null) return RjStatsPack.MAGIC
+            if (RjGamesPack.open(buf) != null) return RjGamesPack.MAGIC
+        }
+        return classifyTable(file)
+    }
+
+    /**
+     * Names or grades — told apart by the third column, exactly as
+     * `name_sheet.py --check` and the browser input tool do it: a grade is a
+     * signed integer in −5..+5 and a name never looks like that. Whichever
+     * reading yields rows without rejects wins, so a file that is neither is
+     * still refused.
+     */
+    private fun classifyTable(file: File): String? {
+        if (file.length() > MAX_TABLE_BYTES) return null
+        val text = runCatching { file.readText() }.getOrNull() ?: return null
+        val names = OpeningTables.parseNames(text)
+        val evals = OpeningTables.parseEvals(text)
         return when {
-            RjStatsPack.open(buf) != null -> RjStatsPack.MAGIC
-            RjGamesPack.open(buf) != null -> RjGamesPack.MAGIC
+            evals.rows.isNotEmpty() && evals.bad == 0 -> EVALS
+            names.rows.isNotEmpty() && names.bad == 0 -> NAMES
             else -> null
         }
     }
@@ -145,7 +224,9 @@ class ExplorerPackStore @Inject constructor(
 
     private fun name(uri: Uri): String = uri.lastPathSegment?.substringAfterLast('/') ?: "$uri"
 
-    /** Forget the imported packs and delete the private copies. */
+    /** Forget the imported packs and delete the private copies. The opening
+     *  tables are not RenjuNet-derived and are left alone — clearing here is
+     *  about the licence, not about tidying. */
     suspend fun clear() = withContext(io) {
         _packs.value = null
         statsFile.delete()
@@ -185,5 +266,14 @@ class ExplorerPackStore @Inject constructor(
         return input.use { source ->
             target.outputStream().use { source.copyTo(it, DEFAULT_BUFFER_SIZE) }
         }
+    }
+
+    companion object {
+        const val NAMES = "opening_names.txt"
+        const val EVALS = "opening_evals.txt"
+
+        /** Both tables are tens of kilobytes; anything far larger is not one,
+         *  and reading it whole to find that out would be the bug. */
+        private const val MAX_TABLE_BYTES = 4L shl 20
     }
 }

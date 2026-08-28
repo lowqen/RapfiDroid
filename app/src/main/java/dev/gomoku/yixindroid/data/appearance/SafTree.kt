@@ -45,8 +45,30 @@ class SafTree(private val resolver: ContentResolver, private val tree: Uri) {
     private val rootId: String = DocumentsContract.getTreeDocumentId(tree)
 
     /** Document id of a direct subfolder, matched case-insensitively. */
-    fun folder(name: String): String? =
-        children(rootId).firstOrNull { it.isDirectory && it.name.equals(name, true) }?.documentId
+    fun folder(name: String): String? = folder(rootId, name)
+
+    /** Document id of a subfolder of [parentId]. */
+    fun folder(parentId: String, name: String): String? =
+        children(parentId).firstOrNull { it.isDirectory && it.name.equals(name, true) }?.documentId
+
+    /**
+     * Content URI of `<folder>/<name>`, or null when it is not there.
+     *
+     * A URI derived from a tree needs no grant of its own: the persisted tree
+     * permission covers everything under it, which is what lets one folder pick
+     * stand in for half a dozen file picks.
+     */
+    fun fileUri(folderId: String, name: String): Uri? {
+        val entry = children(folderId)
+            .firstOrNull { !it.isDirectory && it.name.equals(name, true) } ?: return null
+        return DocumentsContract.buildDocumentUriUsingTree(tree, entry.documentId)
+    }
+
+    /** Content URI of a file directly under the picked folder. */
+    fun fileUri(name: String): Uri? = fileUri(rootId, name)
+
+    /** The picked folder's own document id, for walking into it. */
+    fun root(): String = rootId
 
     /**
      * Contents of `<folder>/<name>` as text, or null when it is not there.

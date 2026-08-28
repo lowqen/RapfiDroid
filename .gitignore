@@ -18,3 +18,11 @@ keystore.properties
 
 # Release build output (Android Studio writes the signed APK here).
 /app/release/
+
+# JVM/Gradle crash dumps left behind by an OOM'd daemon.
+hs_err_pid*.log
+replay_pid*.log
+
+# OS/cloud-sync clutter (Google Drive scatters this into every folder).
+desktop.ini
+Thumbs.db

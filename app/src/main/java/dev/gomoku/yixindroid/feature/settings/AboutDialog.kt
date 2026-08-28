@@ -2,17 +2,19 @@ package dev.gomoku.yixindroid.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import dev.gomoku.yixindroid.BuildConfig
+import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 
 /**
@@ -30,17 +32,24 @@ fun AboutDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("확인", "OK")) } },
-        title = { Text("YixinDroid") },
+        // Name and version are one block, the way an About screen reads: the
+        // version used to be the first line of the body, above the first
+        // heading, where it looked like a section of its own.
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text("YixinDroid", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    tr("버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"),
+                    style = MaterialTheme.typography.labelMedium.tabular(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text(
-                    tr("버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontFamily = FontFamily.Monospace,
-                )
                 Section(
                     tr("이 앱은 무엇인가", "What this app is"),
                     tr("PC용 Yixin-Board 분석 강화판을 안드로이드로 옮긴 것입니다. ", "An Android port of the analysis build of Yixin-Board for the PC.") +
@@ -58,11 +67,17 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 )
                 Section(
                     tr("데이터 · 라이선스", "Data and licence"),
-                    tr("오프닝 랭킹(rank5)은 앱에 들어 있습니다. ", "The opening rankings (rank5) ship with the app.") +
-                        tr("오프닝 익스플로러 팩과 실전 빈도 데이터는 RenjuNet 대국 DB에서 ", "The explorer packs and the frequency data come from the RenjuNet game") +
+                    tr("오프닝 익스플로러 팩과 실전 빈도 데이터는 RenjuNet 대국 DB에서 ", "The explorer packs and the frequency data come from the RenjuNet game") +
                         tr("나온 것이라 앱에 넣지 않습니다 — 사용자가 직접 만들어 기기로 ", "database and are not shipped: you build them yourself and bring them to") +
                         tr("가져오며, 비상업·오프라인 사용만 허용됩니다. 웹에 올리거나 ", "the device. Non-commercial, offline use only — do not upload them or") +
                         tr("재배포하지 마세요.", "pass them on."),
+                )
+                Section(
+                    tr("오프닝 이름 · 흑 5수 유불리", "Opening names and 5th-move grades"),
+                    tr("1~3수 이름은 계산이고, 4수 이름은 사용자가 채운 표입니다. ", "Names for moves 1-3 are computed; the 4th-move names are a table the user filled in.") +
+                        tr("흑 5수 유불리 11등급은 Renju Atlas(렌주 아틀라스)의 자료를 ", "The eleven 5th-move grades come from Renju Atlas, used under") +
+                        tr("CC0 1.0 로 가져와 씁니다 — 공개 자료라 앱에 함께 넣었습니다. ", "CC0 1.0: a public domain dedication, so they ship with the app.") +
+                        tr("표시가 없는 국면은 «값이 없는 것»이지 «호각»이 아닙니다.", "A position with no mark has no value recorded — that is not the same as balanced."),
                 )
                 Section(
                     tr("데이터베이스에 쓸 때", "Writing to the database"),
@@ -76,8 +91,13 @@ fun AboutDialog(onDismiss: () -> Unit) {
 
 @Composable
 private fun Section(title: String, body: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(
+            title,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(top = 4.dp),
+        )
         Text(
             body,
             style = MaterialTheme.typography.bodySmall,

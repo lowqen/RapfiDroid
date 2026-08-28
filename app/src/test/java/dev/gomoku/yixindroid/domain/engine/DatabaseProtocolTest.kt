@@ -301,9 +301,17 @@ class DatabaseProtocolTest {
         return DbSnapshot(cells = cells)
     }
 
+    /**
+     * Read the value of a position in which *every* playable point happens to
+     * carry a record, which is the case the older assertions were written for.
+     * The interesting case — a partly explored position — passes its own count.
+     */
+    private fun DbSnapshot.valueOfComplete(blackToMove: Boolean) =
+        positionValue(blackToMove, playablePoints = cells.size)
+
     @Test
     fun `best stored rate becomes the side-to-move value`() {
-        val value = snapshotOf("40%", "63%", "12%").positionValue(blackToMove = true)!!
+        val value = snapshotOf("40%", "63%", "12%").valueOfComplete(blackToMove = true)!!
         assertEquals(0.63, value.stmWinRate, 1e-9)
         assertEquals(0.63, value.blackWinRate, 1e-9)
         assertNull(value.blackMate)
@@ -311,14 +319,14 @@ class DatabaseProtocolTest {
 
     @Test
     fun `white to move mirrors the rate for the bar`() {
-        val value = snapshotOf("63%").positionValue(blackToMove = false)!!
+        val value = snapshotOf("63%").valueOfComplete(blackToMove = false)!!
         assertEquals(0.63, value.stmWinRate, 1e-9)
         assertEquals(0.37, value.blackWinRate, 1e-9)
     }
 
     @Test
     fun `a win beats any rate and takes the shortest mate`() {
-        val value = snapshotOf("90%", "W7", "W3", "L9").positionValue(blackToMove = true)!!
+        val value = snapshotOf("90%", "W7", "W3", "L9").valueOfComplete(blackToMove = true)!!
         assertEquals(1.0, value.stmWinRate, 1e-9)
         assertEquals(3, value.stmMate)
         assertEquals(3, value.blackMate)
@@ -327,36 +335,72 @@ class DatabaseProtocolTest {
 
     @Test
     fun `mate signs flip for white to move`() {
-        val value = snapshotOf("W5").positionValue(blackToMove = false)!!
+        val value = snapshotOf("W5").valueOfComplete(blackToMove = false)!!
         assertEquals(-5, value.blackMate)
         assertEquals(0.0, value.blackWinRate, 1e-9)
     }
 
     @Test
     fun `only losses means the longest defence is reported`() {
-        val value = snapshotOf("L4", "L11").positionValue(blackToMove = true)!!
+        val value = snapshotOf("L4", "L11").valueOfComplete(blackToMove = true)!!
         assertEquals(0.0, value.stmWinRate, 1e-9)
         assertEquals(-11, value.stmMate)
         assertEquals(-11, value.blackMate)
     }
 
+    /**
+     * The false mate, in its smallest form. The database stores proven results
+     * only, so the moves that are still open have no record at all — counting
+     * just the records and concluding "every move loses" turns an ordinary,
+     * half-explored position into a forced loss, and reports the *longest* of
+     * the losses because among losses the longest is the best one.
+     */
+    @Test
+    fun `losses that do not cover every move are not a loss`() {
+        assertNull(snapshotOf("L4", "L11").positionValue(blackToMove = true, playablePoints = 30))
+        // ... and with one point left over it is still not a loss.
+        assertNull(snapshotOf("L4", "L11").positionValue(blackToMove = true, playablePoints = 3))
+        // Not knowing how many moves there are is not evidence either.
+        assertNull(snapshotOf("L4", "L11").positionValue(blackToMove = true, playablePoints = 0))
+    }
+
+    /**
+     * The asymmetry that makes the rule above correct: one winning move is a
+     * win no matter how much of the position is unexplored, because the side to
+     * move only has to find one. Same records, opposite direction.
+     */
+    @Test
+    fun `a single win needs no completeness`() {
+        val value = snapshotOf("W6", "L11").positionValue(blackToMove = true, playablePoints = 30)!!
+        assertEquals(1.0, value.stmWinRate, 1e-9)
+        assertEquals(6, value.stmMate)
+    }
+
+    /** A live percentage outranks any number of refuted moves, as it always did. */
+    @Test
+    fun `a stored rate outranks recorded losses`() {
+        val value = snapshotOf("L4", "L40", "10%").positionValue(blackToMove = true, playablePoints = 30)!!
+        assertEquals(0.10, value.stmWinRate, 1e-9)
+        assertNull(value.stmMate)
+    }
+
     @Test
     fun `a draw counts as fifty percent when nothing better is stored`() {
-        val value = snapshotOf("D", "20%").positionValue(blackToMove = true)!!
+        val value = snapshotOf("D", "20%").valueOfComplete(blackToMove = true)!!
         assertEquals(0.5, value.stmWinRate, 1e-9)
     }
 
     @Test
     fun `notes alone are not a value`() {
-        assertNull(snapshotOf("abc", "!").positionValue(blackToMove = true))
-        assertNull(DbSnapshot().positionValue(blackToMove = true))
+        assertNull(snapshotOf("abc", "!").valueOfComplete(blackToMove = true))
+        assertNull(DbSnapshot().valueOfComplete(blackToMove = true))
     }
 
     @Test
     fun `free text is used when the tag is empty, and cell kinds are recognised`() {
         val move = Move(3, 3)
         val snapshot = DbSnapshot(cells = mapOf(move to DbCell(move, tagLabel = "", text = "77%")))
-        assertEquals(0.77, snapshot.positionValue(blackToMove = true)!!.stmWinRate, 1e-9)
+        assertEquals(0.77, snapshot.valueOfComplete(blackToMove = true)!!.stmWinRate, 1e-9)
 
         val cell = DbCell(move, tagLabel = "W12")
         assertEquals(DbCellKind.WIN, cell.kindOf())

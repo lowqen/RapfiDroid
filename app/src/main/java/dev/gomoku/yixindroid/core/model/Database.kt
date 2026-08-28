@@ -108,34 +108,58 @@ data class DbSnapshot(
     val hasValues: Boolean get() = cells.values.any { it.valueLabel().isNotEmpty() }
 
     /**
-     * Position value derived from the stored child values — a direct port of
-     * main.c `evalbar_update_from_db`: the side to move picks its best stored
-     * child, so *best child value == position value*. Returns null when the
-     * database holds no value for any child.
+     * Position value derived from the stored child values — a port of main.c
+     * `evalbar_update_from_db`: the side to move picks its best stored child, so
+     * *best child value == position value*. Returns null when the database says
+     * nothing conclusive about this position.
+     *
+     * The two directions are not symmetric, and getting that wrong is what made
+     * safe positions read as forced losses. **One** winning child is a win — an
+     * OR over the moves — so the win branch needs no further evidence. "Every
+     * child loses" is an AND, and the database only ever stores *proven*
+     * results: an unresolved move simply has no record. A position whose best
+     * move is still open while two refuted ones are recorded is therefore the
+     * normal state of an ongoing analysis, and reading it as a loss is how a
+     * position with a live 10 % move came out as `M40` — the longest of the
+     * losses, because among losses the longest is the best one.
+     *
+     * @param playablePoints how many points the side to move could legally play.
+     *   Only the losing branch consults it, and only to refuse to conclude; an
+     *   overcount (say, ignoring renju's forbidden points) errs towards "not
+     *   known", which is the safe direction. Pass 0 when it is not known at all.
      */
-    fun positionValue(blackToMove: Boolean): DbPositionValue? {
+    fun positionValue(blackToMove: Boolean, playablePoints: Int): DbPositionValue? {
         var bestRate = -1
         var hasWin = false
         var winStep = 0
         var hasLoss = false
         var loseStep = 0
+        var valued = 0
 
         for (cell in cells.values) {
             val label = cell.valueLabel()
             when (cell.kindOf(label)) {
-                DbCellKind.RATE -> cell.winRatePct()?.let { if (it > bestRate) bestRate = it }
+                DbCellKind.RATE -> {
+                    cell.winRatePct()?.let { if (it > bestRate) bestRate = it }
+                    valued++
+                }
                 DbCellKind.WIN -> {
                     val step = cell.mateStep() ?: 0
                     // first win wins outright; later ones only if strictly shorter
                     if (!hasWin || (step > 0 && step < winStep)) winStep = step
                     hasWin = true
+                    valued++
                 }
                 DbCellKind.LOSS -> {
                     val step = cell.mateStep() ?: 0
                     if (step > loseStep) loseStep = step
                     hasLoss = true
+                    valued++
                 }
-                DbCellKind.DRAW -> if (bestRate < DRAW_RATE) bestRate = DRAW_RATE
+                DbCellKind.DRAW -> {
+                    if (bestRate < DRAW_RATE) bestRate = DRAW_RATE
+                    valued++
+                }
                 DbCellKind.NOTE -> Unit
             }
         }
@@ -148,7 +172,7 @@ data class DbSnapshot(
                 stmMate = winStep
             }
             bestRate >= 0 -> stmRate = bestRate / 100.0
-            hasLoss -> {
+            hasLoss && playablePoints > 0 && valued >= playablePoints -> {
                 stmRate = 0.0
                 stmMate = -loseStep
             }

@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.theme.MonoStyle
-import dev.gomoku.yixindroid.core.designsystem.theme.WinGreen
+import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
@@ -279,7 +279,7 @@ private fun ConsoleRow(line: ConsoleLine, scale: Float) {
     val color = when {
         line.outbound -> MaterialTheme.colorScheme.secondary
         line.text.startsWith("ERROR", ignoreCase = true) -> MaterialTheme.colorScheme.error
-        isCoordinate(line.text) -> WinGreen
+        isCoordinate(line.text) -> YixinTheme.colors.positive
         else -> MaterialTheme.colorScheme.onSurface
     }
     val prefix = if (line.outbound) "» " else "  "

@@ -84,28 +84,4 @@ object FreqAnalyzer {
             }
     }
 
-    /**
-     * Empirical play counts keyed by rank5 theory rank (`rankRaw`), for annotating
-     * the bundled theoretical 5-move list. Shapes not matched to rank5 (rankRaw==0)
-     * are skipped.
-     */
-    fun countsByTheoryRank(bundle: FreqBundle, filter: RankingFilter): Map<Int, Int> {
-        val players = filter.playerIndices.takeIf { it.isNotEmpty() }
-        val rules = filter.ruleIndices.takeIf { it.isNotEmpty() }
-        val perShape = IntArray(bundle.shapes.size)
-        for (g in bundle.games) {
-            val k5 = g[K5]
-            if (k5 < 0) continue
-            if (players != null && g[BLACK] !in players && g[WHITE] !in players) continue
-            if (rules != null && g[RULE] !in rules) continue
-            perShape[k5]++
-        }
-        val out = HashMap<Int, Int>()
-        bundle.shapes.forEachIndexed { i, s ->
-            if (s.theoryRankRaw > 0 && perShape[i] > 0) {
-                out[s.theoryRankRaw] = (out[s.theoryRankRaw] ?: 0) + perShape[i]
-            }
-        }
-        return out
-    }
 }

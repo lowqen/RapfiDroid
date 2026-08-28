@@ -6,7 +6,6 @@ import dev.gomoku.yixindroid.core.model.OpeningRanking
 import dev.gomoku.yixindroid.core.model.PlayerRef
 import dev.gomoku.yixindroid.core.model.RankingFilter
 import dev.gomoku.yixindroid.core.model.ShapeFreqRow
-import dev.gomoku.yixindroid.core.model.ShapeRank
 import dev.gomoku.yixindroid.domain.rankings.FreqAnalyzer
 import dev.gomoku.yixindroid.domain.rankings.FreqBundle
 import dev.gomoku.yixindroid.domain.repository.RankingsRepository
@@ -18,7 +17,6 @@ import javax.inject.Singleton
 
 @Singleton
 class RankingsRepositoryImpl @Inject constructor(
-    private val rank5: Rank5Database,
     private val freqStore: FreqStore,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : RankingsRepository {
@@ -31,28 +29,6 @@ class RankingsRepositoryImpl @Inject constructor(
         freqStore.import(uri).map { }
 
     override suspend fun clearFreq() = freqStore.clear()
-
-    override suspend fun theoreticalTop(limit: Int, m5Max: Int?): List<ShapeRank> =
-        withContext(io) { rank5.top(limit, m5Max) }
-
-    override suspend fun searchShapes(
-        repContains: String?, opening: String?, m5Max: Int?, limit: Int,
-    ): List<ShapeRank> =
-        withContext(io) { rank5.search(repContains, opening, m5Max, limit) }
-
-    override suspend fun shapesByRank(ranks: Set<Int>): Map<Int, ShapeRank> =
-        withContext(io) { rank5.byRanks(ranks) }
-
-    override suspend fun groupDistribution(): List<Pair<Int, Int>> =
-        withContext(io) { rank5.groupDistribution() }
-
-    override suspend fun openingShapeCounts(): Map<String, Int> =
-        withContext(io) { rank5.openingCounts() }
-
-    override suspend fun shapeTotal(): Int = withContext(io) { rank5.total() }
-
-    override fun rank5Error(): String? =
-        rank5.loadError?.let { it.message ?: it.javaClass.simpleName }
 
     override suspend fun matchPlayers(query: String): List<PlayerRef> {
         val bundle = freqStore.bundle.value ?: return emptyList()
@@ -77,8 +53,4 @@ class RankingsRepositoryImpl @Inject constructor(
         return withContext(io) { FreqAnalyzer.fiveMoveRanking(bundle, filter, top) }
     }
 
-    override suspend fun countsByTheoryRank(filter: RankingFilter): Map<Int, Int> {
-        val bundle = freqStore.bundle.value ?: return emptyMap()
-        return withContext(io) { FreqAnalyzer.countsByTheoryRank(bundle, filter) }
-    }
 }

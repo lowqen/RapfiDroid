@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The other half of the pair in `values/colors.xml`. Neutral tone 12. -->
+    <color name="launch_background">#221F1C</color>
+    <color name="launch_icon_background">#5B4B2D</color>
+</resources>

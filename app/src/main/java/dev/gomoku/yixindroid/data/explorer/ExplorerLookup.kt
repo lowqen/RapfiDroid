@@ -6,6 +6,9 @@ import dev.gomoku.yixindroid.core.model.ExplorerNext
 import dev.gomoku.yixindroid.core.model.ExplorerPosition
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Opening26
+import dev.gomoku.yixindroid.core.model.OpeningEval
+import dev.gomoku.yixindroid.core.model.OpeningName
+import dev.gomoku.yixindroid.core.model.OpeningTables
 import dev.gomoku.yixindroid.core.model.PosKey
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.core.model.RjGame
@@ -30,6 +33,8 @@ object ExplorerLookup {
         if (pos.size != RjGame.PACK_SIZE) return null
         val id = PosKey.of(pos.moves, pos.size)
         val stat = stats.lookup(id.key) ?: return null
+        val parent = if (pos.moves.isEmpty()) null else
+            stats.lookup(PosKey.of(pos.moves.dropLast(1), pos.size).key)
         return Result(
             ExplorerPosition(
                 key = id.key,
@@ -38,19 +43,79 @@ object ExplorerLookup {
                 blackWins = stat.blackWins,
                 draws = stat.draws,
                 whiteWins = stat.whiteWins,
-                next = stat.nextMoves().map {
+                next = nextRows(pos, stat.nextMoves().map { n ->
                     ExplorerNext(
-                        move = id.toBoard(Move(it.x, it.y), pos.size),
-                        games = it.games,
-                        blackWins = it.blackWins,
-                        draws = it.draws,
-                        whiteWins = it.whiteWins,
+                        move = id.toBoard(Move(n.x, n.y), pos.size),
+                        games = n.games,
+                        blackWins = n.blackWins,
+                        draws = n.draws,
+                        whiteWins = n.whiteWins,
                     )
-                },
-                openingLabel = openingLabel(games, stat, pos.moves.size),
+                }),
                 gameCount = stat.gameCount,
+                parentGames = parent?.games ?: 0,
+                grade = OpeningName.gradeAt(pos.moves, pos.size),
             ),
             stat,
+        )
+    }
+
+    /**
+     * The next-move table: what was played UNION what is graded.
+     *
+     * Grades are a fact about the position, so every empty point is asked —
+     * 678 of the shipped shapes never reach the packs' two-game floor and would
+     * otherwise have nowhere to appear. 225 key builds is nothing next to the
+     * pack lookup that precedes it.
+     *
+     * Order: most played first, then theory best-for-black first. Both halves
+     * read "what matters most" downwards.
+     */
+    fun nextRows(pos: Position, played: List<ExplorerNext>): List<ExplorerNext> {
+        val ply = pos.moves.size + 1
+        val rows = ArrayList(played.map {
+            it.copy(
+                name = OpeningName.nameAt(ply, pos.moves + it.move, pos.size),
+                grade = OpeningName.gradeAt(pos.moves + it.move, pos.size),
+            )
+        })
+        if (ply in OpeningEval.PLIES && OpeningTables.evals.isNotEmpty()) {
+            val taken = HashSet(pos.moves)
+            val listed = played.mapTo(HashSet()) { it.move }
+            for (y in 0 until pos.size) for (x in 0 until pos.size) {
+                val m = Move(x, y)
+                if (m in taken || m in listed) continue
+                val g = OpeningName.gradeAt(pos.moves + m, pos.size) ?: continue
+                rows.add(
+                    ExplorerNext(
+                        move = m, games = 0, blackWins = 0, draws = 0, whiteWins = 0,
+                        name = OpeningName.nameAt(ply, pos.moves + m, pos.size),
+                        grade = g,
+                    )
+                )
+            }
+        }
+        rows.sortWith(
+            compareByDescending<ExplorerNext> { it.games }
+                .thenByDescending { it.grade?.code ?: Int.MIN_VALUE }
+                .thenBy { it.move.y * pos.size + it.move.x }
+        )
+        return rows
+    }
+
+    /** Rows for a position the packs have never seen: theory only. Called
+     *  where the desktop calls `rjexp_next_fill(NULL)` — a grade is just as
+     *  true with no games behind it. */
+    fun theoryOnly(pos: Position): ExplorerPosition? {
+        if (pos.size != RjGame.PACK_SIZE) return null
+        val rows = nextRows(pos, emptyList())
+        val grade = OpeningName.gradeAt(pos.moves, pos.size)
+        if (rows.isEmpty() && grade == null) return null
+        return ExplorerPosition(
+            key = PosKey.of(pos.moves, pos.size).key,
+            line = lineText(pos),
+            games = 0, blackWins = 0, draws = 0, whiteWins = 0,
+            next = rows, gameCount = 0, parentGames = 0, grade = grade,
         )
     }
 
@@ -86,16 +151,10 @@ object ExplorerLookup {
         return ExplorerGames(rows, matched)
     }
 
-    /**
-     * The opening of the position = the one its most prominent game was filed
-     * under. Meaningful in the opening phase, harmless later — the desktop
-     * shows it only up to move 8 (main.c:5388).
-     */
-    fun openingLabel(games: RjGamesPack, stat: RjStat, plies: Int): String? {
-        if (stat.gameCount <= 0 || plies !in 1..8) return null
-        val g = games.game(stat.gameIdAt(0)) ?: return null
-        return gameOpeningLabel(games, g.opening) { Opening26.korean[it] }
-    }
+    /* The position used to be labelled with whatever its most prominent game
+       was filed under. It is now labelled with its own computed name chain
+       ([OpeningName]), which needs no games at all — so the RIF filing stays
+       where it is a fact about a game, in the per-game detail below. */
 
     /** Label for a game's filed opening: the real 주형 name with the RIF
      *  abbreviation in parentheses (`rj_opening_idx` + `mo_opening26_name`). */

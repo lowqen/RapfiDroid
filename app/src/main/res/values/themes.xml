@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Compose renders all UI; this platform theme only styles the launch
-         window (dark-first, no action bar) before setContent runs. -->
-    <style name="Theme.YixinDroid" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/bg</item>
-        <item name="android:statusBarColor">@color/bg</item>
-        <item name="android:navigationBarColor">@color/bg</item>
+    <!--
+      Compose renders all UI; this platform theme only styles the launch window
+      before setContent runs.
+
+      It is a *day/night* pair now (see `values-night/colors.xml`). It used to
+      hardcode the dark background, so opening the app on a light phone meant a
+      black flash on every launch — the first thing anyone saw of it, several
+      times a day.
+
+      The system bars are left transparent for `enableEdgeToEdge`, which sets
+      their icon colour from the app's own dark-mode setting (settings.txt line
+      27) rather than from the system's.
+    -->
+    <style name="Theme.YixinDroid" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/launch_background</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 </resources>

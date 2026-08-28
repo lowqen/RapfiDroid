@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Pre-Compose window background: matches the desktop dark palette so the
-         launch frame doesn't flash a light color before Compose draws. -->
-    <color name="bg">#262421</color>
+    <!--
+      The launch window, before Compose draws anything.
+
+      These have to match the Compose theme's `surface` exactly, or the first
+      frame of every launch is a flash of the wrong colour. They used to be one
+      value — the dark one — with no `values-night` beside it, so a light-theme
+      user watched the app open black every single time.
+
+      Kept in step with `Theme.kt`: Neutral tone 98 (light) / tone 12 (dark).
+    -->
+    <color name="launch_background">#FCF9F4</color>
+    <color name="launch_icon_background">#DAB673</color>
 </resources>

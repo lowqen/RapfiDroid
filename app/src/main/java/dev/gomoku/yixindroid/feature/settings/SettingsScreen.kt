@@ -2,6 +2,7 @@ package dev.gomoku.yixindroid.feature.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -47,12 +49,16 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.yixindroid.core.designsystem.theme.expandFadeIn
+import dev.gomoku.yixindroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.AppSettings
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
 import dev.gomoku.yixindroid.core.model.SettingSpec
 import dev.gomoku.yixindroid.core.model.SettingsFile
+import dev.gomoku.yixindroid.feature.bundle.DataImportCard
 
 /**
  * Every persisted desktop setting, generated from [dev.gomoku.yixindroid.core.model.DesktopSettings]
@@ -81,24 +87,27 @@ fun SettingsScreen(
         ActivityResultContracts.CreateDocument("text/plain"),
     ) { uri -> if (uri != null) viewModel.onExportDebugLog(uri) }
     var showAbout by remember { mutableStateOf(false) }
+    var showFiles by remember { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxSize()) {
+        // The screen's name and the one action that is not a setting. Both used
+        // to live in the body: the title as a bare line of text, "정보 · 도움말"
+        // as a text button between two unrelated rows.
+        YixinTopBar(
+            title = tr("설정", "Settings"),
+            subtitle = tr("${ui.visible.size}/${ui.total} · ", "${ui.visible.size}/${ui.total} · ") +
+                if (ui.connected) tr("엔진 연결됨 — 변경 즉시 반영", "engine connected, changes apply at once")
+                else tr("엔진 미연결 — 연결 시 반영", "engine not connected, changes apply when it is"),
+            actions = {
+                IconButton(onClick = { showAbout = true }) {
+                    Icon(Icons.Filled.Info, contentDescription = tr("정보 · 도움말", "About · help"))
+                }
+            },
+        )
         Column(
             Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(tr("설정 ${ui.visible.size}/${ui.total}", "Settings ${ui.visible.size}/${ui.total}"), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (ui.connected) tr("엔진 연결됨 — 변경 즉시 반영", "Engine connected — changes apply at once") else tr("엔진 미연결 — 연결 시 반영", "Engine not connected — changes apply when it is"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
             OutlinedTextField(
                 value = ui.query,
                 onValueChange = viewModel::onQuery,
@@ -139,53 +148,66 @@ fun SettingsScreen(
                 }
                 Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
             }
-            // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
-            SettingsFile.entries.forEach { file ->
+            // 반입은 여기 하나로 끝난다 — 아래 개별 버튼은 파일 하나만 갈아 끼우거나
+            // PC 로 되돌려 보낼 때를 위한 것이다.
+            DataImportCard()
+            TextButton(onClick = { showFiles = !showFiles }) {
+                Text(
+                    if (showFiles) tr("개별 파일 접기", "Hide individual files")
+                    else tr("개별 파일로 넣기 · 내보내기", "Individual files · export"),
+                )
+            }
+            AnimatedVisibility(showFiles, enter = expandFadeIn, exit = shrinkFadeOut) {
+              Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
+                SettingsFile.entries.forEach { file ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            tr("${file.fileName} (${file.lineCount}줄)", "${file.fileName} (${file.lineCount} lines)"),
+                            style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedButton(onClick = {
+                            viewModel.prepare(file)
+                            importLauncher.launch(arrayOf("*/*"))
+                        }) { Text(tr("불러오기", "Load")) }
+                        OutlinedButton(onClick = {
+                            viewModel.prepare(file)
+                            exportLauncher.launch(file.fileName)
+                        }) { Text(tr("내보내기", "Export")) }
+                    }
+                }
+                // The desktop's `function/` and `language/` folders — user-defined
+                // toolbar buttons and hotkeys, and the labels their numeric ids
+                // point at. The card above reads these too; this row stays for the
+                // one case it cannot cover — going back to the built-in defaults.
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        tr("${file.fileName} (${file.lineCount}줄)", "${file.fileName} (${file.lineCount} lines)"),
-                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedButton(onClick = {
-                        viewModel.prepare(file)
-                        importLauncher.launch(arrayOf("*/*"))
-                    }) { Text(tr("불러오기", "Load")) }
-                    OutlinedButton(onClick = {
-                        viewModel.prepare(file)
-                        exportLauncher.launch(file.fileName)
-                    }) { Text(tr("내보내기", "Export")) }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                        Text(
+                            ui.appearanceSource?.let { tr("$it 에서 불러옴", "from $it") }
+                                ?: tr("데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)", "Desktop defaults (pick a Yixin folder to use your own)"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
+                    if (ui.appearanceSource != null) {
+                        TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
+                    }
                 }
-            }
-            // The desktop's `function/` and `language/` folders — user-defined
-            // toolbar buttons and hotkeys, and the labels their numeric ids
-            // point at. Folder rather than file: the two live side by side next
-            // to Yixin.exe, and picking them one at a time is six taps.
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"),
-                        style = MaterialTheme.typography.labelMedium,
-                    )
-                    Text(
-                        ui.appearanceSource?.let { tr("$it 에서 불러옴", "from $it") }
-                            ?: tr("데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)", "Desktop defaults (pick a Yixin folder to use your own)"),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
-                if (ui.appearanceSource != null) {
-                    TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
-                }
+              }
             }
             // settings.txt line 36 stores the flag; this is what makes it useful —
             // the transcript is only worth recording if it can be handed over.
@@ -211,7 +233,6 @@ fun SettingsScreen(
                 }
             }
             TextButton(onClick = viewModel::onReset) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
-            TextButton(onClick = { showAbout = true }) { Text(tr("정보 · 도움말", "About · help")) }
             ui.message?.let { message ->
                 Surface(
                     color = MaterialTheme.colorScheme.secondaryContainer,

@@ -3,13 +3,9 @@ package dev.gomoku.yixindroid.core.model
 /** A player entry from the imported freq dataset. */
 data class PlayerRef(val index: Int, val name: String, val country: String)
 
-/** A distinct 5-move shape carried by the freq dataset, with its rank5 theory join. */
-data class ShapeTheory(
-    val repMoves: String,
-    val theoryRankRaw: Int,   // 0 when the shape wasn't matched to rank5.csv
-    val theoryCountRaw: Int,
-    val theoryCountStd: Int,
-) {
+/** A distinct 5-move shape carried by the freq dataset: its representative
+ *  move order, written in the canonical direction freq35 chose. */
+data class ShapeRef(val repMoves: String) {
     fun moves(size: Int = Move.DEFAULT_SIZE): List<Move> =
         repMoves.split(' ').mapNotNull { Move.fromLabel(it, size) }
 }
@@ -49,7 +45,7 @@ data class OpeningRankRow(
 
 /** One row of the empirical 5-move shape ranking. */
 data class ShapeFreqRow(
-    val shape: ShapeTheory,
+    val shape: ShapeRef,
     val count: Int,
     val split: ResultSplit,
 )

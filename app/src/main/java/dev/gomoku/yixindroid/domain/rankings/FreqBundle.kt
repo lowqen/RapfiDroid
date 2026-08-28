@@ -1,7 +1,7 @@
 package dev.gomoku.yixindroid.domain.rankings
 
 import dev.gomoku.yixindroid.core.model.PlayerRef
-import dev.gomoku.yixindroid.core.model.ShapeTheory
+import dev.gomoku.yixindroid.core.model.ShapeRef
 
 /**
  * A parsed, framework-free view of an imported `freq_data.json`. The data layer
@@ -18,7 +18,7 @@ data class FreqBundle(
     val generated: String,
     val players: List<PlayerRef>,
     val rules: List<String>,
-    val shapes: List<ShapeTheory>,
+    val shapes: List<ShapeRef>,
     val games: List<IntArray>,
 ) {
     val gameCount: Int get() = games.size

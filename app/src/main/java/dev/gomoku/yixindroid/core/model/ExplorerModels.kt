@@ -57,14 +57,36 @@ data class RjGame(
     }
 }
 
-/** A next-move candidate mapped back onto the board. */
+/**
+ * A next-move candidate: what the games say, what the table says, or both.
+ *
+ * Statistics and theory answer different questions and neither contains the
+ * other — 678 graded shapes never reach the packs' 2-game floor, and most
+ * played moves have no grade — so a row exists when *either* source knows the
+ * move, with [games] at 0 where only the table does.
+ */
 data class ExplorerNext(
     val move: Move,
     val games: Int,
     val blackWins: Int,
     val draws: Int,
     val whiteWins: Int,
-)
+    /**
+     * The opening name this move would *make* ([OpeningName]), or null when it
+     * makes none. Browsing a 3-move position is therefore browsing the 4th-move
+     * names in the order they are actually played.
+     */
+    val name: String? = null,
+    /** The 흑 5수 유불리 grade this move would reach, or null. */
+    val grade: OpeningEval.Grade? = null,
+) {
+    val decided: Int get() = blackWins + draws + whiteWins
+
+    /** Black's score rate, (승 + 무/2) / 결정판 — the same definition the
+     *  frequency dashboard uses, so the two screens cannot contradict. */
+    val blackScore: Double?
+        get() = if (decided > 0) 100.0 * (blackWins + 0.5 * draws) / decided else null
+}
 
 /** Why the explorer has nothing to show, or that it does. */
 enum class ExplorerStatus {
@@ -105,11 +127,22 @@ data class ExplorerPosition(
     val draws: Int,
     val whiteWins: Int,
     val next: List<ExplorerNext>,
-    /** "한성 (d1)" from the position's most prominent game, opening phase only. */
-    val openingLabel: String?,
     val gameCount: Int,
+    /** Games through the position one move back, for "how often was this
+     *  reached". 0 when unknown (start position, or outside the packs). */
+    val parentGames: Int = 0,
+    /** This position's own 흑 5수 유불리 grade, or null. */
+    val grade: OpeningEval.Grade? = null,
 ) {
+    /** Share of the games that reached here — the RESULT split. Not the same
+     *  question as [shareOfParent], which is how often it was reached at all. */
     fun percent(part: Int): Double = if (games > 0) 100.0 * part / games else 0.0
+
+    val shareOfParent: Double?
+        get() = if (parentGames > 0 && games > 0) 100.0 * games / parentGames else null
+
+    fun shareOfAll(total: Int): Double? =
+        if (total > 0 && games > 0) 100.0 * games / total else null
 }
 
 /** One row of the games pane. */

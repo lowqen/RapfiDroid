@@ -20,14 +20,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.UploadFile
@@ -40,9 +40,10 @@ import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -52,18 +53,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.MiniBoard
-import dev.gomoku.yixindroid.core.designsystem.theme.DrawGray
-import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
-import dev.gomoku.yixindroid.core.designsystem.theme.WinGreen
+import dev.gomoku.yixindroid.core.designsystem.component.EmptyState
+import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
+import dev.gomoku.yixindroid.core.model.Opening26
 import dev.gomoku.yixindroid.core.model.ResultSplit
+import dev.gomoku.yixindroid.feature.bundle.DataImportCard
 
 @Composable
 fun RankingsScreen(
@@ -78,16 +80,33 @@ fun RankingsScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         Header(ui, onFilter = viewModel::onOpenFilter)
-        ui.dataError?.let { DataErrorBanner(it) }
         ui.error?.let { ErrorBanner(it, viewModel::onDismissError) }
 
-        TabRow(selectedTabIndex = ui.tab.ordinal) {
-            Tab(selected = ui.tab == RankTab.THREE_MOVE,
-                onClick = { viewModel.onSelectTab(RankTab.THREE_MOVE) },
-                text = { Text(tr("3수 (주형)", "Move 3 (openings)")) })
-            Tab(selected = ui.tab == RankTab.FIVE_MOVE,
-                onClick = { viewModel.onSelectTab(RankTab.FIVE_MOVE) },
-                text = { Text(tr("5수 모양", "Move 5 shapes")) })
+        // Without the dataset both tabs are near-empty, so the way to fill them
+        // goes above the tabs rather than inside a filter sheet the user has no
+        // reason to open yet.
+        if (!ui.freqLoaded) {
+            DataImportCard(Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+        }
+
+        // A segmented control, not a second tab row. This screen already sits
+        // inside the research tabs, and tabs nested in tabs read as one broken
+        // row rather than two levels; a segmented button says "two views of the
+        // same thing", which is what these are.
+        val tabs = listOf(
+            RankTab.THREE_MOVE to tr("3수 (주형)", "Move 3 (openings)"),
+            RankTab.FIVE_MOVE to tr("5수 모양", "Move 5 shapes"),
+        )
+        SingleChoiceSegmentedButtonRow(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        ) {
+            tabs.forEachIndexed { i, (tab, label) ->
+                SegmentedButton(
+                    selected = ui.tab == tab,
+                    onClick = { viewModel.onSelectTab(tab) },
+                    shape = SegmentedButtonDefaults.itemShape(i, tabs.size),
+                ) { Text(label, maxLines = 1) }
+            }
         }
 
         when (ui.tab) {
@@ -108,13 +127,15 @@ private fun Header(ui: RankingsUiState, onFilter: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(tr("오프닝 랭킹", "Opening rankings"), style = MaterialTheme.typography.titleLarge)
+            // No title of its own: the tab above already says 랭킹, and a screen
+            // that repeats its own tab label spends a line saying nothing.
             val sub = if (ui.freqLoaded) {
-                tr("실전 %,d판 · 이론 %,d형", "%,d games · %,d shapes").format(ui.freqGameCount, ui.shapeTotal)
+                tr("실전 %,d판", "%,d games").format(ui.freqGameCount)
             } else {
-                tr("이론 %,d형 (rank5) · 실전 데이터 없음", "%,d shapes (rank5) · no game data").format(ui.shapeTotal)
+                tr("실전 데이터 없음 — 필터에서 freq_data.json 을 불러오세요",
+                    "No game data — load freq_data.json from the filter sheet")
             }
-            Text(sub, style = MaterialTheme.typography.bodySmall,
+            Text(sub, style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         val badge = if (ui.filterActive) tr("필터·", "Filter ·") + selectedLabel(ui) else tr("필터", "Filter")
@@ -129,15 +150,6 @@ private fun selectedLabel(ui: RankingsUiState): String = buildString {
     if (rules > 0) { if (isNotEmpty()) append("·"); append(tr("룰$rules", "rule$rules")) }
     val extra = ui.selectedPlayers.size - 1
     if (extra > 0) append(" +$extra")
-}
-
-@Composable
-private fun DataErrorBanner(message: String) {
-    Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
-        Text(message, color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.bodySmall)
-    }
 }
 
 @Composable
@@ -209,8 +221,12 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
     Card {
         Column(Modifier.padding(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // 直 / 間 is a category, not a result, so it no longer borrows
+                // the black-won / white-won colours.
                 Text(card.abbr, style = MaterialTheme.typography.titleMedium,
-                    color = if (card.direct) WinBlue else WinGreen, fontWeight = FontWeight.Bold)
+                    color = if (card.direct) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.tertiary,
+                    fontWeight = FontWeight.Bold)
                 Spacer(Modifier.width(6.dp))
                 Text("${card.korean} · ${card.romaji}",
                     style = MaterialTheme.typography.bodySmall,
@@ -222,13 +238,9 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
             if (freqLoaded && card.split != null && card.split.total > 0) {
                 val pct = if (totalGames > 0) card.split.total * 100.0 / totalGames else 0.0
                 Text(tr("%,d판 · %.1f%%", "%,d games · %.1f%%").format(card.split.total, pct),
-                    style = MaterialTheme.typography.labelMedium)
+                    style = MaterialTheme.typography.labelMedium.tabular())
                 Spacer(Modifier.height(4.dp))
                 ResultBar(card.split)
-            } else {
-                Text(tr("이론 ${card.theoryShapeCount}형", "${card.theoryShapeCount} shapes"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -238,105 +250,68 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
 
 @Composable
 private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Modifier) {
-    // Same as the 3-move grid: a new ordering starts at the top. Here the keys
-    // usually vanish entirely (이론순 ↔ 실전순 share almost no rows), so the list
-    // falls back to holding the raw index — the middle of the old scroll.
-    val listState = rememberLazyListState()
-    LaunchedEffect(ui.fiveRows) { listState.scrollToItem(0) }
+    // Same as the 3-move grid: a new ordering starts at the top. A filter change
+    // can drop every visible key, so the list would otherwise hold a raw index —
+    // the middle of the old scroll.
+    val fiveState = rememberLazyGridState()
+    LaunchedEffect(ui.fiveRows) { fiveState.scrollToItem(0) }
     Column(modifier) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FilterChip(selected = ui.fiveSort == FiveSort.THEORY,
-                onClick = { vm.onFiveSort(FiveSort.THEORY) }, label = { Text(tr("이론순", "By theory")) })
-            FilterChip(selected = ui.fiveSort == FiveSort.EMPIRICAL, enabled = ui.freqLoaded,
-                onClick = { vm.onFiveSort(FiveSort.EMPIRICAL) }, label = { Text(tr("실전순", "By games")) })
-            Spacer(Modifier.weight(1f))
-            BoardScope.entries.forEach { sc ->
-                FilterChip(selected = ui.boardScope == sc, onClick = { vm.onBoardScope(sc) },
-                    label = { Text(sc.label) },
-                    enabled = ui.fiveSort == FiveSort.THEORY)
-            }
-        }
         OutlinedTextField(
             value = ui.fiveQuery, onValueChange = vm::onFiveQueryChange,
             label = { Text(tr("수순 검색 (예: h8 i9)", "Search a move order (e.g. h8 i9)")) }, singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         )
-        if (ui.fiveSort == FiveSort.THEORY) GroupChart(ui.groupDist)
-        LazyColumn(
-            Modifier.fillMaxWidth().weight(1f),
-            state = listState,
+        // The same adaptive grid the 3-move tab uses: one column on a phone,
+        // two or more on a tablet, from one number instead of a breakpoint.
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 320.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            state = fiveState,
             contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            items(ui.fiveRows, key = { "${it.rankRaw}:${it.repMoves}" }) { row ->
-                FiveRowView(row)
+            if (ui.fiveRows.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    EmptyState(
+                        icon = Icons.Filled.BarChart,
+                        title = tr("표시할 모양이 없습니다", "Nothing to show"),
+                        body = tr(
+                            "5수 탭은 실전 빈도만 보여 줍니다. 자료를 반입하면 채워집니다.",
+                            "This tab is built from real games only. Import the dataset and it fills in.",
+                        ),
+                    )
+                }
+            }
+            items(ui.fiveRows, key = { it.repMoves }) { row ->
+                FiveRowView(row, ui.freqGameCount)
             }
         }
     }
 }
 
-@Composable
-private fun GroupChart(dist: List<Pair<Int, Int>>) {
-    if (dist.isEmpty()) return
-    val total = dist.sumOf { it.second }.coerceAtLeast(1)
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
-        Text(tr("경우의 수 그룹 분포", "Distribution of order counts"), style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(4.dp))
-        Row(Modifier.fillMaxWidth().height(16.dp).clip(RoundedCornerShape(4.dp))) {
-            dist.forEachIndexed { i, (group, n) ->
-                Box(Modifier.weight(n.toFloat().coerceAtLeast(0.001f)).fillMaxHeight()
-                    .background(groupColor(i)))
-            }
-        }
-        Spacer(Modifier.height(4.dp))
-        FlowRowLegend(dist)
-    }
-}
 
 @Composable
-private fun FlowRowLegend(dist: List<Pair<Int, Int>>) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        dist.forEachIndexed { i, (group, n) ->
-            Row(verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.size(9.dp).clip(RoundedCornerShape(2.dp)).background(groupColor(i)))
-                Text("×$group: %,d".format(n), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
-
-private val groupPalette = listOf(WinBlue, WinGreen, Color(0xFFE7C77E), Color(0xFFC58AE0))
-private fun groupColor(i: Int) = groupPalette[i % groupPalette.size]
-
-@Composable
-private fun FiveRowView(row: FiveRow) {
+private fun FiveRowView(row: FiveRow, totalGames: Int) {
     Card {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(44.dp)) {
-                Text("#${row.rankRaw}", style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold)
-                Text("×${row.group}", style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
             MiniBoard(row.moves, Modifier.size(76.dp))
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(if (row.openingIndex < 26) row.opening else "—",
+                    Text(
+                        if (row.openingIndex in 0 until 26) Opening26.abbr[row.openingIndex] else "—",
                         style = MaterialTheme.typography.labelMedium,
-                        color = if (row.openingIndex in 0..12) WinBlue else WinGreen)
-                    row.empiricalCount?.let {
-                        Text(tr("실전 %,d판", "%,d games").format(it), style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                        color = if (row.openingIndex in 0..12) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.tertiary,
+                    )
+                    Text(
+                        tr("실전 %,d판", "%,d games").format(row.count) +
+                            if (totalGames > 0) " · %.2f%%".format(row.count * 100.0 / totalGames) else "",
+                        style = MaterialTheme.typography.labelSmall.tabular(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 Text(row.repMoves,
                     style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace))
@@ -351,14 +326,15 @@ private fun FiveRowView(row: FiveRow) {
 @Composable
 private fun ResultBar(split: ResultSplit) {
     val decided = (split.blackWins + split.draws + split.whiteWins).coerceAtLeast(1)
+    val colors = YixinTheme.colors
     Column {
-        Row(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(3.dp))) {
-            Box(Modifier.weight(split.blackWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(WinBlue))
-            Box(Modifier.weight(split.draws.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(DrawGray))
-            Box(Modifier.weight(split.whiteWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(WinGreen))
+        Row(Modifier.fillMaxWidth().height(10.dp).clip(MaterialTheme.shapes.extraSmall)) {
+            Box(Modifier.weight(split.blackWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultBlack))
+            Box(Modifier.weight(split.draws.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultDraw))
+            Box(Modifier.weight(split.whiteWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultWhite))
         }
         Text(tr("흑 ${pct(split.blackWins, decided)} · 무 ${pct(split.draws, decided)} · 백 ${pct(split.whiteWins, decided)}", "Black ${pct(split.blackWins, decided)} · draw ${pct(split.draws, decided)} · White ${pct(split.whiteWins, decided)}"),
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelSmall.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -403,7 +379,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
                     label = { Text(tr("선수 검색 (이름/국가)", "Search a player (name or country)")) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth())
                 if (ui.playerSuggestions.isNotEmpty()) {
-                    Surface(tonalElevation = 2.dp, shape = RoundedCornerShape(8.dp)) {
+                    Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.small) {
                         LazyColumn(Modifier.fillMaxWidth().height(180.dp)) {
                             items(ui.playerSuggestions, key = { it.index }) { p ->
                                 Text(if (p.country.isBlank()) p.name else "${p.name}  ·  ${p.country}",

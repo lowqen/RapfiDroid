@@ -23,7 +23,7 @@ object Opening26 {
     private const val BS = Move.DEFAULT_SIZE   // 15
     private const val CTR = 7                  // centre index
 
-    /** "D1".."D13","I1".."I13" — matches freq35 OPABBR / rank5.csv `opening`. */
+    /** "D1".."D13","I1".."I13" — matches freq35's OPABBR. */
     val abbr: List<String> =
         (1..13).map { "D$it" } + (1..13).map { "I$it" }
 

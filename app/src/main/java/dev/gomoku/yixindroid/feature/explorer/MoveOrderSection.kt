@@ -15,11 +15,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -27,9 +30,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -51,6 +51,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.BoardGeometry
+import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.yixindroid.core.designsystem.component.ReadingWidth
+import dev.gomoku.yixindroid.core.designsystem.theme.BoardSkin
+import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.MoveOrderFormat
 import kotlin.math.roundToInt
@@ -68,7 +73,7 @@ fun MoveOrderSection(
     viewModel: MoveOrderViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
+    val snackbar = LocalSnackbarHostState.current
 
     LaunchedEffect(ui.notice) {
         ui.notice?.let {
@@ -91,88 +96,83 @@ fun MoveOrderSection(
         )
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbar) },
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(
-                        Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+    LazyColumn(
+        modifier = modifier.fillMaxHeight().wrapContentWidth().widthIn(max = ReadingWidth),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(ui.headline, style = MaterialTheme.typography.titleMedium)
+                    if (ui.note.isNotEmpty()) {
+                        Text(ui.note, style = MaterialTheme.typography.bodySmall)
+                    }
+                    ui.openingLabel?.let {
+                        Text(it, style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (ui.computing) LinearProgressIndicator(Modifier.fillMaxWidth())
+                }
+            }
+        }
+
+        item { OptionChips(ui, viewModel::onOptionsChange) }
+
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(
+                        ui.breadcrumb,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                    ui.orientation?.let {
+                        Text("[$it]", style = MaterialTheme.typography.labelSmall)
+                    }
+                    Row(
+                        Modifier.padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(ui.headline, style = MaterialTheme.typography.titleMedium)
-                        if (ui.note.isNotEmpty()) {
-                            Text(ui.note, style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = viewModel::onBack, enabled = ui.canBack) {
+                            Text(tr("한 수 뒤로", "Back one"))
                         }
-                        ui.openingLabel?.let {
-                            Text(it, style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = viewModel::onRoot, enabled = ui.canBack) {
+                            Text(tr("처음으로", "To start"))
                         }
-                        if (ui.computing) LinearProgressIndicator(Modifier.fillMaxWidth())
-                    }
-                }
-            }
-
-            item { OptionChips(ui, viewModel::onOptionsChange) }
-
-            item {
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(
-                            ui.breadcrumb,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontFamily = FontFamily.Monospace,
-                        )
-                        ui.orientation?.let {
-                            Text("[$it]", style = MaterialTheme.typography.labelSmall)
-                        }
-                        Row(
-                            Modifier.padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            OutlinedButton(onClick = viewModel::onBack, enabled = ui.canBack) {
-                                Text(tr("한 수 뒤로", "Back one"))
-                            }
-                            OutlinedButton(onClick = viewModel::onRoot, enabled = ui.canBack) {
-                                Text(tr("처음으로", "To start"))
-                            }
-                            Button(onClick = { viewModel.onApply() }, enabled = ui.canApply) {
-                                Text(tr("보드에 놓기", "Put on the board"))
-                            }
+                        Button(onClick = { viewModel.onApply() }, enabled = ui.canApply) {
+                            Text(tr("보드에 놓기", "Put on the board"))
                         }
                     }
                 }
             }
+        }
 
+        item {
+            MiniBoard(
+                ui = ui,
+                onTapCell = { cell ->
+                    if (ui.rows.any { it.cell == cell }) viewModel.onDrill(cell)
+                },
+            )
+        }
+
+        if (ui.rows.isNotEmpty()) {
             item {
-                MiniBoard(
-                    ui = ui,
-                    onTapCell = { cell ->
-                        if (ui.rows.any { it.cell == cell }) viewModel.onDrill(cell)
-                    },
+                Text(
+                    tr("다음 수 후보 ${ui.rows.size}가지 — 누르면 그 갈래로 들어갑니다", "${ui.rows.size} continuations — tap one to follow it"),
+                    style = MaterialTheme.typography.titleSmall,
                 )
             }
-
-            if (ui.rows.isNotEmpty()) {
-                item {
-                    Text(
-                        tr("다음 수 후보 ${ui.rows.size}가지 — 누르면 그 갈래로 들어갑니다", "${ui.rows.size} continuations — tap one to follow it"),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                }
-                items(ui.rows, key = { it.cell }) { row ->
-                    CandidateRow(
-                        row = row,
-                        selected = ui.selected == row.cell,
-                        onSelect = { viewModel.onSelect(row.cell) },
-                        onDrill = { viewModel.onDrill(row.cell) },
-                    )
-                }
+            items(ui.rows, key = { it.cell }) { row ->
+                CandidateRow(
+                    row = row,
+                    selected = ui.selected == row.cell,
+                    onSelect = { viewModel.onSelect(row.cell) },
+                    onDrill = { viewModel.onDrill(row.cell) },
+                )
             }
         }
     }
@@ -220,12 +220,10 @@ private fun CandidateRow(
             Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val skin = YixinTheme.board
             Box(
                 Modifier.width(30.dp).height(30.dp)
-                    .background(
-                        if (row.isBlack) Color(0xFF141414) else Color(0xFFF7F7F5),
-                        RoundedCornerShape(15.dp),
-                    ),
+                    .background(if (row.isBlack) skin.blackLow else skin.whiteHigh, CircleShape),
             )
             Column(Modifier.weight(1f).padding(start = 10.dp)) {
                 Text(
@@ -236,16 +234,16 @@ private fun CandidateRow(
                 )
                 Text(
                     tr("수순 ${row.countText}가지 · ${row.sharePercent}%", "${row.countText} orders · ${row.sharePercent}%"),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.tabular(),
                 )
             }
             Box(
                 Modifier.width(60.dp).height(8.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
+                    .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.extraSmall),
             ) {
                 Box(
                     Modifier.fillMaxWidth(row.sharePercent / 100f).height(8.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp)),
+                        .background(MaterialTheme.colorScheme.primary, MaterialTheme.shapes.extraSmall),
                 )
             }
         }
@@ -261,9 +259,14 @@ private fun CandidateRow(
 private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
     val size = ui.boardSize
     val onSurface = MaterialTheme.colorScheme.onSurface
+    // The explorer's board is the same wood as the real one: two boards on the
+    // same screen in different materials looked like two programs.
+    val skin: BoardSkin = YixinTheme.board
+    val plies = MaterialTheme.colorScheme.error
+    val selectedRing = MaterialTheme.colorScheme.primary
     Canvas(
         Modifier.fillMaxWidth().aspectRatio(1f)
-            .background(Color(0xFFE6C07A), RoundedCornerShape(6.dp))
+            .background(skin.wood, MaterialTheme.shapes.medium)
             .pointerInput(size, ui.rows) {
                 detectTapGestures { offset ->
                     val g = BoardGeometry(kotlin.math.min(this.size.width, this.size.height).toFloat(), size)
@@ -274,14 +277,17 @@ private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
             },
     ) {
         val g = BoardGeometry(kotlin.math.min(this.size.width, this.size.height), size)
-        val grid = Color(0xFF59462E)
+        // Widths scale with the grid, like the main board: fixed pixels are what
+        // made every line here a hairline on a tablet.
+        val hair = (g.step / 45f).coerceAtLeast(1f)
+        val grid = skin.line
         for (i in 0 until size) {
-            drawLine(grid, Offset(g.origin, g.cy(i)), Offset(g.cx(size - 1), g.cy(i)), 1f)
-            drawLine(grid, Offset(g.cx(i), g.origin), Offset(g.cx(i), g.cy(size - 1)), 1f)
+            drawLine(grid, Offset(g.origin, g.cy(i)), Offset(g.cx(size - 1), g.cy(i)), hair)
+            drawLine(grid, Offset(g.cx(i), g.origin), Offset(g.cx(i), g.cy(size - 1)), hair)
         }
         if (size == 15) {
             for ((sy, sx) in listOf(3 to 3, 3 to 11, 7 to 7, 11 to 3, 11 to 11)) {
-                drawCircle(grid, g.step * 0.09f, Offset(g.cx(sx), g.cy(sy)))
+                drawCircle(grid, g.step * 0.10f, Offset(g.cx(sx), g.cy(sy)))
             }
         }
 
@@ -294,16 +300,16 @@ private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
             val cx = g.cx(ghost.cell % size)
             val cy = g.cy(ghost.cell / size)
             if (!ghost.common) {
-                drawCircle(Color(0x59404040), g.step * 0.13f, Offset(cx, cy))
+                drawCircle(skin.line, g.step * 0.13f, Offset(cx, cy), alpha = 0.55f)
                 continue
             }
             drawCircle(
-                if (ghost.color == 1) Color(0x590D0D0D) else Color(0x80FFFFFF),
-                g.radius, Offset(cx, cy),
+                if (ghost.color == 1) skin.blackLow else skin.whiteHigh,
+                g.radius, Offset(cx, cy), alpha = if (ghost.color == 1) 0.35f else 0.5f,
             )
-            drawCircle(Color(0x66404040), g.radius, Offset(cx, cy), style = Stroke(1f))
+            drawCircle(skin.blackRim, g.radius, Offset(cx, cy), alpha = 0.4f, style = Stroke(hair))
             val text = MoveOrderFormat.plies(ghost.plies)
-            if (text.isNotEmpty()) label(text, cx, cy, g.step * 0.30f, Color(0xFF9E1F0A))
+            if (text.isNotEmpty()) label(text, cx, cy, g.step * 0.30f, plies)
         }
 
         // the drilled prefix: solid stones with their move numbers
@@ -311,9 +317,12 @@ private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
             val black = i % 2 == 0
             val cx = g.cx(cell % size)
             val cy = g.cy(cell / size)
-            drawCircle(if (black) Color(0xFF141414) else Color(0xFFF7F7F2), g.radius, Offset(cx, cy))
-            drawCircle(Color(0xFF262626), g.radius, Offset(cx, cy), style = Stroke(1f))
-            label("${i + 1}", cx, cy, g.step * 0.42f, if (black) Color.White else Color.Black)
+            drawCircle(if (black) skin.blackLow else skin.whiteHigh, g.radius, Offset(cx, cy))
+            drawCircle(
+                if (black) skin.blackRim else skin.whiteRim,
+                g.radius, Offset(cx, cy), alpha = 0.8f, style = Stroke(hair),
+            )
+            label("${i + 1}", cx, cy, g.step * 0.42f, if (black) skin.whiteHigh else skin.blackLow)
         }
 
         // candidates: translucent next stone + a ring graded by share
@@ -322,21 +331,21 @@ private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
             val cy = g.cy(row.cell / size)
             val share = row.sharePercent / 100f
             drawCircle(
-                if (row.isBlack) Color(0x990D0D0D) else Color(0xB3FFFFFF),
-                g.radius, Offset(cx, cy),
+                if (row.isBlack) skin.blackLow else skin.whiteHigh,
+                g.radius, Offset(cx, cy), alpha = if (row.isBlack) 0.6f else 0.7f,
             )
             val ring = when {
-                ui.selected == row.cell -> Color(0xFF2673F2)
-                row.actual -> Color(0xFFD9A60D)
-                else -> Color(0xFFE65914).copy(alpha = 0.35f + 0.65f * share)
+                ui.selected == row.cell -> selectedRing
+                row.actual -> skin.lastMove
+                else -> skin.forbid.copy(alpha = 0.35f + 0.65f * share)
             }
             drawCircle(
                 ring, g.radius * 0.9f, Offset(cx, cy),
-                style = Stroke(1.5f + 3.5f * share),
+                style = Stroke(hair * (1.5f + 3.5f * share)),
             )
             label(
                 "${row.sharePercent}%", cx, cy, g.step * 0.30f,
-                if (row.isBlack) Color.White else Color.Black,
+                if (row.isBlack) skin.whiteHigh else skin.blackLow,
             )
         }
         if (ui.rows.isEmpty() && ui.prefix.isEmpty() && ui.ghosts.isEmpty()) {

@@ -21,7 +21,10 @@ import java.nio.channels.FileChannel
  */
 class RealPackSmokeTest {
 
-    private val deployDir = File("""C:\Users\User\gomoku-dev\test-yixin""")
+    // Gradle의 JVM 테스트 작업 디렉터리는 기본적으로 모듈 폴더(YixinDroid/app)이므로,
+    // 프로젝트 루트의 test-yixin/ 까지는 두 단계 위로 올라간다. 저장소를 어디로
+    // 옮기거나 복제해도 그대로 성립하는 상대 경로다.
+    private val deployDir = File("../../test-yixin")
     private val statsFile = File(deployDir, "renju_stats.pack")
     private val gamesFile = File(deployDir, "renju_games.pack")
 

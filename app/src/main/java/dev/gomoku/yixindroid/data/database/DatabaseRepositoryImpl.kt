@@ -183,7 +183,10 @@ class DatabaseRepositoryImpl @Inject constructor(
                     snapshot = snapshot,
                     // Only the newest query's result may set the position value.
                     value = if (paired) {
-                        snapshot.positionValue(_position.value.sideToMove == StoneColor.BLACK)
+                        snapshot.positionValue(
+                            blackToMove = _position.value.sideToMove == StoneColor.BLACK,
+                            playablePoints = _position.value.emptyPoints,
+                        )
                     } else {
                         current.value
                     },

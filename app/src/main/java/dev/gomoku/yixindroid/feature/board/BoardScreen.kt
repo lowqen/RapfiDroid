@@ -2,6 +2,9 @@ package dev.gomoku.yixindroid.feature.board
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -61,7 +63,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -91,7 +92,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.designsystem.component.renderBoardPng
-import dev.gomoku.yixindroid.core.designsystem.theme.WinBlue
+import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.yixindroid.core.designsystem.theme.MOTION_VALUE
+import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.yixindroid.core.designsystem.theme.expandFadeIn
+import dev.gomoku.yixindroid.core.designsystem.theme.shrinkFadeOut
+import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.BoardShift
 import dev.gomoku.yixindroid.core.model.BoardSymmetry
@@ -113,9 +120,6 @@ import kotlinx.coroutines.withContext
  * would be squeezed to a third of the screen and the panels would be unreadable.
  */
 private val WIDE_LAYOUT_MIN = 640.dp
-
-private val StoneBlack = Color(0xFF1C1A17)
-private val StoneWhite = Color(0xFFEDEAE3)
 
 @Composable
 fun BoardScreen(
@@ -155,14 +159,31 @@ fun BoardScreen(
     // The export launcher outlives recompositions, so it must not capture the
     // frame it was created with.
     val currentRender by rememberUpdatedState(ui.render)
+    // The exported PNG is the board the user is looking at, dark wood and all —
+    // `drawBoard` is the same function, so the skin has to travel with it.
+    val skin = YixinTheme.board
+    val currentSkin by rememberUpdatedState(skin)
     val saveImage = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("image/png"),
     ) { uri ->
         if (uri != null) {
             scope.launch {
-                val bytes = withContext(Dispatchers.Default) { renderBoardPng(currentRender) }
+                val bytes = withContext(Dispatchers.Default) {
+                    renderBoardPng(currentRender, currentSkin)
+                }
                 viewModel.onSaveImage(uri, bytes)
             }
+        }
+    }
+
+    // One snackbar for the whole app (see [LocalSnackbarHostState]); this screen
+    // used to build its own and time it by hand, which put a notice inside the
+    // scrolling page where it could be scrolled away from.
+    val snackbar = LocalSnackbarHostState.current
+    LaunchedEffect(ui.notice) {
+        ui.notice?.let {
+            snackbar.showSnackbar(it)
+            viewModel.onNoticeShown()
         }
     }
 
@@ -249,7 +270,7 @@ fun BoardScreen(
         // console scripts the desktop runs (main.c:10064 `custom_function`).
         // Anything the board row already does was dropped in the view model, so
         // this is empty until a toolbar with something new in it is imported.
-        if (moreOpen) {
+        AnimatedVisibility(moreOpen, enter = expandFadeIn, exit = shrinkFadeOut) {
             UserToolbar(
                 items = ui.toolbar,
                 language = ui.language,
@@ -258,15 +279,6 @@ fun BoardScreen(
                 onRun = viewModel::onRunScript,
                 modifier = pad,
             )
-        }
-        // Directly under the toolbar: most notices answer a button that was just
-        // pressed, and the page can be scrolled well past its bottom.
-        ui.notice?.let { text ->
-            Snackbar(pad) { Text(text) }
-            LaunchedEffect(text) {
-                kotlinx.coroutines.delay(3_000)
-                viewModel.onNoticeShown()
-            }
         }
     }
 
@@ -471,8 +483,12 @@ private fun Section(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(8.dp),
+        // A real surface role, not an alpha over whatever happens to be behind:
+        // the same panel used to come out a different colour on the board page
+        // and inside a dialog, because 40 % of a variant is a different colour
+        // over every parent.
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
@@ -499,7 +515,9 @@ private fun Section(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (expanded) content()
+            AnimatedVisibility(expanded, enter = expandFadeIn, exit = shrinkFadeOut) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp), content = content)
+            }
         }
     }
 }
@@ -536,8 +554,9 @@ private fun GameSection(
     Section(tr("대국", "Game"), summary, expanded, onToggle, modifier) {
         game.result?.let { result ->
             Surface(
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
-                shape = RoundedCornerShape(6.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
@@ -624,19 +643,23 @@ private fun ClockRow(ui: BoardUiState) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(name, style = MaterialTheme.typography.labelMedium)
                     if (clock.running == side) {
-                        Text("●", style = MaterialTheme.typography.labelMedium, color = WinBlue)
+                        Text(
+                            "●",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = YixinTheme.colors.positive,
+                        )
                     }
                 }
+                // A clock is the purest case for tabular figures: it counts down
+                // once a second and every digit is a different width.
                 Text(
                     tr("남음 ${clock.label(side)}", "left ${clock.label(side)}"),
-                    style = MaterialTheme.typography.labelSmall
-                        .copy(fontFamily = FontFamily.Monospace),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Text(
                     tr("사용 ${clock.usedLabel(side)}", "used ${clock.usedLabel(side)}"),
-                    style = MaterialTheme.typography.labelSmall
-                        .copy(fontFamily = FontFamily.Monospace),
+                    style = MaterialTheme.typography.labelSmall.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -771,12 +794,14 @@ private fun ZoomableBoard(
 private fun WinRateGraph(history: List<Double?>, currentPly: Int, modifier: Modifier = Modifier) {
     val samples = history.count { it != null }
     if (samples < 1) return
-    val line = WinBlue
-    val fill = WinBlue.copy(alpha = 0.22f)
-    val grid = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-    val midGrid = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+    // The curve is Black's win rate, so it is drawn in the colour every table in
+    // the app uses for Black.
+    val line = YixinTheme.colors.resultBlack
+    val fill = line.copy(alpha = 0.22f)
+    val grid = MaterialTheme.colorScheme.outlineVariant
+    val midGrid = MaterialTheme.colorScheme.outline
     val marker = MaterialTheme.colorScheme.tertiary
-    val plotBg = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+    val plotBg = MaterialTheme.colorScheme.surfaceContainerHigh
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Row(
@@ -796,7 +821,7 @@ private fun WinRateGraph(history: List<Double?>, currentPly: Int, modifier: Modi
             Modifier
                 .fillMaxWidth()
                 .height(88.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .clip(MaterialTheme.shapes.small)
                 .background(plotBg),
         ) {
             val padY = size.height * 0.06f
@@ -878,7 +903,9 @@ private fun StatusBar(ui: BoardUiState, modifier: Modifier = Modifier) {
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     Text(key, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(value, style = MaterialTheme.typography.labelMedium)
+                    // Tabular: these seven fields update several times a second,
+                    // and with proportional digits the whole row shivered.
+                    Text(value, style = MaterialTheme.typography.labelMedium.tabular())
                 }
             }
         }
@@ -905,7 +932,7 @@ private fun EvalHeader(ui: BoardUiState, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("$eval  ·  depth ${ui.depth}", style = MaterialTheme.typography.titleMedium)
+        Text("$eval  ·  depth ${ui.depth}", style = MaterialTheme.typography.titleMedium.tabular())
         Text(
             buildString {
                 append(tr("${ui.moveCount}수", "${ui.moveCount} moves"))
@@ -925,16 +952,23 @@ private fun EvalHeader(ui: BoardUiState, modifier: Modifier = Modifier) {
 
 @Composable
 private fun EvalBar(blackWinRate: Double?, mate: Int?, modifier: Modifier = Modifier) {
-    val frac = (blackWinRate ?: 0.5).coerceIn(0.0, 1.0).toFloat()
+    // A summary, not a live counter: it may animate. 200 ms, which is long
+    // enough to see which way the position moved and short enough that the next
+    // depth has not already arrived.
+    val target = (blackWinRate ?: 0.5).coerceIn(0.0, 1.0).toFloat()
+    val frac by animateFloatAsState(target, tween(MOTION_VALUE), label = "evalBar")
+    // The two stones' own colours: the bar says "how much of the board is
+    // Black's", so it should be made of the same material as the stones.
+    val skin = YixinTheme.board
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(20.dp)
-            .clip(RoundedCornerShape(4.dp)),
+            .height(18.dp)
+            .clip(MaterialTheme.shapes.extraSmall),
     ) {
         Row(Modifier.fillMaxWidth().fillMaxHeight()) {
-            Box(Modifier.weight(frac.coerceAtLeast(0.001f)).fillMaxHeight().background(StoneBlack))
-            Box(Modifier.weight((1f - frac).coerceAtLeast(0.001f)).fillMaxHeight().background(StoneWhite))
+            Box(Modifier.weight(frac.coerceAtLeast(0.001f)).fillMaxHeight().background(skin.blackLow))
+            Box(Modifier.weight((1f - frac).coerceAtLeast(0.001f)).fillMaxHeight().background(skin.whiteHigh))
         }
     }
 }
@@ -996,7 +1030,7 @@ private fun BoardControls(
                 tr("도구 더보기", "More tools"), true, onToggleMore, moreOpen,
             )
         }
-        if (moreOpen) {
+        AnimatedVisibility(moreOpen, enter = expandFadeIn, exit = shrinkFadeOut) {
             // Words, not icons: these are used rarely enough that nobody will
             // have learned their glyphs, and a wrong guess here clears the board.
             FlowRow(
@@ -1024,7 +1058,7 @@ private fun BoardControls(
                 ToolChip(Icons.Filled.Refresh, tr("판 초기화", "Clear board"), enabled = true, onClick = onReset)
             }
         }
-        if (symmetryOpen) {
+        AnimatedVisibility(symmetryOpen, enter = expandFadeIn, exit = shrinkFadeOut) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 // 90/180/270 = `rotate`; the four mirrors = `flip` (main.c:10194).
                 SymmetryChip("90°", BoardSymmetry.ROTATE_90, onSymmetry)
@@ -1036,7 +1070,7 @@ private fun BoardControls(
                 SymmetryChip(tr("대각 ／", "Diagonal ／"), BoardSymmetry.MIRROR_ANTI_DIAGONAL, onSymmetry)
             }
         }
-        if (shiftOpen) {
+        AnimatedVisibility(shiftOpen, enter = expandFadeIn, exit = shrinkFadeOut) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1069,12 +1103,14 @@ private fun ToolButton(
     onClick: () -> Unit,
     active: Boolean = false,
 ) {
+    // 48dp, the accessibility minimum. These are the most-pressed buttons in the
+    // app and they were four short of it.
     if (active) {
-        FilledTonalIconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(44.dp)) {
+        FilledTonalIconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
             Icon(icon, contentDescription = label)
         }
     } else {
-        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(44.dp)) {
+        IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
             Icon(icon, contentDescription = label)
         }
     }
@@ -1284,21 +1320,26 @@ private fun PvList(
             val selected = pv.index == previewPv
             Surface(
                 onClick = { onPreview(if (selected) null else pv.index) },
-                color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
-                else MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(6.dp),
+                color = if (selected) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerLow,
+                contentColor = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                else MaterialTheme.colorScheme.onSurface,
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(pvLabel(pv), color = WinBlue, style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            pvLabel(pv),
+                            color = MaterialTheme.colorScheme.tertiary,
+                            style = MaterialTheme.typography.bodyMedium.tabular(),
+                        )
                         Text("d${pv.depth}", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.labelSmall)
+                            style = MaterialTheme.typography.labelSmall.tabular())
                     }
                     Text(
                         pv.line.take(10).joinToString(" ") { it.label(size) },
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.Monospace),
-                        color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
             }
@@ -1527,7 +1568,7 @@ private fun ResearchBadge(
     Surface(
         modifier = modifier.widthIn(max = 300.dp),
         color = if (banner.isProve) ProveBadgeColor else ReviewBadgeColor,
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
     ) {
         Column(Modifier.padding(start = 10.dp, end = 4.dp, top = 5.dp, bottom = 5.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

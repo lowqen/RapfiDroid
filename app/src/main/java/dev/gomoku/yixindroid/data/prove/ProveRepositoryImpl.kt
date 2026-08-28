@@ -396,7 +396,8 @@ class ProveRepositoryImpl @Inject constructor(
         watchdog?.cancel()
         watchdog = null
         phase = ProvePhase.IDLE
-        val step = tree.onSearchResult(current, capturedPvs())
+        val captured = capturedPvs()
+        val step = tree.onSearchResult(current, captured.pvs, captured.complete)
         pushOverlay()
         when (step) {
             ProveStep.RESOLVED -> flushWrites()
@@ -406,22 +407,32 @@ class ProveRepositoryImpl @Inject constructor(
     }
 
     /**
-     * The PVs of the finished search, in engine index order (`provepvmove[]`).
-     * main.c retries the search when PV 0 carries no move, however many other PVs
-     * came back, so an incomplete first PV empties the list here too.
+     * What a finished search actually established, and how much of it we can
+     * read: the PVs of the **last deepening round** in engine index order, plus
+     * whether that round arrived intact.
+     *
+     * Both halves matter to the conclusion. Reading the last round only keeps a
+     * wider earlier round's leftovers from passing as this round's answers; and
+     * a PV block that came back without a `BESTLINE` is a move the engine told
+     * us about and we cannot place, so the set we hold is *smaller* than the set
+     * that exists. That has to reach [ProveTree], because "every defence loses"
+     * counts the set — dropping the unplaceable ones silently satisfies it with
+     * an empty seat.
      */
-    private fun capturedPvs(): List<ProvePv> {
-        val pvs = latest?.pvs.orEmpty().sortedBy { it.index }
-        if (pvs.firstOrNull { it.index == 0 }?.head == null) return emptyList()
-        return pvs.mapNotNull { pv ->
+    private data class Captured(val pvs: List<ProvePv>, val complete: Boolean)
+
+    private fun capturedPvs(): Captured {
+        val pvs = aggregator?.finalPvs().orEmpty()
+        // main.c retries the search when PV 0 carries no move, however many
+        // other PVs came back, so an unusable first PV empties the list here too.
+        if (pvs.firstOrNull { it.index == 0 }?.head == null) return Captured(emptyList(), false)
+        val usable = pvs.mapNotNull { pv ->
             val head = pv.head ?: return@mapNotNull null
-            ProvePv(
-                move = head,
-                winRate = pv.winRate ?: 0.0,
-                mate = pv.mate ?: 0,
-                depth = pv.depth,
-            )
+            // The win rate stays nullable all the way in: a block with no
+            // `INFO WINRATE` reported nothing, which is not the same as 0 %.
+            ProvePv(move = head, winRate = pv.winRate, mate = pv.mate ?: 0, depth = pv.depth)
         }
+        return Captured(usable, usable.size == pvs.size)
     }
 
     // ---- finishing ----------------------------------------------------------

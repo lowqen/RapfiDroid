@@ -3,7 +3,7 @@ package dev.gomoku.yixindroid.domain.rankings
 import com.google.common.truth.Truth.assertThat
 import dev.gomoku.yixindroid.core.model.PlayerRef
 import dev.gomoku.yixindroid.core.model.RankingFilter
-import dev.gomoku.yixindroid.core.model.ShapeTheory
+import dev.gomoku.yixindroid.core.model.ShapeRef
 import org.junit.Test
 
 class FreqAnalyzerTest {
@@ -21,8 +21,8 @@ class FreqAnalyzerTest {
         ),
         rules = listOf("Renju", "Gomoku"),
         shapes = listOf(
-            ShapeTheory("h8 h9 h10 g8 g9", 1, 32, 8),
-            ShapeTheory("h8 h9 h10 h7 g9", 2, 32, 8),
+            ShapeRef("h8 h9 h10 g8 g9"),
+            ShapeRef("h8 h9 h10 h7 g9"),
         ),
         games = listOf(
             intArrayOf(0, 1, 0, 0, 0, 2),   // Alice(B) Bob(W) Renju D1 shape0 blackwin
@@ -81,13 +81,6 @@ class FreqAnalyzerTest {
         val r = FreqAnalyzer.openingRanking(bundle, noFilter.copy(ruleIndices = setOf(1)))
         assertThat(r.totalGames).isEqualTo(1)
         assertThat(r.rows.single().openingIndex).isEqualTo(3)
-    }
-
-    @Test
-    fun countsByTheoryRankKeyedByRankRaw() {
-        val counts = FreqAnalyzer.countsByTheoryRank(bundle, noFilter)
-        assertThat(counts[1]).isEqualTo(3)   // shape0 (rankRaw 1)
-        assertThat(counts[2]).isEqualTo(1)   // shape1 (rankRaw 2)
     }
 
     @Test

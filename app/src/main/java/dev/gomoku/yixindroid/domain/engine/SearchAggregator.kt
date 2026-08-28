@@ -39,6 +39,14 @@ class SearchAggregator(private val sideToMove: StoneColor) {
     private var numPv = 1
 
     /**
+     * Deepening rounds seen so far, bumped by every `INFO PV 0`. A round is the
+     * only reliable "this is current" stamp: `INFO NUMPV` is not resent by every
+     * search, and a depth ties with itself, so both let a line from a previous
+     * round pass for one of this round's.
+     */
+    private var round = 0
+
+    /**
      * True once a real `INFO PV` block has been seen. Both output formats can
      * arrive in detailed mode, and the plain-text line carries only the first
      * PV — so after this flips, [EngineResponse.Thinking] contributes counters
@@ -59,6 +67,13 @@ class SearchAggregator(private val sideToMove: StoneColor) {
         when (response) {
             is EngineResponse.InfoPvStart -> {
                 sawInfoPv = true
+                if (response.index == 0) {
+                    round++
+                    // Whatever the round before last left behind was never
+                    // refreshed by the round that has just ended, so it is gone.
+                    pvs.values.removeAll { it.round < round - 1 }
+                    tags.entries.retainAll { it.value.round >= round - 1 }
+                }
                 curIndex = response.index
                 curMate = null
                 curEval = null
@@ -96,12 +111,16 @@ class SearchAggregator(private val sideToMove: StoneColor) {
             is EngineResponse.InfoPvDone -> {
                 pvs[curIndex] = PvSnapshot(
                     index = curIndex, depth = curDepth, winRate = curWinRate,
-                    mate = curMate, eval = curEval, line = curLine,
+                    mate = curMate, eval = curEval, line = curLine, round = round,
                 )
                 curLine.firstOrNull()?.let { head -> tags[head] = tagFor(head) }
-                // Last PV of this iteration: drop tags left over from shallower ones.
+                // Last PV of this round: anything not written during it is stale.
+                // Only `INFO NUMPV` can tell us the round is over early; when the
+                // engine does not send one, the next round's `INFO PV 0` does the
+                // same sweep one round later.
                 if (curIndex + 1 >= numPv) {
-                    tags.entries.retainAll { it.value.depth >= curDepth }
+                    pvs.values.removeAll { it.round < round }
+                    tags.entries.retainAll { it.value.round >= round }
                 }
             }
 
@@ -134,6 +153,7 @@ class SearchAggregator(private val sideToMove: StoneColor) {
                         pvs[0] = PvSnapshot(
                             index = 0, depth = response.depth ?: curDepth, winRate = curWinRate,
                             mate = response.mate, eval = response.evalCp, line = response.line,
+                            round = round,
                         )
                     }
                 }
@@ -167,7 +187,19 @@ class SearchAggregator(private val sideToMove: StoneColor) {
         depth = 0
         curIndex = 0
         numPv = 1
+        round = 0
         sawInfoPv = false
+    }
+
+    /**
+     * The PVs of the round that finished last, which is the only set that
+     * describes the position as the engine finally saw it. Everything the prove
+     * pipeline concludes from a search reads this, never [AnalysisSnapshot.pvs]
+     * — that one keeps the previous round visible so the board does not blink.
+     */
+    fun finalPvs(): List<PvSnapshot> {
+        val newest = pvs.values.maxOfOrNull { it.round } ?: return emptyList()
+        return pvs.values.filter { it.round == newest }.sortedBy { it.index }
     }
 
     /**
@@ -178,17 +210,18 @@ class SearchAggregator(private val sideToMove: StoneColor) {
         val mate = curMate
         val ratePct = curWinRate?.let { pct(it) }
         return when {
-            mate != null && mate > 0 -> CellTag("W$mate", TagKind.WIN, curDepth, ratePct)
-            mate != null && mate < 0 -> CellTag("L${-mate}", TagKind.LOSE, curDepth, ratePct)
-            ratePct != null -> CellTag("$ratePct%", TagKind.RATE, curDepth, ratePct)
-            else -> CellTag("", TagKind.RATE, curDepth, null)
+            mate != null && mate > 0 -> CellTag("W$mate", TagKind.WIN, curDepth, ratePct, round)
+            mate != null && mate < 0 -> CellTag("L${-mate}", TagKind.LOSE, curDepth, ratePct, round)
+            ratePct != null -> CellTag("$ratePct%", TagKind.RATE, curDepth, ratePct, round)
+            else -> CellTag("", TagKind.RATE, curDepth, null, round)
         }
     }
 
     private fun pct(winRate: Double): Int =
         (winRate * 100).roundToInt().coerceIn(0, 99)
 
-    private fun snapshot() =
+    /** The current view, for a caller that did not just feed a response in. */
+    fun snapshot() =
         AnalysisSnapshot(
             sideToMove = sideToMove,
             pvs = pvs.values.toList(),
