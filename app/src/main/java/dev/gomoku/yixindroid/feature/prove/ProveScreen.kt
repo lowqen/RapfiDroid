@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
@@ -23,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
+import dev.gomoku.yixindroid.core.designsystem.component.Stepper
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.ProveMark
 import dev.gomoku.yixindroid.core.model.ProveOptions
@@ -88,21 +87,21 @@ fun ProveCard(
                 )
             }
             if (options.byDepth) {
-                Stepper(tr("초기 깊이", "Starting depth"), options.depth0, 4, 64, editable) {
+                Stepper(tr("초기 깊이", "Starting depth"), options.depth0, 4, 64, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(depth0 = it))
                 }
-                Stepper(tr("최대 깊이", "Depth cap"), options.depthMax, 4, 128, editable) {
+                Stepper(tr("최대 깊이", "Depth cap"), options.depthMax, 4, 128, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(depthMax = it))
                 }
             } else {
-                Stepper(tr("초기 예산(초)", "Starting budget (s)"), options.budget0Sec, 1, 600, editable) {
+                Stepper(tr("초기 예산(초)", "Starting budget (s)"), options.budget0Sec, 1, 600, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(budget0Sec = it))
                 }
-                Stepper(tr("최대 예산(초)", "Budget cap (s)"), options.budgetMaxSec, 1, 3600, editable) {
+                Stepper(tr("최대 예산(초)", "Budget cap (s)"), options.budgetMaxSec, 1, 3600, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(budgetMaxSec = it))
                 }
             }
-            Stepper(tr("공격 후보 수", "Attack candidates"), options.nbest, 1, ProveOptions.NBEST_MAX, editable) {
+            Stepper(tr("공격 후보 수", "Attack candidates"), options.nbest, 1, ProveOptions.NBEST_MAX, editable, step = ::budgetStep) {
                 viewModel.onOptions(options.copy(nbest = it))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -222,32 +221,8 @@ private fun markLabel(mark: ProveMark): String = when (mark) {
     else -> "…"
 }
 
-@Composable
-private fun Stepper(
-    label: String,
-    value: Int,
-    min: Int,
-    max: Int,
-    enabled: Boolean,
-    onChange: (Int) -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        OutlinedButton(onClick = { onChange(value - step(value)) }, enabled = enabled && value > min) {
-            Text("−")
-        }
-        Text("$value", style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = { onChange(value + step(value)) }, enabled = enabled && value < max) {
-            Text("+")
-        }
-    }
-}
-
 /** Budgets reach into the hundreds of seconds, so the step grows with the value. */
-private fun step(value: Int): Int = when {
+private fun budgetStep(value: Int): Int = when {
     value >= 100 -> 20
     value >= 20 -> 5
     else -> 1

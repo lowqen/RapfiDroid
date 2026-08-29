@@ -22,24 +22,33 @@ data class SettingsUiState(
     /** Transient result of an import/export/reset, shown as a banner. */
     val message: String? = null,
 ) {
-    /** The specs to show, always in file order so line numbers read top-down. */
-    val visible: List<SettingSpec>
-        get() {
-            val q = query.trim()
-            return DesktopSettings.ALL.filter { spec ->
-                // A search looks through everything: hiding a setting the user
-                // is explicitly asking for by name would be worse than a long list.
-                (advanced || q.isNotEmpty() || DesktopSettings.isEveryday(spec.id)) &&
-                    (category == null || spec.category == category) &&
-                    (
-                        q.isEmpty() ||
-                            spec.label.contains(q, ignoreCase = true) ||
-                            spec.comment.contains(q, ignoreCase = true) ||
-                            spec.id.contains(q, ignoreCase = true) ||
-                            spec.engineKey?.contains(q, ignoreCase = true) == true
-                        )
-            }
+    /**
+     * The specs to show, always in file order so line numbers read top-down.
+     *
+     * `by lazy`, not `get()`: this walks all 67 specs and does up to four
+     * case-insensitive `contains` on each, and the screen reads it twice per
+     * composition — once for the count in the subtitle, once for the list
+     * itself. As a getter that was the whole filter run twice on every
+     * keystroke in the search box. The state is immutable and a new instance is
+     * built for every change, so caching it on the instance is exactly as fresh
+     * as recomputing it.
+     */
+    val visible: List<SettingSpec> by lazy {
+        val q = query.trim()
+        DesktopSettings.ALL.filter { spec ->
+            // A search looks through everything: hiding a setting the user
+            // is explicitly asking for by name would be worse than a long list.
+            (advanced || q.isNotEmpty() || DesktopSettings.isEveryday(spec.id)) &&
+                (category == null || spec.category == category) &&
+                (
+                    q.isEmpty() ||
+                        spec.label.contains(q, ignoreCase = true) ||
+                        spec.comment.contains(q, ignoreCase = true) ||
+                        spec.id.contains(q, ignoreCase = true) ||
+                        spec.engineKey?.contains(q, ignoreCase = true) == true
+                    )
         }
+    }
 
     val total: Int get() = DesktopSettings.ALL.size
 

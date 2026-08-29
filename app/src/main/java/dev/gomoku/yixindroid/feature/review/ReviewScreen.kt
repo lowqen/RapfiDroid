@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.yixindroid.core.designsystem.component.Stepper
 import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.GameReport
@@ -529,30 +530,6 @@ private fun Card(title: String, content: @Composable () -> Unit) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             content()
-        }
-    }
-}
-
-@Composable
-private fun Stepper(
-    label: String,
-    value: Int,
-    min: Int,
-    max: Int,
-    enabled: Boolean,
-    onChange: (Int) -> Unit,
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = MaterialTheme.typography.labelMedium)
-        OutlinedButton(onClick = { onChange(value - 1) }, enabled = enabled && value > min) {
-            Text("−")
-        }
-        Text("$value", style = MaterialTheme.typography.titleMedium)
-        OutlinedButton(onClick = { onChange(value + 1) }, enabled = enabled && value < max) {
-            Text("+")
         }
     }
 }
