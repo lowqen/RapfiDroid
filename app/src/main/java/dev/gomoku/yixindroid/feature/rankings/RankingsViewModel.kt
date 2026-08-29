@@ -7,6 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.Opening26
 import dev.gomoku.yixindroid.core.model.PlayerRef
+import dev.gomoku.yixindroid.core.model.RankSide
+import dev.gomoku.yixindroid.core.model.RankingFilter
 import dev.gomoku.yixindroid.domain.repository.RankingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,7 +36,7 @@ class RankingsViewModel @Inject constructor(
                         freqGenerated = bundle?.generated,
                         freqGameCount = bundle?.gameCount ?: 0,
                         ruleOptions = bundle?.rules?.mapIndexed { i, n -> i to n } ?: emptyList(),
-                    )
+                    ).withValidSort()
                 }
                 refresh3()
                 refresh5()
@@ -68,11 +70,11 @@ class RankingsViewModel @Inject constructor(
             repo.clearFreq()
             _state.update {
                 it.copy(
-                    filter = it.filter.copy(playerIndices = emptySet(), ruleIndices = emptySet()),
+                    filter = RankingFilter(),
                     selectedPlayers = emptyList(),
                     playerQuery = "",
                     playerSuggestions = emptyList(),
-                )
+                ).withValidSort()
             }
         }
     }
@@ -105,7 +107,7 @@ class RankingsViewModel @Inject constructor(
             it.copy(
                 selectedPlayers = selected,
                 filter = it.filter.copy(playerIndices = selected.map { p -> p.index }.toSet()),
-            )
+            ).withValidSort()
         }
         refresh3(); refresh5()
     }
@@ -114,7 +116,7 @@ class RankingsViewModel @Inject constructor(
         _state.update {
             val cur = it.filter.ruleIndices
             val next = if (index in cur) cur - index else cur + index
-            it.copy(filter = it.filter.copy(ruleIndices = next))
+            it.copy(filter = it.filter.copy(ruleIndices = next)).withValidSort()
         }
         refresh3(); refresh5()
     }
@@ -122,11 +124,11 @@ class RankingsViewModel @Inject constructor(
     fun onClearFilter() {
         _state.update {
             it.copy(
-                filter = it.filter.copy(playerIndices = emptySet(), ruleIndices = emptySet()),
+                filter = RankingFilter(),
                 selectedPlayers = emptyList(),
                 playerQuery = "",
                 playerSuggestions = emptyList(),
-            )
+            ).withValidSort()
         }
         refresh3(); refresh5()
     }
@@ -136,10 +138,39 @@ class RankingsViewModel @Inject constructor(
         refresh3()
     }
 
-    fun onToggleThreeSort() {
-        _state.update { it.copy(sortThreeByFreq = !it.sortThreeByFreq) }
+    fun onThreeSort(sort: RankSort) {
+        _state.update { it.copy(threeSort = sort) }
         refresh3()
     }
+
+    fun onFiveSort(sort: RankSort) {
+        _state.update { it.copy(fiveSort = sort) }
+        refresh5()
+    }
+
+    /**
+     * Picking a side re-runs both tabs, not only the sort: once players are
+     * selected it changes which games are counted at all — "Alice as Black" is a
+     * different set from "Alice".
+     */
+    fun onSide(side: RankSide) {
+        _state.update { it.copy(filter = it.filter.copy(side = side)).withValidSort() }
+        refresh3(); refresh5()
+    }
+
+    /**
+     * Keep the ordering to one the user can still see.
+     *
+     * Win rate is offered only while the filter narrows something, and both
+     * empirical orderings need the dataset. Clearing either can therefore leave
+     * a list sorted by a rule whose chip has just disappeared — an order nobody
+     * chose and nobody can undo. Every intent that can shrink the filter runs
+     * this, so the sort falls back the moment its option does.
+     */
+    private fun RankingsUiState.withValidSort(): RankingsUiState = copy(
+        threeSort = threeSort.takeIf { it in sortOptions(RankTab.THREE_MOVE) } ?: RankSort.NUMBER,
+        fiveSort = fiveSort.takeIf { it in sortOptions(RankTab.FIVE_MOVE) } ?: RankSort.GAMES,
+    )
 
     fun onFiveQueryChange(q: String) {
         _state.update { it.copy(fiveQuery = q) }
@@ -170,10 +201,17 @@ class RankingsViewModel @Inject constructor(
                 DirectFilter.DIRECT -> cards.filter { it.direct }
                 DirectFilter.INDIRECT -> cards.filter { !it.direct }
             }
-            cards = if (s.sortThreeByFreq && ranking != null) {
-                cards.sortedByDescending { it.split?.total ?: 0 }
-            } else {
-                cards.sortedBy { it.index }
+            // An opening with no games under this filter has nothing to rank, so
+            // it sinks rather than sorting as a zero among real results — the 26
+            // cards are always all present, and most of them are empty once a
+            // single player is selected.
+            cards = when {
+                ranking == null -> cards.sortedBy { it.index }
+                s.threeSort == RankSort.WIN_RATE -> cards.sortedByDescending { card ->
+                    card.split?.takeIf { it.decided > 0 }?.rankingScore(s.scoringSide) ?: -1.0
+                }
+                s.threeSort == RankSort.GAMES -> cards.sortedByDescending { it.split?.total ?: 0 }
+                else -> cards.sortedBy { it.index }
             }
             _state.update {
                 it.copy(openingCards = cards, threeTotalGames = ranking?.totalGames ?: 0)
@@ -190,7 +228,12 @@ class RankingsViewModel @Inject constructor(
         viewModelScope.launch {
             val s = _state.value
             val q = s.fiveQuery.trim().lowercase()
-            val rows = repo.fiveMoveRanking(s.filter, top = 250)
+            // The repository caps at the 250 most-played shapes before anything
+            // here runs, so a win-rate sort reorders *those* rather than trawling
+            // a tail of shapes played twice. That cap is doing useful work, not
+            // just bounding the list: it is what keeps the top of a win-rate sort
+            // from being a wall of one-game shapes.
+            var rows = repo.fiveMoveRanking(s.filter, top = 250)
                 .filter { q.isEmpty() || it.shape.repMoves.lowercase().contains(q) }
                 .map { row ->
                     val moves = row.shape.moves()
@@ -202,6 +245,11 @@ class RankingsViewModel @Inject constructor(
                         split = row.split,
                     )
                 }
+            if (s.fiveSort == RankSort.WIN_RATE) {
+                rows = rows.sortedByDescending { row ->
+                    row.split?.takeIf { it.decided > 0 }?.rankingScore(s.scoringSide) ?: -1.0
+                }
+            }
             _state.update { it.copy(fiveRows = rows) }
         }
     }

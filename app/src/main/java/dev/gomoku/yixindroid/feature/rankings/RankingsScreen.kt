@@ -4,6 +4,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +37,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
@@ -64,6 +67,7 @@ import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
 import dev.gomoku.yixindroid.core.designsystem.theme.tabular
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.Opening26
+import dev.gomoku.yixindroid.core.model.RankSide
 import dev.gomoku.yixindroid.core.model.ResultSplit
 import dev.gomoku.yixindroid.feature.bundle.DataImportCard
 
@@ -150,6 +154,14 @@ private fun selectedLabel(ui: RankingsUiState): String = buildString {
     if (rules > 0) { if (isNotEmpty()) append("·"); append(tr("룰$rules", "rule$rules")) }
     val extra = ui.selectedPlayers.size - 1
     if (extra > 0) append(" +$extra")
+    // A side on its own is a whole filter — it decides which side the win-rate
+    // sort reads — so without this the chip could read "필터·" and name nothing.
+    val side = when (ui.filter.side) {
+        RankSide.BLACK -> tr("흑", "Black")
+        RankSide.WHITE -> tr("백", "White")
+        RankSide.EITHER -> ""
+    }
+    if (side.isNotEmpty()) { if (isNotEmpty()) append("·"); append(side) }
 }
 
 @Composable
@@ -189,12 +201,12 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
                         DirectFilter.INDIRECT -> tr("간접(間)", "Indirect")
                     }) })
             }
-            Spacer(Modifier.weight(1f))
-            if (ui.freqLoaded) {
-                FilterChip(selected = ui.sortThreeByFreq, onClick = { vm.onToggleThreeSort() },
-                    label = { Text(if (ui.sortThreeByFreq) tr("실전순", "By games") else tr("번호순", "By number")) })
-            }
         }
+        // Its own line rather than the tail of the row above. The sort used to be
+        // one chip toggling two states, which fitted beside the 直/間 chips; three
+        // named orderings do not, and a `Row` does not wrap — it would have run
+        // the win-rate chip off the edge of a phone.
+        SortChips(ui.sortOptions(RankTab.THREE_MOVE), ui.threeSort, ui.scoringSide, vm::onThreeSort)
         if (ui.freqLoaded) {
             Text(tr("필터 대국 %,d판", "%,d games match").format(ui.threeTotalGames),
                 style = MaterialTheme.typography.labelMedium,
@@ -261,6 +273,7 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
             label = { Text(tr("수순 검색 (예: h8 i9)", "Search a move order (e.g. h8 i9)")) }, singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         )
+        SortChips(ui.sortOptions(RankTab.FIVE_MOVE), ui.fiveSort, ui.scoringSide, vm::onFiveSort)
         // The same adaptive grid the 3-move tab uses: one column on a phone,
         // two or more on a tablet, from one number instead of a breakpoint.
         LazyVerticalGrid(
@@ -323,6 +336,59 @@ private fun FiveRowView(row: FiveRow, totalGames: Int) {
 
 // ---------------- shared bits ----------------
 
+/**
+ * How the list below is ordered, as chips. Both tabs use it, and both get their
+ * options from [RankingsUiState.sortOptions] — so the win-rate ordering appears
+ * and disappears with the filter in one place rather than two.
+ *
+ * Nothing is drawn when there is only one way to order the list: a single chip
+ * that is always selected is a label pretending to be a control.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SortChips(
+    options: List<RankSort>,
+    current: RankSort,
+    side: RankSide,
+    onSort: (RankSort) -> Unit,
+) {
+    if (options.size < 2) return
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        options.forEach { sort ->
+            FilterChip(
+                selected = current == sort,
+                onClick = { onSort(sort) },
+                label = { Text(sortLabel(sort, side)) },
+            )
+        }
+    }
+    // Said out loud, because the order will not always match the percentages on
+    // the cards and that looks like a bug until you know why.
+    if (current == RankSort.WIN_RATE) {
+        Text(
+            tr("대국 수가 적은 모양은 아래로 내려갑니다 (1판 100%는 20판 55%보다 아래).",
+                "Shapes with few games rank lower — 100% from one game sits below 55% from twenty."),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp),
+        )
+    }
+}
+
+/** The win-rate chip names the side, because that is the one thing about it that
+ *  changes underneath the user: it follows the filter's side selection. */
+private fun sortLabel(sort: RankSort, side: RankSide): String = when (sort) {
+    RankSort.NUMBER -> tr("번호순", "By number")
+    RankSort.GAMES -> tr("실전순", "By games")
+    RankSort.WIN_RATE ->
+        if (side == RankSide.WHITE) tr("백 승률순", "White win rate")
+        else tr("흑 승률순", "Black win rate")
+}
+
 @Composable
 private fun ResultBar(split: ResultSplit) {
     val decided = (split.blackWins + split.draws + split.whiteWins).coerceAtLeast(1)
@@ -349,8 +415,20 @@ private fun pct(part: Int, total: Int): String =
 private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: () -> Unit) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = vm::onCloseFilter, sheetState = sheetState) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Everything above the actions scrolls, and `weight(1f, fill = false)`
+        // is what keeps the actions on screen: it lets this block wrap its
+        // content while it is short, and caps it at the space left over once the
+        // buttons have theirs. Before, the sheet was one unscrolling Column, so
+        // picking a player — which adds a 180dp suggestion list and then a row of
+        // chips — grew it past the screen and cut «적용» and «필터 초기화» off the
+        // bottom, with no way to reach them.
+        Column(
+            Modifier
+                .weight(1f, fill = false)
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(tr("필터", "Filter"), style = MaterialTheme.typography.titleLarge)
 
             // dataset
@@ -413,11 +491,44 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = vm::onClearFilter) { Text(tr("필터 초기화", "Reset the filter")) }
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onClick = vm::onCloseFilter) { Text(tr("적용", "Apply")) }
+                // side
+                Text(tr("색", "Side"), style = MaterialTheme.typography.labelLarge)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    RankSide.entries.forEach { s ->
+                        FilterChip(selected = ui.filter.side == s, onClick = { vm.onSide(s) },
+                            label = { Text(when (s) {
+                                RankSide.EITHER -> tr("양쪽", "Either")
+                                RankSide.BLACK -> tr("흑", "Black")
+                                RankSide.WHITE -> tr("백", "White")
+                            }) })
+                    }
                 }
+                Text(
+                    if (ui.selectedPlayers.isEmpty()) {
+                        tr("승률 정렬이 어느 쪽 승률을 읽을지 정합니다.",
+                            "Decides whose win rate the win-rate sort reads.")
+                    } else {
+                        tr("선수가 그 색으로 둔 대국만 셉니다. 승률 정렬도 그 색을 읽습니다.",
+                            "Counts only the games they played with that colour, and the win-rate sort reads it too.")
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        // Pinned under the scroll, so they are reachable however tall the filter
+        // grows.
+        if (ui.freqLoaded) {
+            HorizontalDivider()
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = vm::onClearFilter) { Text(tr("필터 초기화", "Reset the filter")) }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = vm::onCloseFilter) { Text(tr("적용", "Apply")) }
             }
         }
     }

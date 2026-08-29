@@ -2,6 +2,7 @@ package dev.gomoku.yixindroid.feature.rankings
 
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.PlayerRef
+import dev.gomoku.yixindroid.core.model.RankSide
 import dev.gomoku.yixindroid.core.model.RankingFilter
 import dev.gomoku.yixindroid.core.model.ResultSplit
 
@@ -9,6 +10,16 @@ enum class RankTab { THREE_MOVE, FIVE_MOVE }
 
 /** 3-move opening filter by opening kind (直/間). */
 enum class DirectFilter { ALL, DIRECT, INDIRECT }
+
+/**
+ * How a ranking list is ordered.
+ *
+ * [NUMBER] is the 26 openings in their catalogue order and means nothing for
+ * 5-move shapes, which have no catalogue; [WIN_RATE] is only offered once the
+ * filter narrows something, because "the best-scoring opening" over every game
+ * ever played is a fact about renju, not about anything the user asked.
+ */
+enum class RankSort { NUMBER, GAMES, WIN_RATE }
 
 /** A 26주형 card: static identity (always shown) + optional empirical split. */
 data class OpeningCard(
@@ -50,13 +61,31 @@ data class RankingsUiState(
 
     // 3-move tab
     val directFilter: DirectFilter = DirectFilter.ALL,
-    val sortThreeByFreq: Boolean = true,
+    val threeSort: RankSort = RankSort.GAMES,
     val openingCards: List<OpeningCard> = emptyList(),
     val threeTotalGames: Int = 0,
 
     // 5-move tab
     val fiveQuery: String = "",
+    val fiveSort: RankSort = RankSort.GAMES,
     val fiveRows: List<FiveRow> = emptyList(),
 ) {
     val filterActive: Boolean get() = filter.isActive
+
+    /** Whose score the win-rate sort reads; [RankSide.EITHER] judges from Black. */
+    val scoringSide: RankSide
+        get() = if (filter.side == RankSide.WHITE) RankSide.WHITE else RankSide.BLACK
+
+    /**
+     * The orderings on offer for [tab]. Win rate appears only once the filter
+     * narrows something — see [RankSort] — and both tabs need the dataset before
+     * either empirical ordering means anything.
+     */
+    fun sortOptions(tab: RankTab): List<RankSort> = buildList {
+        if (tab == RankTab.THREE_MOVE) add(RankSort.NUMBER)
+        if (freqLoaded) {
+            add(RankSort.GAMES)
+            if (filterActive) add(RankSort.WIN_RATE)
+        }
+    }
 }

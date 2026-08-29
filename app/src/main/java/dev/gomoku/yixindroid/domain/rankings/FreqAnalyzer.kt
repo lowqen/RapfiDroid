@@ -3,6 +3,7 @@ package dev.gomoku.yixindroid.domain.rankings
 import dev.gomoku.yixindroid.core.model.OpeningRankRow
 import dev.gomoku.yixindroid.core.model.OpeningRanking
 import dev.gomoku.yixindroid.core.model.PlayerRef
+import dev.gomoku.yixindroid.core.model.RankSide
 import dev.gomoku.yixindroid.core.model.RankingFilter
 import dev.gomoku.yixindroid.core.model.ResultSplit
 import dev.gomoku.yixindroid.core.model.ShapeFreqRow
@@ -39,6 +40,22 @@ object FreqAnalyzer {
     }
 
     /**
+     * Whether a game belongs to the selection. With a side chosen the player has
+     * to have held *that* colour: "Alice as Black" is a different set of games
+     * from "Alice", and asking which openings she scores best with as Black is
+     * meaningless if her games as White are mixed in.
+     *
+     * Side alone narrows nothing — every game has a black and a white player —
+     * so it only reaches this test once players are named. On its own it just
+     * tells the sort whose score to read.
+     */
+    private fun matches(game: IntArray, players: Set<Int>, side: RankSide): Boolean = when (side) {
+        RankSide.BLACK -> game[BLACK] in players
+        RankSide.WHITE -> game[WHITE] in players
+        RankSide.EITHER -> game[BLACK] in players || game[WHITE] in players
+    }
+
+    /**
      * 3-move opening ranking under [filter]. Rows carry the win/draw/loss split
      * and are sorted by total games descending.
      */
@@ -48,7 +65,7 @@ object FreqAnalyzer {
         val splits = HashMap<Int, ResultSplit>()
         var total = 0
         for (g in bundle.games) {
-            if (players != null && g[BLACK] !in players && g[WHITE] !in players) continue
+            if (players != null && !matches(g, players, filter.side)) continue
             if (rules != null && g[RULE] !in rules) continue
             total++
             val o3 = g[O3]
@@ -72,7 +89,7 @@ object FreqAnalyzer {
         for (g in bundle.games) {
             val k5 = g[K5]
             if (k5 < 0) continue
-            if (players != null && g[BLACK] !in players && g[WHITE] !in players) continue
+            if (players != null && !matches(g, players, filter.side)) continue
             if (rules != null && g[RULE] !in rules) continue
             splits[k5] = (splits[k5] ?: ResultSplit()).plus(g[RES])
         }
