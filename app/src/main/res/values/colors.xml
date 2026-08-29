@@ -11,5 +11,13 @@
       Kept in step with `Theme.kt`: Neutral tone 98 (light) / tone 12 (dark).
     -->
     <color name="launch_background">#FCF9F4</color>
-    <color name="launch_icon_background">#DAB673</color>
+
+    <!--
+      The disc the Android 12+ splash screen paints behind the launcher icon.
+      The icon is an opaque photograph, so this only shows along the disc's
+      antialiased rim — it matches the photograph's own ground (#060504) so the
+      rim reads as part of the icon. Unlike `launch_background` it is a property
+      of the artwork, not of the theme, so there is no `values-night` twin.
+    -->
+    <color name="launch_icon_background">#060504</color>
 </resources>
