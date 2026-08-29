@@ -23,6 +23,23 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      # The repo carries 43 unit-test classes — the engine grammar, the pack
+      # readers, the position keys, the settings codec. Building without running
+      # them proves only that the code compiles.
+      #
+      # Nothing here needs the RenjuNet data: the tests that would (the deployed
+      # pack smoke test) guard themselves with `assumeTrue` and skip when the
+      # packs are absent, which they always are on a runner.
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: app/build/reports/tests/testDebugUnitTest/
+
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
