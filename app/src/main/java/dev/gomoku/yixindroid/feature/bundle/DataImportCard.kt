@@ -24,7 +24,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,7 +53,9 @@ fun DataImportCard(
     viewModel: BundleViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    var showDetail by remember { mutableStateOf(false) }
+    // rememberSaveable: the settings screen scrolls this card, so a plain
+    // `remember` would drop an expanded report the moment it left the viewport.
+    var showDetail by rememberSaveable { mutableStateOf(false) }
 
     val pick = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree(),

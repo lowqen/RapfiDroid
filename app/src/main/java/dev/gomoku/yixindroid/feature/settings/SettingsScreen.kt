@@ -6,8 +6,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,11 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -31,14 +29,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
 import dev.gomoku.yixindroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.yixindroid.core.designsystem.theme.shrinkFadeOut
@@ -65,7 +65,6 @@ import dev.gomoku.yixindroid.feature.bundle.DataImportCard
  * so the screen cannot drift from the file layout: each row shows the file and
  * line it occupies, and the `INFO` key it drives when it is an engine parameter.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -86,8 +85,22 @@ fun SettingsScreen(
     val debugLogLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain"),
     ) { uri -> if (uri != null) viewModel.onExportDebugLog(uri) }
-    var showAbout by remember { mutableStateOf(false) }
-    var showFiles by remember { mutableStateOf(false) }
+    // rememberSaveable, not remember: a rotation is exactly when losing an open
+    // dialog or an expanded file list is most annoying.
+    var showAbout by rememberSaveable { mutableStateOf(false) }
+    var showFiles by rememberSaveable { mutableStateOf(false) }
+
+    // One snackbar for the whole app (see [LocalSnackbarHostState]). This screen
+    // was the last holdout with an inline banner of its own, which said the same
+    // thing in a different place from every other screen — and did it from
+    // inside the header, where an extra row costs the list below its height.
+    val snackbar = LocalSnackbarHostState.current
+    LaunchedEffect(ui.message) {
+        ui.message?.let {
+            snackbar.showSnackbar(it)
+            viewModel.dismissMessage()
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         // The screen's name and the one action that is not a setting. Both used
@@ -104,6 +117,23 @@ fun SettingsScreen(
                 }
             },
         )
+        // Pinned: the search field and the category row. Nothing else.
+        //
+        // A `Column` measures its unweighted children before the weighted one
+        // and hands that one whatever is left, and it does not clip — so a
+        // header taller than the screen both starves the list of height *and*
+        // draws over the space it should have had. This block used to carry the
+        // advanced switch, the import card, the per-file rows, the debug-log row
+        // and the reset button too: around 650dp of them, which on a phone in
+        // landscape measured the list at 0dp and painted the buttons across it.
+        // The settings were unreachable, and it looked like the header was
+        // covering them because it was.
+        //
+        // What stays is bounded — a text field and a single line of chips, about
+        // 120dp — so the list always has room. The chips scroll sideways rather
+        // than wrapping, which is what kept this block from having a fixed
+        // height at all: eight labels wrap to two rows in English and three in
+        // Korean at a large font scale.
         Column(
             Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -115,13 +145,15 @@ fun SettingsScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = ui.category == null,
-                    onClick = { viewModel.onCategory(null) },
-                    label = { Text(tr("전체", "All")) },
-                )
-                SettingCategory.entries.forEach { category ->
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                item {
+                    FilterChip(
+                        selected = ui.category == null,
+                        onClick = { viewModel.onCategory(null) },
+                        label = { Text(tr("전체", "All")) },
+                    )
+                }
+                items(SettingCategory.entries) { category ->
                     FilterChip(
                         selected = ui.category == category,
                         onClick = { viewModel.onCategory(category) },
@@ -129,133 +161,131 @@ fun SettingsScreen(
                     )
                 }
             }
-            // 67 desktop settings do not fit one phone list. The everyday ones
-            // show by default; the rest are one switch away and always findable
-            // by search.
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text(tr("고급 설정", "Advanced"), style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        if (ui.advanced) tr("데스크톱의 67개 항목을 모두 표시합니다", "Shows all 67 desktop entries")
-                        else tr("자주 쓰지 않는 ${ui.hidden}개를 숨겼습니다 (검색하면 나옵니다)", "${ui.hidden} rarely-used entries are hidden (search finds them)"),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
-            }
-            // 반입은 여기 하나로 끝난다 — 아래 개별 버튼은 파일 하나만 갈아 끼우거나
-            // PC 로 되돌려 보낼 때를 위한 것이다.
-            DataImportCard()
-            TextButton(onClick = { showFiles = !showFiles }) {
-                Text(
-                    if (showFiles) tr("개별 파일 접기", "Hide individual files")
-                    else tr("개별 파일로 넣기 · 내보내기", "Individual files · export"),
-                )
-            }
-            AnimatedVisibility(showFiles, enter = expandFadeIn, exit = shrinkFadeOut) {
-              Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
-                SettingsFile.entries.forEach { file ->
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            tr("${file.fileName} (${file.lineCount}줄)", "${file.fileName} (${file.lineCount} lines)"),
-                            style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
-                            modifier = Modifier.weight(1f),
-                        )
-                        OutlinedButton(onClick = {
-                            viewModel.prepare(file)
-                            importLauncher.launch(arrayOf("*/*"))
-                        }) { Text(tr("불러오기", "Load")) }
-                        OutlinedButton(onClick = {
-                            viewModel.prepare(file)
-                            exportLauncher.launch(file.fileName)
-                        }) { Text(tr("내보내기", "Export")) }
-                    }
-                }
-                // The desktop's `function/` and `language/` folders — user-defined
-                // toolbar buttons and hotkeys, and the labels their numeric ids
-                // point at. The card above reads these too; this row stays for the
-                // one case it cannot cover — going back to the built-in defaults.
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"),
-                            style = MaterialTheme.typography.labelMedium,
-                        )
-                        Text(
-                            ui.appearanceSource?.let { tr("$it 에서 불러옴", "from $it") }
-                                ?: tr("데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)", "Desktop defaults (pick a Yixin folder to use your own)"),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
-                    if (ui.appearanceSource != null) {
-                        TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
-                    }
-                }
-              }
-            }
-            // settings.txt line 36 stores the flag; this is what makes it useful —
-            // the transcript is only worth recording if it can be handed over.
-            if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log, ${ui.debugLogBytes / 1024}KB"),
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.weight(1f),
-                    )
-                    OutlinedButton(
-                        onClick = { debugLogLauncher.launch("yixindroid-debug.log") },
-                        enabled = ui.debugLogBytes > 0,
-                    ) { Text(tr("내보내기", "Export")) }
-                    TextButton(
-                        onClick = viewModel::onClearDebugLog,
-                        enabled = ui.debugLogBytes > 0,
-                    ) { Text(tr("지우기", "Clear")) }
-                }
-            }
-            TextButton(onClick = viewModel::onReset) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
-            ui.message?.let { message ->
-                Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Row(
-                        Modifier.padding(start = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(message, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-                        IconButton(onClick = viewModel::dismissMessage) {
-                            Icon(Icons.Filled.Close, contentDescription = tr("닫기", "Close"))
-                        }
-                    }
-                }
-            }
         }
         HorizontalDivider()
         LazyColumn(
-            // weight, not fillMaxSize: the header above must keep its height.
+            // weight, not fillMaxSize: the pinned block above keeps its height.
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(bottom = 24.dp),
         ) {
+            // The tools scroll with the settings instead of sitting on top of
+            // them. One item rather than several, so the 8dp rhythm between them
+            // stays a single `spacedBy` and does not become a padding on each.
+            item(key = "tools") {
+                Column(
+                    Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    // 67 desktop settings do not fit one phone list. The everyday
+                    // ones show by default; the rest are one switch away and
+                    // always findable by search.
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(tr("고급 설정", "Advanced"), style = MaterialTheme.typography.bodyMedium)
+                            Text(
+                                if (ui.advanced) tr("데스크톱의 67개 항목을 모두 표시합니다", "Shows all 67 desktop entries")
+                                else tr("자주 쓰지 않는 ${ui.hidden}개를 숨겼습니다 (검색하면 나옵니다)", "${ui.hidden} rarely-used entries are hidden (search finds them)"),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
+                    }
+                    // 반입은 여기 하나로 끝난다 — 아래 개별 버튼은 파일 하나만 갈아 끼우거나
+                    // PC 로 되돌려 보낼 때를 위한 것이다.
+                    DataImportCard()
+                    TextButton(onClick = { showFiles = !showFiles }) {
+                        Text(
+                            if (showFiles) tr("개별 파일 접기", "Hide individual files")
+                            else tr("개별 파일로 넣기 · 내보내기", "Individual files · export"),
+                        )
+                    }
+                    AnimatedVisibility(showFiles, enter = expandFadeIn, exit = shrinkFadeOut) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
+                            SettingsFile.entries.forEach { file ->
+                                Row(
+                                    Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        tr("${file.fileName} (${file.lineCount}줄)", "${file.fileName} (${file.lineCount} lines)"),
+                                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    OutlinedButton(onClick = {
+                                        viewModel.prepare(file)
+                                        importLauncher.launch(arrayOf("*/*"))
+                                    }) { Text(tr("불러오기", "Load")) }
+                                    OutlinedButton(onClick = {
+                                        viewModel.prepare(file)
+                                        exportLauncher.launch(file.fileName)
+                                    }) { Text(tr("내보내기", "Export")) }
+                                }
+                            }
+                            // The desktop's `function/` and `language/` folders —
+                            // user-defined toolbar buttons and hotkeys, and the
+                            // labels their numeric ids point at. The card above
+                            // reads these too; this row stays for the one case it
+                            // cannot cover — going back to the built-in defaults.
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"),
+                                        style = MaterialTheme.typography.labelMedium,
+                                    )
+                                    Text(
+                                        ui.appearanceSource?.let { tr("$it 에서 불러옴", "from $it") }
+                                            ?: tr("데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)", "Desktop defaults (pick a Yixin folder to use your own)"),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
+                                if (ui.appearanceSource != null) {
+                                    TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
+                                }
+                            }
+                        }
+                    }
+                    // settings.txt line 36 stores the flag; this is what makes it
+                    // useful — the transcript is only worth recording if it can be
+                    // handed over.
+                    if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log, ${ui.debugLogBytes / 1024}KB"),
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            OutlinedButton(
+                                onClick = { debugLogLauncher.launch("yixindroid-debug.log") },
+                                enabled = ui.debugLogBytes > 0,
+                            ) { Text(tr("내보내기", "Export")) }
+                            TextButton(
+                                onClick = viewModel::onClearDebugLog,
+                                enabled = ui.debugLogBytes > 0,
+                            ) { Text(tr("지우기", "Clear")) }
+                        }
+                    }
+                    TextButton(onClick = viewModel::onReset) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
+                }
+                // Where the tools end and the 67 settings begin.
+                HorizontalDivider()
+            }
             items(ui.visible, key = { it.file.name + it.line }) { spec ->
                 SettingRow(
                     spec = spec,
