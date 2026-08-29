@@ -129,6 +129,17 @@ fun <T> QuietSwitch(target: T, modifier: Modifier = Modifier, content: @Composab
 val ReadingWidth = 640.dp
 
 /**
+ * Wide enough for two columns. 640dp is a landscape phone; below it a split
+ * would squeeze each half to something unreadable.
+ *
+ * The board screen has always branched on this. The connection screen now does
+ * too — it stacks a console under four rows of controls, which in landscape
+ * left the console measured at nothing — so the number lives here rather than
+ * being copied, and the two screens turn into two columns at the same moment.
+ */
+val WideLayoutMin = 640.dp
+
+/**
  * What a screen shows when it has nothing to show.
  *
  * Four screens had four answers to that — a paragraph, a shorter paragraph, a

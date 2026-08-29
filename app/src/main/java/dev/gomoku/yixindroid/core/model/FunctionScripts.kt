@@ -13,6 +13,9 @@ package dev.gomoku.yixindroid.core.model
  */
 object FunctionScripts {
 
+    /** `Regex(…)` compiles when it is built, so it is built once, not per file. */
+    private val whitespace = Regex("""\s+""")
+
     /**
      * One toolbar button. [lngId] indexes the language table rather than holding
      * a label, because that is what the file stores; [icon] is a GTK icon name,
@@ -32,7 +35,7 @@ object FunctionScripts {
      * that split on newlines would take the blank as the command.
      */
     fun parseToolbar(text: String): ToolbarItem? {
-        val tokens = text.trimStart().split(Regex("\\s+"), limit = 3)
+        val tokens = text.trimStart().split(whitespace, limit = 3)
         if (tokens.size < 2) return null
         val lng = tokens[0].toIntOrNull() ?: return null
         val icon = tokens[1]
@@ -116,7 +119,7 @@ object FunctionScripts {
         // Only a single-command button can be a duplicate: a script that chains
         // two commands is something the board row cannot do in one tap.
         val only = lines.singleOrNull() ?: return false
-        return only.lowercase().replace(Regex("\\s+"), " ") in BOARD_ROW_SCRIPTS
+        return only.lowercase().replace(whitespace, " ") in BOARD_ROW_SCRIPTS
     }
 
     /** main.c caps both lists; the files past the cap are simply not read. */

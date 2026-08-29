@@ -1,8 +1,12 @@
 package dev.gomoku.yixindroid.feature.connection
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
@@ -34,6 +39,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.yixindroid.core.designsystem.component.WideLayoutMin
 import dev.gomoku.yixindroid.core.designsystem.theme.MonoStyle
 import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
 import dev.gomoku.yixindroid.core.i18n.tr
@@ -74,12 +80,9 @@ private fun ConnectionContent(
     onClear: () -> Unit,
     onRetryNow: () -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
+    // Where the engine is and whether it is answering. Every row here is a
+    // fixed height.
+    val endpointPane: @Composable ColumnScope.() -> Unit = {
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -98,9 +101,7 @@ private fun ConnectionContent(
                 label = { Text(tr("포트", "Port")) },
                 singleLine = true,
                 enabled = ui.canConnect,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Number,
-                ),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.width(96.dp),
             )
         }
@@ -110,7 +111,7 @@ private fun ConnectionContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             StatusChip(ui.state)
-            Column(modifier = Modifier.weight(1f)) {}
+            Spacer(Modifier.weight(1f))
             if (ui.canConnect) {
                 Button(onClick = onConnect) { Text(tr("연결", "Connect")) }
             } else {
@@ -119,7 +120,12 @@ private fun ConnectionContent(
         }
 
         LinkHealthRow(ui.health, onRetryNow)
+    }
 
+    // The console and the line you type into it, in that order and never apart:
+    // a command is written while its answer is being read. This is the pane that
+    // wants whatever height is left over.
+    val consolePane: @Composable ColumnScope.() -> Unit = {
         // settings.txt line 13 ("show log") hides the console entirely, like the
         // desktop's View ▸ Log toggle; line 37 scales its text.
         if (ui.showLog) {
@@ -169,6 +175,41 @@ private fun ConnectionContent(
             )
             IconButton(onClick = onSend, enabled = ui.canSend) {
                 Icon(Icons.AutoMirrored.Filled.Send, contentDescription = tr("전송", "Send"))
+            }
+        }
+    }
+
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        if (maxWidth >= WideLayoutMin) {
+            // Two columns from a landscape phone up. Stacked, the endpoint rows,
+            // the status row, the health row, the console header and the command
+            // line come to about 360dp — more than a landscape phone has — and a
+            // Column hands its weighted child only what is left, so the console
+            // was measured at zero and the rows it should have made room for
+            // spilled off the bottom instead. Side by side, the console gets a
+            // full screen height and the controls stop competing for it.
+            Row(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = endpointPane,
+                )
+                Column(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    content = consolePane,
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                endpointPane()
+                consolePane()
             }
         }
     }
@@ -293,5 +334,11 @@ private fun ConsoleRow(line: ConsoleLine, scale: Float) {
     )
 }
 
-private fun isCoordinate(text: String): Boolean =
-    Regex("""^\s*\d+\s*,\s*\d+\s*$""").matches(text)
+/**
+ * Hoisted out of [isCoordinate]: `Regex(…)` compiles when it is constructed, and
+ * this is asked about every console line on every recomposition — a search fills
+ * the console faster than that pattern is worth rebuilding.
+ */
+private val coordinateLine = Regex("""^\s*\d+\s*,\s*\d+\s*$""")
+
+private fun isCoordinate(text: String): Boolean = coordinateLine.matches(text)

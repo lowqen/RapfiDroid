@@ -14,6 +14,16 @@ object ResponseParser {
     // one or two committed moves: "y,x" or "y,x y2,x2"
     private val bestMove = Regex("""^(\d+)\s*,\s*(\d+)(?:\s+(\d+)\s*,\s*(\d+))?$""")
 
+    // The rest of the grammar's patterns, held here for the same reason
+    // `bestMove` is: `Regex(…)` compiles on construction, and these are built
+    // once per engine line otherwise. During a search the engine streams INFO
+    // and MESSAGE continuously, so `parseThinking`, `parseInfo` and `digits`
+    // were each recompiling a pattern several times a second.
+    private val whitespace = Regex("""\s+""")
+    private val firstDigits = Regex("""\d+""")
+    private val signedDigits = Regex("""-?\d+""")
+    private val aboutField = Regex("""(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*([^,]+)""")
+
     /** `boardtext` is a `char[8]` filled with `%6s` on the desktop. */
     private const val DB_TEXT_MAX = 6
 
@@ -127,8 +137,11 @@ object ResponseParser {
                 "NODE", "NODES", "N" -> nodes = digits(value)
                 "SPEED" -> speed = digits(value)
                 else -> {
-                    val moves = seg.split(Regex("\\s+")).mapNotNull { Move.fromLabel(it) }
-                    if (moves.isNotEmpty() && moves.size == seg.split(Regex("\\s+")).size) line = moves
+                    // Split once, not twice: the token count is the same list's
+                    // size, and this runs on every MESSAGE line of a search.
+                    val tokens = seg.split(whitespace)
+                    val moves = tokens.mapNotNull { Move.fromLabel(it) }
+                    if (moves.isNotEmpty() && moves.size == tokens.size) line = moves
                 }
             }
         }
@@ -139,7 +152,7 @@ object ResponseParser {
 
     /** Leading digits of e.g. "12345k" / "1.2M" -> plain count where possible. */
     private fun digits(value: String): Long? =
-        Regex("""\d+""").find(value)?.value?.toLongOrNull()
+        firstDigits.find(value)?.value?.toLongOrNull()
 
     /** `MESSAGE REALTIME <sub>` overlays. Sub-tokens matched like the desktop. */
     private fun parseRealtime(rest: String, coord: CoordMapper, raw: String): EngineResponse {
@@ -194,7 +207,7 @@ object ResponseParser {
 
     /** `ONE <tag> <val> <depth> <bound> [label]` (main.c:13562). */
     private fun parseDbOne(rest: String, raw: String): EngineResponse {
-        val parts = rest.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val parts = rest.split(whitespace).filter { it.isNotBlank() }
         if (parts.size < 4) return EngineResponse.Message("DATABASE ONE $rest", raw)
         val nums = parts.take(4).map { it.toIntOrNull() ?: return EngineResponse.Message("DATABASE ONE $rest", raw) }
         return EngineResponse.DbOne(
@@ -215,7 +228,7 @@ object ResponseParser {
     }
 
     private fun parseDbCell(rest: String, coord: CoordMapper, raw: String): EngineResponse {
-        val parts = rest.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val parts = rest.split(whitespace).filter { it.isNotBlank() }
         if (parts.size < 3) return EngineResponse.Message("DATABASE $rest", raw)
         val y = parts[0].toIntOrNull() ?: return EngineResponse.Message("DATABASE $rest", raw)
         val x = parts[1].toIntOrNull() ?: return EngineResponse.Message("DATABASE $rest", raw)
@@ -245,7 +258,7 @@ object ResponseParser {
     ): EngineResponse {
         val upper = rest.uppercase()
         val body = rest.substringAfter(' ', "").trim()
-        val nums = Regex("""-?\d+""").findAll(body).map { it.value.toInt() }.toList()
+        val nums = signedDigits.findAll(body).map { it.value.toInt() }.toList()
 
         // MOVE5 under Soosorv is the fifth-move stage, not a plain stone.
         if (!swap2 && upper.startsWith("MOVE5")) {
@@ -253,7 +266,7 @@ object ResponseParser {
             val tailUpper = tail.uppercase()
             return when {
                 tailUpper.startsWith("C") -> {
-                    val c = Regex("""-?\d+""").findAll(tail).map { it.value.toInt() }.toList()
+                    val c = signedDigits.findAll(tail).map { it.value.toInt() }.toList()
                     if (c.size >= 2) {
                         EngineResponse.SoosorvFifth(
                             EngineResponse.SoosorvFifth.Kind.CHOOSE,
@@ -268,7 +281,7 @@ object ResponseParser {
                 tailUpper.startsWith("D") ->
                     EngineResponse.SoosorvFifth(EngineResponse.SoosorvFifth.Kind.DONE, null, raw)
                 else -> {
-                    val c = Regex("""-?\d+""").findAll(tail).map { it.value.toInt() }.toList()
+                    val c = signedDigits.findAll(tail).map { it.value.toInt() }.toList()
                     if (c.size >= 2) {
                         EngineResponse.SoosorvFifth(
                             EngineResponse.SoosorvFifth.Kind.OFFER,
@@ -326,7 +339,7 @@ object ResponseParser {
 
     /** Space-separated "y,x" tokens (BESTLINE / REALTIME PV). */
     private fun parseMoveList(value: String, coord: CoordMapper): List<Move> =
-        value.trim().split(Regex("\\s+"))
+        value.trim().split(whitespace)
             .mapNotNull { if (it.isBlank()) null else coord.parsePair(it) }
 
     private fun looksLikeAbout(line: String): Boolean =
@@ -334,7 +347,7 @@ object ResponseParser {
 
     private fun parseAboutFields(line: String): Map<String, String> {
         val out = LinkedHashMap<String, String>()
-        Regex("""(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*([^,]+)""").findAll(line).forEach { m ->
+        aboutField.findAll(line).forEach { m ->
             val key = (m.groupValues[1].ifEmpty { m.groupValues[3] }).trim()
             val v = (m.groupValues[2].ifEmpty { m.groupValues[4] }).trim()
             if (key.isNotEmpty()) out[key] = v

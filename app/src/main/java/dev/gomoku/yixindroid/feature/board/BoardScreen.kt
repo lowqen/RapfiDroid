@@ -93,6 +93,7 @@ import dev.gomoku.yixindroid.core.designsystem.component.BoardRender
 import dev.gomoku.yixindroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.yixindroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.yixindroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.yixindroid.core.designsystem.component.WideLayoutMin
 import dev.gomoku.yixindroid.core.designsystem.component.YixinTopBar
 import dev.gomoku.yixindroid.core.designsystem.theme.MOTION_VALUE
 import dev.gomoku.yixindroid.core.designsystem.theme.YixinTheme
@@ -114,12 +115,6 @@ import dev.gomoku.yixindroid.core.model.Swap2Choice
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-
-/**
- * Wide enough for two columns. 640 dp is a landscape phone; below it the board
- * would be squeezed to a third of the screen and the panels would be unreadable.
- */
-private val WIDE_LAYOUT_MIN = 640.dp
 
 @Composable
 fun BoardScreen(
@@ -331,7 +326,7 @@ fun BoardScreen(
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        if (maxWidth >= WIDE_LAYOUT_MIN) {
+        if (maxWidth >= WideLayoutMin) {
             Row(
                 modifier = Modifier.fillMaxSize().padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
