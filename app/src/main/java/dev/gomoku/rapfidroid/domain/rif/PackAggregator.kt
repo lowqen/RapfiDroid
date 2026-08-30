@@ -62,14 +62,26 @@ class PackAggregator(
             meta[i] = pack(rated = t?.rated ?: 0, year = t?.year ?: 0, id = g.id)
         }
 
+        val scanner = PosKeyScanner(boardSize)
         val visits = LongIntOpenMap(expected = games.size * 8)
         for ((i, game) in games.withIndex()) {
-            forEachPrefixKey(game) { key, _ -> visits.increment(Fnv.hash64(key)) }
+            scanner.reset()
+            visits.increment(scanner.hash64())
+            val top = minOf(game.cells.size, maxPlies)
+            for (ply in 0 until top) {
+                scanner.push(game.cells[ply])
+                visits.increment(scanner.hash64())
+            }
             if (i % PROGRESS_EVERY == 0) onProgress.onStep(1, i, games.size)
         }
         onProgress.onStep(1, games.size, games.size)
 
-        val slots = HashMap<String, Int>(1 shl 16)
+        // Slots are found by key hash and *confirmed* against the stored key, so
+        // the common path costs no allocation and a collision cannot silently
+        // merge two positions' statistics. The map by string is the fallback the
+        // confirmation falls through to; it is expected to stay empty.
+        val byHash = LongIntOpenMap(expected = games.size)
+        val byKey = HashMap<String, Int>(1 shl 12)
         val keys = ArrayList<String>()
         val counts = IntBag()
         val nexts = ArrayList<HashMap<Int, IntArray>>()
@@ -78,22 +90,31 @@ class PackAggregator(
         for ((i, game) in games.withIndex()) {
             val resultIndex = game.resultIndex
             val sample = meta[i]
-            forEachPrefixKey(game) { key, ctx ->
-                if (visits.get(Fnv.hash64(key)) < minGames) return@forEachPrefixKey
-                val slot = slots.getOrPut(key) {
-                    keys += key
-                    counts.addFour()
-                    nexts += HashMap()
-                    samples += LongBag()
-                    keys.size - 1
+            scanner.reset()
+            val top = minOf(game.cells.size, maxPlies)
+            for (ply in 0..top) {
+                if (ply > 0) scanner.push(game.cells[ply - 1])
+                val hash = scanner.hash64()
+                if (visits.get(hash) < minGames) continue
+
+                var slot = byHash.get(hash) - 1   // stored as index + 1; 0 = absent
+                if (slot < 0 || !scanner.matches(keys[slot])) {
+                    val key = scanner.key()
+                    slot = byKey.getOrPut(key) {
+                        keys += key
+                        counts.addFour()
+                        nexts += HashMap()
+                        samples += LongBag()
+                        keys.size - 1
+                    }
+                    byHash.put(hash, slot + 1)
                 }
+
                 counts.bump(slot * 4)
                 counts.bump(slot * 4 + 1 + resultIndex)
                 samples[slot].add(sample)
-                val played = ctx.played
-                if (played != null) {
-                    val rep = PosKey.canonNext(ctx.stabiliser, played, boardSize)
-                    val cell = rep.y * boardSize + rep.x
+                if (ply < game.cells.size && ply < maxPlies) {
+                    val cell = scanner.canonNext(game.cells[ply])
                     val row = nexts[slot].getOrPut(cell) { IntArray(4) }
                     row[0]++
                     row[1 + resultIndex]++
@@ -120,26 +141,6 @@ class PackAggregator(
         }
         val total = positions.firstOrNull { it.key == PosKey.emptyKey(boardSize) }?.games ?: games.size
         return Aggregate(positions, total, maxPlies, minGames)
-    }
-
-    /** Position context handed to the walk: what was played next, and from where. */
-    class PrefixContext(var stabiliser: Int = 0, var played: Move? = null)
-
-    /**
-     * Every prefix of [game] up to [maxPlies] inclusive — the empty board first,
-     * then one position per move played.
-     */
-    private inline fun forEachPrefixKey(game: RifGame, body: (String, PrefixContext) -> Unit) {
-        val moves = ArrayList<Move>(game.cells.size)
-        for (cell in game.cells) moves += Move(cell % boardSize, cell / boardSize)
-        val top = minOf(moves.size, maxPlies)
-        val ctx = PrefixContext()
-        for (length in 0..top) {
-            val canonical = PosKey.canonical(moves.subList(0, length), boardSize)
-            ctx.stabiliser = canonical.stabiliser
-            ctx.played = if (length < moves.size && length < maxPlies) moves[length] else null
-            body(canonical.key, ctx)
-        }
     }
 
     fun interface Progress {
@@ -242,6 +243,18 @@ internal class LongIntOpenMap(expected: Int) {
         } else {
             values[i]++
         }
+    }
+
+    fun put(key: Long, value: Int) {
+        val k = if (key == 0L) 1L else key
+        var i = index(k)
+        while (keys[i] != 0L && keys[i] != k) i = (i + 1) and mask
+        if (keys[i] == 0L) {
+            keys[i] = k
+            size++
+        }
+        values[i] = value
+        if (size * 10 > keys.size * 7) grow()
     }
 
     fun get(key: Long): Int {

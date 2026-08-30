@@ -1,6 +1,6 @@
 BSD 2-Clause License
 
-Copyright (c) 2026, lowqen (YixinDroid)
+Copyright (c) 2026, lowqen (RapfiDroid)
 Copyright (c) 2009-2017, Kai Sun (Yixin-Board, parts of which are ported here)
 
 All rights reserved.
@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 --------------------------------------------------------------------------------
 
-This licence covers YixinDroid's own source. The APK also carries the Rapfi
+This licence covers RapfiDroid's own source. The APK also carries the Rapfi
 engine, which is GPL-3.0-or-later, and network weights under CC0. See LICENSES.md
 for the complete notice and for what each of those requires of you when you pass
 the app on.
