@@ -207,7 +207,6 @@ section 6 and section 10 against the Play distribution terms, not a choice.
   copyright 2009 to 2017.
 * **[rapfi-networks](https://github.com/dhbloo/rapfi-networks)** for the neural
   network weights, CC0 1.0.
-* **Renju Atlas** for the fifth move evaluation grades, CC0 1.0.
 * **[RenjuNet](https://www.renju.net/)** for the game database that users build
   their own statistics from.
 
