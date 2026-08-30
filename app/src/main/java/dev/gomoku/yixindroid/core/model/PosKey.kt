@@ -63,17 +63,73 @@ object PosKey {
      * `tf(inverse(result.transform), size, cell)`.
      */
     fun of(moves: List<Move>, size: Int = Move.DEFAULT_SIZE): Result {
+        val c = canonical(moves, size)
+        return Result(c.key, c.transform)
+    }
+
+    /**
+     * [of] plus the **stabiliser** — every symmetry that produces the same key,
+     * not just the first one.
+     *
+     * Aggregation needs it and lookup does not, which is why it was not here
+     * before: to merge transpositions, the next move played from a position has
+     * to be named by one representative of its orbit under the symmetries the
+     * position itself is invariant under (`rifdb/rifkey.py canon_next`). Take
+     * only [Result.transform] and a position with a symmetric shape counts the
+     * same continuation under two different names.
+     *
+     * The key and the adopted transform come out of the same loop as [of], so
+     * the two cannot drift apart — [of] is defined in terms of this.
+     */
+    fun canonical(moves: List<Move>, size: Int = Move.DEFAULT_SIZE): Canonical {
         var best: String? = null
         var bestT = 0
+        var stabiliser = 0
         for (t in 0 until 8) {
             val cur = serialize(t, moves, size)
-            if (best == null || cur < best) {
+            val cmp = if (best == null) -1 else cur.compareTo(best)
+            if (cmp < 0) {
                 best = cur
                 bestT = t
+                stabiliser = 1 shl t
+            } else if (cmp == 0) {
+                stabiliser = stabiliser or (1 shl t)
             }
         }
-        return Result(best ?: emptyKey(size), bestT)
+        return Canonical(best ?: emptyKey(size), bestT, stabiliser)
     }
+
+    /**
+     * The representative of [move]'s orbit under [stabiliser]: the image with
+     * the smallest **board index**, not the smallest string.
+     *
+     * Index order, deliberately — the key compares serialisations as strings
+     * (`"10" < "2"`), but a next move is a cell and `rifkey.canon_next` orders
+     * cells by `y * size + x`. Using the string rule here would pick a
+     * different representative and split one continuation into two.
+     */
+    fun canonNext(stabiliser: Int, move: Move, size: Int = Move.DEFAULT_SIZE): Move {
+        var best: Move? = null
+        var bestIdx = Int.MAX_VALUE
+        for (t in 0 until 8) {
+            if (stabiliser and (1 shl t) == 0) continue
+            val p = tf(t, size, move)
+            val idx = p.y * size + p.x
+            if (idx < bestIdx) {
+                bestIdx = idx
+                best = p
+            }
+        }
+        return best ?: move
+    }
+
+    /** Key, the symmetry that produced it, and every symmetry that ties with it. */
+    data class Canonical(
+        val key: String,
+        val transform: Int,
+        /** Bit *t* set when symmetry *t* serialises to [key]. Never zero. */
+        val stabiliser: Int,
+    )
 
     /** Just the key, for callers that never map a move back. */
     fun keyOf(moves: List<Move>, size: Int = Move.DEFAULT_SIZE): String =
