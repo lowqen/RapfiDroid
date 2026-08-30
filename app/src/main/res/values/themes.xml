@@ -13,7 +13,7 @@
       their icon colour from the app's own dark-mode setting (settings.txt line
       27) rather than from the system's.
     -->
-    <style name="Theme.YixinDroid" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.RapfiDroid" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/launch_background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>

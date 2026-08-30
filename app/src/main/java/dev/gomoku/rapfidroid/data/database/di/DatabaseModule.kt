@@ -1,0 +1,34 @@
+package dev.gomoku.rapfidroid.data.database.di
+
+import dev.gomoku.rapfidroid.data.database.DatabaseRepositoryImpl
+import dev.gomoku.rapfidroid.data.prefs.DbPrefsStore
+import dev.gomoku.rapfidroid.domain.repository.DatabaseRepository
+import dev.gomoku.rapfidroid.domain.repository.DatabaseSaver
+import dev.gomoku.rapfidroid.domain.repository.DbPreferences
+import dagger.Binds
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class DatabaseModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindDatabaseRepository(impl: DatabaseRepositoryImpl): DatabaseRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDbPreferences(impl: DbPrefsStore): DbPreferences
+
+    companion object {
+        /** The prove run's view of the database: it only ever asks for a save. */
+        @Provides
+        @Singleton
+        fun provideDatabaseSaver(database: DatabaseRepository): DatabaseSaver =
+            DatabaseSaver { database.save() }
+    }
+}

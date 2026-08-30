@@ -106,7 +106,7 @@ BSD-2 라 **의무는 없다.** 다만 GUI 가 그의 작업이고 메일 주소
 >
 > The BSD-2 notice and your copyright are reproduced in the app and in the
 > repository, as the licence asks. I'm writing only to let you know it exists,
-> and to ask one thing: the app is currently called **YixinDroid**. If you would
+> and to ask one thing: the app is currently called **RapfiDroid**. If you would
 > rather the name did not travel to a program that doesn't run Yixin, say so and
 > I'll change it.
 >
@@ -120,7 +120,7 @@ BSD-2 라 **의무는 없다.** 다만 GUI 가 그의 작업이고 메일 주소
 ## 2. 보내기 전 채울 것
 
 - [ ] `<FORK URL>` — `github.com/lowqen/rapfi` 를 **공개**로 만들고 `android` 브랜치 push
-- [ ] `<APP REPO URL>` — `github.com/lowqen/YixinDroid`
+- [ ] `<APP REPO URL>` — `github.com/lowqen/RapfiDroid`
 - [ ] `<LICENSES.md URL>`
 - [ ] 첨부 없음 확인 (APK 를 붙이지 않는다)
 

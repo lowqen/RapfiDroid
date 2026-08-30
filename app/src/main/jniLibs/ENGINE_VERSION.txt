@@ -7,4 +7,4 @@ cmake opts : -DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF -DNO_COMMAND_MODULES=ON -DENAB
 size       : 1473032 bytes (stripped)
 built_at   : 2026-08-30T02:19:24Z
 bench(host): Hash: e240ab16
-build_by   : YixinDroid/tools/build_engine_android.sh
+build_by   : RapfiDroid/tools/build_engine_android.sh

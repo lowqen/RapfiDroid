@@ -7,7 +7,7 @@
   Compose sources — see the plan, §5 "언어 지원".
 -->
 <resources>
-    <string name="app_name">YixinDroid</string>
+    <string name="app_name">RapfiDroid</string>
 
     <string name="tab_board">Board</string>
     <string name="tab_research">Research</string>
@@ -17,5 +17,5 @@
 
     <string name="engine_channel_name">Engine link</string>
     <string name="engine_channel_desc">Keeps the Rapfi engine session alive</string>
-    <string name="engine_notif_title">YixinDroid engine</string>
+    <string name="engine_notif_title">RapfiDroid engine</string>
 </resources>

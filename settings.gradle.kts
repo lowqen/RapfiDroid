@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "YixinDroid"
+rootProject.name = "RapfiDroid"
 include(":app")

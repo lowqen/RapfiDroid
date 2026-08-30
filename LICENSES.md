@@ -13,7 +13,7 @@
 
 | 구성요소 | 출처 | 라이선스 | 배포 시 의무 |
 |---|---|---|---|
-| **YixinDroid** (이 저장소의 Kotlin 코드) | 이 저장소 | BSD 2-Clause (`LICENSE`) | — |
+| **RapfiDroid** (이 저장소의 Kotlin 코드) | 이 저장소 | BSD 2-Clause (`LICENSE`) | — |
 | **Yixin-Board 로부터의 이식분** (프로토콜·국면 키·오프닝 프레임 키·설정 표 등) | [accreator/Yixin-Board](https://github.com/accreator/Yixin-Board) → [dhbloo/Yixin-Board](https://github.com/dhbloo/Yixin-Board) | **BSD 2-Clause**, © 2009–2017 Kai Sun | 저작권 고지 + 무보증 조항을 **바이너리에 동반되는 문서에 재현** |
 | **Rapfi 엔진** `jniLibs/arm64-v8a/libengine.so` | [dhbloo/rapfi](https://github.com/dhbloo/rapfi) | **GPL-3.0-or-later** | 라이선스 전문 동봉 + **대응 소스 제공** (§3) |
 | **NNUE 가중치** `assets/engine/*.bin.lz4`, `model220723.bin` | [dhbloo/rapfi-networks](https://github.com/dhbloo/rapfi-networks) | **CC0 1.0** (공유 저작물) | 없음 (출처 표기는 예의) |
@@ -59,7 +59,7 @@ APK 가 `libengine.so` 를 담고 있으므로, APK 를 남에게 주는 순간 
    고쳤으므로(안드로이드 링크·출력 이름), 그 수정본이 소스다:
    - 저장소: `https://github.com/lowqen/rapfi` 브랜치 `android`
    - **이 저장소는 반드시 공개여야 한다.** 비공개면 GPL 위반이다.
-   - 빌드 재현 절차: `YixinDroid/tools/build_engine_android.sh`
+   - 빌드 재현 절차: `RapfiDroid/tools/build_engine_android.sh`
    - 정확한 커밋은 `app/src/main/jniLibs/ENGINE_VERSION.txt` 에 적혀 있다.
 3. **저작권 고지를 지운 채 배포하지 않는다.** 소스는 손대지 않았다.
 
@@ -116,7 +116,7 @@ renju.net 에서 직접 받아 자기 기기로 반입한다. 데이터가 없�
 
 ## 5. 상표·이름
 
-"Yixin" 은 Kai Sun 의 엔진 이름이다. 앱 이름 `YixinDroid` 는 그 GUI 의 이식이라는
+"Yixin" 은 Kai Sun 의 엔진 이름이다. 앱 이름 `RapfiDroid` 는 그 GUI 의 이식이라는
 사실에서 왔지만, **앱에 Yixin 엔진은 들어 있지 않다.** 혼동을 피하려면 스토어
 설명과 README 에 "Rapfi 엔진 내장, Yixin-Board GUI 를 이식" 이라고 적어 두는 편이
 낫고, 원저작자가 이름 사용에 이의를 제기하면 바꿀 수 있게 준비해 둔다(법적 의무가

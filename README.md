@@ -1,7 +1,7 @@
-# YixinDroid
+# RapfiDroid
 
 PC Yixin-Board GUI를 안드로이드로 옮기는 프로젝트. 전체 설계·로드맵·검증 절차는
-`../test-yixin/docs/YixinDroid_이식_계획.md` 참고(단일 진원).
+`../test-yixin/docs/RapfiDroid_이식_계획.md` 참고(단일 진원).
 
 이 저장소는 현재 **P0(스캐폴드) + P1(엔진 통신 모듈) + P2(보드 UI·분석·파서 확장)
 + P3(랭킹 대시보드) + P6(분석 표시 완성) + P4(설정 67개) + P7(데이터베이스 전체)
@@ -76,7 +76,7 @@ Gradle 모듈로 분리한다(계획 §1.3). 단일 모듈로 시작한 이유�
 
 | 무엇 | 라이선스 | 배포할 때 |
 |---|---|---|
-| YixinDroid 코드 | BSD 2-Clause ([LICENSE](LICENSE)) | — |
+| RapfiDroid 코드 | BSD 2-Clause ([LICENSE](LICENSE)) | — |
 | Yixin-Board 이식분 (© 2009–2017 Kai Sun) | BSD 2-Clause | 고지 재현 |
 | **Rapfi 엔진** (APK 내장) | **GPL-3.0** | **대응 소스 공개 필수** → `github.com/lowqen/rapfi` 브랜치 `android` |
 | NNUE 가중치 · 흑5수 등급 | CC0 1.0 | — |
@@ -137,7 +137,7 @@ Play 스토어는 GPLv3 와의 알려진 충돌이 있으므로 LICENSES.md §3 
 
 ## 빌드 & 검증
 
-빌드/검증 절차는 `../test-yixin/docs/YixinDroid_이식_계획.md` §6 에 정리. 커밋 전
+빌드/검증 절차는 `../test-yixin/docs/RapfiDroid_이식_계획.md` §6 에 정리. 커밋 전
 로컬 확인은 명령줄로 끝난다:
 
 ```powershell

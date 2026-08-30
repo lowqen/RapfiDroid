@@ -10,11 +10,11 @@ plugins {
 }
 
 android {
-    namespace = "dev.gomoku.yixindroid"
+    namespace = "dev.gomoku.rapfidroid"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.gomoku.yixindroid"
+        applicationId = "dev.gomoku.rapfidroid"
         minSdk = 26
         targetSdk = 35
         versionCode = 12
@@ -40,13 +40,13 @@ android {
     // did, so nobody is blocked by a secret they do not have.
     //
     //   keystore.properties:
-    //     storeFile=C:/Users/User/gomoku-dev/yixindroid.jks
+    //     storeFile=C:/Users/User/gomoku-dev/rapfidroid.jks
     //     storePassword=...
-    //     keyAlias=yixindroid
+    //     keyAlias=rapfidroid
     //     keyPassword=...
     //
     //   create it once with:
-    //     keytool -genkeypair -v -keystore yixindroid.jks -alias yixindroid     //             -keyalg RSA -keysize 2048 -validity 10000
+    //     keytool -genkeypair -v -keystore rapfidroid.jks -alias rapfidroid     //             -keyalg RSA -keysize 2048 -validity 10000
     val keystoreProperties = rootProject.file("keystore.properties").takeIf { it.exists() }
         ?.let { file -> Properties().apply { file.inputStream().use { load(it) } } }
 

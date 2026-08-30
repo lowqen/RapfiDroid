@@ -1,7 +1,7 @@
 # 국면 키 골든 벡터 — rifdb/rif_crosscheck.py 가 생성한다(손으로 고치지 말 것).
 # rifkey.py 와 test_webkey.exe(= main.c web_poskey) 가 합의한 값만 실린다.
 # 형식: <수순>\t<키>\t<채택 t>\t<b3 의 정규 프레임 좌표>
-# 크기 15. YixinDroid PosKeyTest 가 이 파일을 읽어 4번째 구현을 대조한다.
+# 크기 15. RapfiDroid PosKeyTest 가 이 파일을 읽어 4번째 구현을 대조한다.
 h8	15h8b	0	b3
 h8 i9	15g9wh8b	1	n3
 h8 i9 j10	15f10bg9wh8b	1	n3
