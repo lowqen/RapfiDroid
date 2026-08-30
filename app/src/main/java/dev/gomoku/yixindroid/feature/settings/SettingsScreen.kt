@@ -61,6 +61,8 @@ import dev.gomoku.yixindroid.core.model.SettingEditor
 import dev.gomoku.yixindroid.core.model.SettingSpec
 import dev.gomoku.yixindroid.core.model.SettingsFile
 import dev.gomoku.yixindroid.feature.bundle.DataImportCard
+import dev.gomoku.yixindroid.feature.data.RifBuildDialog
+import dev.gomoku.yixindroid.feature.onboarding.WelcomeViewModel
 
 /**
  * Every persisted desktop setting, generated from [dev.gomoku.yixindroid.core.model.DesktopSettings]
@@ -91,7 +93,9 @@ fun SettingsScreen(
     // dialog or an expanded file list is most annoying.
     var showAbout by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
+    var showRifBuild by rememberSaveable { mutableStateOf(false) }
     var showFiles by rememberSaveable { mutableStateOf(false) }
+    val welcome: WelcomeViewModel = hiltViewModel()
 
     // One snackbar for the whole app (see [LocalSnackbarHostState]). This screen
     // was the last holdout with an inline banner of its own, which said the same
@@ -210,6 +214,14 @@ fun SettingsScreen(
                     // 반입은 여기 하나로 끝난다 — 아래 개별 버튼은 파일 하나만 갈아 끼우거나
                     // PC 로 되돌려 보낼 때를 위한 것이다.
                     DataImportCard()
+                    // And for everyone without a PC to run the pipeline on: the
+                    // phone builds the same packs from the official .rif.
+                    OutlinedButton(
+                        onClick = { showRifBuild = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)"))
+                    }
                     TextButton(onClick = { showFiles = !showFiles }) {
                         Text(
                             if (showFiles) tr("개별 파일 접기", "Hide individual files")
@@ -314,10 +326,14 @@ fun SettingsScreen(
         AboutDialog(
             onDismiss = { showAbout = false },
             onShowLicenses = { showAbout = false; showLicenses = true },
+            onReplayWelcome = { showAbout = false; welcome.onReplay() },
         )
     }
     if (showLicenses) {
         LicensesDialog(onDismiss = { showLicenses = false })
+    }
+    if (showRifBuild) {
+        RifBuildDialog(onDismiss = { showRifBuild = false })
     }
 }
 

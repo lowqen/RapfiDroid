@@ -34,5 +34,12 @@
             android:exported="false"
             android:foregroundServiceType="dataSync" />
 
+        <!-- Building the opening packs from a .rif takes minutes and must
+             survive the screen going off; nothing here touches the network. -->
+        <service
+            android:name=".data.rif.PackBuildService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
     </application>
 </manifest>

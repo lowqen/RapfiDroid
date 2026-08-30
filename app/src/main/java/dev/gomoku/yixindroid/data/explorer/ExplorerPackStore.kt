@@ -224,6 +224,37 @@ class ExplorerPackStore @Inject constructor(
 
     private fun name(uri: Uri): String = uri.lastPathSegment?.substringAfterLast('/') ?: "$uri"
 
+    /**
+     * Put packs the device just built into service.
+     *
+     * Separate from [import] because nothing needs checking: these came out of
+     * `PackWriter` a moment ago, in this process, with the magic and version it
+     * wrote. What is shared is the part that matters — the same two filenames in
+     * the same directory, so a built pack and an imported one are afterwards the
+     * same thing to every reader.
+     *
+     * The old packs are only replaced once both new ones are in hand, so a build
+     * that dies half way leaves the previous data working.
+     */
+    suspend fun adopt(newStats: File, newGames: File): Result<Packs> = withContext(io) {
+        runCatching {
+            dir.mkdirs()
+            require(newStats.isFile && newGames.isFile) { "생성된 팩 파일이 없습니다" }
+            statsFile.delete()
+            gamesFile.delete()
+            check(newStats.renameTo(statsFile) && newGames.renameTo(gamesFile)) {
+                "생성한 데이터를 저장하지 못했습니다"
+            }
+            val loaded = mapBoth() ?: error("생성한 데이터를 읽지 못했습니다")
+            _packs.value = loaded
+            loaded
+        }
+    }
+
+    /** Where a build should put its temporary output — same filesystem as the
+     *  final home, so the swap above is a rename and not a copy. */
+    val workDir: File get() = File(dir, "build").also { it.mkdirs() }
+
     /** Forget the imported packs and delete the private copies. The opening
      *  tables are not RenjuNet-derived and are left alone — clearing here is
      *  about the licence, not about tidying. */

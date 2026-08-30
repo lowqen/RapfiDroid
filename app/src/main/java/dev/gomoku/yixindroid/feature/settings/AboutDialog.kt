@@ -28,7 +28,11 @@ import dev.gomoku.yixindroid.core.i18n.tr
  * exactly the person who might otherwise share them.
  */
 @Composable
-fun AboutDialog(onDismiss: () -> Unit, onShowLicenses: () -> Unit) {
+fun AboutDialog(
+    onDismiss: () -> Unit,
+    onShowLicenses: () -> Unit,
+    onReplayWelcome: () -> Unit,
+) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("확인", "OK")) } },
@@ -92,6 +96,9 @@ fun AboutDialog(onDismiss: () -> Unit, onShowLicenses: () -> Unit) {
                         tr("이식한 것으로 BSD 2-Clause 이고, 신경망 가중치는 CC0 입니다. ", "under the BSD 2-Clause licence; the network weights are CC0. ") +
                         tr("Yixin 엔진 자체는 이 앱에 들어 있지 않습니다.", "The Yixin engine itself is not part of this app."),
                 )
+                TextButton(onClick = onReplayWelcome) {
+                    Text(tr("처음 안내 다시 보기", "Show the welcome guide again"))
+                }
                 TextButton(onClick = onShowLicenses) {
                     Text(tr("라이선스 전문 보기", "Read the licence texts"))
                 }

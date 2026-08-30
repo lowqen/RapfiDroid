@@ -46,16 +46,20 @@ class RifParser(private val boardSize: Int = 15) {
 
         while (true) {
             val tag = scanner.nextTag() ?: break
+            // Captured as a val each turn: a smart cast on a var the loop
+            // reassigns is the kind of thing that compiles today and stops
+            // compiling after an unrelated edit.
+            val open = pending
             when {
                 tag.closing && tag.name == "game" -> {
-                    pending?.let { finish(it, games, seenIds, skipped) }
+                    open?.let { finish(it, games, seenIds, skipped) }
                     pending = null
                     if (games.size % PROGRESS_EVERY == 0 && games.isNotEmpty()) onProgress(games.size)
                 }
                 tag.closing -> Unit
                 tag.name == "game" -> {
                     // A <game> that never closed: count it rather than lose it silently.
-                    pending?.let { bump(skipped, "unclosed_game") }
+                    if (open != null) bump(skipped, "unclosed_game")
                     pending = PendingGame(
                         id = tag.int("id", -1),
                         tournament = tag.int("tournament"),
@@ -73,8 +77,8 @@ class RifParser(private val boardSize: Int = 15) {
                         pending = null
                     }
                 }
-                tag.name == "move" && pending != null -> pending.moves = scanner.textUntilClose()
-                tag.name == "info" && pending != null -> pending.info = scanner.textUntilClose()
+                tag.name == "move" && open != null -> open.moves = scanner.textUntilClose()
+                tag.name == "info" && open != null -> open.info = scanner.textUntilClose()
                 tag.name == "tournament" -> {
                     val id = tag.int("id")
                     tournaments[id] = RifTournament(
@@ -137,8 +141,8 @@ class RifParser(private val boardSize: Int = 15) {
         if (g.id < 0 || g.id in seen) return bump(skipped, "dup_or_bad_id")
         val cells = parseMoves(g.moves)
             ?: return bump(skipped, if (g.moves.isBlank()) "empty_moves" else "bad_moves")
-        val result = g.bresult.toDoubleOrNull()
-        if (result != 0.0 && result != 0.5 && result != 1.0) return bump(skipped, "bad_bresult")
+        val result = g.bresult.toDoubleOrNull() ?: return bump(skipped, "bad_bresult")
+        if (result !in ACCEPTED_RESULTS) return bump(skipped, "bad_bresult")
         seen.add(g.id)
         out += RifGame(
             id = g.id,
@@ -191,5 +195,8 @@ class RifParser(private val boardSize: Int = 15) {
     private companion object {
         val WHITESPACE = Regex("\\s+")
         const val PROGRESS_EVERY = 5_000
+
+        /** Black win, draw, white win. Anything else is a record we cannot score. */
+        val ACCEPTED_RESULTS = setOf(0.0, 0.5, 1.0)
     }
 }

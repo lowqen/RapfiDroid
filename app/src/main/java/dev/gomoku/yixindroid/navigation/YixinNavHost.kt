@@ -37,6 +37,7 @@ import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
 import dev.gomoku.yixindroid.feature.board.BoardScreen
 import dev.gomoku.yixindroid.feature.database.DatabaseScreen
+import dev.gomoku.yixindroid.feature.onboarding.WelcomeGate
 import dev.gomoku.yixindroid.feature.settings.SettingsScreen
 import dev.gomoku.yixindroid.feature.tools.EngineScreen
 import kotlinx.coroutines.flow.StateFlow
@@ -136,6 +137,11 @@ fun YixinApp() {
                 }
             }
         }
+
+        // Over everything, once: the four things a new user cannot find by
+        // looking. It gates itself on a stored flag, so this costs a
+        // preference read and nothing else on every later launch.
+        WelcomeGate()
     }
 }
 
