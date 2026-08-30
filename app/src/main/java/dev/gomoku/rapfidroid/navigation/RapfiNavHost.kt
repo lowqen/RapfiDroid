@@ -31,7 +31,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
@@ -57,7 +57,7 @@ class ConnectionBadgeViewModel @Inject constructor(
 }
 
 @Composable
-fun YixinApp() {
+fun RapfiApp() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination
@@ -151,8 +151,8 @@ fun YixinApp() {
  */
 @Composable
 private fun connectionColor(state: ConnectionState): Color = when (state) {
-    ConnectionState.Ready, ConnectionState.Thinking -> YixinTheme.colors.positive
-    ConnectionState.Connecting, ConnectionState.Handshaking -> YixinTheme.colors.caution
+    ConnectionState.Ready, ConnectionState.Thinking -> RapfiTheme.colors.positive
+    ConnectionState.Connecting, ConnectionState.Handshaking -> RapfiTheme.colors.caution
     is ConnectionState.Error -> MaterialTheme.colorScheme.error
     ConnectionState.Disconnected -> MaterialTheme.colorScheme.outline
 }

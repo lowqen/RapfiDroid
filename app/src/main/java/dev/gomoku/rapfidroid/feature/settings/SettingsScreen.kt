@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
-import dev.gomoku.rapfidroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.i18n.tr
@@ -113,7 +113,7 @@ fun SettingsScreen(
         // The screen's name and the one action that is not a setting. Both used
         // to live in the body: the title as a bare line of text, "정보 · 도움말"
         // as a text button between two unrelated rows.
-        YixinTopBar(
+        RapfiTopBar(
             title = tr("설정", "Settings"),
             subtitle = tr("${ui.visible.size}/${ui.total} · ", "${ui.visible.size}/${ui.total} · ") +
                 if (ui.connected) tr("엔진 연결됨 — 변경 즉시 반영", "engine connected, changes apply at once")

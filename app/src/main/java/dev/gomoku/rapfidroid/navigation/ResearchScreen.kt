@@ -15,7 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.component.QuietSwitch
-import dev.gomoku.rapfidroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.feature.explorer.MoveOrderSection
 import dev.gomoku.rapfidroid.feature.explorer.OpeningExplorerSection
@@ -44,7 +44,7 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        YixinTopBar(
+        RapfiTopBar(
             title = tr("연구", "Research"),
             subtitle = titles.getOrNull(tab),
         )

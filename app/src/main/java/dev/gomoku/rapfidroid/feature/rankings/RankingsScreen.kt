@@ -63,7 +63,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.MiniBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.EmptyState
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.Opening26
@@ -392,7 +392,7 @@ private fun sortLabel(sort: RankSort, side: RankSide): String = when (sort) {
 @Composable
 private fun ResultBar(split: ResultSplit) {
     val decided = (split.blackWins + split.draws + split.whiteWins).coerceAtLeast(1)
-    val colors = YixinTheme.colors
+    val colors = RapfiTheme.colors
     Column {
         Row(Modifier.fillMaxWidth().height(10.dp).clip(MaterialTheme.shapes.extraSmall)) {
             Box(Modifier.weight(split.blackWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultBlack))

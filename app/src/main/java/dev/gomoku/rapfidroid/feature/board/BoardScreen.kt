@@ -94,9 +94,9 @@ import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.WideLayoutMin
-import dev.gomoku.rapfidroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_VALUE
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
@@ -156,7 +156,7 @@ fun BoardScreen(
     val currentRender by rememberUpdatedState(ui.render)
     // The exported PNG is the board the user is looking at, dark wood and all —
     // `drawBoard` is the same function, so the skin has to travel with it.
-    val skin = YixinTheme.board
+    val skin = RapfiTheme.board
     val currentSkin by rememberUpdatedState(skin)
     val saveImage = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("image/png"),
@@ -641,7 +641,7 @@ private fun ClockRow(ui: BoardUiState) {
                         Text(
                             "●",
                             style = MaterialTheme.typography.labelMedium,
-                            color = YixinTheme.colors.positive,
+                            color = RapfiTheme.colors.positive,
                         )
                     }
                 }
@@ -791,7 +791,7 @@ private fun WinRateGraph(history: List<Double?>, currentPly: Int, modifier: Modi
     if (samples < 1) return
     // The curve is Black's win rate, so it is drawn in the colour every table in
     // the app uses for Black.
-    val line = YixinTheme.colors.resultBlack
+    val line = RapfiTheme.colors.resultBlack
     val fill = line.copy(alpha = 0.22f)
     val grid = MaterialTheme.colorScheme.outlineVariant
     val midGrid = MaterialTheme.colorScheme.outline
@@ -954,7 +954,7 @@ private fun EvalBar(blackWinRate: Double?, mate: Int?, modifier: Modifier = Modi
     val frac by animateFloatAsState(target, tween(MOTION_VALUE), label = "evalBar")
     // The two stones' own colours: the bar says "how much of the board is
     // Black's", so it should be made of the same material as the stones.
-    val skin = YixinTheme.board
+    val skin = RapfiTheme.board
     Box(
         modifier = modifier
             .fillMaxWidth()

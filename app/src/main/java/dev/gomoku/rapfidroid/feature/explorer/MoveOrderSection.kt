@@ -54,7 +54,7 @@ import dev.gomoku.rapfidroid.core.designsystem.component.BoardGeometry
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.ReadingWidth
 import dev.gomoku.rapfidroid.core.designsystem.theme.BoardSkin
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.MoveOrderFormat
@@ -220,7 +220,7 @@ private fun CandidateRow(
             Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val skin = YixinTheme.board
+            val skin = RapfiTheme.board
             Box(
                 Modifier.width(30.dp).height(30.dp)
                     .background(if (row.isBlack) skin.blackLow else skin.whiteHigh, CircleShape),
@@ -261,7 +261,7 @@ private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     // The explorer's board is the same wood as the real one: two boards on the
     // same screen in different materials looked like two programs.
-    val skin: BoardSkin = YixinTheme.board
+    val skin: BoardSkin = RapfiTheme.board
     val plies = MaterialTheme.colorScheme.error
     val selectedRing = MaterialTheme.colorScheme.primary
     Canvas(

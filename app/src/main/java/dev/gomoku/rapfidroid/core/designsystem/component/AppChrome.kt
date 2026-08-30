@@ -57,7 +57,7 @@ val LocalSnackbarHostState = staticCompositionLocalOf { SnackbarHostState() }
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun YixinTopBar(
+fun RapfiTopBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,

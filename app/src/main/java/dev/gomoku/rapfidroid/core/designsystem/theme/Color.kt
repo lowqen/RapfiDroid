@@ -78,9 +78,9 @@ val ResultGreen = TonalRamp(hue = 155f, chroma = 0.085f)
  * means and Material does not — the three result colours, two states that are
  * neither "error" nor "primary", and the board's own skin.
  *
- * Reached through `YixinTheme.colors`, never constructed by a screen.
+ * Reached through `RapfiTheme.colors`, never constructed by a screen.
  */
-data class YixinColors(
+data class RapfiColors(
     /** Black won — bars, KPI figures, the win-rate curve. */
     val resultBlack: Color,
     /** White won. */
@@ -99,7 +99,7 @@ data class YixinColors(
     val board: BoardSkin,
 ) {
     companion object {
-        val Light = YixinColors(
+        val Light = RapfiColors(
             resultBlack = ResultBlue.tone(45),
             resultWhite = ResultGreen.tone(40),
             resultDraw = NeutralVariant.tone(43),
@@ -109,7 +109,7 @@ data class YixinColors(
             board = BoardSkin.Light,
         )
 
-        val Dark = YixinColors(
+        val Dark = RapfiColors(
             resultBlack = ResultBlue.tone(76),
             resultWhite = ResultGreen.tone(74),
             resultDraw = NeutralVariant.tone(74),

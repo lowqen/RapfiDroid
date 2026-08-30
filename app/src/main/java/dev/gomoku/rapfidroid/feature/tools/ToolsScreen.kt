@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.QuietSwitch
-import dev.gomoku.rapfidroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.CallbackConfig
 import dev.gomoku.rapfidroid.core.model.ToolScripts
@@ -59,7 +59,7 @@ fun EngineScreen(modifier: Modifier = Modifier) {
     val titles = remember { listOf(tr("연결", "Connect"), tr("도구", "Tools")) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        YixinTopBar(title = tr("엔진", "Engine"), subtitle = titles.getOrNull(tab))
+        RapfiTopBar(title = tr("엔진", "Engine"), subtitle = titles.getOrNull(tab))
         TabRow(selectedTabIndex = tab) {
             titles.forEachIndexed { i, title ->
                 Tab(

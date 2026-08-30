@@ -114,18 +114,18 @@ private val LightColors = lightColorScheme(
     surfaceContainerHighest = Neutral.tone(90),
 )
 
-/** The app's own colours, alongside Material's. See [YixinColors]. */
-val LocalYixinColors = staticCompositionLocalOf { YixinColors.Light }
+/** The app's own colours, alongside Material's. See [RapfiColors]. */
+val LocalYixinColors = staticCompositionLocalOf { RapfiColors.Light }
 
 /**
  * Everything the theme offers that MaterialTheme has no name for.
  *
- *     Text(label, color = YixinTheme.colors.resultBlack)
- *     GomokuBoard(render, skin = YixinTheme.board)
- *     Spacer(Modifier.height(YixinTheme.spacing.l))
+ *     Text(label, color = RapfiTheme.colors.resultBlack)
+ *     GomokuBoard(render, skin = RapfiTheme.board)
+ *     Spacer(Modifier.height(RapfiTheme.spacing.l))
  */
-object YixinTheme {
-    val colors: YixinColors
+object RapfiTheme {
+    val colors: RapfiColors
         @Composable @ReadOnlyComposable get() = LocalYixinColors.current
 
     /** Shorthand for the board's skin — by far the most-read entry here. */
@@ -151,7 +151,7 @@ fun RapfiDroidTheme(
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
-        LocalYixinColors provides if (darkTheme) YixinColors.Dark else YixinColors.Light,
+        LocalYixinColors provides if (darkTheme) RapfiColors.Dark else RapfiColors.Light,
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,

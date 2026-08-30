@@ -56,8 +56,8 @@ class ThemeContrastTest {
     @Test
     fun `the app's own colours are readable on its own surfaces`() {
         listOf(
-            "light" to (YixinColors.Light to LightColorsForTest),
-            "dark" to (YixinColors.Dark to DarkColorsForTest),
+            "light" to (RapfiColors.Light to LightColorsForTest),
+            "dark" to (RapfiColors.Dark to DarkColorsForTest),
         ).forEach { (name, pair) ->
             val (colors, scheme) = pair
             listOf(
@@ -78,7 +78,7 @@ class ThemeContrastTest {
 
     @Test
     fun `the three result colours stay apart from each other`() {
-        listOf(YixinColors.Light, YixinColors.Dark).forEach { c ->
+        listOf(RapfiColors.Light, RapfiColors.Dark).forEach { c ->
             // Adjacent segments of one bar: they carry different meanings and
             // must not need a legend to tell apart.
             assertThat(distance(c.resultBlack, c.resultWhite)).isAtLeast(0.20f)

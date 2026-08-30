@@ -59,7 +59,7 @@ import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.MiniBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.ReadingWidth
 import dev.gomoku.rapfidroid.core.designsystem.component.drawGradeMark
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ExplorerGameRow
@@ -291,7 +291,7 @@ private fun NameChain(chain: List<String>) {
 @Composable
 private fun KpiRow(pos: ExplorerPosition) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val colors = YixinTheme.colors
+        val colors = RapfiTheme.colors
         Kpi(tr("대국", "Games"), pos.games, null, null, Modifier.weight(1f))
         Kpi(tr("결과 흑승", "Result B"), pos.blackWins, pos.percent(pos.blackWins), colors.resultBlack, Modifier.weight(1f))
         Kpi(tr("결과 백승", "Result W"), pos.whiteWins, pos.percent(pos.whiteWins), colors.resultWhite, Modifier.weight(1f))
@@ -486,7 +486,7 @@ private fun NextRow(row: ExplorerNext, scale: Int, parentGames: Int, onPlay: () 
                     Modifier.fillMaxWidth().padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val colors = YixinTheme.colors
+                    val colors = RapfiTheme.colors
                     Bar(row.blackWins, scale, colors.resultBlack, Modifier.weight(1f))
                     Bar(row.draws, scale, colors.resultDraw, Modifier.weight(1f))
                     Bar(row.whiteWins, scale, colors.resultWhite, Modifier.weight(1f))
@@ -516,7 +516,7 @@ private fun Bar(count: Int, scale: Int, color: Color, modifier: Modifier = Modif
                 Text(
                     "$count",
                     style = MaterialTheme.typography.labelSmall.tabular(),
-                    color = YixinTheme.colors.onResult,
+                    color = RapfiTheme.colors.onResult,
                     textAlign = TextAlign.Center,
                 )
             }

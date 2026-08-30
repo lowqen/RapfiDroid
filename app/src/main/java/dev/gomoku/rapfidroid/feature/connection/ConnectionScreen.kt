@@ -42,7 +42,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.WideLayoutMin
 import dev.gomoku.rapfidroid.core.designsystem.theme.MonoStyle
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.ConsoleLine
@@ -359,7 +359,7 @@ private fun ConsoleRow(line: ConsoleLine, scale: Float) {
     val color = when {
         line.outbound -> MaterialTheme.colorScheme.secondary
         line.text.startsWith("ERROR", ignoreCase = true) -> MaterialTheme.colorScheme.error
-        isCoordinate(line.text) -> YixinTheme.colors.positive
+        isCoordinate(line.text) -> RapfiTheme.colors.positive
         else -> MaterialTheme.colorScheme.onSurface
     }
     val prefix = if (line.outbound) "» " else "  "

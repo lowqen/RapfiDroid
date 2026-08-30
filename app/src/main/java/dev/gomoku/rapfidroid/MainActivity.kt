@@ -23,7 +23,7 @@ import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineToolsRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.launch
-import dev.gomoku.rapfidroid.navigation.YixinApp
+import dev.gomoku.rapfidroid.navigation.RapfiApp
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             RapfiDroidTheme(darkTheme = current.darkMode) {
-                YixinApp()
+                RapfiApp()
             }
         }
     }

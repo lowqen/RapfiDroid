@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
@@ -84,7 +84,7 @@ fun DataImportCard(
                     style = MaterialTheme.typography.labelLarge.tabular(),
                     // "done" is a state, not an emphasis: it gets the app's
                     // positive colour rather than the button colour.
-                    color = if (ui.ready == 3) YixinTheme.colors.positive
+                    color = if (ui.ready == 3) RapfiTheme.colors.positive
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -167,7 +167,7 @@ private fun ReadyLine(on: Boolean, title: String, detail: String) {
             if (on) Icons.Filled.CheckCircle else Icons.Outlined.Circle,
             contentDescription = null,
             modifier = Modifier.size(18.dp),
-            tint = if (on) YixinTheme.colors.positive
+            tint = if (on) RapfiTheme.colors.positive
             else MaterialTheme.colorScheme.outline,
         )
         Column(Modifier.padding(start = 10.dp)) {

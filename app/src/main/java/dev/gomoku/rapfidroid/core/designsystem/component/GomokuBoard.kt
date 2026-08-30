@@ -20,7 +20,7 @@ import dev.gomoku.rapfidroid.core.designsystem.theme.BoardSkin
 import dev.gomoku.rapfidroid.core.designsystem.theme.linearToSrgb
 import dev.gomoku.rapfidroid.core.designsystem.theme.mixColors
 import dev.gomoku.rapfidroid.core.designsystem.theme.srgbToLinear
-import dev.gomoku.rapfidroid.core.designsystem.theme.YixinTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.model.CandidateState
 import dev.gomoku.rapfidroid.core.model.CellTag
 import dev.gomoku.rapfidroid.core.model.DbCellKind
@@ -302,7 +302,7 @@ class BoardGeometry(val side: Float, val n: Int) {
 fun GomokuBoard(
     render: BoardRender,
     modifier: Modifier = Modifier,
-    skin: BoardSkin = YixinTheme.board,
+    skin: BoardSkin = RapfiTheme.board,
     onTap: ((Move) -> Unit)? = null,
     onLongPress: ((Move) -> Unit)? = null,
 ) {

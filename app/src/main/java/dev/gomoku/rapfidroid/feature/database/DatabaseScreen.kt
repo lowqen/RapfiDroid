@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.gomoku.rapfidroid.core.designsystem.component.YixinTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.DbDeleteFilter
 import kotlinx.coroutines.delay
@@ -57,7 +57,7 @@ fun DatabaseScreen(
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        YixinTopBar(
+        RapfiTopBar(
             title = tr("데이터베이스", "Database"),
             subtitle = tr("서버의 yixindb 파일", "the yixindb file on the server"),
         )
