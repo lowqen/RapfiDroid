@@ -112,4 +112,16 @@ jobs:
         run: |
           NOTES="docs/release-notes-$VERSION.md"
           test -f "$NOTES" || { echo "::error::$NOTES 가 없습니다."; exit 1; }
-          gh release create "$GITHUB_REF_NAME" "RapfiDroid-$VERSION.apk" --title "RapfiDroid $GITHUB_REF_NAME" --notes-file "$NOTES"
+          # A sideloaded APK has no store vouching for it. Publish the hash so a
+          # user who cares can check that what they downloaded is what CI built.
+          SHA=$(sha256sum "RapfiDroid-$VERSION.apk" | cut -d' ' -f1)
+          cp "$NOTES" release-body.md
+          {
+            echo
+            echo "### Verify your download"
+            echo
+            echo '```'
+            echo "sha256  $SHA"
+            echo '```'
+          } >> release-body.md
+          gh release create "$GITHUB_REF_NAME" "RapfiDroid-$VERSION.apk" --title "RapfiDroid $GITHUB_REF_NAME" --notes-file release-body.md
