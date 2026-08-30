@@ -195,7 +195,6 @@ GPL-3.0-or-later 로 배포됩니다.
   BSD-2-Clause, 저작권 2009 ~ 2017.
 * **[rapfi-networks](https://github.com/dhbloo/rapfi-networks)** 신경망 가중치,
   CC0 1.0.
-* **Renju Atlas** 흑 5수 유불리 등급, CC0 1.0.
 * **[RenjuNet](https://www.renju.net/)** 사용자가 자기 통계를 만드는 근거가 되는
   대국 데이터베이스.
 
