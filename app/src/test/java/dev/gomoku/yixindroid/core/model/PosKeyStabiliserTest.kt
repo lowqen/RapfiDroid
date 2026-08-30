@@ -45,9 +45,15 @@ class PosKeyStabiliserTest {
 
     @Test
     fun `an asymmetric shape is invariant under the identity alone`() {
-        val moves = listOf(centre, Move(8, 6), Move(9, 5))
+        // Not (7,7) (8,6) (9,5): those three sit on one anti-diagonal through
+        // the centre, so the anti-diagonal mirror fixes every one of them and
+        // the stabiliser has two elements. Moving the last stone off that line
+        // is what makes the shape generic.
+        val moves = listOf(centre, Move(8, 6), Move(9, 4))
         val canonical = PosKey.canonical(moves, size)
+
         assertThat(Integer.bitCount(canonical.stabiliser)).isEqualTo(1)
+        assertThat(canonical.stabiliser).isEqualTo(1 shl canonical.transform)
     }
 
     @Test
