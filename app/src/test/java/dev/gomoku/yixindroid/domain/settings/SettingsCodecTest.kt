@@ -59,16 +59,32 @@ class SettingsCodecTest {
     // ---- the deployed files, round trip ----
 
     @Test
-    fun defaultsRenderTheDeployedFilesExactly() {
-        assertThat(SettingsCodec.render(AppSettings(), SettingsFile.MAIN)).isEqualTo(MAIN_TEXT)
+    fun defaultsRenderTheDeployedFilesApartFromTwoDeliberateChoices() {
+        // The app's defaults are the deployed PC file's, with two exceptions
+        // chosen for a phone that is someone's first contact with the program:
+        // the engine does not open as black, and the hash is not sized for a
+        // server. Pinning *which* lines differ is the point — it catches both a
+        // silent drift back and a new one nobody meant.
+        val rendered = SettingsCodec.render(AppSettings(), SettingsFile.MAIN).lines()
+        val deployed = MAIN_TEXT.lines()
+        assertThat(rendered).hasSize(deployed.size)
+
+        val differingLines = deployed.indices.filter { rendered[it] != deployed[it] }.map { it + 1 }
+        assertThat(differingLines).containsExactly(4, 19)
+        assertThat(rendered[3]).isEqualTo("0\t;computer play black (0: no, 1: yes)")
+        assertThat(rendered[18]).isEqualTo("1024\t;hash size (MB)")
+
+        // settings_dev.txt is untouched.
         assertThat(SettingsCodec.render(AppSettings(), SettingsFile.DEV)).isEqualTo(DEV_TEXT)
     }
 
     @Test
-    fun deployedFilesParseBackToTheDefaults() {
-        // A different starting point proves the files, not the defaults, decide.
+    fun deployedFilesParseBackToTheDesktopValues() {
+        // A different starting point proves the files, not the defaults, decide
+        // — including on the two lines where the app disagrees with the PC.
         val other = AppSettings(rule = 0, threadNum = 1, hashSizeMb = 256, darkMode = false)
-        assertThat(SettingsCodec.parseAll(MAIN_TEXT, DEV_TEXT, other)).isEqualTo(AppSettings())
+        val parsed = SettingsCodec.parseAll(MAIN_TEXT, DEV_TEXT, other)
+        assertThat(parsed).isEqualTo(AppSettings(computerBlack = true, hashSizeMb = 8192))
     }
 
     @Test
