@@ -112,84 +112,9 @@ class ExplorerPackStore @Inject constructor(
      * Returns a message describing what loaded, or a failure explaining what is
      * still missing.
      */
-    suspend fun import(uris: List<Uri>): Result<String> = withContext(io) {
-        runCatching {
-            require(uris.isNotEmpty()) { "선택된 파일이 없습니다" }
-            dir.mkdirs()
-            val took = ArrayList<String>()
-            val rejected = ArrayList<String>()
-            for (uri in uris) {
-                // Copy first, then decide what it is by *opening* it. Peeking at
-                // the first bytes of a content stream is not reliable — a short
-                // read (some providers, cloud-backed documents) looks exactly
-                // like a wrong file, which is how a perfectly good pack ends up
-                // rejected.
-                val staged = File(dir, "import.part")
-                val copied = runCatching { copy(uri, staged) }
-                val kind = if (copied.isSuccess) classify(staged) else null
-                when {
-                    copied.isFailure -> {
-                        staged.delete()
-                        rejected.add(
-                            "${name(uri)}: 읽을 수 없음 (${copied.exceptionOrNull()?.message})",
-                        )
-                    }
-                    kind == null -> {
-                        rejected.add("${name(uri)}: ${describe(staged, copied.getOrDefault(0L))}")
-                        staged.delete()
-                    }
-                    else -> {
-                        val target = when (kind) {
-                            RjStatsPack.MAGIC -> statsFile
-                            RjGamesPack.MAGIC -> gamesFile
-                            NAMES -> namesFile
-                            else -> evalsFile
-                        }
-                        target.delete()
-                        if (!staged.renameTo(target)) {
-                            staged.delete()
-                            error("파일을 저장하지 못했습니다: ${target.name}")
-                        }
-                        took.add(target.name)
-                    }
-                }
-            }
-
-            if (took.any { it == NAMES || it == EVALS }) loadTables()
-            val loaded = runCatching { mapBoth() }.getOrNull()
-            if (loaded != null) _packs.value = loaded
-
-            val missing = listOfNotNull(
-                "renju_stats.pack".takeIf { !statsFile.isFile },
-                "renju_games.pack".takeIf { !gamesFile.isFile },
-            )
-            val onlyTables = took.isNotEmpty() && took.all { it == NAMES || it == EVALS }
-            when {
-                rejected.isNotEmpty() -> error(
-                    "읽지 못한 파일이 있습니다 —\n" + rejected.joinToString("\n") +
-                        "\nrifdb/rif_pack.py 가 만든 v2 팩이거나, " +
-                        "$NAMES / $EVALS 여야 합니다.",
-                )
-                onlyTables -> "${took.joinToString(" + ")} 불러옴 — $tableNote"
-                loaded != null ->
-                    "${took.joinToString(" + ")} 불러옴 — 대국 ${loaded.info.totalGames}판 · " +
-                        "국면 ${loaded.info.positions}개"
-                missing.isNotEmpty() ->
-                    "${took.joinToString(" + ")} 저장함 — ${missing.joinToString(", ")} 도 불러오세요"
-                else -> error("팩을 열 수 없습니다(형식 또는 버전 불일치 — v2 팩이 필요합니다)")
-            }
-        }
-    }
-
-    /** What a staged file is, or null when it is none of the four. */
-    private fun classify(file: File): String? {
-        val buf = map(file)
-        if (buf != null) {
-            if (RjStatsPack.open(buf) != null) return RjStatsPack.MAGIC
-            if (RjGamesPack.open(buf) != null) return RjGamesPack.MAGIC
-        }
-        return classifyTable(file)
-    }
+    // Packs arrive from `adopt` now: the device builds them from the user's own
+    // .rif download. The SAF import that used to live here expected files a PC
+    // pipeline had produced, which nobody but their author could run.
 
     /**
      * Names or grades — told apart by the third column, exactly as
@@ -210,24 +135,10 @@ class ExplorerPackStore @Inject constructor(
         }
     }
 
-    /** Enough detail for the user to tell us what went wrong. */
-    private fun describe(file: File, copied: Long): String {
-        val head = runCatching {
-            file.inputStream().use { input ->
-                val b = ByteArray(8)
-                val n = input.read(b).coerceAtLeast(0)
-                String(b, 0, n, Charsets.US_ASCII).filter { it.isLetterOrDigit() }
-            }
-        }.getOrDefault("?")
-        return "${copied / 1024}KB, 머리글 \"$head\" — 팩이 아니거나 v1 팩입니다"
-    }
-
-    private fun name(uri: Uri): String = uri.lastPathSegment?.substringAfterLast('/') ?: "$uri"
-
     /**
      * Put packs the device just built into service.
      *
-     * Separate from [import] because nothing needs checking: these came out of
+     * Nothing needs checking here: these came out of
      * `PackWriter` a moment ago, in this process, with the magic and version it
      * wrote. What is shared is the part that matters — the same two filenames in
      * the same directory, so a built pack and an imported one are afterwards the
@@ -288,16 +199,6 @@ class ExplorerPackStore @Inject constructor(
             // held open for the life of the app.
             raf.channel.map(FileChannel.MapMode.READ_ONLY, 0, raf.length())
         }
-
-    /** Streams the document into [target]; returns how many bytes landed. */
-    private fun copy(uri: Uri, target: File): Long {
-        target.delete()
-        val input = context.contentResolver.openInputStream(uri)
-            ?: error("파일을 열 수 없습니다")
-        return input.use { source ->
-            target.outputStream().use { source.copyTo(it, DEFAULT_BUFFER_SIZE) }
-        }
-    }
 
     companion object {
         const val NAMES = "opening_names.txt"

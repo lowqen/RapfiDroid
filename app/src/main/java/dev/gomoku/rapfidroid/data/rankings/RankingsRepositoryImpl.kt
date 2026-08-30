@@ -25,9 +25,6 @@ class RankingsRepositoryImpl @Inject constructor(
 
     override suspend fun restoreFreq() = freqStore.restore()
 
-    override suspend fun importFreq(uri: Uri): Result<Unit> =
-        freqStore.import(uri).map { }
-
     override suspend fun clearFreq() = freqStore.clear()
 
     override suspend fun matchPlayers(query: String): List<PlayerRef> {

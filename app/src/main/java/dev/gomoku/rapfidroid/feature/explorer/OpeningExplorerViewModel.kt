@@ -57,7 +57,6 @@ data class OpeningExplorerUiState(
      * NO_PACKS. Empty for most positions, which is the normal case.
      */
     val transpositions: List<Transposition> = emptyList(),
-    val importing: Boolean = false,
     val notice: String? = null,
 ) {
     /** All three result bars share one scale: the largest single result count
@@ -132,20 +131,6 @@ class OpeningExplorerViewModel @Inject constructor(
     fun onFilterChange(text: String) {
         _ui.update { it.copy(filter = text) }
         filter.value = text
-    }
-
-    fun onImport(uris: List<Uri>) {
-        if (uris.isEmpty()) return
-        _ui.update { it.copy(importing = true) }
-        viewModelScope.launch {
-            val result = repository.importPacks(uris)
-            _ui.update {
-                it.copy(
-                    importing = false,
-                    notice = result.getOrElse { e -> e.message ?: tr("팩을 불러오지 못했습니다", "The packs could not be loaded") },
-                )
-            }
-        }
     }
 
     fun onClearPacks() {

@@ -69,7 +69,7 @@ import dev.gomoku.rapfidroid.core.model.ExplorerStatus
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.OpeningEval
 import dev.gomoku.rapfidroid.core.model.RjGame
-import dev.gomoku.rapfidroid.feature.bundle.DataImportCard
+import dev.gomoku.rapfidroid.feature.data.DataSetupCard
 
 /**
  * 오프닝 익스플로러 — RenjuNet statistics for the position on the board
@@ -89,10 +89,6 @@ fun OpeningExplorerSection(
     // here used to appear in a different place from one raised on the board.
     val snackbar = LocalSnackbarHostState.current
     var confirmLoad by remember { mutableStateOf<Int?>(null) }
-
-    val pick = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenMultipleDocuments(),
-    ) { uris -> viewModel.onImport(uris) }
 
     LaunchedEffect(ui.notice) {
         ui.notice?.let {
@@ -123,11 +119,11 @@ fun OpeningExplorerSection(
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item { HeaderCard(ui, onImport = { pick.launch(arrayOf("*/*")) }, onClear = viewModel::onClearPacks) }
+        item { HeaderCard(ui, onClear = viewModel::onClearPacks) }
 
-        // With no packs the folder import is the thing to do next, so it is
-        // offered here rather than only on the settings screen.
-        if (ui.status == ExplorerStatus.NO_PACKS) item { DataImportCard() }
+        // With no data the build is the thing to do next, so it is offered
+        // here rather than only on the settings screen.
+        if (ui.status == ExplorerStatus.NO_PACKS) item { DataSetupCard() }
 
         // 환원 is pure computation from the board, so it goes outside the
         // position block: just as true with no packs and no statistics.
@@ -201,7 +197,6 @@ fun OpeningExplorerSection(
 @Composable
 private fun HeaderCard(
     ui: OpeningExplorerUiState,
-    onImport: () -> Unit,
     onClear: () -> Unit,
 ) {
     Card(Modifier.fillMaxWidth()) {
@@ -245,14 +240,8 @@ private fun HeaderCard(
                     style = MaterialTheme.typography.labelSmall,
                 )
             }
-            if (ui.importing) LinearProgressIndicator(Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onImport, enabled = !ui.importing) {
-                    Text(if (ui.packs == null) tr("팩 불러오기", "Load packs") else tr("다시 불러오기", "Load again"))
-                }
-                if (ui.packs != null) {
-                    OutlinedButton(onClick = onClear, enabled = !ui.importing) { Text(tr("지우기", "Clear")) }
-                }
+            if (ui.packs != null) {
+                OutlinedButton(onClick = onClear) { Text(tr("데이터 지우기", "Clear the data")) }
             }
         }
     }

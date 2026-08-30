@@ -48,7 +48,6 @@ data class RankingsUiState(
     val freqLoaded: Boolean = false,
     val freqGenerated: String? = null,
     val freqGameCount: Int = 0,
-    val importing: Boolean = false,
     val error: String? = null,
 
     // shared filter

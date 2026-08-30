@@ -60,7 +60,6 @@ import dev.gomoku.rapfidroid.core.model.SettingCategory
 import dev.gomoku.rapfidroid.core.model.SettingEditor
 import dev.gomoku.rapfidroid.core.model.SettingSpec
 import dev.gomoku.rapfidroid.core.model.SettingsFile
-import dev.gomoku.rapfidroid.feature.bundle.DataImportCard
 import dev.gomoku.rapfidroid.feature.data.RifBuildDialog
 import dev.gomoku.rapfidroid.feature.onboarding.WelcomeViewModel
 
@@ -211,11 +210,7 @@ fun SettingsScreen(
                         }
                         Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
                     }
-                    // 반입은 여기 하나로 끝난다 — 아래 개별 버튼은 파일 하나만 갈아 끼우거나
-                    // PC 로 되돌려 보낼 때를 위한 것이다.
-                    DataImportCard()
-                    // And for everyone without a PC to run the pipeline on: the
-                    // phone builds the same packs from the official .rif.
+                    // 실전 통계는 이 버튼 하나로 끝난다 — 기기가 직접 만든다.
                     OutlinedButton(
                         onClick = { showRifBuild = true },
                         modifier = Modifier.fillMaxWidth(),

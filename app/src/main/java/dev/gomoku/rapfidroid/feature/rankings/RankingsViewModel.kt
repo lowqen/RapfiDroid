@@ -52,19 +52,6 @@ class RankingsViewModel @Inject constructor(
     fun onCloseFilter() = _state.update { it.copy(filterSheetOpen = false) }
     fun onDismissError() = _state.update { it.copy(error = null) }
 
-    fun onImport(uri: Uri) {
-        _state.update { it.copy(importing = true, error = null) }
-        viewModelScope.launch {
-            val result = repo.importFreq(uri)
-            _state.update {
-                it.copy(
-                    importing = false,
-                    error = result.exceptionOrNull()?.let { e -> tr("임포트 실패: ${e.message}", "Import failed: ${e.message}") },
-                )
-            }
-        }
-    }
-
     fun onClearFreq() {
         viewModelScope.launch {
             repo.clearFreq()

@@ -80,8 +80,6 @@ class ExplorerRepositoryImpl @Inject constructor(
 
     override suspend fun restore() = store.restore()
 
-    override suspend fun importPacks(uris: List<Uri>): Result<String> = store.import(uris)
-
     override suspend fun clearPacks() = store.clear()
 
     private suspend fun sync(pos: Position, packs: ExplorerPackStore.Packs?) =

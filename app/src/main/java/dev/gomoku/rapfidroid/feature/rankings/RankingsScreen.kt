@@ -32,7 +32,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -69,7 +68,7 @@ import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.Opening26
 import dev.gomoku.rapfidroid.core.model.RankSide
 import dev.gomoku.rapfidroid.core.model.ResultSplit
-import dev.gomoku.rapfidroid.feature.bundle.DataImportCard
+import dev.gomoku.rapfidroid.feature.data.DataSetupCard
 
 @Composable
 fun RankingsScreen(
@@ -77,10 +76,6 @@ fun RankingsScreen(
     viewModel: RankingsViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-
-    val picker = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri -> if (uri != null) viewModel.onImport(uri) }
 
     Column(modifier = modifier.fillMaxSize()) {
         Header(ui, onFilter = viewModel::onOpenFilter)
@@ -90,7 +85,7 @@ fun RankingsScreen(
         // goes above the tabs rather than inside a filter sheet the user has no
         // reason to open yet.
         if (!ui.freqLoaded) {
-            DataImportCard(Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
+            DataSetupCard(Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
         }
 
         // A segmented control, not a second tab row. This screen already sits
@@ -120,7 +115,7 @@ fun RankingsScreen(
     }
 
     if (ui.filterSheetOpen) {
-        FilterSheet(ui, viewModel, onImport = { picker.launch(arrayOf("application/json", "text/plain", "*/*")) })
+        FilterSheet(ui, viewModel)
     }
 }
 
@@ -412,7 +407,7 @@ private fun pct(part: Int, total: Int): String =
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: () -> Unit) {
+private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = vm::onCloseFilter, sheetState = sheetState) {
         // Everything above the actions scrolls, and `weight(1f, fill = false)`
@@ -437,18 +432,15 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel, onImport: ()
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                Text(tr("실전 데이터가 없습니다. freq_data.json을 임포트하면 실전 빈도·승률이 표시됩니다. ", "No game data. Import freq_data.json to see how often each opening is played and how it scores.") +
-                    tr("(RenjuNet 파생 — 기기 반입 전용, 재배포 금지)", "(RenjuNet derived — bring it to the device yourself, do not redistribute)"),
+                Text(tr("실전 데이터가 없습니다. 설정 ▸ «대국 데이터 추가» 에서 만들면 실전 빈도·승률이 표시됩니다. ", "No game data yet. Settings ▸ Add game data builds it, and then the frequencies and win rates appear. ") +
+                    tr("(RenjuNet 파생 — 기기 안에서만, 재배포 금지)", "(RenjuNet derived - stays on this device, never redistributed)"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = onImport, label = { Text(tr("freq 임포트", "Import freq")) },
-                    leadingIcon = { Icon(Icons.Filled.UploadFile, contentDescription = null) })
                 if (ui.freqLoaded) {
-                    AssistChip(onClick = vm::onClearFreq, label = { Text(tr("데이터 해제", "Forget the data")) })
+                    AssistChip(onClick = vm::onClearFreq, label = { Text(tr("데이터 지우기", "Clear the data")) })
                 }
-                if (ui.importing) Text(tr("불러오는 중…", "Loading…"), style = MaterialTheme.typography.labelMedium)
             }
 
             if (ui.freqLoaded) {

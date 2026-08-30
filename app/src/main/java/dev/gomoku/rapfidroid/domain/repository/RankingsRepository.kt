@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
  *
  * One data source: **freq**, the empirical play frequency built from the user's
  * own RenjuNet download. It is user-imported, so every query here returns
- * null/empty until [importFreq] succeeds — the 26 openings themselves are
+ * null/empty until a device build has produced it — the 26 openings themselves are
  * static and come from [dev.gomoku.rapfidroid.core.model.Opening26].
  */
 interface RankingsRepository {
@@ -22,7 +22,6 @@ interface RankingsRepository {
     val freq: StateFlow<FreqBundle?>
 
     suspend fun restoreFreq()
-    suspend fun importFreq(uri: Uri): Result<Unit>
     suspend fun clearFreq()
 
     suspend fun matchPlayers(query: String): List<PlayerRef>

@@ -7,6 +7,9 @@ import dev.gomoku.rapfidroid.core.common.IoDispatcher
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.PackBuildState
 import dev.gomoku.rapfidroid.data.explorer.ExplorerPackStore
+import dev.gomoku.rapfidroid.data.rankings.FreqDataDto
+import dev.gomoku.rapfidroid.data.rankings.FreqStore
+import dev.gomoku.rapfidroid.domain.rif.FreqBuilder
 import dev.gomoku.rapfidroid.domain.rif.PackAggregator
 import dev.gomoku.rapfidroid.domain.rif.PackWriter
 import dev.gomoku.rapfidroid.domain.rif.RifParser
@@ -41,6 +44,7 @@ import javax.inject.Singleton
 class PackBuildManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val packs: ExplorerPackStore,
+    private val freqStore: FreqStore,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + io)
@@ -125,6 +129,20 @@ class PackBuildManager @Inject constructor(
             stats.delete()
             games.delete()
         }
+
+        // The rankings are the same games counted differently. Building only the
+        // explorer left half the app looking broken with a full database on the
+        // device, which is what this pass is for.
+        val freq = FreqBuilder().build(db)
+        freqStore.adopt(
+            FreqDataDto(
+                generated = today().toString(),
+                players = freq.players,
+                rules = freq.rules,
+                shapes = freq.shapes,
+                games = freq.games,
+            ),
+        ).getOrThrow()
 
         _state.value = PackBuildState.Done(
             games = db.gameCount,

@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
  * the current line.
  *
  * ⚠ The packs are **user-imported and never redistributed** (RenjuNet licence);
- * everything below returns empty until [importPacks] succeeds.
+ * everything below returns empty until a device build has produced them.
  */
 interface ExplorerRepository {
 
@@ -31,9 +31,6 @@ interface ExplorerRepository {
 
     /** Re-map previously imported packs (call once at startup). */
     suspend fun restore()
-
-    /** Import picked documents; the pack kind is detected from the file magic. */
-    suspend fun importPacks(uris: List<Uri>): Result<String>
 
     suspend fun clearPacks()
 
