@@ -22,13 +22,23 @@ class LocalEngineProfileTest {
     }
 
     @Test
-    fun `clamping the profile brings all three down`() {
+    fun `clamping brings the two dangerous numbers down`() {
         val local = LocalEngineProfile().clamp(desktop)
 
         assertThat(local.threadNum).isEqualTo(LocalEngineProfile.DEFAULT_THREADS)
         assertThat(local.hashSizeMb).isEqualTo(LocalEngineProfile.DEFAULT_HASH_MB)
-        // yixindb is loaded whole into RAM, so it stays off on device.
-        assertThat(local.useDatabase).isFalse()
+        // The device's own database is on: it starts empty and holds only what
+        // this phone analysed. It is the server's that will not fit.
+        assertThat(local.useDatabase).isTrue()
+    }
+
+    @Test
+    fun `the database switch is the profile's, not the desktop's`() {
+        val off = LocalEngineProfile(useDatabase = false).clamp(desktop)
+        assertThat(off.useDatabase).isFalse()
+
+        val on = LocalEngineProfile(useDatabase = true).clamp(desktop.copy(useDatabase = false))
+        assertThat(on.useDatabase).isTrue()
     }
 
     @Test
@@ -59,7 +69,9 @@ class LocalEngineProfileTest {
         // main.c sends megabytes shifted into kilobytes; 128 MB = 131072 KB.
         assertThat(pairs["hash_size"]).isEqualTo("131072")
         assertThat(pairs["thread_num"]).isEqualTo("3")
-        assertThat(pairs["usedatabase"]).isEqualTo("0")
+        // `INFO usedatabase 1` is what makes the engine create rapfi.db in its
+        // working directory, which on device is the app's own storage.
+        assertThat(pairs["usedatabase"]).isEqualTo("1")
     }
 
     @Test

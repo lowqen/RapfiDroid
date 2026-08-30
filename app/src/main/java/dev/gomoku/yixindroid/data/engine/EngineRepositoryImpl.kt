@@ -14,6 +14,7 @@ import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.core.model.LocalEngineProfile
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
+import dev.gomoku.yixindroid.data.prefs.LocalEngineStore
 import dev.gomoku.yixindroid.domain.engine.CoordMapper
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.engine.EngineResponse
@@ -52,6 +53,7 @@ class EngineRepositoryImpl @Inject constructor(
     private val connection: EngineConnection,
     private val settingsRepository: SettingsRepository,
     private val localEngine: LocalEngineInstaller,
+    private val localEngineStore: LocalEngineStore,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EngineRepository {
@@ -80,10 +82,10 @@ class EngineRepositoryImpl @Inject constructor(
     private var lastTarget: EngineTarget? = null
 
     /**
-     * Resource limits for the on-device engine. A constant for now — the
-     * settings screen gets hold of it in a later step — but it must exist from
-     * the first local connect: see [LocalEngineProfile] for what the desktop's
-     * own numbers would do to a phone.
+     * Resource limits for the on-device engine, mirrored from [LocalEngineStore]
+     * by the collector below. Its default has to be usable before that first
+     * emission arrives: see [LocalEngineProfile] for what the desktop's own
+     * numbers would do to a phone.
      */
     @Volatile
     private var localProfile = LocalEngineProfile()
@@ -151,6 +153,25 @@ class EngineRepositoryImpl @Inject constructor(
             }
         }
         scope.launch { livenessLoop() }
+        scope.launch {
+            localEngineStore.profile.collect { profile ->
+                // Computed against the old profile before it is replaced — the
+                // whole point of `effective` is that it reads this field.
+                val before = effective(engineParams)
+                localProfile = profile
+                if (lastTarget?.isLocal != true) return@collect
+                val live = connection.state.value
+                val settled = live is ConnectionState.Ready || live is ConnectionState.Thinking
+                val after = effective(engineParams)
+                if (!settled || before == after) return@collect
+                // hash_size and usedatabase are live options, so this reaches the
+                // running engine; only what config.toml sizes at startup would
+                // need a new process, and INFO overrides that anyway.
+                runCatching {
+                    if (after.needsRestart(before)) handshake() else pushChanges(before, after)
+                }
+            }
+        }
         scope.launch {
             connection.incoming.collect { line ->
                 lastLineAt = System.currentTimeMillis()

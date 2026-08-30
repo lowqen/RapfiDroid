@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -54,6 +55,7 @@ import dev.gomoku.yixindroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.yixindroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.AppSettings
+import dev.gomoku.yixindroid.core.model.LocalEngineProfile
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
 import dev.gomoku.yixindroid.core.model.SettingSpec
@@ -176,6 +178,14 @@ fun SettingsScreen(
                     Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Kept above the 67, and separate from them: these have no
+                    // line in either desktop file and never travel to the server.
+                    LocalEngineCard(
+                        ui = ui,
+                        onThreads = viewModel::onLocalThreads,
+                        onHash = viewModel::onLocalHash,
+                        onDatabase = viewModel::onLocalDatabase,
+                    )
                     // 67 desktop settings do not fit one phone list. The everyday
                     // ones show by default; the rest are one switch away and
                     // always findable by search.
@@ -303,6 +313,121 @@ fun SettingsScreen(
     }
 }
 
+/**
+ * The on-device engine's own settings.
+ *
+ * Its own card rather than three more rows in the list, because they are not the
+ * same kind of thing: every row below comes from a numbered line of
+ * `settings.txt`/`settings_dev.txt` and is sent to whichever engine is
+ * connected. These three exist only on the phone, are stored outside
+ * `AppSettings` so the file codec keeps its 47+20 shape, and **replace** the
+ * desktop's threads/hash/database while the on-device engine is the chosen one.
+ */
+@Composable
+private fun LocalEngineCard(
+    ui: SettingsUiState,
+    onThreads: (Int) -> Unit,
+    onHash: (Int) -> Unit,
+    onDatabase: (Boolean) -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Column(
+            Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Column {
+                Text(
+                    tr("기기 내 엔진", "On-device engine"),
+                    style = MaterialTheme.typography.titleSmall,
+                )
+                Text(
+                    if (ui.localMode) {
+                        tr(
+                            "지금 선택된 엔진입니다. 아래 데스크톱 설정 중 스레드·해시·데이터베이스는 이 값으로 대체됩니다.",
+                            "The engine in use. Of the desktop settings below, threads, hash and database are replaced by these.",
+                        )
+                    } else {
+                        tr(
+                            "지금은 서버 엔진을 씁니다 — 아래 데스크톱 설정이 그대로 갑니다. 이 값들은 연결 탭에서 «기기 내 엔진»을 고를 때 쓰입니다.",
+                            "The server engine is in use, so the desktop settings below go through unchanged. These apply when the connection tab selects the on-device engine.",
+                        )
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(tr("스레드 수", "Threads"), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        tr(
+                            "리틀 코어까지 쓰면 발열만 늘고 노드는 늘지 않습니다",
+                            "Using the little cores adds heat, not nodes",
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                CommitField(
+                    value = ui.localProfile.threads.toString(),
+                    onCommit = { raw -> raw.toIntOrNull()?.let(onThreads) },
+                    keyboard = KeyboardType.Number,
+                    modifier = Modifier.width(96.dp),
+                    supporting = "1~${LocalEngineProfile.MAX_THREADS}",
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(tr("해시 크기 (MB)", "Hash size (MB)"), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        tr(
+                            "서버의 8192MB 를 그대로 보내면 앱이 강제 종료됩니다",
+                            "Sending the server's 8192 MB gets the app killed",
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                CommitField(
+                    value = ui.localProfile.hashMb.toString(),
+                    onCommit = { raw -> raw.toIntOrNull()?.let(onHash) },
+                    keyboard = KeyboardType.Number,
+                    modifier = Modifier.width(96.dp),
+                    supporting = "${LocalEngineProfile.MIN_HASH_MB}~${LocalEngineProfile.MAX_HASH_MB}",
+                )
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        tr("기기 데이터베이스 사용", "Use the device database"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Text(
+                        tr(
+                            "이 폰에서 분석한 결과가 기기의 rapfi.db 에 쌓입니다. 서버 DB 와는 별개입니다.",
+                            "What this phone analyses accumulates in its own rapfi.db, separate from the server's.",
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
+            }
+
+            if (ui.localProfile.useDatabase && ui.localDbPath.isNotEmpty()) {
+                Text(
+                    ui.localDbPath,
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SettingRow(
     spec: SettingSpec,
@@ -356,6 +481,16 @@ private fun SettingRow(
                 it,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
+        // What the phone will actually use instead, when it differs. Without
+        // this the screen would read 8192 MB while the engine ran on 128.
+        state.overrideFor(spec)?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = 2.dp),
             )
         }

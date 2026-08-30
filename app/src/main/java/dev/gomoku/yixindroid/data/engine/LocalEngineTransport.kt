@@ -4,6 +4,7 @@ import dev.gomoku.yixindroid.core.model.LocalEngineProfile
 import okio.buffer
 import okio.sink
 import okio.source
+import java.util.concurrent.TimeUnit
 
 /**
  * Rapfi on this phone, as a **child process** talking over stdin/stdout — the
@@ -42,16 +43,37 @@ class LocalEngineTransport(
             )
         }
 
-        return EngineChannel(
-            source = process.inputStream.source().buffer(),
-            sink = process.outputStream.sink().buffer(),
-        ) {
-            // Closing stdin is the polite exit — `runProtocol` returns on EOF.
-            // It is not enough on its own: `gomocupLoop` then waits for the
-            // search threads to finish, so an engine that was thinking would
-            // outlive the disconnect the user just asked for.
-            runCatching { process.outputStream.close() }
-            process.destroyForcibly()
+        val source = process.inputStream.source().buffer()
+        val sink = process.outputStream.sink().buffer()
+
+        return EngineChannel(source, sink) {
+            // Shutting down in the right order, because the database lives or
+            // dies by it. yixindb is held in memory and written on command or on
+            // close; a killed process runs neither, so everything this session
+            // learned would be lost on hang-up.
+            //
+            // These are ordinary writes on the same pipe, so the engine executes
+            // them before it sees EOF — no waiting for a reply is needed:
+            //   YXSTOP         end the search, so waitForIdle() returns at once
+            //   YXSAVEDATABASE flush the database to rapfi.db
+            //   EOF            runProtocol() returns true and the engine exits
+            runCatching {
+                sink.writeUtf8("YXSTOP\nYXSAVEDATABASE\n").flush()
+                sink.close()
+            }
+            // And a reaper, because "should exit" is not "did exit" — a search
+            // that ignores YXSTOP would otherwise leave a process holding the
+            // CPU. Off the caller's thread: hang-up comes from the UI.
+            Thread({
+                if (!process.waitFor(EXIT_GRACE_MS, TimeUnit.MILLISECONDS)) {
+                    process.destroyForcibly()
+                }
+            }, "local-engine-reaper").apply { isDaemon = true }.start()
         }
+    }
+
+    private companion object {
+        /** Long enough for a stopped search to unwind, short enough to be a hang-up. */
+        const val EXIT_GRACE_MS = 3_000L
     }
 }

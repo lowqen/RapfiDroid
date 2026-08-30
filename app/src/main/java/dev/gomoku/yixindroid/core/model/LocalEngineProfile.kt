@@ -15,17 +15,20 @@ package dev.gomoku.yixindroid.core.model
  *  2. The engine's own reply, `INFO MAX_HASH_SIZE 30`, is converted by
  *     [EngineCapabilities] with the desktop's formula and lands far above
  *     anything a phone has — so the existing clamp does not catch this.
- *  3. yixindb is loaded whole into RAM (the server's config says so in as many
- *     words), so the database stays off on device.
- *
  * Threads default to 3, not to every core: the little cores add heat and
  * scheduling noise without adding nodes.
+ *
+ * The database is a different matter and is **on**. yixindb is held whole in
+ * RAM, which is why the server's config refuses to attach *its* database at
+ * boot — but the device's own starts empty and grows only from what this phone
+ * analysed, so it costs what it holds. The size worth warning about arrives by
+ * import, not by use.
  */
 data class LocalEngineProfile(
     val threadNum: Int = DEFAULT_THREADS,
     val hashSizeMb: Int = DEFAULT_HASH_MB,
-    /** yixindb on device stays off until there is a device-sized database. */
-    val useDatabase: Boolean = false,
+    /** `rapfi.db` next to the engine, in this app's own storage. */
+    val useDatabase: Boolean = true,
 ) {
     val threads: Int get() = threadNum.coerceIn(1, MAX_THREADS)
     val hashMb: Int get() = hashSizeMb.coerceIn(MIN_HASH_MB, MAX_HASH_MB)

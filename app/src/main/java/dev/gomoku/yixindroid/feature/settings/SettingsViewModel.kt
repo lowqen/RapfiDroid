@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.DesktopSettings
+import dev.gomoku.yixindroid.core.model.LocalEngineProfile
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
 import dev.gomoku.yixindroid.core.model.SettingsFile
 import dev.gomoku.yixindroid.data.engine.DebugLogWriter
+import dev.gomoku.yixindroid.data.engine.LocalEngineInstaller
+import dev.gomoku.yixindroid.data.prefs.EndpointStore
+import dev.gomoku.yixindroid.data.prefs.LocalEngineStore
 import dev.gomoku.yixindroid.data.settings.SettingsFileIo
 import dev.gomoku.yixindroid.domain.repository.AppearanceRepository
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -28,6 +33,9 @@ class SettingsViewModel @Inject constructor(
     private val appearance: AppearanceRepository,
     private val fileIo: SettingsFileIo,
     private val debugLog: DebugLogWriter,
+    private val localEngineStore: LocalEngineStore,
+    endpointStore: EndpointStore,
+    localEngine: LocalEngineInstaller,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
@@ -50,7 +58,33 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             appearance.source.collect { src -> _state.update { it.copy(appearanceSource = src) } }
         }
+        viewModelScope.launch {
+            localEngineStore.profile.collect { p -> _state.update { it.copy(localProfile = p) } }
+        }
+        viewModelScope.launch {
+            endpointStore.localMode.collect { on -> _state.update { it.copy(localMode = on) } }
+        }
+        // Where the device's own database ends up. Worth showing: it is the one
+        // file of this app's the user might want to pull off the phone, and it
+        // is nowhere a file manager will stumble on it.
+        _state.update {
+            it.copy(localDbPath = File(localEngine.engineDir, LOCAL_DB_NAME).path)
+        }
         viewModelScope.launch { refreshDebugLogSize() }
+    }
+
+    fun onLocalThreads(value: Int) = editLocal { it.copy(threadNum = value) }
+
+    fun onLocalHash(value: Int) = editLocal { it.copy(hashSizeMb = value) }
+
+    fun onLocalDatabase(on: Boolean) = editLocal { it.copy(useDatabase = on) }
+
+    /**
+     * Saved rather than held: the repository watches the store, so a change
+     * reaches a *running* on-device engine the same way a desktop setting does.
+     */
+    private fun editLocal(edit: (LocalEngineProfile) -> LocalEngineProfile) {
+        viewModelScope.launch { localEngineStore.save(edit(_state.value.localProfile)) }
     }
 
     private suspend fun refreshDebugLogSize() {
@@ -176,4 +210,9 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun dismissMessage() = _state.update { it.copy(message = null) }
+
+    private companion object {
+        /** `[database] url` in the generated config, resolved against the engine's cwd. */
+        const val LOCAL_DB_NAME = "rapfi.db"
+    }
 }

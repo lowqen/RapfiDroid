@@ -1,8 +1,10 @@
 package dev.gomoku.yixindroid.feature.settings
 
+import dev.gomoku.yixindroid.core.i18n.tr
 import dev.gomoku.yixindroid.core.model.AppSettings
 import dev.gomoku.yixindroid.core.model.DesktopSettings
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
+import dev.gomoku.yixindroid.core.model.LocalEngineProfile
 import dev.gomoku.yixindroid.core.model.SettingCategory
 import dev.gomoku.yixindroid.core.model.SettingEditor
 import dev.gomoku.yixindroid.core.model.SettingSpec
@@ -13,6 +15,12 @@ data class SettingsUiState(
     val category: SettingCategory? = null,
     val capabilities: EngineCapabilities = EngineCapabilities(),
     val connected: Boolean = false,
+    /** The on-device engine's own limits — no line in either desktop file. */
+    val localProfile: LocalEngineProfile = LocalEngineProfile(),
+    /** True while the on-device engine is the chosen one (connection tab). */
+    val localMode: Boolean = false,
+    /** Absolute path of the device's own `rapfi.db`; empty until resolved. */
+    val localDbPath: String = "",
     /** Show every desktop setting, not just the everyday ones. */
     val advanced: Boolean = false,
     /** Where the imported toolbar/hotkeys/labels came from; null = defaults. */
@@ -58,6 +66,37 @@ data class SettingsUiState(
             DesktopSettings.ALL.count {
                 !DesktopSettings.isEveryday(it.id) && (category == null || it.category == category)
             }
+
+    /**
+     * What the on-device engine uses **instead of** this desktop value, or null
+     * when the row reaches whichever engine is connected unchanged.
+     *
+     * Three of the 67 do not survive the trip to a phone: the desktop asks for 4
+     * threads, 8192 MB and the database, and those numbers are the server's.
+     * Without this line the screen would show 8192 MB while the engine ran on
+     * 128 — a settings screen that reports a value the engine never received is
+     * worse than one that admits the difference.
+     */
+    fun overrideFor(spec: SettingSpec): String? {
+        if (!localMode) return null
+        return when (spec.id) {
+            "threadNum" -> tr(
+                "기기 내 엔진에서는 ${localProfile.threads} 스레드",
+                "On-device: ${localProfile.threads} threads",
+            )
+            "hashSizeMb" -> tr(
+                "기기 내 엔진에서는 ${localProfile.hashMb} MB",
+                "On-device: ${localProfile.hashMb} MB",
+            )
+            "useDatabase" -> tr(
+                if (localProfile.useDatabase) "기기 내 엔진에서는 기기의 rapfi.db 를 씁니다"
+                else "기기 내 엔진에서는 데이터베이스를 쓰지 않습니다",
+                if (localProfile.useDatabase) "On-device: uses this phone's rapfi.db"
+                else "On-device: no database",
+            )
+            else -> null
+        }
+    }
 
     /**
      * The editor to actually offer: thread and hash maxima are tightened to what
