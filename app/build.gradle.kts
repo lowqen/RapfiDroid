@@ -27,6 +27,10 @@ android {
     // screen of Korean literals under a French system label.
     androidResources {
         localeFilters += listOf("en", "ko")
+        // The NNUE weights are already LZ4 and the classical model is dense
+        // binary: deflating them again costs install time and copy time and
+        // saves nothing.
+        noCompress += listOf("lz4", "bin")
     }
 
     // Sideloading needs a signed APK — an unsigned one will not install. The
@@ -82,6 +86,15 @@ android {
     }
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+        jniLibs {
+            // The on-device engine is not a library we load, it is a program we
+            // execute — and since Android 10 the only place an app may execute
+            // from is the directory the package manager extracted its native
+            // libraries into. With the modern default (uncompressed, mapped
+            // straight out of the APK) nothing is extracted and there is no
+            // executable path at all, so `libengine.so` would be dead weight.
+            useLegacyPackaging = true
+        }
     }
 
     testOptions {

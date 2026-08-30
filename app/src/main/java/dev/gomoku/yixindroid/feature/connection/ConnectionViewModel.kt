@@ -3,7 +3,9 @@ package dev.gomoku.yixindroid.feature.connection
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.EngineTarget
 import dev.gomoku.yixindroid.core.model.FontSpec
+import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.data.prefs.EndpointStore
 import dev.gomoku.yixindroid.domain.engine.EngineCommand
 import dev.gomoku.yixindroid.domain.repository.EngineRepository
@@ -28,13 +30,22 @@ class ConnectionViewModel @Inject constructor(
 
     private val host = MutableStateFlow(EngineEndpoint.DEFAULT_HOST)
     private val port = MutableStateFlow(EngineEndpoint.DEFAULT_PORT.toString())
+    private val localMode = MutableStateFlow(false)
     private val draft = MutableStateFlow("")
     private val consoleLines = MutableStateFlow(ConsoleBuffer())
 
-    // combine takes five flows at most, so host+port travel as one pair and the
-    // link state travels with it.
-    private val link = combine(host, port, repository.health) { h, p, health ->
-        Triple(h, p, health)
+    /** Everything about *where* the engine is, as one value. */
+    private data class Link(
+        val host: String,
+        val port: String,
+        val local: Boolean,
+        val health: LinkHealth,
+    )
+
+    // combine takes five flows at most, so the endpoint fields, the chosen
+    // engine and the link state travel together as one.
+    private val link = combine(host, port, localMode, repository.health) { h, p, local, health ->
+        Link(h, p, local, health)
     }
 
     val uiState: StateFlow<ConnectionUiState> =
@@ -44,12 +55,13 @@ class ConnectionViewModel @Inject constructor(
             consoleLines,
             draft,
             settingsRepository.settings,
-        ) { (h, p, health), st, buffer, d, config ->
+        ) { l, st, buffer, d, config ->
             ConnectionUiState(
-                host = h,
-                port = p,
+                host = l.host,
+                port = l.port,
+                localMode = l.local,
                 state = st,
-                health = health,
+                health = l.health,
                 console = buffer.lines,
                 commandDraft = d,
                 showLog = config.showLog,
@@ -67,6 +79,7 @@ class ConnectionViewModel @Inject constructor(
             val saved = endpointStore.endpoint.first()
             host.value = saved.host
             port.value = saved.port.toString()
+            localMode.value = endpointStore.localMode.first()
         }
         viewModelScope.launch {
             repository.console.collect { line ->
@@ -79,6 +92,8 @@ class ConnectionViewModel @Inject constructor(
 
     fun onPortChange(value: String) { port.value = value.filter(Char::isDigit).take(5) }
 
+    fun onLocalModeChange(local: Boolean) { localMode.value = local }
+
     fun onDraftChange(value: String) { draft.value = value }
 
     fun onConnect() {
@@ -86,9 +101,12 @@ class ConnectionViewModel @Inject constructor(
             host = host.value.trim(),
             port = port.value.toIntOrNull() ?: EngineEndpoint.DEFAULT_PORT,
         )
+        val target = if (localMode.value) EngineTarget.Local else EngineTarget.Remote(endpoint)
         viewModelScope.launch {
-            endpointStore.save(endpoint)
-            runCatching { repository.connect(endpoint) }
+            // The address is saved either way: choosing the on-device engine is
+            // not a decision to forget the server.
+            endpointStore.save(target, endpoint)
+            runCatching { repository.connect(target) }
         }
     }
 
@@ -105,7 +123,7 @@ class ConnectionViewModel @Inject constructor(
         }
     }
 
-    /** Stop waiting out the backoff and try the endpoint again now. */
+    /** Stop waiting out the backoff and try the engine again now. */
     fun onRetryNow() {
         viewModelScope.launch { runCatching { repository.retryNow() } }
     }

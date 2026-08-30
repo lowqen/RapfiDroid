@@ -15,6 +15,9 @@ import kotlin.concurrent.thread
  * Integration test against a throwaway local TCP server that stands in for the
  * Rapfi endpoint: confirms open() connects, writes reach the server, and server
  * lines (including startup noise before the handshake) surface on `incoming`.
+ *
+ * It goes through [TcpTransport] because that is the seam the on-device engine
+ * arrives on — the same connection code drives a child process there.
  */
 class EngineConnectionTest {
 
@@ -42,7 +45,7 @@ class EngineConnectionTest {
         )
         try {
             conn.incoming.test {
-                conn.open(EngineEndpoint("127.0.0.1", port))
+                conn.open(TcpTransport(EngineEndpoint("127.0.0.1", port)))
                 assertThat(conn.state.value).isEqualTo(ConnectionState.Handshaking)
 
                 conn.writeLine("START 15")

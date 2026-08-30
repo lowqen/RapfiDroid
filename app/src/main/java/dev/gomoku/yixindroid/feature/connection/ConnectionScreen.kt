@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +59,7 @@ fun ConnectionScreen(
         modifier = modifier,
         onHostChange = viewModel::onHostChange,
         onPortChange = viewModel::onPortChange,
+        onLocalModeChange = viewModel::onLocalModeChange,
         onDraftChange = viewModel::onDraftChange,
         onConnect = viewModel::onConnect,
         onDisconnect = viewModel::onDisconnect,
@@ -73,6 +75,7 @@ private fun ConnectionContent(
     modifier: Modifier = Modifier,
     onHostChange: (String) -> Unit,
     onPortChange: (String) -> Unit,
+    onLocalModeChange: (Boolean) -> Unit,
     onDraftChange: (String) -> Unit,
     onConnect: () -> Unit,
     onDisconnect: () -> Unit,
@@ -83,6 +86,28 @@ private fun ConnectionContent(
     // Where the engine is and whether it is answering. Every row here is a
     // fixed height.
     val endpointPane: @Composable ColumnScope.() -> Unit = {
+        // Which engine. The two are not the same tool: on-device is always
+        // there but holds a small hash and no database, the server is the deep
+        // one. Choosing is only allowed while nothing is connected — swapping
+        // engines mid-session would leave the board talking to the wrong one.
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilterChip(
+                selected = !ui.localMode,
+                onClick = { onLocalModeChange(false) },
+                enabled = ui.canConnect,
+                label = { Text(tr("서버", "Server")) },
+            )
+            FilterChip(
+                selected = ui.localMode,
+                onClick = { onLocalModeChange(true) },
+                enabled = ui.canConnect,
+                label = { Text(tr("기기 내 엔진", "On-device")) },
+            )
+        }
+
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -92,7 +117,7 @@ private fun ConnectionContent(
                 onValueChange = onHostChange,
                 label = { Text(tr("서버 (Tailscale)", "Server (Tailscale)")) },
                 singleLine = true,
-                enabled = ui.canConnect,
+                enabled = ui.canConnect && !ui.localMode,
                 modifier = Modifier.weight(1f),
             )
             OutlinedTextField(
@@ -100,7 +125,7 @@ private fun ConnectionContent(
                 onValueChange = onPortChange,
                 label = { Text(tr("포트", "Port")) },
                 singleLine = true,
-                enabled = ui.canConnect,
+                enabled = ui.canConnect && !ui.localMode,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.width(96.dp),
             )

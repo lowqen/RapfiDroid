@@ -5,8 +5,8 @@ import dev.gomoku.yixindroid.core.model.AnalyzeParams
 import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
-import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
+import dev.gomoku.yixindroid.core.model.EngineTarget
 import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
@@ -31,7 +31,8 @@ interface EngineRepository {
     /** Whether the link dropped and what the repository is doing about it. */
     val health: StateFlow<LinkHealth>
 
-    suspend fun connect(endpoint: EngineEndpoint)
+    /** Open a session with [target] — the server across Tailscale, or this phone. */
+    suspend fun connect(target: EngineTarget)
     suspend fun send(command: EngineCommand)
 
     /**

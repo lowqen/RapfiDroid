@@ -8,9 +8,10 @@ import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.DatabaseAttachGuard
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
-import dev.gomoku.yixindroid.core.model.EngineEndpoint
 import dev.gomoku.yixindroid.core.model.EngineParams
+import dev.gomoku.yixindroid.core.model.EngineTarget
 import dev.gomoku.yixindroid.core.model.LinkHealth
+import dev.gomoku.yixindroid.core.model.LocalEngineProfile
 import dev.gomoku.yixindroid.core.model.Move
 import dev.gomoku.yixindroid.core.model.Position
 import dev.gomoku.yixindroid.domain.engine.CoordMapper
@@ -50,6 +51,7 @@ import javax.inject.Singleton
 class EngineRepositoryImpl @Inject constructor(
     private val connection: EngineConnection,
     private val settingsRepository: SettingsRepository,
+    private val localEngine: LocalEngineInstaller,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EngineRepository {
@@ -73,9 +75,32 @@ class EngineRepositoryImpl @Inject constructor(
     private val _health = MutableStateFlow(LinkHealth())
     override val health: StateFlow<LinkHealth> = _health.asStateFlow()
 
-    /** The endpoint to go back to; a reconnect has nowhere to aim without it. */
+    /** The engine to go back to; a reconnect has nowhere to aim without it. */
     @Volatile
-    private var lastEndpoint: EngineEndpoint? = null
+    private var lastTarget: EngineTarget? = null
+
+    /**
+     * Resource limits for the on-device engine. A constant for now — the
+     * settings screen gets hold of it in a later step — but it must exist from
+     * the first local connect: see [LocalEngineProfile] for what the desktop's
+     * own numbers would do to a phone.
+     */
+    @Volatile
+    private var localProfile = LocalEngineProfile()
+
+    private fun transportFor(target: EngineTarget): EngineTransport = when (target) {
+        is EngineTarget.Remote -> TcpTransport(target.endpoint)
+        EngineTarget.Local -> LocalEngineTransport(localEngine, localProfile)
+    }
+
+    /**
+     * The parameters actually sent to the engine in front of us. The user's
+     * settings are the desktop's settings — 4 threads, 8192 MB, database on —
+     * and they stay untouched in [engineParams] so switching back to the server
+     * restores them exactly. Only what leaves for a local engine is clamped.
+     */
+    private fun effective(params: EngineParams): EngineParams =
+        if (lastTarget?.isLocal == true) localProfile.clamp(params) else params
 
     /**
      * The user's intent, not the socket's state: true from [connect] until
@@ -149,27 +174,31 @@ class EngineRepositoryImpl @Inject constructor(
         // need the whole handshake again.
         scope.launch {
             settingsRepository.settings.collect { settings ->
-                val next = settings.toEngineParams()
                 val previous = engineParams
-                engineParams = next
+                engineParams = settings.toEngineParams()
                 // Only once the session is settled: pushing mid-handshake would
                 // interleave with the connect sequence.
                 val live = connection.state.value
                 val settled = live is ConnectionState.Ready || live is ConnectionState.Thinking
-                if (!settled || previous == next) return@collect
+                // Compared after clamping, so a hash change the local profile
+                // swallows (8192 -> 4096 MB, both 128 on device) is not a
+                // needless restart.
+                val before = effective(previous)
+                val after = effective(engineParams)
+                if (!settled || before == after) return@collect
                 runCatching {
-                    if (next.needsRestart(previous)) handshake() else pushChanges(previous, next)
+                    if (after.needsRestart(before)) handshake() else pushChanges(before, after)
                 }
             }
         }
     }
 
-    override suspend fun connect(endpoint: EngineEndpoint) {
-        lastEndpoint = endpoint
+    override suspend fun connect(target: EngineTarget) {
+        lastTarget = target
         wantsConnection = true
         EngineService.start(context)
         try {
-            connection.open(endpoint)
+            connection.open(transportFor(target))
             handshake()
             _health.value = LinkHealth()
         } catch (e: Exception) {
@@ -188,7 +217,7 @@ class EngineRepositoryImpl @Inject constructor(
      * [disconnect] — so hanging up stays hung up.
      */
     private suspend fun reconnectLoop() {
-        val endpoint = lastEndpoint ?: return
+        val target = lastTarget ?: return
         while (wantsConnection && !connection.state.value.isLive) {
             val attempt = _health.value.attempt + 1
             for (left in LinkHealth.delaySecondsFor(attempt) downTo 1) {
@@ -199,7 +228,10 @@ class EngineRepositoryImpl @Inject constructor(
             if (!wantsConnection) return
             _health.update { it.copy(retryInSeconds = 0) }
             val ok = runCatching {
-                connection.open(endpoint)
+                // For a local target this respawns the engine process, which is
+                // the right answer to it having died: it starts from nothing and
+                // the handshake puts the position back.
+                connection.open(transportFor(target))
                 handshake()
             }.isSuccess
             if (ok) {
@@ -213,11 +245,11 @@ class EngineRepositoryImpl @Inject constructor(
 
     override suspend fun retryNow() {
         retryJob?.cancel()
-        val endpoint = lastEndpoint ?: return
+        val target = lastTarget ?: return
         wantsConnection = true
         _health.update { it.copy(reconnecting = true, retryInSeconds = 0) }
         runCatching {
-            connection.open(endpoint)
+            connection.open(transportFor(target))
             handshake()
         }.onSuccess { _health.update { LinkHealth(recovered = it.recovered) } }
             .onFailure { scheduleReconnect(it.message) }
@@ -364,7 +396,7 @@ class EngineRepositoryImpl @Inject constructor(
      * the console. A socket failure flips state to Error via the reader loop.
      */
     private suspend fun handshake() {
-        val params = engineParams
+        val params = effective(engineParams)
         dispatch(EngineCommand.ShowDetail(SHOW_DETAIL_LEVEL))
         dispatch(EngineCommand.YxShowInfo)
         dispatch(EngineCommand.DatabaseReadonly(params.databaseReadonly))
@@ -383,9 +415,10 @@ class EngineRepositoryImpl @Inject constructor(
     }
 
     override suspend fun applyParams(params: EngineParams) {
-        val previous = engineParams
+        val previous = effective(engineParams)
         engineParams = params
-        if (params.needsRestart(previous)) handshake() else pushChanges(previous, params)
+        val next = effective(params)
+        if (next.needsRestart(previous)) handshake() else pushChanges(previous, next)
     }
 
     /** Only the `INFO` pairs whose value actually changed (all of them on first push). */

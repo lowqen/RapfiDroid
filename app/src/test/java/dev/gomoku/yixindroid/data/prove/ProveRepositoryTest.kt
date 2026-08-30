@@ -9,7 +9,7 @@ import dev.gomoku.yixindroid.core.model.ConnectionState
 import dev.gomoku.yixindroid.core.model.ConsoleLine
 import dev.gomoku.yixindroid.core.model.EngineCapabilities
 import dev.gomoku.yixindroid.core.model.EngineBusy
-import dev.gomoku.yixindroid.core.model.EngineEndpoint
+import dev.gomoku.yixindroid.core.model.EngineTarget
 import dev.gomoku.yixindroid.core.model.EngineParams
 import dev.gomoku.yixindroid.core.model.LinkHealth
 import dev.gomoku.yixindroid.core.model.GameEnd
@@ -84,7 +84,7 @@ class ProveRepositoryTest {
             MutableStateFlow(EngineCapabilities())
         override val health: StateFlow<LinkHealth> = MutableStateFlow(LinkHealth())
 
-        override suspend fun connect(endpoint: EngineEndpoint) = Unit
+        override suspend fun connect(target: EngineTarget) = Unit
         override suspend fun send(command: EngineCommand) {
             sent += command.serialize(CoordMapper())
         }
