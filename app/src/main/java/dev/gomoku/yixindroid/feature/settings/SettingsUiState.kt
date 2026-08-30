@@ -18,7 +18,9 @@ data class SettingsUiState(
     /** The on-device engine's own limits — no line in either desktop file. */
     val localProfile: LocalEngineProfile = LocalEngineProfile(),
     /** True while the on-device engine is the chosen one (connection tab). */
-    val localMode: Boolean = false,
+    val localMode: Boolean = true,
+    /** Whether the server engine is offered at all; advanced switch turns it on. */
+    val serverEnabled: Boolean = false,
     /** Absolute path of the device's own `rapfi.db`; empty until resolved. */
     val localDbPath: String = "",
     /** Show every desktop setting, not just the everyday ones. */

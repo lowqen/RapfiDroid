@@ -30,7 +30,7 @@ class ConnectionViewModel @Inject constructor(
 
     private val host = MutableStateFlow(EngineEndpoint.DEFAULT_HOST)
     private val port = MutableStateFlow(EngineEndpoint.DEFAULT_PORT.toString())
-    private val localMode = MutableStateFlow(false)
+    private val localMode = MutableStateFlow(true)
     private val draft = MutableStateFlow("")
     private val consoleLines = MutableStateFlow(ConsoleBuffer())
 
@@ -39,13 +39,20 @@ class ConnectionViewModel @Inject constructor(
         val host: String,
         val port: String,
         val local: Boolean,
+        val serverEnabled: Boolean,
         val health: LinkHealth,
     )
 
     // combine takes five flows at most, so the endpoint fields, the chosen
     // engine and the link state travel together as one.
-    private val link = combine(host, port, localMode, repository.health) { h, p, local, health ->
-        Link(h, p, local, health)
+    private val link = combine(
+        host,
+        port,
+        localMode,
+        endpointStore.serverEnabled,
+        repository.health,
+    ) { h, p, local, serverEnabled, health ->
+        Link(h, p, local, serverEnabled, health)
     }
 
     val uiState: StateFlow<ConnectionUiState> =
@@ -60,6 +67,7 @@ class ConnectionViewModel @Inject constructor(
                 host = l.host,
                 port = l.port,
                 localMode = l.local,
+                serverEnabled = l.serverEnabled,
                 state = st,
                 health = l.health,
                 console = buffer.lines,
@@ -101,7 +109,11 @@ class ConnectionViewModel @Inject constructor(
             host = host.value.trim(),
             port = port.value.toIntOrNull() ?: EngineEndpoint.DEFAULT_PORT,
         )
-        val target = if (localMode.value) EngineTarget.Local else EngineTarget.Remote(endpoint)
+        // `localMode` already reflects the gate (the store forces it while the
+        // server engine is off), but reading the state rather than the field
+        // keeps the two from disagreeing if the switch flips mid-tap.
+        val local = localMode.value || !uiState.value.serverEnabled
+        val target = if (local) EngineTarget.Local else EngineTarget.Remote(endpoint)
         viewModelScope.launch {
             // The address is saved either way: choosing the on-device engine is
             // not a decision to forget the server.

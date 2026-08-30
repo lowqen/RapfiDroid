@@ -34,7 +34,7 @@ class SettingsViewModel @Inject constructor(
     private val fileIo: SettingsFileIo,
     private val debugLog: DebugLogWriter,
     private val localEngineStore: LocalEngineStore,
-    endpointStore: EndpointStore,
+    private val endpointStore: EndpointStore,
     localEngine: LocalEngineInstaller,
 ) : ViewModel() {
 
@@ -64,6 +64,9 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             endpointStore.localMode.collect { on -> _state.update { it.copy(localMode = on) } }
         }
+        viewModelScope.launch {
+            endpointStore.serverEnabled.collect { on -> _state.update { it.copy(serverEnabled = on) } }
+        }
         // Where the device's own database ends up. Worth showing: it is the one
         // file of this app's the user might want to pull off the phone, and it
         // is nowhere a file manager will stumble on it.
@@ -78,6 +81,15 @@ class SettingsViewModel @Inject constructor(
     fun onLocalHash(value: Int) = editLocal { it.copy(hashSizeMb = value) }
 
     fun onLocalDatabase(on: Boolean) = editLocal { it.copy(useDatabase = on) }
+
+    /**
+     * Offer the server engine, or stop offering it. Turning it off also points
+     * the app back at the on-device engine — the connection tab has no server
+     * chip to come back through once it is hidden.
+     */
+    fun onServerEnabled(on: Boolean) {
+        viewModelScope.launch { endpointStore.setServerEnabled(on) }
+    }
 
     /**
      * Saved rather than held: the repository watches the store, so a change

@@ -4,20 +4,23 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * The desktop's own numbers, sent unchanged to an engine running on the phone,
- * are not a preference problem — `INFO hash_size` becomes the searcher's memory
- * limit directly, and 8 GiB on a phone means the transposition table halves
- * until an allocation "succeeds" and the app is killed while filling it.
+ * Server-sized numbers, sent unchanged to an engine running on the phone, are
+ * not a preference problem — `INFO hash_size` becomes the searcher's memory
+ * limit directly, and the table then halves until an allocation "succeeds",
+ * after which the app is killed while filling it.
+ *
+ * 1024 MB is the app's own default and still far too much here; importing the
+ * deployed `settings.txt` brings back 8192.
  */
 class LocalEngineProfileTest {
 
-    /** What `settings.txt` produces: 4 threads, 8192 MB, database attached. */
+    /** The app's out-of-box engine parameters: 4 threads, 1024 MB, database attached. */
     private val desktop = EngineParams()
 
     @Test
-    fun `desktop defaults are exactly the ones that would kill a phone`() {
+    fun `the defaults are still more than a phone can hold`() {
         assertThat(desktop.threadNum).isEqualTo(4)
-        assertThat(desktop.hashSizeMb).isEqualTo(8192)
+        assertThat(desktop.hashSizeMb).isEqualTo(1024)
         assertThat(desktop.useDatabase).isTrue()
     }
 

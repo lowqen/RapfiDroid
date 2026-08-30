@@ -43,8 +43,8 @@ class AnalysisProtocolTest {
         assertThat(pairs.first().first).isEqualTo("rule") // sent before START
         assertThat(map["thread_num"]).isEqualTo("4")      // line 18
         assertThat(map["caution_factor"]).isEqualTo("3")  // line 11 (style)
-        // set_hashsize sends megabytes shifted into kilobytes: 8192 << 10
-        assertThat(map["hash_size"]).isEqualTo((8192L shl 10).toString())
+        // set_hashsize sends megabytes shifted into kilobytes: 1024 << 10
+        assertThat(map["hash_size"]).isEqualTo((1024L shl 10).toString())
         assertThat(map["pondering"]).isEqualTo("0")
         assertThat(map["vcthread"]).isEqualTo("0")
         // level 0 -> the predefined branch: unlimited nodes, board-sized depth

@@ -28,8 +28,16 @@ data class AppSettings(
     /** 3. rule as stored: 0 freestyle, 1 standard, 2 free renju, 3 swap-1,
      *     4 Yamaguchi/RIF, 5 Soosorv-8, 6 swap-2. See [engineRule]. */
     val rule: Int = 2,
-    /** 4. computer plays black. */
-    val computerBlack: Boolean = true,
+    /**
+     * 4. computer plays black.
+     *
+     * Off out of the box, unlike the desktop file. On the PC the engine opening
+     * as black is what you want from a program you launched to play against;
+     * here the first thing a new user does is tap the board, and having the
+     * engine move first reads as the app playing by itself. Importing
+     * `settings.txt` still restores whatever the PC had.
+     */
+    val computerBlack: Boolean = false,
     /** 5. computer plays white. */
     val computerWhite: Boolean = false,
     /** 6. 0 unlimited time, 1 custom, 2..12 predefined. */
@@ -58,8 +66,16 @@ data class AppSettings(
     val showWarning: Boolean = true,
     /** 18. engine threads. */
     val threadNum: Int = 4,
-    /** 19. hash size, **MB**. */
-    val hashSizeMb: Int = 8192,
+    /**
+     * 19. hash size, **MB**.
+     *
+     * 1024, not the deployed file's 8192. That number was chosen for a server
+     * with the memory to spare; as an out-of-box default it is a request most
+     * machines cannot honour, and Rapfi answers an impossible one by halving
+     * until something fits rather than by complaining. Importing `settings.txt`
+     * restores the PC's value — the file always wins over this.
+     */
+    val hashSizeMb: Int = 1024,
     /** 20. default multi-PV count (`yxnbest`). */
     val multiPv: Int = 3,
     /** 21. auto-reset blocked cells — desktop block feature (P10). */

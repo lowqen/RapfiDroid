@@ -28,7 +28,7 @@ import dev.gomoku.yixindroid.core.i18n.tr
  * exactly the person who might otherwise share them.
  */
 @Composable
-fun AboutDialog(onDismiss: () -> Unit) {
+fun AboutDialog(onDismiss: () -> Unit, onShowLicenses: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = { TextButton(onClick = onDismiss) { Text(tr("확인", "OK")) } },
@@ -52,11 +52,10 @@ fun AboutDialog(onDismiss: () -> Unit) {
             ) {
                 Section(
                     tr("이 앱은 무엇인가", "What this app is"),
-                    tr("PC용 Yixin-Board 분석 강화판을 안드로이드로 옮긴 것입니다. ", "An Android port of the analysis build of Yixin-Board for the PC.") +
-                        tr("엔진은 들어 있지 않습니다 — piskvork 프로토콜로 원격 Rapfi 에 접속하는 ", "There is no engine inside it: this is a client that speaks piskvork to a") +
-                        tr("클라이언트이고, PC의 engine.exe(투명 TCP 릴레이)가 하던 일을 ", "remote Rapfi, doing itself what engine.exe (a transparent TCP relay) does") +
-                        tr("앱이 직접 합니다. 그래서 서버가 꺼져 있으면 분석·데이터베이스 기능은 ", "on the PC. With the server down, analysis and the database are") +
-                        tr("쓸 수 없습니다.", "simply unavailable."),
+                    tr("PC용 Yixin-Board 분석 강화판을 안드로이드로 옮긴 것입니다. ", "An Android port of the analysis build of Yixin-Board for the PC. ") +
+                        tr("엔진(Rapfi)이 앱 안에 들어 있어 기기에서 그대로 돌아갑니다 — ", "The engine (Rapfi) is inside the app and runs on the device itself: ") +
+                        tr("인터넷도 서버도 필요 없습니다. 직접 운영하는 Rapfi 서버가 있다면 ", "no server and no internet. If you run a Rapfi server of your own, ") +
+                        tr("설정 ▸ 고급에서 «서버 엔진 사용»을 켜서 그쪽으로 붙일 수도 있습니다.", "settings ▸ advanced can point the app at it instead."),
                 )
                 Section(
                     tr("PC와 파일 주고받기", "Moving files to and from the PC"),
@@ -81,9 +80,21 @@ fun AboutDialog(onDismiss: () -> Unit) {
                 )
                 Section(
                     tr("데이터베이스에 쓸 때", "Writing to the database"),
-                    tr("국면 증명과 분석 결과는 서버의 공용 yixindb 에 기록됩니다. ", "Proofs and search results are written to the shared yixindb on the server.") +
+                    tr("국면 증명과 분석 결과는 데이터베이스에 기록됩니다 — 기기 내 엔진이면 ", "Proofs and search results are written to a database: the on-device engine keeps ") +
+                        tr("이 기기의 rapfi.db, 서버 엔진이면 서버의 공용 yixindb 입니다. ", "its own rapfi.db here, a server engine writes to the shared yixindb there. ") +
                         tr("지우는 명령은 기본적으로 잠겨 있고, 되돌릴 수 없습니다.", "The commands that delete are locked by default, and nothing can be undone."),
                 )
+                Section(
+                    tr("저작권 · 라이선스", "Copyright and licences"),
+                    tr("엔진은 Rapfi(dhbloo) — GPL-3.0 입니다. 이 앱을 남에게 전달하려면 ", "The engine is Rapfi (dhbloo), under GPL-3.0. Passing this app on means ") +
+                        tr("엔진의 대응 소스를 함께 제공해야 합니다(저장소 README 참고). ", "you must also make the engine's corresponding source available (see the repository README). ") +
+                        tr("GUI 는 Yixin-Board(© 2009-2017 Kai Sun, accreator / dhbloo 수정판)를 ", "The GUI is ported from Yixin-Board (© 2009-2017 Kai Sun, via accreator and dhbloo) ") +
+                        tr("이식한 것으로 BSD 2-Clause 이고, 신경망 가중치는 CC0 입니다. ", "under the BSD 2-Clause licence; the network weights are CC0. ") +
+                        tr("Yixin 엔진 자체는 이 앱에 들어 있지 않습니다.", "The Yixin engine itself is not part of this app."),
+                )
+                TextButton(onClick = onShowLicenses) {
+                    Text(tr("라이선스 전문 보기", "Read the licence texts"))
+                }
             }
         },
     )

@@ -152,8 +152,8 @@ class SettingsCodecTest {
         assertThat(params.timeoutMatchMs).isEqualTo(100_000_000)
         // line 29 is already milliseconds
         assertThat(AppSettings(incrementMs = 5_000).toEngineParams().incrementMs).isEqualTo(5_000)
-        // line 19 is MB; set_hashsize shifts to KB
-        assertThat(params.infoPairs().toMap()["hash_size"]).isEqualTo((8192L shl 10).toString())
+        // line 19 is MB; set_hashsize shifts to KB (app default 1024, not the file's 8192)
+        assertThat(params.infoPairs().toMap()["hash_size"]).isEqualTo((1024L shl 10).toString())
     }
 
     @Test

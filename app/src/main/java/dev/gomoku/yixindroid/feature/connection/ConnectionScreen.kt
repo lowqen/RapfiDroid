@@ -86,48 +86,62 @@ private fun ConnectionContent(
     // Where the engine is and whether it is answering. Every row here is a
     // fixed height.
     val endpointPane: @Composable ColumnScope.() -> Unit = {
-        // Which engine. The two are not the same tool: on-device is always
-        // there but holds a small hash and no database, the server is the deep
-        // one. Choosing is only allowed while nothing is connected — swapping
-        // engines mid-session would leave the board talking to the wrong one.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FilterChip(
-                selected = !ui.localMode,
-                onClick = { onLocalModeChange(false) },
-                enabled = ui.canConnect,
-                label = { Text(tr("서버", "Server")) },
-            )
-            FilterChip(
-                selected = ui.localMode,
-                onClick = { onLocalModeChange(true) },
-                enabled = ui.canConnect,
-                label = { Text(tr("기기 내 엔진", "On-device")) },
-            )
-        }
+        // Which engine — but only when there are two to choose from. The server
+        // needs a Tailscale node and a machine of one's own, so it is off until
+        // settings ▸ advanced turns it on; until then this tab is one button.
+        if (ui.serverEnabled) {
+            // The two are not the same tool: on-device is always there but holds
+            // a small hash and no database, the server is the deep one. Choosing
+            // is only allowed while nothing is connected — swapping engines
+            // mid-session would leave the board talking to the wrong one.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilterChip(
+                    selected = ui.localMode,
+                    onClick = { onLocalModeChange(true) },
+                    enabled = ui.canConnect,
+                    label = { Text(tr("기기 내 엔진", "On-device")) },
+                )
+                FilterChip(
+                    selected = !ui.localMode,
+                    onClick = { onLocalModeChange(false) },
+                    enabled = ui.canConnect,
+                    label = { Text(tr("서버", "Server")) },
+                )
+            }
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            OutlinedTextField(
-                value = ui.host,
-                onValueChange = onHostChange,
-                label = { Text(tr("서버 (Tailscale)", "Server (Tailscale)")) },
-                singleLine = true,
-                enabled = ui.canConnect && !ui.localMode,
-                modifier = Modifier.weight(1f),
-            )
-            OutlinedTextField(
-                value = ui.port,
-                onValueChange = onPortChange,
-                label = { Text(tr("포트", "Port")) },
-                singleLine = true,
-                enabled = ui.canConnect && !ui.localMode,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.width(96.dp),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = ui.host,
+                    onValueChange = onHostChange,
+                    label = { Text(tr("서버 (Tailscale)", "Server (Tailscale)")) },
+                    singleLine = true,
+                    enabled = ui.canConnect && !ui.localMode,
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedTextField(
+                    value = ui.port,
+                    onValueChange = onPortChange,
+                    label = { Text(tr("포트", "Port")) },
+                    singleLine = true,
+                    enabled = ui.canConnect && !ui.localMode,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.width(96.dp),
+                )
+            }
+        } else {
+            Text(
+                tr(
+                    "엔진은 이 기기 안에서 돌아갑니다 — 인터넷도 서버도 필요 없습니다.",
+                    "The engine runs inside this device: no server, no internet.",
+                ),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 

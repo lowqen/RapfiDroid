@@ -28,7 +28,8 @@ data class EngineParams(
     /** Style, rash 0 .. cautious 5 (settings.txt line 11). */
     val cautionFactor: Int = 3,
     val threadNum: Int = 4,
-    val hashSizeMb: Int = 8192,
+    /** Matches [AppSettings.hashSizeMb]: 1024, not the deployed file's 8192. */
+    val hashSizeMb: Int = 1024,
     val pondering: Int = 0,
     /** Additional threat check in global search: 0 none, 1 VCT, 2 VC2. */
     val vcThread: Int = 0,

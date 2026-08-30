@@ -90,6 +90,7 @@ fun SettingsScreen(
     // rememberSaveable, not remember: a rotation is exactly when losing an open
     // dialog or an expanded file list is most annoying.
     var showAbout by rememberSaveable { mutableStateOf(false) }
+    var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showFiles by rememberSaveable { mutableStateOf(false) }
 
     // One snackbar for the whole app (see [LocalSnackbarHostState]). This screen
@@ -185,6 +186,7 @@ fun SettingsScreen(
                         onThreads = viewModel::onLocalThreads,
                         onHash = viewModel::onLocalHash,
                         onDatabase = viewModel::onLocalDatabase,
+                        onServerEnabled = viewModel::onServerEnabled,
                     )
                     // 67 desktop settings do not fit one phone list. The everyday
                     // ones show by default; the rest are one switch away and
@@ -309,7 +311,13 @@ fun SettingsScreen(
     }
 
     if (showAbout) {
-        AboutDialog(onDismiss = { showAbout = false })
+        AboutDialog(
+            onDismiss = { showAbout = false },
+            onShowLicenses = { showAbout = false; showLicenses = true },
+        )
+    }
+    if (showLicenses) {
+        LicensesDialog(onDismiss = { showLicenses = false })
     }
 }
 
@@ -329,6 +337,7 @@ private fun LocalEngineCard(
     onThreads: (Int) -> Unit,
     onHash: (Int) -> Unit,
     onDatabase: (Boolean) -> Unit,
+    onServerEnabled: (Boolean) -> Unit,
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(
@@ -423,6 +432,31 @@ private fun LocalEngineCard(
                     style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+            }
+
+            // Behind the advanced switch, because it is not a setting so much as
+            // a second installation: a Tailscale node, a machine to run Rapfi on
+            // and an address only its owner knows. Left visible while it is on,
+            // so nobody has to find the advanced switch again to turn it off.
+            if (ui.advanced || ui.serverEnabled) {
+                HorizontalDivider()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            tr("서버 엔진 사용", "Use a server engine"),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        Text(
+                            tr(
+                                "직접 운영하는 Rapfi 서버에 연결합니다 (Tailscale 필요). 켜면 연결 탭에서 서버·기기를 고를 수 있습니다.",
+                                "Connects to a Rapfi server you run yourself (needs Tailscale). Turning it on puts the choice on the connection tab.",
+                            ),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
+                }
             }
         }
     }

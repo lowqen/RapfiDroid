@@ -10,7 +10,9 @@ data class ConnectionUiState(
     val host: String = EngineEndpoint.DEFAULT_HOST,
     val port: String = EngineEndpoint.DEFAULT_PORT.toString(),
     /** True while the on-device engine is chosen; the address fields go quiet. */
-    val localMode: Boolean = false,
+    val localMode: Boolean = true,
+    /** Whether the server engine is offered at all (settings ▸ advanced). */
+    val serverEnabled: Boolean = false,
     val state: ConnectionState = ConnectionState.Disconnected,
     /** Drop / reconnect status; [LinkHealth.idle] while nothing is wrong. */
     val health: LinkHealth = LinkHealth(),
