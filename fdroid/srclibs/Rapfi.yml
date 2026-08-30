@@ -1,0 +1,7 @@
+# fdroiddata 의 srclibs/Rapfi.yml 로 들어간다.
+# 엔진(GPL-3.0-or-later)의 소스. 안드로이드 크로스 컴파일 패치가 android
+# 브랜치에 있고, 그 패치는 Rapfi/CMakeLists.txt 한 파일뿐이다 —
+# ① 실행 파일 이름을 lib*.so 로(안드로이드는 nativeLibraryDir 에서 추출된
+#    lib*.so 만 exec 할 수 있다), ② bionic 에는 libpthread 가 따로 없다.
+RepoType: git
+Repo: https://github.com/lowqen/rapfi.git

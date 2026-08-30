@@ -1,0 +1,78 @@
+Categories:
+  - Games
+# 앱 자체 소스는 BSD-2-Clause 지만, 패키지에는 Rapfi 엔진(GPL-3.0-or-later)이
+# 함께 들어간다. 배포를 구속하는 쪽을 적는다 — 받는 사람에게 정직한 값이다.
+License: GPL-3.0-or-later
+AuthorName: lowqen
+SourceCode: https://github.com/lowqen/RapfiDroid
+IssueTracker: https://github.com/lowqen/RapfiDroid/issues
+Changelog: https://github.com/lowqen/RapfiDroid/releases
+
+AutoName: RapfiDroid
+Summary: Gomoku and renju board with the engine running on your device
+
+Description: |-
+    A gomoku and renju board with the Rapfi engine running on the device
+    itself — no server and no internet. Play against it, analyse a position,
+    see the principal variation and the evaluation bar, and let it mark renju
+    forbidden points, all offline.
+
+    * On-device engine (arm64 only), with the neural network weights bundled,
+      so nothing is downloaded on first run.
+    * A position database the engine builds on your phone and keeps between
+      sessions.
+    * Opening explorer: 249 named openings for the first four moves and an
+      11-grade evaluation of Black's fifth move.
+    * Game review, board image export, game record import and export, and the
+      67 settings of the desktop Yixin-Board interface.
+    * An optional server mode for a remote Rapfi with a large database. It is
+      off by default and behind an advanced switch; nothing here talks to the
+      network unless you turn it on.
+
+    Real-game statistics are optional and are built on the device from a
+    RenjuNet database you download yourself — that data is never bundled and
+    never transmitted, because its licence forbids redistributing it.
+
+    The engine is Rapfi (GPL-3.0-or-later); its exact source is at
+    https://github.com/lowqen/rapfi (branch android). The interface is a port
+    of Yixin-Board (BSD-2-Clause, (c) 2009-2017 Kai Sun). The network weights
+    and the opening evaluations are CC0 1.0.
+
+RepoType: git
+Repo: https://github.com/lowqen/RapfiDroid.git
+
+Builds:
+  - versionName: 0.14.0
+    versionCode: 14
+    commit: v0.14.0
+    subdir: app
+    gradle:
+      - yes
+    ndk: r27c
+    # The repo carries a prebuilt engine so that a plain `git clone && gradlew`
+    # works for contributors. F-Droid must not trust it — delete it and build
+    # the same commit of the engine from source.
+    rm:
+      - app/src/main/jniLibs/arm64-v8a/libengine.so
+    srclibs:
+      - Rapfi@8d16fc2cee9cfdec7ac007b24a7325c221aecb86
+    build:
+      - cmake -S $$Rapfi$$/Rapfi -B ../build-engine
+        -DCMAKE_TOOLCHAIN_FILE=$$NDK$$/build/cmake/android.toolchain.cmake
+        -DANDROID_ABI=arm64-v8a
+        -DANDROID_PLATFORM=android-26
+        -DANDROID_STL=c++_static
+        -DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON
+        -DCMAKE_BUILD_TYPE=Release
+        -DUSE_NEON=ON
+        -DUSE_NEON_DOTPROD=OFF
+        -DNO_COMMAND_MODULES=ON
+        -DENABLE_LTO=ON
+      - cmake --build ../build-engine -j $(nproc)
+      - mkdir -p src/main/jniLibs/arm64-v8a
+      - cp ../build-engine/libengine.so src/main/jniLibs/arm64-v8a/libengine.so
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 0.14.0
+CurrentVersionCode: 14

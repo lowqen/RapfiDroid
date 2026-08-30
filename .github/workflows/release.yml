@@ -1,0 +1,115 @@
+name: Release APK
+
+# Pushing a tag is the whole trigger: `git tag -a v0.14.0 -m … && git push origin v0.14.0`.
+# Nothing here can run by accident on a branch push, and the release is created
+# from the tagged tree, so what people download is what the tag says it is.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create the release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - run: chmod +x gradlew
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      # The signing key is the user's and lives only in secrets. An unsigned
+      # release APK will not install, so a missing key is a hard stop with a
+      # message that says what to do rather than a silently useless artifact.
+      - name: Restore signing keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE }}
+          STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::error::SIGNING_KEYSTORE 시크릿이 없습니다. docs/publishing.md §1 참고."
+            exit 1
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          cat > keystore.properties <<PROPS
+          storeFile=$RUNNER_TEMP/release.jks
+          storePassword=$STORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          PROPS
+
+      - name: Assemble release APK
+        run: ./gradlew assembleRelease --stacktrace
+
+      # `keystore.properties` names the key's password. It is written into the
+      # workspace because that is where the build script looks for it, so it is
+      # deleted the moment the build no longer needs it — an artifact upload or
+      # a later step must not be able to carry it out of the runner.
+      - name: Shred the key material
+        if: always()
+        run: rm -f keystore.properties "$RUNNER_TEMP/release.jks"
+
+      # RenjuNet's licence forbids its data, or anything derived from it, in any
+      # website or online system. A GitHub release is exactly that. The packs are
+      # gitignored and built on the device, so this should never fire — which is
+      # the point: the check costs a second and catches the day someone commits
+      # one "just to test".
+      - name: Gate — no RenjuNet-derived data in the APK
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk)
+          echo "checking $APK"
+          if unzip -l "$APK" | grep -iE "renju_(stats|games)|freq_data|\.rif$"; then
+            echo "::error::APK 에 RenjuNet 파생물이 들어 있습니다 — 배포 중단."
+            exit 1
+          fi
+          echo "OK — RenjuNet 파생물 없음"
+
+      # A release without the engine is an app that cannot play. It has happened
+      # to other projects that a packaging flag quietly dropped a native library,
+      # and the only symptom is at runtime on a user's phone.
+      - name: Gate — the on-device engine is present and executable-shaped
+        run: |
+          APK=$(ls app/build/outputs/apk/release/*.apk)
+          unzip -l "$APK" | grep "lib/arm64-v8a/libengine.so" \
+            || { echo "::error::libengine.so 가 APK 에 없습니다."; exit 1; }
+          # useLegacyPackaging keeps it stored deflated so the package manager
+          # extracts it to nativeLibraryDir; uncompressed means nothing is
+          # extracted and there is no path to exec.
+          unzip -v "$APK" | grep "lib/arm64-v8a/libengine.so" | grep -q "Defl" \
+            || { echo "::error::libengine.so 가 압축되지 않았습니다 — useLegacyPackaging 확인."; exit 1; }
+          echo "OK — 엔진 동봉 확인"
+
+      - name: Name the artifact after the tag
+        id: name
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          mv app/build/outputs/apk/release/app-release.apk "RapfiDroid-$VERSION.apk"
+
+      # `gh` is preinstalled on the runner. Using it instead of a third-party
+      # action keeps the step that handles a signed artifact free of any
+      # dependency we do not control.
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.name.outputs.version }}
+        run: |
+          NOTES="docs/release-notes-$VERSION.md"
+          test -f "$NOTES" || { echo "::error::$NOTES 가 없습니다."; exit 1; }
+          gh release create "$GITHUB_REF_NAME" "RapfiDroid-$VERSION.apk" --title "RapfiDroid $GITHUB_REF_NAME" --notes-file "$NOTES"
