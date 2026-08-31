@@ -34,6 +34,10 @@ rm -rf rapfi
 git clone https://github.com/dhbloo/rapfi.git
 cd rapfi
 git checkout -q -b android
+# 패치하기 **전** 커밋을 잡아 둔다. 아래에서 로컬 패치 커밋을 만든 뒤 rev-parse HEAD 를
+# 찍으면 그건 dhbloo/rapfi 에 없는 커밋이라, ENGINE_VERSION.txt 의 upstream 필드가
+# 사실과 달라진다(RapfiWeb W0 스파이크에서 이 값으로 클론하려다 발견했다).
+UPSTREAM_COMMIT="$(git rev-parse HEAD)"
 git submodule update --init --depth 1 Networks
 
 echo ">>> [4/7] Android 호환 패치 (실패하면 여기서 멈춘다)"
@@ -169,7 +173,8 @@ cp "$HOME/rapfi/Rapfi/build-dotprod/libengine.so" "$OUT/bench/libengine_dotprod.
 
 cat > "$OUT/jniLibs/ENGINE_VERSION.txt" <<EOF
 engine     : Rapfi on-device (arm64-v8a)
-upstream   : $(git -C "$HOME/rapfi" rev-parse HEAD)
+upstream   : $UPSTREAM_COMMIT  (dhbloo/rapfi, 패치 전)
+patched    : $(git -C "$HOME/rapfi" rev-parse HEAD)  (= 위 커밋 + 안드로이드 빌드 패치. 이 저장소 밖에는 없다)
 networks   : $(git -C "$HOME/rapfi/Networks" rev-parse HEAD)
 ndk        : r27c
 abi        : arm64-v8a / android-26 / c++_static / 16KB-page ready
