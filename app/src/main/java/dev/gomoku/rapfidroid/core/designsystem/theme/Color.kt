@@ -48,9 +48,20 @@ val Sage = TonalRamp(hue = 148f, chroma = 0.060f)
  * The board gold's family, used for the wood and for "attention, not error".
  *
  * The hue and chroma are chosen so that tone 76 lands on the desktop's own
- * board (`#DCB35C` → `#DAB673`) and tone 42 on its grid (`#7A5A2B` →
- * `#7B5E22`). The board a Yixin user has looked at for years is not something
- * to redesign by accident; it is reproduced, and only then derived from.
+ * board: `#DCB35C` → `#DAB673`. The board a Yixin user has looked at for years
+ * is not something to redesign by accident; it is reproduced, and only then
+ * derived from.
+ *
+ * The grid follows from that choice rather than driving it: tone 42 comes out
+ * `#7E5D14` against the desktop's `#7A5A2B`. This line used to claim `#7B5E22`,
+ * which the ramp has never produced — the chroma was tuned for tone 76 and the
+ * grid value was not recomputed afterwards. Dumped and confirmed while porting
+ * the palette to the web (RapfiWeb `tools/tone-dump/ToneDump.java`,
+ * `docs/design-token-reconciliation.md`).
+ *
+ * **Only the comment was wrong, so only the comment changed.** Editing the
+ * chroma to chase the old number would repaint the grid of every board already
+ * shipped.
  */
 val Clay = TonalRamp(hue = 82f, chroma = 0.095f)
 
