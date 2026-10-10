@@ -18,7 +18,6 @@
 | **Rapfi 엔진** `jniLibs/arm64-v8a/libengine.so` | [dhbloo/rapfi](https://github.com/dhbloo/rapfi) | **GPL-3.0-or-later** | 라이선스 전문 동봉 + **대응 소스 제공** (§3) |
 | **NNUE 가중치** `assets/engine/*.bin.lz4`, `model220723.bin` | [dhbloo/rapfi-networks](https://github.com/dhbloo/rapfi-networks) | **CC0 1.0** (공유 저작물) | 없음 (출처 표기는 예의) |
 | **엔진 설정 템플릿** `assets/engine/config.toml` | Rapfi 배포본의 설정 예시에서 파생 | GPL-3.0 (Rapfi 일부로 취급) | §3 과 함께 |
-| **흑 5수 유불리 등급** `assets/opening_evals.txt` | Renju Atlas | **CC0 1.0** | 없음 |
 | **오프닝 명칭 표** `assets/opening_names.txt` | 이 프로젝트에서 작성 | BSD 2-Clause (이 앱과 동일) | — |
 | **리포트 템플릿** `assets/report_*.html` | 이 프로젝트에서 작성 | BSD 2-Clause | — |
 | AndroidX · Jetpack Compose · Kotlin · Hilt/Dagger · kotlinx-coroutines · kotlinx-serialization | Google / JetBrains | **Apache-2.0** | 고지 (본 파일) |

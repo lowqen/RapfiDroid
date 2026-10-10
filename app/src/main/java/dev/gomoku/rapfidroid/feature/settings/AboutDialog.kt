@@ -78,8 +78,7 @@ fun AboutDialog(
                 Section(
                     tr("오프닝 이름 · 흑 5수 유불리", "Opening names and 5th-move grades"),
                     tr("1~3수 이름은 계산이고, 4수 이름은 사용자가 채운 표입니다. ", "Names for moves 1-3 are computed; the 4th-move names are a table the user filled in.") +
-                        tr("흑 5수 유불리 11등급은 Renju Atlas(렌주 아틀라스)의 자료를 ", "The eleven 5th-move grades come from Renju Atlas, used under") +
-                        tr("CC0 1.0 로 가져와 씁니다 — 공개 자료라 앱에 함께 넣었습니다. ", "CC0 1.0: a public domain dedication, so they ship with the app.") +
+                        tr("흑 5수 유불리 11등급은 앱에 함께 넣은 표입니다. ", "The eleven 5th-move grades are a table that ships with the app. ") +
                         tr("표시가 없는 국면은 «값이 없는 것»이지 «호각»이 아닙니다.", "A position with no mark has no value recorded — that is not the same as balanced."),
                 )
                 Section(

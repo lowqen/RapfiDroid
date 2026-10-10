@@ -8,7 +8,7 @@ import org.junit.Test
 /**
  * The app axis of the 흑 5수 유불리 table.
  *
- * `rifdb/atlas_import.py` writes `openeval_golden.txt`: every representative
+ * The `rifdb/` generator writes `openeval_golden.txt`: every representative
  * line of `opening_evals.txt` **plus every other legal move order that reaches
  * the same stones**, each with the grade the file gives it. That second half is
  * the point — the whole design rests on transpositions folding into one row, so
@@ -19,7 +19,7 @@ import org.junit.Test
  * valid one from the golden's representatives and parse *that*. What is under
  * test is this module's key and parser, and both see the real data shape.
  *
- * Regenerate with `python rifdb/atlas_import.py`.
+ * Regenerate it with the grade generator in `rifdb/`.
  */
 class OpeningEvalTest {
 
@@ -30,7 +30,7 @@ class OpeningEvalTest {
     private val golden: List<Row> by lazy {
         val stream = checkNotNull(
             javaClass.classLoader?.getResourceAsStream("openeval_golden.txt")
-        ) { "openeval_golden.txt is missing — run `python rifdb/atlas_import.py`" }
+        ) { "openeval_golden.txt is missing — run the grade generator in rifdb/" }
         stream.bufferedReader().useLines { lines ->
             lines.filterNot { it.startsWith("#") || it.isBlank() }.map { line ->
                 val f = line.split('\t')
@@ -200,7 +200,7 @@ class OpeningEvalTest {
      * 환원 — the third axis of the transposition enumerator, after
      * `openname.h on_transpositions` and `rifkey.transpositions`.
      *
-     * The golden is the perfect oracle here: `atlas_import.py` builds it *by*
+     * The golden is the perfect oracle here: the generator builds it *by*
      * enumerating transpositions, so the lines sharing a [PosKey] are exactly
      * what this function must return for any one of them. If the Kotlin port
      * over- or under-counts, the two sets stop matching.

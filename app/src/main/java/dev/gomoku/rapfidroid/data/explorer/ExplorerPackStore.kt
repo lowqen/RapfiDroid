@@ -73,11 +73,9 @@ class ExplorerPackStore @Inject constructor(
     /**
      * Read the two opening tables into [OpeningTables].
      *
-     * Both ship in assets. `opening_names.txt` is the user's own work;
-     * `opening_evals.txt` comes from Renju Atlas under **CC0 1.0**, a public
-     * domain dedication, so bundling and redistributing it is unencumbered —
-     * unlike the RenjuNet packs above, which is why only those are imported.
-     * The source is credited in the file header and the about box.
+     * Both ship in assets. `opening_names.txt` is the user's own work, and
+     * `opening_evals.txt` may be bundled and redistributed as well — unlike the
+     * RenjuNet packs above, which is why only those are imported.
      *
      * An imported copy of either still wins over the bundled one, which is what
      * lets a user refresh a table without waiting for a new build.
