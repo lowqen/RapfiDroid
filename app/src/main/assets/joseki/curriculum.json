@@ -1,0 +1,208 @@
+{
+  "format": "rapfiweb-curriculum",
+  "schema": 1,
+  "version": "2026.10.11-sample",
+  "courses": [
+    {
+      "id": "renju-opening-basics",
+      "title": { "ko": "렌주 개시 첫걸음 (예시)", "en": "Renju opening basics (sample)" },
+      "level": "beginner",
+      "summary": {
+        "ko": "첫 세 수의 개시 규칙과 직접 · 간접 개시, 대표 주형을 따라 두며 익힙니다. 이 코스는 커리큘럼 기능을 보여 주는 **예시**입니다. 깊은 정석 해설은 관리자가 채웁니다.",
+        "en": "Learn the opening rules for the first three moves, direct and indirect openings, and two well known shapes by playing them. This course is a **sample** that shows the curriculum feature; in depth commentary is added by the maintainer."
+      },
+      "lessons": [
+        {
+          "id": "first-three-moves",
+          "title": { "ko": "첫 세 수의 규칙", "en": "Rules of the first three moves" },
+          "summary": {
+            "ko": "흑이 되어 1수와 3수를 둡니다.",
+            "en": "Play Black's first and third moves."
+          },
+          "quiz": { "side": "black" },
+          "root": {
+            "move": null,
+            "comment": {
+              "ko": "렌주의 첫 세 수는 **개시 규칙**을 따릅니다.\n\n- 1수(흑): 천원 h8\n- 2수(백): 천원 둘레 3×3 안\n- 3수(흑): 천원 둘레 5×5 안\n\n흑이 되어 첫 수를 두어 보세요.",
+              "en": "The first three moves of renju follow the **opening rule**.\n\n- Move 1 (Black): the center, h8\n- Move 2 (White): inside the 3×3 square around the center\n- Move 3 (Black): inside the 5×5 square around the center\n\nPlay Black's first move."
+            },
+            "children": [
+              {
+                "move": { "x": 7, "y": 7 },
+                "mark": "!",
+                "comment": {
+                  "ko": "천원 h8. 렌주의 첫 수는 판의 한가운데입니다.",
+                  "en": "The center, h8. The first move of renju is always the middle of the board."
+                },
+                "children": [
+                  {
+                    "move": { "x": 7, "y": 6 },
+                    "comment": {
+                      "ko": "백이 천원에 가로 · 세로로 붙였습니다(h9): **직접 개시**. 이제 흑의 3수입니다.",
+                      "en": "White touches the center orthogonally (h9): a **direct opening**. Now Black plays move 3."
+                    },
+                    "children": [
+                      {
+                        "move": { "x": 6, "y": 6 },
+                        "comment": {
+                          "ko": "흑 3수 g9: 26주형의 **화월**(D4, Kagetsu)입니다.",
+                          "en": "Black's third move g9 makes **Kagetsu** (D4), one of the 26 canonical openings."
+                        },
+                        "children": []
+                      },
+                      {
+                        "move": { "x": 7, "y": 5 },
+                        "mark": "!?",
+                        "comment": {
+                          "ko": "h10 도 규칙 안의 3수입니다: **한성**(D1, Kansei).",
+                          "en": "h10 is also a legal third move: **Kansei** (D1)."
+                        },
+                        "children": []
+                      },
+                      {
+                        "move": { "x": 11, "y": 3 },
+                        "mark": "??",
+                        "comment": {
+                          "ko": "3수는 천원 둘레 5×5 안에 둡니다. l12 는 그 밖이라 개시 규칙에 어긋납니다.",
+                          "en": "Move 3 must be inside the 5×5 square around the center. l12 is outside it, so it breaks the opening rule."
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "move": { "x": 0, "y": 14 },
+                "mark": "??",
+                "comment": {
+                  "ko": "1수는 천원 h8 에 둡니다. a1 은 개시 규칙에 어긋납니다.",
+                  "en": "Move 1 goes on the center, h8. a1 breaks the opening rule."
+                },
+                "children": []
+              }
+            ]
+          }
+        },
+        {
+          "id": "direct-and-indirect",
+          "title": { "ko": "직접 개시와 간접 개시", "en": "Direct and indirect openings" },
+          "summary": { "ko": "백이 되어 2수를 둡니다.", "en": "Play White's second move." },
+          "quiz": { "side": "white" },
+          "root": {
+            "move": null,
+            "comment": {
+              "ko": "백의 2수가 천원에 **가로 · 세로로** 붙으면 직접 개시, **대각선으로** 붙으면 간접 개시입니다. 백이 되어 2수를 두어 보세요.",
+              "en": "If White's second move touches the center **orthogonally** it is a direct opening; **diagonally**, an indirect opening. Play White's second move."
+            },
+            "children": [
+              {
+                "move": { "x": 7, "y": 7 },
+                "comment": {
+                  "ko": "흑이 천원 h8 에 두었습니다. 백의 차례입니다.",
+                  "en": "Black has played the center, h8. White to move."
+                },
+                "children": [
+                  {
+                    "move": { "x": 7, "y": 6 },
+                    "comment": {
+                      "ko": "h9: 천원에 세로로 붙은 **직접 개시**.",
+                      "en": "h9: touching the center vertically, a **direct opening**."
+                    },
+                    "children": [
+                      {
+                        "move": { "x": 6, "y": 6 },
+                        "comment": {
+                          "ko": "흑 3수 g9 로 **화월**(D4)이 되었습니다.",
+                          "en": "Black's g9 makes **Kagetsu** (D4)."
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "move": { "x": 8, "y": 6 },
+                    "mark": "!",
+                    "comment": {
+                      "ko": "i9: 천원에 대각선으로 붙은 **간접 개시**. 이것도 좋은 2수입니다.",
+                      "en": "i9: touching the center diagonally, an **indirect opening**. This is also a good second move."
+                    },
+                    "children": [
+                      {
+                        "move": { "x": 6, "y": 6 },
+                        "comment": {
+                          "ko": "흑 3수 g9 로 **포월**(I7, Hogetsu)이 되었습니다.",
+                          "en": "Black's g9 makes **Hogetsu** (I7)."
+                        },
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "move": { "x": 7, "y": 4 },
+                    "mark": "??",
+                    "comment": {
+                      "ko": "2수는 천원 둘레 3×3 안에 둡니다. h11 은 그 밖입니다.",
+                      "en": "Move 2 must be inside the 3×3 square around the center. h11 is outside it."
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "hogetsu-shape",
+          "title": { "ko": "간접 개시: 포월", "en": "Indirect opening: Hogetsu" },
+          "summary": {
+            "ko": "흑이 되어 포월(I7)을 만듭니다.",
+            "en": "Play Black and build Hogetsu (I7)."
+          },
+          "quiz": { "side": "black" },
+          "root": {
+            "move": null,
+            "comment": {
+              "ko": "흑이 되어 간접 개시의 **포월**(I7)을 만들어 봅니다.",
+              "en": "Play Black and build **Hogetsu** (I7), an indirect opening."
+            },
+            "children": [
+              {
+                "move": { "x": 7, "y": 7 },
+                "comment": { "ko": "천원 h8.", "en": "The center, h8." },
+                "children": [
+                  {
+                    "move": { "x": 8, "y": 6 },
+                    "comment": {
+                      "ko": "백 i9: 간접 개시입니다. 흑의 3수로 포월을 만드세요.",
+                      "en": "White i9: an indirect opening. Make Hogetsu with Black's third move."
+                    },
+                    "children": [
+                      {
+                        "move": { "x": 6, "y": 6 },
+                        "comment": {
+                          "ko": "g9: **포월**(I7, Hogetsu)입니다.",
+                          "en": "g9: **Hogetsu** (I7)."
+                        },
+                        "children": []
+                      },
+                      {
+                        "move": { "x": 12, "y": 2 },
+                        "mark": "??",
+                        "comment": {
+                          "ko": "3수는 천원 둘레 5×5 안에 둡니다. m13 은 그 밖입니다.",
+                          "en": "Move 3 must be inside the 5×5 square around the center. m13 is outside it."
+                        },
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
