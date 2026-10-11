@@ -634,4 +634,37 @@ class GameRepositoryTest {
             assertEquals(listOf("H8"), h.labels())
         }
     }
+
+    // ---- the engine's board can go stale ------------------------------------
+
+    @Test
+    fun `back to the start, the next turn sends the whole board`() = gameTest { h ->
+        h.game.tap(h8)
+        runCurrent()
+        h.receive("6,8")
+        runCurrent()
+        h.game.toStart()
+        runCurrent()
+        h.engine.sent.clear()
+        h.game.tap(h8)
+        runCurrent()
+        assertTrue(h.engine.sent.contains("START 15"))
+        assertTrue(h.engine.sent.none { it.startsWith("TURN") })
+    }
+
+    @Test
+    fun `a refused TURN is retried with the whole board`() = gameTest { h ->
+        h.game.tap(h8)
+        runCurrent()
+        h.receive("6,8")
+        runCurrent()
+        h.game.tap(g7)
+        runCurrent()
+        assertTrue(h.engine.sent.last().startsWith("TURN"))
+        h.engine.sent.clear()
+        h.receive("ERROR Coord is not valid or empty.")
+        runCurrent()
+        assertTrue(h.engine.sent.any { it.startsWith("BOARD") })
+        assertTrue(h.game.state.value.thinking)
+    }
 }

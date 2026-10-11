@@ -201,8 +201,8 @@ private fun BarButton(
  * (`M5` for a mate). Only the fill moves (200 ms); numbers are never animated.
  * A database value says «DB» under it.
  *
- * Narrow ([compact]) it is a plain strip with no numbers — a phone in portrait
- * cannot spare the width.
+ * Narrow ([compact], a phone in portrait) it is a little slimmer and shows only
+ * the leading side's number.
  */
 @Composable
 internal fun VerticalEvalBar(eval: EvalView?, modifier: Modifier = Modifier, compact: Boolean = false) {
@@ -234,7 +234,7 @@ internal fun VerticalEvalBar(eval: EvalView?, modifier: Modifier = Modifier, com
                     .align(Alignment.Center)
                     .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
             )
-            if (!compact && main.isNotEmpty()) {
+            if (main.isNotEmpty()) {
                 val blackLeads = black >= 50f
                 Column(
                     Modifier
@@ -243,8 +243,8 @@ internal fun VerticalEvalBar(eval: EvalView?, modifier: Modifier = Modifier, com
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     val ink = if (blackLeads) skin.whiteHigh else skin.blackLow
-                    Text(main, color = ink, fontSize = 10.sp, maxLines = 1, style = MaterialTheme.typography.labelSmall.tabular(), overflow = TextOverflow.Clip)
-                    sub?.let { Text(it, color = ink.copy(alpha = 0.8f), fontSize = 9.sp, maxLines = 1, style = MaterialTheme.typography.labelSmall.tabular()) }
+                    Text(main, color = ink, fontSize = if (compact) 9.sp else 11.sp, maxLines = 1, style = MaterialTheme.typography.labelSmall.tabular(), overflow = TextOverflow.Clip)
+                    if (!compact) sub?.let { Text(it, color = ink.copy(alpha = 0.8f), fontSize = 9.sp, maxLines = 1, style = MaterialTheme.typography.labelSmall.tabular()) }
                 }
             }
         }
@@ -271,4 +271,4 @@ private fun describe(v: EvalView?): String {
 }
 
 /** Width of the eval bar beside the board. */
-internal fun evalBarWidth(compact: Boolean): Dp = if (compact) 8.dp else 26.dp
+internal fun evalBarWidth(compact: Boolean): Dp = if (compact) 20.dp else 30.dp

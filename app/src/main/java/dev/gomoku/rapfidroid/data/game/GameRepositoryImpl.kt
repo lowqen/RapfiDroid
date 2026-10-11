@@ -368,8 +368,10 @@ class GameRepositoryImpl @Inject constructor(
             )
         }
         if (pushWholeBoard || lastMove == null) {
+            lastTurnWasSingle = false
             pushBoard(think = true)
         } else {
+            lastTurnWasSingle = true
             engine.send(EngineCommand.Turn(lastMove))
         }
     }
@@ -399,8 +401,18 @@ class GameRepositoryImpl @Inject constructor(
         )
     }
 
+    /** The last engine turn went out as a single `TURN` rather than the whole board. */
+    private var lastTurnWasSingle = false
+
     private suspend fun onResponse(response: EngineResponse) {
         when (response) {
+            // `TURN x,y` on a board the engine no longer shares with us is refused
+            // ("Coord is not valid or empty") and no move ever comes: the game
+            // would hang on «thinking». Send the whole board once instead.
+            is EngineResponse.Error -> if (_state.value.thinking && lastTurnWasSingle) {
+                lastTurnWasSingle = false
+                pushBoard(think = true)
+            }
             is EngineResponse.BestMove -> if (_state.value.thinking) onEngineMoves(response.moves)
             is EngineResponse.OpeningMove -> onOpeningMove(response)
             is EngineResponse.OpeningSwap -> onOpeningSwap(response)
@@ -718,6 +730,8 @@ class GameRepositoryImpl @Inject constructor(
         if (played.size == pos.moves.size) return
         _position.value = pos.copy(moves = played)
         _future.value = tail
+        // The engine still holds the old line: its next turn gets the whole board.
+        _state.update { it.copy(needsRestart = true) }
         afterPositionChange()
     }
 
@@ -762,7 +776,9 @@ class GameRepositoryImpl @Inject constructor(
         _mode.value = mode
         _position.value = next.position
         _future.value = next.future
-        _state.value = next.state
+        // Analysis, database queries and forbidden checks all put their own
+        // board into the engine; the game's next turn must send its own.
+        _state.value = next.state.copy(needsRestart = true)
         _gameName.value = next.name
         refreshForbidden()
         persist()
@@ -869,6 +885,7 @@ class GameRepositoryImpl @Inject constructor(
         if (_state.value.thinking) stopThinking()
         _position.value = _position.value.copy(moves = moves)
         _future.value = emptyList()
+        _state.update { it.copy(needsRestart = true) }
         afterPositionChange()
     }
 

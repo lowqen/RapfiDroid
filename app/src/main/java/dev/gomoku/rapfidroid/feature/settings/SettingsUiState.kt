@@ -48,7 +48,9 @@ data class SettingsUiState(
         DesktopSettings.ALL.filter { spec ->
             // A search looks through everything: hiding a setting the user
             // is explicitly asking for by name would be worse than a long list.
-            (advanced || q.isNotEmpty() || DesktopSettings.isEveryday(spec.id)) &&
+            // RapfiWeb: the desktop entries are the advanced layer; the common
+            // ones live in their own card above.
+            (advanced || q.isNotEmpty()) &&
                 (category == null || spec.category == category) &&
                 (
                     q.isEmpty() ||
@@ -65,9 +67,7 @@ data class SettingsUiState(
     /** How many entries the advanced switch would add right now. */
     val hidden: Int
         get() = if (advanced || query.isNotBlank()) 0 else
-            DesktopSettings.ALL.count {
-                !DesktopSettings.isEveryday(it.id) && (category == null || it.category == category)
-            }
+            DesktopSettings.ALL.count { category == null || it.category == category }
 
     /**
      * What the on-device engine uses **instead of** this desktop value, or null

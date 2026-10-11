@@ -238,11 +238,12 @@ fun BoardScreen(
                 }
             } else {
                 val showBar = ui.showEvalBar && ui.analysisTab
-                val bar = if (showBar) evalBarWidth(compact = true) + 4.dp else 0.dp
+                // A 4dp gutter left of the bar, so it does not touch the screen edge.
+                val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
                 val side = maxWidth - bar
                 val wideCards = maxWidth >= 600.dp
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    BoardWithBar(ui, showBar, compact = true, side = side, board = board)
+                    BoardWithBar(ui, showBar, compact = true, side = side, board = board, modifier = Modifier.padding(start = if (showBar) 4.dp else 0.dp))
                     transport()
                     Column(
                         Modifier.padding(horizontal = 12.dp).padding(bottom = 16.dp),
@@ -348,8 +349,9 @@ private fun BoardWithBar(
     compact: Boolean,
     side: Dp,
     board: @Composable (Modifier) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
         if (showBar) {
             VerticalEvalBar(
                 ui.eval,
