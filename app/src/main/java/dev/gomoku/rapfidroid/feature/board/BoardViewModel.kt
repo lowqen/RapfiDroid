@@ -378,17 +378,6 @@ class BoardViewModel @Inject constructor(
             _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move")
             return
         }
-        val pos = position.value
-        if (pos.moves.isEmpty()) {
-            // The empty board has one answer, and Rapfi gives it without a search
-            // (it replies `7,7` at once and stops). Put the centre down and read
-            // the position after it instead (RapfiWeb: 빈 판이면 H8).
-            viewModelScope.launch {
-                game.replaceLine(listOf(Move(pos.size / 2, pos.size / 2)))
-                startAnalysis()
-            }
-            return
-        }
         startAnalysis()
     }
 
@@ -456,18 +445,13 @@ class BoardViewModel @Inject constructor(
         val target = position.value
         val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
         // An answer with no line behind it is not the end of a search but a
-        // move Rapfi plays without searching — the centre of an empty board, a
-        // forced reply. Play it and keep reading, as 0.14 did; stopping there
-        // made «analyse» look like it gave up the moment it started.
+        // move Rapfi plays without searching: on an empty board it answers 7,7
+        // (H8) at once. That move is played and the analysis ends there.
         val read = reading.value?.takeIf { it.moves == target.moves }?.snap
         val instant = read == null || read.pvs.isEmpty()
         if (!stopRequested && instant && legal.isNotEmpty()) {
-            val defend = defending.value
             stopAnalysis()
-            viewModelScope.launch {
-                game.replaceLine(target.moves + legal.first())
-                startAnalysis(defend)
-            }
+            viewModelScope.launch { game.replaceLine(target.moves + legal.first()) }
             return
         }
         val play = stopRequested && playBestPref.value
