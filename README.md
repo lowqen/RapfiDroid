@@ -17,8 +17,7 @@
 ## What this is
 
 Strong gomoku engines are desktop programs. They expect a PC, a console, and
-usually a second machine to talk to. RapfiDroid takes one of the strongest open
-engines available, [Rapfi](https://github.com/dhbloo/rapfi), compiles it for
+usually a second machine to talk to. RapfiDroid is an unofficial Android port that takes one of the strongest open engines available, [Rapfi](https://github.com/dhbloo/rapfi), compiles it for
 arm64 Android, and runs it as a real process inside the app. The board, the
 analysis, the forbidden point marking and the position database all work in
 airplane mode, on a phone, with nothing listening on a port anywhere.
