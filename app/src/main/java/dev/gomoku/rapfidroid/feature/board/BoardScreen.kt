@@ -62,7 +62,9 @@ import kotlinx.coroutines.withContext
  * the right, tabs on top and the move bar at the bottom.
  *
  *  - Analysis: engine card (best move first, frozen after a stop), evaluation
- *    graph, analysis settings (folded), position, tools and database (folded).
+ *    graph, analysis settings (folded), position, tools. The database's
+ *    per-position actions live in the DB tab (RapfiWeb's layout); the board
+ *    keeps only the long press that writes a cell label.
  *  - Game: the game card (status, «지금 두기», colours, time, level, rules),
  *    then the position with resign and draw. No analysis overlay on the board.
  */
@@ -74,7 +76,6 @@ fun BoardScreen(
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmReset by remember { mutableStateOf(false) }
     var labelTarget by remember { mutableStateOf<Move?>(null) }
-    var commentDraft by remember { mutableStateOf<String?>(null) }
     var showBalance by remember { mutableStateOf(false) }
     var showPosition by remember { mutableStateOf(false) }
     var confirmResign by remember { mutableStateOf(false) }
@@ -204,16 +205,6 @@ fun BoardScreen(
                 onToggleForbidden = viewModel::onToggleForbidden,
                 onRunScript = viewModel::onRunScript,
             )
-            if (ui.db.enabled) {
-                DbCard(
-                    ui = ui,
-                    onEditComment = { commentDraft = ui.db.snapshot.comment },
-                    onSetBest = viewModel::onDbSetBestMove,
-                    onClearBest = viewModel::onDbClearBestMove,
-                    onDeleteOne = viewModel::onDbDeleteOne,
-                    onSave = viewModel::onDbSave,
-                )
-            }
         }
     }
 
@@ -287,18 +278,6 @@ fun BoardScreen(
             onConfirm = { text ->
                 labelTarget = null
                 viewModel.onCellLabel(cell, text)
-            },
-        )
-    }
-    commentDraft?.let { initial ->
-        CommentDialog(
-            initial = initial,
-            editable = ui.canEditDb,
-            editFont = ui.dbCommentEditFont,
-            onDismiss = { commentDraft = null },
-            onConfirm = { text ->
-                commentDraft = null
-                viewModel.onSaveComment(text)
             },
         )
     }

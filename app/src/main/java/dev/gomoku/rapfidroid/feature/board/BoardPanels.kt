@@ -555,34 +555,6 @@ internal fun ToolsCard(
     }
 }
 
-/** The database's per-position actions, folded; its value and note are in the position card. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-internal fun DbCard(
-    ui: BoardUiState,
-    onEditComment: () -> Unit,
-    onSetBest: () -> Unit,
-    onClearBest: () -> Unit,
-    onDeleteOne: () -> Unit,
-    onSave: () -> Unit,
-) {
-    val summary = when {
-        !ui.dbActive -> tr("꺼짐", "Off")
-        ui.db.readOnly -> tr("읽기 전용", "Read-only")
-        else -> tr("기록 ${ui.db.snapshot.cells.size}", "${ui.db.snapshot.cells.size} records")
-    }
-    DisclosureCard(id = "board-db", title = tr("데이터베이스", "Database"), summary = summary) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            AssistChip(onClick = onEditComment, enabled = ui.canEditDb, label = { Text(tr("주석 편집", "Edit note")) })
-            AssistChip(onClick = onSetBest, enabled = ui.canEditDb && ui.moveCount > 0, label = { Text(tr("최선수 표시", "Mark best move")) })
-            AssistChip(onClick = onClearBest, enabled = ui.canEditDb && ui.moveCount > 0, label = { Text(tr("표시 해제", "Clear mark")) })
-            AssistChip(onClick = onDeleteOne, enabled = ui.canEditDb, label = { Text(tr("이 국면 삭제", "Delete this position")) })
-            AssistChip(onClick = onSave, enabled = ui.canEditDb, label = { Text(tr("DB 저장", "Save DB")) })
-        }
-        Hint(tr("빈 점을 길게 누르면 칸 글자를 적습니다", "Long-press an empty point to write board text"))
-    }
-}
-
 /**
  * Black's win rate move by move. Gaps (positions never read) are not joined.
  */

@@ -257,7 +257,6 @@ class BoardViewModel @Inject constructor(
                 language = p.language,
                 toolbarStyle = config.toolbarStyle,
                 dbCommentFont = FontSpec.parse(config.dbCommentFont),
-                dbCommentEditFont = FontSpec.parse(config.dbCommentFont2),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -896,14 +895,8 @@ class BoardViewModel @Inject constructor(
 
     // ---- database actions (P7) ---------------------------------------------
 
+    /** Long press on an empty point: the cell label. Everything else of the database is in the DB tab. */
     fun onCellLabel(cell: Move, label: String) = runDb { database.editCellLabel(cell, label) }
-    fun onSaveComment(comment: String) = runDb { database.editComment(comment) }
-    fun onQueryDbValue() = runDb { database.queryValue() }
-    fun onQueryDbComment() = runDb { database.queryComment() }
-    fun onDbDeleteOne() = runDb { database.deleteOne() }
-    fun onDbSetBestMove() = runDb { database.setBestMove() }
-    fun onDbClearBestMove() = runDb { database.clearBestMove() }
-    fun onDbSave() = runDb { database.save() }
 
     fun onNoticeShown() {
         _notice.value = null

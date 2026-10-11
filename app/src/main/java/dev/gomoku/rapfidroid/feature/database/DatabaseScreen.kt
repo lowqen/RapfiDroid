@@ -43,10 +43,14 @@ import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
 import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.model.DbDeleteFilter
+import dev.gomoku.rapfidroid.feature.board.CommentDialog
 import kotlinx.coroutines.delay
 
 /**
  * The desktop's Database menu plus its `db*` console commands, on one screen.
+ * Everything that acts on the board's position is here too (RapfiWeb's layout:
+ * the board shows the record, the DB tab edits it); the board keeps only the
+ * long press that writes a cell label.
  *
  * Everything here runs **on the server**: the database file sits next to the
  * remote engine, so file operations take engine-side paths and the phone never
@@ -60,6 +64,7 @@ fun DatabaseScreen(
     viewModel: DatabaseViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    var commentDraft by remember { mutableStateOf<String?>(null) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         RapfiTopBar(title = tr("데이터베이스", "Database"))
@@ -73,13 +78,26 @@ fun DatabaseScreen(
         if (!ui.connected) {
             Hint(tr("엔진이 켜져야 DB 를 읽고 씁니다", "The engine has to be on to read or write the database"), color = MaterialTheme.colorScheme.error)
         }
-        PositionSection(ui, viewModel)
+        PositionSection(ui, viewModel, onEditComment = { commentDraft = ui.db.snapshot.comment })
         RecordSection(ui, viewModel)
         FileSection(ui, viewModel)
         StatusSection(ui, viewModel)
         BulkDeleteSection(ui, viewModel)
         LogSection(ui, viewModel)
         }
+    }
+
+    commentDraft?.let { initial ->
+        CommentDialog(
+            initial = initial,
+            editable = ui.canWrite,
+            editFont = ui.commentEditFont,
+            onDismiss = { commentDraft = null },
+            onConfirm = { text ->
+                commentDraft = null
+                viewModel.onEditComment(text)
+            },
+        )
     }
 
     ui.pendingDelete?.let { scope ->
@@ -164,7 +182,7 @@ private fun StatusSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PositionSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
+private fun PositionSection(ui: DatabaseUiState, vm: DatabaseViewModel, onEditComment: () -> Unit) {
     Section(tr("현재 국면", "This position")) {
         Text(
             ui.pathLabels(),
@@ -185,6 +203,7 @@ private fun PositionSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
             AssistChip(onClick = vm::onRefresh, label = { Text(tr("다시 조회", "Query again")) })
             AssistChip(onClick = vm::onQueryValue, label = { Text(tr("값 조회 (dbval)", "Read value (dbval)")) })
             AssistChip(onClick = vm::onQueryComment, label = { Text(tr("주석 읽기", "Read comment")) })
+            AssistChip(onClick = onEditComment, enabled = ui.canWrite, label = { Text(tr("주석 편집", "Edit note")) })
             AssistChip(
                 onClick = vm::onSetBestMove,
                 enabled = ui.canWrite,
@@ -201,6 +220,7 @@ private fun PositionSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
                 label = { Text(tr("이 국면 삭제", "Delete this position")) },
             )
         }
+        Hint(tr("보드에서 빈 점을 길게 누르면 그 칸의 글자를 적습니다", "Long-press an empty point on the board to write its label"))
     }
 }
 

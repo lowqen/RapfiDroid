@@ -4,6 +4,7 @@ import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.DbDeleteScope
 import dev.gomoku.rapfidroid.core.model.DbState
+import dev.gomoku.rapfidroid.core.model.FontSpec
 import dev.gomoku.rapfidroid.core.model.Position
 
 data class DatabaseUiState(
@@ -22,6 +23,8 @@ data class DatabaseUiState(
     val deleteDraft: DbDeleteScope = DbDeleteScope(),
     /** Engine-side file path for the file operations. */
     val path: String = "",
+    /** settings.txt line 47 — the font the comment editor uses. */
+    val commentEditFont: FontSpec = FontSpec.DEFAULT,
 ) {
     val connected: Boolean get() = connection.isLive
     val canWrite: Boolean get() = db.canWrite(connected)

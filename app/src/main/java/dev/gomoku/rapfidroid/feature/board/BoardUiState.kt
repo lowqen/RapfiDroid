@@ -95,7 +95,6 @@ data class BoardUiState(
     val toolbarStyle: Int = 0,
     /** settings.txt lines 46-47 — the two "Database Comment Font" entries. */
     val dbCommentFont: FontSpec = FontSpec.DEFAULT,
-    val dbCommentEditFont: FontSpec = FontSpec.DEFAULT,
 ) {
     val canAnalyze: Boolean get() = connection.isLive
     val canUndo: Boolean get() = moveCount > 0

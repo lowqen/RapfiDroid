@@ -8,6 +8,7 @@ import dev.gomoku.rapfidroid.core.model.DbDeleteFilter
 import dev.gomoku.rapfidroid.core.model.DbDeleteScope
 import dev.gomoku.rapfidroid.core.model.DbOpResult
 import dev.gomoku.rapfidroid.core.model.DbState
+import dev.gomoku.rapfidroid.core.model.FontSpec
 import dev.gomoku.rapfidroid.core.model.Position
 import dev.gomoku.rapfidroid.domain.repository.DatabaseRepository
 import dev.gomoku.rapfidroid.domain.repository.DbPreferences
@@ -73,6 +74,7 @@ class DatabaseViewModel @Inject constructor(
             pendingDelete = l.pendingDelete,
             deleteDraft = l.deleteDraft,
             path = l.path,
+            commentEditFont = FontSpec.parse(config.dbCommentFont2),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DatabaseUiState())
 
@@ -100,6 +102,7 @@ class DatabaseViewModel @Inject constructor(
     fun onSetBestMove() = dispatch { repository.setBestMove() }
     fun onClearBestMove() = dispatch { repository.clearBestMove() }
     fun onDeleteOne() = dispatch { repository.deleteOne() }
+    fun onEditComment(comment: String) = dispatch { repository.editComment(comment) }
     fun onEditTag(tag: Char?) = dispatch { repository.editTag(tag) }
     fun onEditValue(value: Int) = dispatch { repository.editValue(value) }
     fun onEditDepth(depth: Int) = dispatch { repository.editDepth(depth) }
