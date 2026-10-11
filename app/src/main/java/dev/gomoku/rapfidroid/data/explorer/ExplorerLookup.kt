@@ -12,6 +12,7 @@ import dev.gomoku.rapfidroid.core.model.OpeningTables
 import dev.gomoku.rapfidroid.core.model.PosKey
 import dev.gomoku.rapfidroid.core.model.Position
 import dev.gomoku.rapfidroid.core.model.RjGame
+import dev.gomoku.rapfidroid.domain.rif.RenjuPack
 
 /**
  * The pure half of the explorer: position → key → record → rows. Split out of
@@ -178,6 +179,71 @@ object ExplorerLookup {
             'i' -> 13 + n - 1
             else -> null
         }
+    }
+
+    // ---- the device-built pack (RenjuPack) ----------------------------------
+
+    /** Position → statistics from the fast pack; null when it never saw it. */
+    fun lookup(pack: RenjuPack, pos: Position): ExplorerPosition? {
+        if (pos.size != pack.size) return null
+        val stat = pack.lookup(pos.moves) ?: return null
+        val parent = if (pos.moves.isEmpty()) null else pack.lookup(pos.moves.dropLast(1))
+        return ExplorerPosition(
+            key = PosKey.of(pos.moves, pos.size).key,
+            line = lineText(pos),
+            games = stat.n,
+            blackWins = stat.b,
+            draws = stat.d,
+            whiteWins = stat.w,
+            next = nextRows(pos, stat.next.map { n ->
+                ExplorerNext(move = n.move, games = n.n, blackWins = n.b, draws = n.d, whiteWins = n.w)
+            }),
+            gameCount = stat.n,
+            parentGames = parent?.n ?: 0,
+            grade = OpeningName.gradeAt(pos.moves, pos.size),
+        )
+    }
+
+    /** Games through the position, filtered by a player-name substring. */
+    fun gameList(pack: RenjuPack, pos: Position, filter: String): ExplorerGames {
+        val needle = filter.trim()
+        val (games, matched) = pack.gamesThrough(pos.moves, ExplorerGames.MAX_ROWS) { g ->
+            needle.isEmpty() ||
+                pack.players.getOrNull(pack.gameBlack[g]).orEmpty().contains(needle, true) ||
+                pack.players.getOrNull(pack.gameWhite[g]).orEmpty().contains(needle, true)
+        }
+        return ExplorerGames(games.map { gameOf(pack, it).toRow() }, matched)
+    }
+
+    /** One game of the pack in the shape the explorer's detail shows. */
+    fun gameOf(pack: RenjuPack, g: Int): RjGame {
+        val tour = pack.gameTour[g]
+        val res = pack.gameRes[g].toInt()
+        return RjGame(
+            id = pack.gameId[g],
+            year = pack.tourYear.getOrElse(tour) { 0 },
+            // pack: 2 black win, 1 draw, 0 white win; RjGame: 0 black, 1 draw, 2 white
+            result = 2 - res,
+            rule = pack.gameRule[g],
+            opening = pack.gameOpening[g],
+            rated = pack.tourRated.getOrElse(tour) { false },
+            black = pack.players.getOrElse(pack.gameBlack[g]) { "?" },
+            white = pack.players.getOrElse(pack.gameWhite[g]) { "?" },
+            tournament = pack.tournaments.getOrElse(tour) { "" },
+            round = "",
+            swap = "",
+            alt = "",
+            info = "",
+            blackCountry = pack.playerCountry.getOrElse(pack.gameBlack[g]) { "" },
+            whiteCountry = pack.playerCountry.getOrElse(pack.gameWhite[g]) { "" },
+            tourStart = pack.tourStart.getOrElse(tour) { "" },
+            tourEnd = pack.tourEnd.getOrElse(tour) { "" },
+            tourCountry = pack.tourCountry.getOrElse(tour) { "" },
+            cells = (0 until pack.length(g)).map { i ->
+                val c = pack.cell(g, i)
+                (c / pack.size) * RjGame.PACK_SIZE + c % pack.size
+            },
+        )
     }
 
     private fun RjGame.toRow() =

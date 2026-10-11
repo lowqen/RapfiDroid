@@ -10,9 +10,8 @@ import dev.gomoku.rapfidroid.data.explorer.ExplorerPackStore
 import dev.gomoku.rapfidroid.data.rankings.FreqDataDto
 import dev.gomoku.rapfidroid.data.rankings.FreqStore
 import dev.gomoku.rapfidroid.domain.rif.FreqBuilder
-import dev.gomoku.rapfidroid.domain.rif.PackAggregator
-import dev.gomoku.rapfidroid.domain.rif.PackWriter
-import dev.gomoku.rapfidroid.domain.rif.RifParser
+import dev.gomoku.rapfidroid.domain.rif.RenjuPack
+import dev.gomoku.rapfidroid.domain.rif.RifStreamParser
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -96,44 +95,50 @@ class PackBuildManager @Inject constructor(
         if (_state.value !is PackBuildState.Running) _state.value = PackBuildState.Idle
     }
 
+    /**
+     * The fast path (RapfiWeb W7): the file is read as bytes into game columns,
+     * positions are counted by 64-bit Zobrist keys and a radix sort, and the
+     * result is one pack file. Seconds where the old two-pass string build took
+     * minutes.
+     */
     private suspend fun build(source: Uri) {
-        val db = context.contentResolver.openInputStream(source)?.use { input ->
-            RifParser().parse(input) { games ->
-                _state.value = PackBuildState.Running(PackBuildState.Phase.Reading, games, 0)
+        val started = System.currentTimeMillis()
+        val total = fileSize(source)
+        val tables = context.contentResolver.openInputStream(source)?.use { input ->
+            RifStreamParser(expectedBytes = total).parse(input) { read ->
+                _state.value = PackBuildState.Running(
+                    PackBuildState.Phase.Reading,
+                    (read shr 10).toInt(),
+                    (total shr 10).toInt(),
+                )
             }
         } ?: error(tr("파일을 열 수 없습니다", "Could not open the file"))
 
-        if (db.games.isEmpty()) {
+        if (tables.games.count == 0) {
             error(
                 tr(
-                    "기보가 하나도 없습니다 — renju.net 의 XML 형식 파일이 맞는지 확인해 주세요.",
-                    "No games in that file — check it is the XML download from renju.net.",
+                    "기보가 하나도 없습니다. renju.net 의 XML 형식 파일이 맞는지 확인해 주세요.",
+                    "No games in that file. Check it is the XML download from renju.net.",
                 ),
             )
         }
 
-        val aggregate = PackAggregator().aggregate(db) { pass, done, total ->
-            val phase = if (pass == 1) PackBuildState.Phase.Counting else PackBuildState.Phase.Aggregating
-            _state.value = PackBuildState.Running(phase, done, total)
+        val pack = RenjuPack.build(tables) { phase, fraction ->
+            val p = if (phase == 0) PackBuildState.Phase.Counting else PackBuildState.Phase.Aggregating
+            _state.value = PackBuildState.Running(p, (fraction * 1000).toInt(), 1000)
         }
 
         _state.value = PackBuildState.Running(PackBuildState.Phase.Writing, 0, 0)
-        val work = packs.workDir
-        val stats = File(work, "stats.part")
-        val games = File(work, "games.part")
+        val part = File(packs.workDir, "renju.part")
         try {
-            stats.outputStream().buffered().use { PackWriter().writeStats(it, aggregate, today()) }
-            games.outputStream().buffered().use { PackWriter().writeGames(it, db) }
-            packs.adopt(stats, games).getOrThrow()
+            part.outputStream().use { pack.write(it) }
+            packs.adopt(part).getOrThrow()
         } finally {
-            stats.delete()
-            games.delete()
+            part.delete()
         }
 
-        // The rankings are the same games counted differently. Building only the
-        // explorer left half the app looking broken with a full database on the
-        // device, which is what this pass is for.
-        val freq = FreqBuilder().build(db)
+        // The rankings are the same games counted differently.
+        val freq = FreqBuilder.fromPack(pack)
         freqStore.adopt(
             FreqDataDto(
                 generated = today().toString(),
@@ -145,11 +150,18 @@ class PackBuildManager @Inject constructor(
         ).getOrThrow()
 
         _state.value = PackBuildState.Done(
-            games = db.gameCount,
-            positions = aggregate.positions.size,
-            skipped = db.skipped.values.sum(),
+            games = pack.gameCount,
+            positions = pack.positionCount,
+            skipped = tables.skipped.values.sum(),
+            elapsedMs = System.currentTimeMillis() - started,
         )
     }
+
+    private fun fileSize(uri: Uri): Long = runCatching {
+        context.contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else 0L
+        } ?: 0L
+    }.getOrDefault(0L)
 
     /** `YYYYMMDD`, the stamp the explorer shows so data age is visible. */
     private fun today(): Int {

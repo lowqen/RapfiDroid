@@ -19,7 +19,7 @@ sealed interface PackBuildState {
         val fraction: Float? get() = if (total > 0) (done.toFloat() / total).coerceIn(0f, 1f) else null
     }
 
-    data class Done(val games: Int, val positions: Int, val skipped: Int) : PackBuildState
+    data class Done(val games: Int, val positions: Int, val skipped: Int, val elapsedMs: Long = 0) : PackBuildState
 
     data class Failed(val message: String) : PackBuildState
 
@@ -40,8 +40,8 @@ sealed interface PackBuildState {
         val label: String
             get() = when (this) {
                 Reading -> tr("기보 파일 읽는 중", "Reading the game file")
-                Counting -> tr("국면 세는 중 (1/2)", "Counting positions (1 of 2)")
-                Aggregating -> tr("통계 모으는 중 (2/2)", "Gathering statistics (2 of 2)")
+                Counting -> tr("국면 세는 중", "Counting positions")
+                Aggregating -> tr("통계 모으는 중", "Gathering statistics")
                 Writing -> tr("데이터 저장 중", "Saving the data")
             }
     }

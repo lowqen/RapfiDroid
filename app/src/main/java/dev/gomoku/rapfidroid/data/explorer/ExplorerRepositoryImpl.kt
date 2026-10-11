@@ -59,8 +59,8 @@ class ExplorerRepositoryImpl @Inject constructor(
     private val _status = MutableStateFlow(ExplorerStatus.NO_PACKS)
     override val status: StateFlow<ExplorerStatus> = _status.asStateFlow()
 
-    /** The lookup behind the games pane (`rjcurstat`). */
-    private var current: RjStat? = null
+    /** The position behind the games pane (`rjcurstat`). */
+    private var current: Position? = null
 
     /** Tests drive their own scheduler; the board-following collector must
      *  stop with them. */
@@ -96,7 +96,7 @@ class ExplorerRepositoryImpl @Inject constructor(
                 _position.value = null
                 return@withContext
             }
-            val found = ExplorerLookup.lookup(packs.stats, packs.games, pos)
+            val found = ExplorerLookup.lookup(packs.pack, pos)
             if (found == null) {
                 // no statistics is not no information: a grade is a fact about
                 // the position, so the graded moves still get their rows
@@ -104,24 +104,29 @@ class ExplorerRepositoryImpl @Inject constructor(
                 _position.value = ExplorerLookup.theoryOnly(pos)
                 return@withContext
             }
-            current = found.stat
+            current = pos
             _status.value = ExplorerStatus.OK
-            _position.value = found.position
+            _position.value = found
         }
 
     override suspend fun games(filter: String): ExplorerGames = withContext(io) {
         val packs = store.packs.value ?: return@withContext ExplorerGames()
-        val stat = current ?: return@withContext ExplorerGames()
-        ExplorerLookup.gameList(stat, packs.games, filter)
+        val pos = current ?: return@withContext ExplorerGames()
+        ExplorerLookup.gameList(packs.pack, pos, filter)
     }
 
-    override fun game(id: Int): RjGame? = store.packs.value?.games?.game(id)
+    override fun game(id: Int): RjGame? {
+        val packs = store.packs.value ?: return null
+        val index = packs.byId[id] ?: return null
+        return ExplorerLookup.gameOf(packs.pack, index)
+    }
 
-    override fun ruleName(rule: Int): String? = store.packs.value?.games?.ruleName(rule)
+    override fun ruleName(rule: Int): String? = store.packs.value?.pack?.rules?.getOrNull(rule)
 
     override fun openingLabel(opening: Int): String? {
-        val games = store.packs.value?.games ?: return null
-        return ExplorerLookup.gameOpeningLabel(games, opening)
+        val abbr = store.packs.value?.pack?.openings?.getOrNull(opening) ?: return null
+        val idx = ExplorerLookup.openingIndex(abbr)
+        return if (idx != null) "${dev.gomoku.rapfidroid.core.model.Opening26.label(idx)} ($abbr)" else abbr
     }
 
     override suspend fun playNext(move: Move): String? {

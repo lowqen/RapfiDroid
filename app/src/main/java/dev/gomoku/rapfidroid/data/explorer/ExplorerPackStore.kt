@@ -6,14 +6,13 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
 import dev.gomoku.rapfidroid.core.model.OpeningTables
 import dev.gomoku.rapfidroid.core.model.PackInfo
+import dev.gomoku.rapfidroid.domain.rif.RenjuPack
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.RandomAccessFile
-import java.nio.channels.FileChannel
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -39,6 +38,9 @@ class ExplorerPackStore @Inject constructor(
     private val dir: File get() = File(context.filesDir, "packs")
     private val statsFile: File get() = File(dir, "renju_stats.pack")
     private val gamesFile: File get() = File(dir, "renju_games.pack")
+
+    /** The device-built pack ([RenjuPack]); replaces the two desktop-format packs. */
+    private val packFile: File get() = File(dir, "renju.rpk")
     private val namesFile: File get() = File(dir, NAMES)
     private val evalsFile: File get() = File(dir, EVALS)
 
@@ -60,13 +62,18 @@ class ExplorerPackStore @Inject constructor(
 
     /** Both packs plus their header numbers; the explorer needs the pair, like
      *  the desktop's `rj_load` which only reports success when both map. */
-    class Packs(val stats: RjStatsPack, val games: RjGamesPack, val info: PackInfo)
+    class Packs(val pack: RenjuPack, val info: PackInfo) {
+        /** RIF game id → pack index, built on first use. */
+        val byId: Map<Int, Int> by lazy {
+            HashMap<Int, Int>(pack.gameCount * 2).also { m -> pack.gameId.forEachIndexed { i, id -> m[id] = i } }
+        }
+    }
 
     /** Map the previously imported copies, if they are still there. */
     suspend fun restore() {
         loadTables()
         if (_packs.value != null) return
-        withContext(io) { runCatching { mapBoth() }.getOrNull() }
+        withContext(io) { runCatching { load() }.getOrNull() }
             ?.let { _packs.value = it }
     }
 
@@ -145,16 +152,16 @@ class ExplorerPackStore @Inject constructor(
      * The old packs are only replaced once both new ones are in hand, so a build
      * that dies half way leaves the previous data working.
      */
-    suspend fun adopt(newStats: File, newGames: File): Result<Packs> = withContext(io) {
+    suspend fun adopt(built: File): Result<Packs> = withContext(io) {
         runCatching {
             dir.mkdirs()
-            require(newStats.isFile && newGames.isFile) { "생성된 팩 파일이 없습니다" }
+            require(built.isFile) { "생성된 팩 파일이 없습니다" }
+            packFile.delete()
+            check(built.renameTo(packFile)) { "생성한 데이터를 저장하지 못했습니다" }
+            // The desktop-format packs of earlier versions are superseded.
             statsFile.delete()
             gamesFile.delete()
-            check(newStats.renameTo(statsFile) && newGames.renameTo(gamesFile)) {
-                "생성한 데이터를 저장하지 못했습니다"
-            }
-            val loaded = mapBoth() ?: error("생성한 데이터를 읽지 못했습니다")
+            val loaded = load() ?: error("생성한 데이터를 읽지 못했습니다")
             _packs.value = loaded
             loaded
         }
@@ -169,34 +176,28 @@ class ExplorerPackStore @Inject constructor(
      *  about the licence, not about tidying. */
     suspend fun clear() = withContext(io) {
         _packs.value = null
+        packFile.delete()
         statsFile.delete()
         gamesFile.delete()
         Unit
     }
 
-    private fun mapBoth(): Packs? {
-        val s = RjStatsPack.open(map(statsFile) ?: return null) ?: return null
-        val g = RjGamesPack.open(map(gamesFile) ?: return null) ?: return null
+    private fun load(): Packs? {
+        if (!packFile.isFile) return null
+        val pack = packFile.inputStream().use { RenjuPack.read(it) } ?: return null
+        val date = pack.date.filter { it.isDigit() }.take(8).toIntOrNull() ?: 0
         return Packs(
-            s, g,
+            pack,
             PackInfo(
-                totalGames = s.totalGames,
-                maxPlies = s.maxPlies,
-                minGames = s.minGames,
-                date = s.date,
-                positions = s.positions,
-                gameRecords = g.gameCount,
+                totalGames = pack.gameCount,
+                maxPlies = pack.maxPlies,
+                minGames = pack.minGames,
+                date = date,
+                positions = pack.positionCount,
+                gameRecords = pack.gameCount,
             ),
         )
     }
-
-    private fun map(file: File) =
-        if (!file.isFile || file.length() < 64) null
-        else RandomAccessFile(file, "r").use { raf ->
-            // The mapping outlives the channel, which is the point: no fd is
-            // held open for the life of the app.
-            raf.channel.map(FileChannel.MapMode.READ_ONLY, 0, raf.length())
-        }
 
     companion object {
         const val NAMES = "opening_names.txt"

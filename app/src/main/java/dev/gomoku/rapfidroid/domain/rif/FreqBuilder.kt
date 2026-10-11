@@ -79,11 +79,28 @@ class FreqBuilder(private val boardSize: Int = Move.DEFAULT_SIZE) {
         return Result(players, rules, shapes, games)
     }
 
-    private companion object {
+    companion object {
+        /**
+         * The same rows from a device-built pack, whose columns already hold
+         * them: dense player and rule indices, the 26주형, the 5-move shape and
+         * the result in freq35's code.
+         */
+        fun fromPack(pack: RenjuPack): Result = Result(
+            players = pack.players.indices.map { listOf(pack.players[it], pack.playerCountry[it]) },
+            rules = pack.rules.toList(),
+            shapes = pack.shapes.toList(),
+            games = (0 until pack.gameCount).map { g ->
+                intArrayOf(
+                    pack.gameBlack[g], pack.gameWhite[g], pack.gameRule[g],
+                    pack.gameO3[g].toInt(), pack.gameK5[g], pack.gameRes[g].toInt(),
+                )
+            },
+        )
+
         /** The rankings are about the 5-move shape; nothing past it is read. */
-        const val SHAPE_PLIES = 5
+        private const val SHAPE_PLIES = 5
 
         /** Parser order (0 black win, 1 draw, 2 white win) to freq35's (2, 1, 0). */
-        val RESULT = intArrayOf(2, 1, 0)
+        private val RESULT = intArrayOf(2, 1, 0)
     }
 }

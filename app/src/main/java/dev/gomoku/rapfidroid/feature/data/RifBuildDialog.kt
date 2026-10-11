@@ -82,8 +82,8 @@ fun RifBuildDialog(
             ) {
                 Text(
                     tr(
-                        "실전 빈도와 승률은 RenjuNet 대국 DB에서 나옵니다. 앱은 이 자료를 담고 있지 않고, 어디로도 보내지 않습니다 — 기기에서 직접 만듭니다.",
-                        "Real-game frequencies and win rates come from the RenjuNet database. The app neither ships it nor sends it anywhere: the phone builds the data itself.",
+                        "RenjuNet 기보 파일로 오프닝 빈도 · 랭킹을 이 기기에서 만듭니다.",
+                        "Builds opening frequencies and rankings from the RenjuNet game file, on this phone.",
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -95,10 +95,10 @@ fun RifBuildDialog(
                     is PackBuildState.Done -> Outcome(
                         title = tr("데이터가 준비됐습니다", "The data is ready"),
                         body = tr(
-                            "대국 ${s.games}판 · 국면 ${s.positions}개. 익스플로러와 랭킹 탭에서 바로 보입니다." +
-                                if (s.skipped > 0) " (재생할 수 없는 기보 ${s.skipped}판은 건너뛰었습니다.)" else "",
-                            "${s.games} games, ${s.positions} positions. The explorer and rankings have them now." +
-                                if (s.skipped > 0) " (${s.skipped} unplayable games were skipped.)" else "",
+                            "대국 ${s.games}판 · 국면 ${s.positions}개 · ${"%.1f".format(s.elapsedMs / 1000.0)}초" +
+                                if (s.skipped > 0) " · 건너뜀 ${s.skipped}" else "",
+                            "${s.games} games · ${s.positions} positions · ${"%.1f".format(s.elapsedMs / 1000.0)}s" +
+                                if (s.skipped > 0) " · ${s.skipped} skipped" else "",
                         ),
                         tone = MaterialTheme.colorScheme.primary,
                     )
@@ -114,8 +114,8 @@ fun RifBuildDialog(
                             number = 1,
                             title = tr("renju.net 에서 받기", "Download from renju.net"),
                             body = tr(
-                                "Games 페이지에서 «XML» 형식을 고르세요. 약 43MB이고 파일 이름은 renjunet_v10_… 입니다.",
-                                "On the Games page choose the XML format. It is about 43 MB and named renjunet_v10_…",
+                                "Games 페이지의 «XML» 단추 (약 43MB)",
+                                "The XML button on the Games page (about 43 MB)",
                             ),
                             action = {
                                 OutlinedButton(onClick = {
@@ -128,8 +128,8 @@ fun RifBuildDialog(
                             number = 2,
                             title = tr("받은 파일 고르기", "Pick the file"),
                             body = tr(
-                                "보통 «다운로드» 폴더에 있습니다. 압축을 풀었다면 .rif 또는 .xml 파일을 고르세요.",
-                                "Usually in Downloads. If it arrived zipped, pick the .rif or .xml inside.",
+                                "다운로드 폴더의 .rif 파일",
+                                "The .rif file in Downloads",
                             ),
                             action = {
                                 Button(onClick = { picker.launch(arrayOf("*/*")) }) {
@@ -141,8 +141,8 @@ fun RifBuildDialog(
                             number = 3,
                             title = tr("기기에서 만들기", "The phone builds it"),
                             body = tr(
-                                "15만 판을 두 번 훑습니다. 몇 분 걸리고, 화면을 꺼도 계속됩니다 — 알림에 진행률이 보입니다.",
-                                "It walks 150,000 games twice. That takes a few minutes and continues with the screen off; the notification shows how far it has got.",
+                                "몇 초 걸립니다",
+                                "Takes a few seconds",
                             ),
                         )
                     }
@@ -150,8 +150,8 @@ fun RifBuildDialog(
 
                 Text(
                     tr(
-                        "이 자료는 비상업·오프라인 사용만 허용됩니다. 만들어진 데이터는 이 기기에만 있고, 앱은 절대 내보내지 않습니다.",
-                        "The database is licensed for offline, non-commercial use only. What the phone builds stays on the phone; the app never exports it.",
+                        "비상업 · 오프라인 전용 자료라 이 기기 밖으로 나가지 않습니다.",
+                        "Offline, non-commercial data: it never leaves this phone.",
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -208,7 +208,7 @@ private fun Progress(state: PackBuildState.Running) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Text(
-                "${state.done} / ${state.total}",
+                "${(fraction * 100).toInt()}%",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -216,7 +216,7 @@ private fun Progress(state: PackBuildState.Running) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             if (state.done > 0) {
                 Text(
-                    tr("${state.done}판 읽음", "${state.done} games read"),
+                    tr("${state.done / 1024}MB 읽음", "${state.done / 1024} MB read"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
