@@ -2,6 +2,9 @@ package dev.gomoku.rapfidroid.data.game
 
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
 import dev.gomoku.rapfidroid.core.model.AppSettings
+import dev.gomoku.rapfidroid.core.model.BoardMode
+import dev.gomoku.rapfidroid.core.model.BoardSessions
+import dev.gomoku.rapfidroid.core.model.SavedBoard
 import dev.gomoku.rapfidroid.core.model.ClockSide
 import dev.gomoku.rapfidroid.core.model.ComputerSide
 import dev.gomoku.rapfidroid.core.model.GameClock
@@ -24,12 +27,15 @@ import dev.gomoku.rapfidroid.domain.repository.GameRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -51,6 +57,7 @@ class GameRepositoryImpl @Inject constructor(
     private val engine: EngineRepository,
     private val settingsRepository: SettingsRepository,
     @IoDispatcher io: CoroutineDispatcher,
+    private val sessions: BoardSessionStore = BoardSessionStore.NONE,
 ) : GameRepository {
 
     private val scope = CoroutineScope(SupervisorJob() + io)
@@ -75,7 +82,36 @@ class GameRepositoryImpl @Inject constructor(
     @Volatile
     private var analyzing = false
 
+    // ---- the two tabs (RapfiWeb per-tab boards) ------------------------------
+
+    /** One tab's board while the other is on screen. */
+    private data class Slot(
+        val position: Position,
+        val future: List<Move>,
+        val state: GameState,
+        val name: String?,
+    )
+
+    private var currentMode: BoardMode = sessions.defaultMode
+    private val _mode = MutableStateFlow(currentMode)
+    override val mode: StateFlow<BoardMode> = _mode.asStateFlow()
+
+    /** The game while the analysis tab is open. */
+    private var parkedGame: Slot? = null
+
+    /** The analysis board while the game tab is open. */
+    private var parkedAnalysis: Slot? = null
+
+    /** The game line the analysis board forked from. */
+    private var analysisBase: List<Move>? = null
+
+    private val _gameName = MutableStateFlow<String?>(null)
+    override val gameName: StateFlow<String?> = _gameName.asStateFlow()
+
+    private var saveJob: Job? = null
+
     init {
+        restoreSessions()
         scope.launch {
             settingsRepository.settings.collect { s -> onSettings(s) }
         }
@@ -104,18 +140,26 @@ class GameRepositoryImpl @Inject constructor(
         val sideChanged = side != seededSide
         if (sideChanged) seededSide = side
         val sizeChanged = s.boardSize != _position.value.size
-        _state.update {
-            it.copy(
-                computerSide = if (sideChanged) side else it.computerSide,
-                opening = s.opening,
-                clock = it.clock.withLimits(GameClock.fromSettings(s)),
-            )
+        fun seeded(it: GameState) = it.copy(
+            computerSide = if (sideChanged) side else it.computerSide,
+            opening = s.opening,
+            clock = it.clock.withLimits(GameClock.fromSettings(s)),
+        )
+        // The analysis board plays no colours and negotiates no opening; the
+        // settings belong to the game, wherever it is parked.
+        if (currentMode == BoardMode.GAME) {
+            _state.update { seeded(it) }
+        } else {
+            parkedGame = parkedGame?.let { it.copy(state = seeded(it.state)) }
         }
         // Board size and rule are baked into the engine by START, and the desktop
         // starts a fresh game for either (`isneedrestart`, plus a new board).
         if (sizeChanged) {
             _position.value = Position(size = s.boardSize)
             _future.value = emptyList()
+            parkedGame = null
+            parkedAnalysis = null
+            analysisBase = null
             newGame(resetClock = true)
         }
     }
@@ -605,6 +649,7 @@ class GameRepositoryImpl @Inject constructor(
         _position.value = Position(size = s.boardSize)
         _future.value = emptyList()
         _forbidden.value = emptyList()
+        _gameName.value = null
         _state.update {
             val clock = if (resetClock) {
                 GameClock.fromSettings(s).copy(running = ClockSide.HUMAN)
@@ -674,6 +719,150 @@ class GameRepositoryImpl @Inject constructor(
         _position.value = pos.copy(moves = played)
         _future.value = tail
         afterPositionChange()
+    }
+
+    override suspend fun loadLine(moves: List<Move>, name: String?) {
+        replaceLine(moves)
+        _gameName.value = name
+    }
+
+    override suspend fun setMode(mode: BoardMode) {
+        if (mode == currentMode) return
+        val st = _state.value
+        // Leaving the game abandons the move the engine was working on: the stop
+        // is sent, and its reply finds `thinking` off and is dropped.
+        if (st.thinking) engine.send(EngineCommand.YxStop)
+        val current = Slot(
+            _position.value,
+            _future.value,
+            st.copy(thinking = false, clock = st.clock.stop()),
+            _gameName.value,
+        )
+        val next: Slot
+        if (mode == BoardMode.ANALYSIS) {
+            parkedGame = current
+            val reuse = parkedAnalysis?.takeIf {
+                analysisBase == current.position.moves && it.position.size == current.position.size
+            }
+            next = reuse ?: Slot(current.position, current.future, analysisState(), current.name)
+            analysisBase = current.position.moves
+            parkedAnalysis = null
+        } else {
+            parkedAnalysis = current
+            val game = parkedGame ?: freshGame()
+            parkedGame = null
+            val resumed = if (game.state.active && !game.state.over) {
+                game.state.copy(clock = game.state.clock.start(ClockSide.HUMAN))
+            } else {
+                game.state
+            }
+            next = game.copy(state = resumed)
+        }
+        currentMode = mode
+        _mode.value = mode
+        _position.value = next.position
+        _future.value = next.future
+        _state.value = next.state
+        _gameName.value = next.name
+        refreshForbidden()
+        persist()
+    }
+
+    /** The analysis board: no colours for the engine, no opening protocol. */
+    private fun analysisState() = GameState(
+        computerSide = ComputerSide.NONE,
+        opening = OpeningProtocol.NONE,
+        needsRestart = true,
+    )
+
+    private fun freshGame(): Slot {
+        val s = settings
+        return Slot(
+            Position(size = s.boardSize),
+            emptyList(),
+            GameState(
+                computerSide = s.computerSide,
+                opening = s.opening,
+                clock = GameClock.fromSettings(s),
+            ),
+            null,
+        )
+    }
+
+    /** Back to the boards of the last session (RapfiWeb autosave). */
+    private fun restoreSessions() {
+        val saved = sessions.load()
+        if (saved != null) {
+            currentMode = runCatching { BoardMode.valueOf(saved.mode) }.getOrDefault(sessions.defaultMode)
+            _mode.value = currentMode
+        }
+        val s = settings
+        fun gameSlot(b: SavedBoard) = Slot(
+            Position(b.size, b.moves()),
+            b.future(),
+            GameState(
+                computerSide = s.computerSide,
+                opening = s.opening,
+                clock = GameClock.fromSettings(s),
+                result = b.result(),
+            ),
+            b.name,
+        )
+        fun analysisSlot(b: SavedBoard) =
+            Slot(Position(b.size, b.moves()), b.future(), analysisState().copy(result = b.result()), b.name)
+
+        val game = saved?.game?.let(::gameSlot)
+        val analysis = saved?.analysis?.let(::analysisSlot)
+        analysisBase = saved?.base?.let { base ->
+            val size = saved.game.size
+            base.map { Move(it % size, it / size) }
+        }
+        val live: Slot? = if (currentMode == BoardMode.GAME) {
+            parkedAnalysis = analysis
+            game
+        } else {
+            parkedGame = game
+            analysis ?: game?.let { Slot(it.position, it.future, analysisState(), it.name) }
+                ?: Slot(Position(size = s.boardSize), emptyList(), analysisState(), null)
+        }
+        if (live != null) {
+            _position.value = live.position
+            _future.value = live.future
+            _state.value = live.state
+            _gameName.value = live.name
+        }
+        if (sessions !== BoardSessionStore.NONE) {
+            scope.launch { _position.collect { persist() } }
+            scope.launch { _future.collect { persist() } }
+            // The result only: the state also carries the clock, which ticks four
+            // times a second and would keep pushing the write back forever.
+            scope.launch { _state.map { it.result }.distinctUntilChanged().collect { persist() } }
+        }
+    }
+
+    /** Written a moment after the last change, so a burst of moves is one write. */
+    private fun persist() {
+        if (sessions === BoardSessionStore.NONE) return
+        saveJob?.cancel()
+        saveJob = scope.launch {
+            delay(SAVE_DELAY_MS)
+            sessions.save(snapshotSessions())
+        }
+    }
+
+    private fun snapshotSessions(): BoardSessions {
+        val st = _state.value
+        val live = SavedBoard.of(_position.value.size, _position.value.moves, _future.value, st.result, _gameName.value)
+        fun Slot.saved() = SavedBoard.of(position.size, position.moves, future, state.result, name)
+        val game = if (currentMode == BoardMode.GAME) live else parkedGame?.saved() ?: SavedBoard(size = _position.value.size)
+        val analysis = if (currentMode == BoardMode.ANALYSIS) live else parkedAnalysis?.saved()
+        val size = _position.value.size
+        return BoardSessions(
+            mode = currentMode.name,
+            game = game,
+            analysis = analysis,
+            base = analysisBase?.map { it.y * size + it.x },
+        )
     }
 
     override suspend fun replaceLine(moves: List<Move>) {
@@ -773,6 +962,7 @@ class GameRepositoryImpl @Inject constructor(
 
     private companion object {
         const val TICK_MS = 250L
+        const val SAVE_DELAY_MS = 300L
         const val LOG_LIMIT = 30
         /** The desktop's N dialog accepts 1..8 and re-asks otherwise (main.c:3857). */
         const val MAX_FIFTH = 8

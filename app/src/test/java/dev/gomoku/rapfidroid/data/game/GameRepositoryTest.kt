@@ -3,6 +3,9 @@ package dev.gomoku.rapfidroid.data.game
 import dev.gomoku.rapfidroid.core.model.AnalysisSnapshot
 import dev.gomoku.rapfidroid.core.model.AnalyzeParams
 import dev.gomoku.rapfidroid.core.model.AppSettings
+import dev.gomoku.rapfidroid.core.model.BoardMode
+import dev.gomoku.rapfidroid.core.model.BoardSessions
+import dev.gomoku.rapfidroid.core.model.SavedBoard
 import dev.gomoku.rapfidroid.core.model.ComputerSide
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.ConsoleLine
@@ -33,6 +36,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -139,14 +143,23 @@ class GameRepositoryTest {
         useDatabase = false,
     )
 
+    private class FakeStore(var saved: BoardSessions? = null) : BoardSessionStore {
+        override val defaultMode = BoardMode.GAME
+        override fun load(): BoardSessions? = saved
+        override fun save(sessions: BoardSessions) {
+            saved = sessions
+        }
+    }
+
     private fun gameTest(
         config: AppSettings = settings(),
+        store: BoardSessionStore = BoardSessionStore.NONE,
         body: suspend TestScope.(Harness) -> Unit,
     ) = runTest {
         val engine = FakeEngine()
         val fakeSettings = FakeSettings(config)
         val repository = GameRepositoryImpl(
-            engine, fakeSettings, StandardTestDispatcher(testScheduler),
+            engine, fakeSettings, StandardTestDispatcher(testScheduler), store,
         )
         val h = Harness(engine, fakeSettings, repository)
         try {
@@ -501,4 +514,124 @@ class GameRepositoryTest {
             assertEquals(listOf("H14", "F11"), h.labels())
             assertEquals(ComputerSide.WHITE, h.game.state.value.computerSide)
         }
+
+    // ---- the two tabs -----------------------------------------------------
+
+    @Test
+    fun `analysis forks from the game and never leaks into it`() = gameTest { h ->
+        h.game.tap(h8)
+        runCurrent()
+        h.receive("6,8")
+        runCurrent()
+        assertEquals(listOf("H8", "I9"), h.labels())
+
+        h.game.setMode(BoardMode.ANALYSIS)
+        runCurrent()
+        assertEquals(listOf("H8", "I9"), h.labels())
+        h.engine.sent.clear()
+        h.game.tap(g7)
+        runCurrent()
+        // The analysis board hands nothing to the engine on a tap.
+        assertTrue(h.engine.sent.none { it.startsWith("TURN") || it.startsWith("BOARD") })
+        assertEquals(listOf("H8", "I9", "G7"), h.labels())
+
+        h.game.setMode(BoardMode.GAME)
+        runCurrent()
+        assertEquals(listOf("H8", "I9"), h.labels())
+
+        // Unchanged game: the exploration is still there.
+        h.game.setMode(BoardMode.ANALYSIS)
+        runCurrent()
+        assertEquals(listOf("H8", "I9", "G7"), h.labels())
+    }
+
+    @Test
+    fun `a changed game re-forks the analysis board`() = gameTest { h ->
+        h.game.setMode(BoardMode.ANALYSIS)
+        h.game.tap(h8)
+        runCurrent()
+        h.game.setMode(BoardMode.GAME)
+        runCurrent()
+        assertEquals(emptyList<String>(), h.labels())
+        h.game.tap(g7)
+        runCurrent()
+        h.receive("6,8")
+        runCurrent()
+        h.game.setMode(BoardMode.ANALYSIS)
+        runCurrent()
+        assertEquals(listOf("G7", "I9"), h.labels())
+    }
+
+    @Test
+    fun `leaving the game drops the move the engine was thinking about`() = gameTest { h ->
+        h.game.tap(h8)
+        runCurrent()
+        assertTrue(h.game.state.value.thinking)
+        h.engine.sent.clear()
+        h.game.setMode(BoardMode.ANALYSIS)
+        runCurrent()
+        assertTrue(h.engine.sent.contains("YXSTOP"))
+        h.receive("6,8")
+        runCurrent()
+        assertEquals(listOf("H8"), h.labels())
+        h.game.setMode(BoardMode.GAME)
+        runCurrent()
+        assertEquals(listOf("H8"), h.labels())
+        assertTrue(!h.game.state.value.thinking)
+    }
+
+    @Test
+    fun `a resignation survives the round trip`() = gameTest { h ->
+        h.game.tap(h8)
+        runCurrent()
+        h.receive("6,8")
+        runCurrent()
+        h.game.resign()
+        runCurrent()
+        h.game.setMode(BoardMode.ANALYSIS)
+        assertNull(h.game.state.value.result)
+        h.game.setMode(BoardMode.GAME)
+        assertEquals(GameEnd.RESIGNED, h.game.state.value.result?.end)
+    }
+
+    @Test
+    fun `both boards are saved and come back`() {
+        val store = FakeStore()
+        gameTest(store = store) { h ->
+            h.game.tap(h8)
+            runCurrent()
+            h.receive("6,8")
+            runCurrent()
+            h.game.setMode(BoardMode.ANALYSIS)
+            h.game.tap(g7)
+            advanceTimeBy(1_000)
+            runCurrent()
+        }
+        val saved = store.saved!!
+        assertEquals(BoardMode.ANALYSIS.name, saved.mode)
+        assertEquals(2, saved.game.moves.size)
+        assertEquals(3, saved.analysis!!.moves.size)
+
+        gameTest(store = store) { h ->
+            assertEquals(BoardMode.ANALYSIS, h.game.mode.value)
+            assertEquals(listOf("H8", "I9", "G7"), h.labels())
+            h.game.setMode(BoardMode.GAME)
+            assertEquals(listOf("H8", "I9"), h.labels())
+        }
+    }
+
+    @Test
+    fun `a saved board without analysis opens as the game`() {
+        val size = 15
+        val store = FakeStore(
+            BoardSessions(
+                mode = BoardMode.GAME.name,
+                game = SavedBoard(size, listOf(7 * size + 7)),
+            ),
+        )
+        gameTest(store = store) { h ->
+            assertEquals(BoardMode.GAME, h.game.mode.value)
+            assertEquals(listOf("H8"), h.labels())
+        }
+    }
 }

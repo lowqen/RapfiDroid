@@ -1,12 +1,15 @@
 package dev.gomoku.rapfidroid.domain.repository
 
+import dev.gomoku.rapfidroid.core.model.BoardMode
 import dev.gomoku.rapfidroid.core.model.ComputerSide
 import dev.gomoku.rapfidroid.core.model.GameState
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.Position
 import dev.gomoku.rapfidroid.core.model.Swap2Choice
 import dev.gomoku.rapfidroid.core.model.TapResult
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The board and the game on it — the desktop's `movepath` + `piecenum` +
@@ -72,4 +75,28 @@ interface GameRepository {
     fun setAnalyzing(on: Boolean)
 
     fun dismissPrompt()
+
+    /**
+     * Which board tab is showing (RapfiWeb). Each tab keeps its own board; the
+     * live flows above always describe the one on screen.
+     */
+    val mode: StateFlow<BoardMode> get() = FIXED_GAME_MODE
+
+    /**
+     * Switch tabs. Leaving the game abandons a move the engine was thinking
+     * about; the analysis board forks from the game record, or resumes where it
+     * was if the game has not moved since.
+     */
+    suspend fun setMode(mode: BoardMode) = Unit
+
+    /** The game file the current line was opened from, if any. */
+    val gameName: StateFlow<String?> get() = NO_NAME
+
+    /** Replace the line with one read from a file called [name]. */
+    suspend fun loadLine(moves: List<Move>, name: String?) = replaceLine(moves)
+
+    companion object {
+        internal val FIXED_GAME_MODE: StateFlow<BoardMode> = MutableStateFlow(BoardMode.GAME).asStateFlow()
+        internal val NO_NAME: StateFlow<String?> = MutableStateFlow<String?>(null).asStateFlow()
+    }
 }

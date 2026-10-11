@@ -94,4 +94,11 @@ data class AnalyzeParams(
      * defense, so everything downstream is unchanged.
      */
     val defend: Boolean = false,
+    /**
+     * How long the analysis may read, in ms: 0 until stopped, null to leave the
+     * engine's level settings alone. RapfiWeb keeps the analysis time apart from
+     * the game's move time; the engine has one `timeout_turn`, so an analysis
+     * that sets its own puts the game's back when it ends.
+     */
+    val timeLimitMs: Long? = null,
 )

@@ -4,7 +4,9 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.gomoku.rapfidroid.data.game.BoardSessionStore
 import dev.gomoku.rapfidroid.data.game.GameRepositoryImpl
+import dev.gomoku.rapfidroid.data.game.PrefsBoardSessionStore
 import dev.gomoku.rapfidroid.domain.repository.GameRepository
 import javax.inject.Singleton
 
@@ -15,4 +17,8 @@ abstract class GameModule {
     @Binds
     @Singleton
     abstract fun bindGameRepository(impl: GameRepositoryImpl): GameRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBoardSessionStore(impl: PrefsBoardSessionStore): BoardSessionStore
 }

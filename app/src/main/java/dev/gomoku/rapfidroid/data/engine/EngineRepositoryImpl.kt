@@ -348,6 +348,9 @@ class EngineRepositoryImpl @Inject constructor(
             // only `yxboard` per analysis (main.c send_board). A START mid-session
             // resets the engine and cost us a redundant round trip.
             dispatch(EngineCommand.YxBoard(position.placements()))
+            params.timeLimitMs?.let { limit ->
+                analysisLimits(limit, position.size).forEach { (k, v) -> dispatch(EngineCommand.Info(k, v)) }
+            }
             // `searchdefend` is an ordinary analysis with a different opening
             // command — main.c:10883 pushes the board and sends `yxsearchdefend`
             // where `nbest` sends `yxnbest`, and reads the answer the same way.
@@ -362,10 +365,29 @@ class EngineRepositoryImpl @Inject constructor(
                 collector.cancel()
                 scope.launch(NonCancellable) {
                     runCatching { dispatch(EngineCommand.YxStop) }
+                    if (params.timeLimitMs != null) {
+                        // Put the game's level back for the next engine turn.
+                        runCatching {
+                            settingsRepository.settings.value.toEngineParams().levelPairs()
+                                .forEach { (k, v) -> dispatch(EngineCommand.Info(k, v)) }
+                        }
+                    }
                     connection.markSettled()
                 }
             }
         }
+
+    /** An analysis budget as `INFO` pairs: [limitMs] per search, no node cap. */
+    private fun analysisLimits(limitMs: Long, size: Int): List<Pair<String, String>> {
+        val turn = if (limitMs <= 0) UNLIMITED_TURN_MS else limitMs
+        return listOf(
+            "timeout_turn" to turn.toString(),
+            "timeout_match" to UNLIMITED_MATCH_MS.toString(),
+            "time_left" to UNLIMITED_MATCH_MS.toString(),
+            "max_node" to "-1",
+            "max_depth" to (size * size).toString(),
+        )
+    }
 
     override suspend fun forbidden(position: Position): List<Move> {
         val deferred = scope.async {
@@ -453,6 +475,8 @@ class EngineRepositoryImpl @Inject constructor(
     private companion object {
         const val CONSOLE_REPLAY = 300
         const val FORBID_TIMEOUT_MS = 3_000L
+        const val UNLIMITED_TURN_MS = 2_000_000L
+        const val UNLIMITED_MATCH_MS = 100_000_000L
 
         /** Balance searches are user-budgeted; this is only a leak guard. */
         const val BALANCE_TIMEOUT_MS = 15 * 60_000L
