@@ -29,7 +29,7 @@ class UiPrefs @Inject constructor(
         context.getSharedPreferences("ui", Context.MODE_PRIVATE)
 
     /** Connect to the last engine when the app opens (RapfiWeb's auto boot). */
-    val autoStartEngine = BoolPref("engine.autostart", true)
+    val autoStartEngine: BoolPref get() = bool("engine.autostart", true)
 
     /** Whether a [dev.gomoku.rapfidroid.core.designsystem.component.Disclosure] is open. */
     fun isOpen(id: String, default: Boolean): Boolean = prefs.getBoolean("open.$id", default)
@@ -38,15 +38,25 @@ class UiPrefs @Inject constructor(
         prefs.edit().putBoolean("open.$id", open).apply()
     }
 
-    fun bool(key: String, default: Boolean) = BoolPref(key, default)
+    private val cache = HashMap<String, Any>()
 
-    fun int(key: String, default: Int) = IntPref(key, default)
+    /** One instance per key, so every reader of a key sees the same flow. */
+    @Synchronized
+    fun bool(key: String, default: Boolean): BoolPref =
+        cache.getOrPut(key) { BoolPref(key, default) } as BoolPref
 
-    fun string(key: String, default: String) = StringPref(key, default)
+    @Synchronized
+    fun int(key: String, default: Int): IntPref =
+        cache.getOrPut(key) { IntPref(key, default) } as IntPref
+
+    @Synchronized
+    fun string(key: String, default: String): StringPref =
+        cache.getOrPut(key) { StringPref(key, default) } as StringPref
 
     inner class BoolPref internal constructor(private val key: String, default: Boolean) {
         private val flow = MutableStateFlow(prefs.getBoolean(key, default))
-        val value: StateFlow<Boolean> = flow.asStateFlow()
+        val state: StateFlow<Boolean> = flow.asStateFlow()
+        val value: Boolean get() = flow.value
         fun set(v: Boolean) {
             prefs.edit().putBoolean(key, v).apply()
             flow.value = v
@@ -55,7 +65,8 @@ class UiPrefs @Inject constructor(
 
     inner class IntPref internal constructor(private val key: String, default: Int) {
         private val flow = MutableStateFlow(prefs.getInt(key, default))
-        val value: StateFlow<Int> = flow.asStateFlow()
+        val state: StateFlow<Int> = flow.asStateFlow()
+        val value: Int get() = flow.value
         fun set(v: Int) {
             prefs.edit().putInt(key, v).apply()
             flow.value = v
@@ -64,7 +75,8 @@ class UiPrefs @Inject constructor(
 
     inner class StringPref internal constructor(private val key: String, default: String) {
         private val flow = MutableStateFlow(prefs.getString(key, default) ?: default)
-        val value: StateFlow<String> = flow.asStateFlow()
+        val state: StateFlow<String> = flow.asStateFlow()
+        val value: String get() = flow.value
         fun set(v: String) {
             prefs.edit().putString(key, v).apply()
             flow.value = v

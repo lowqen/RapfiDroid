@@ -65,7 +65,12 @@ data class BoardRender(
     val textScale: Float = 1f,
     /** Points the engine has been told to ignore (`block`, main.c:1899). */
     val blocked: Set<Move> = emptySet(),
+    /** Short text marks on empty points: opening grades, joseki symbols. */
+    val marks: Map<Move, BoardMark> = emptyMap(),
 )
+
+/** A short coloured mark on an empty point (`+3`, `!`, `A`). */
+data class BoardMark(val text: String, val color: Color)
 
 /**
  * A database label on one point: the stored value (`W5`, `39%`, `D`) or a
@@ -140,6 +145,39 @@ data class TagPalette(
     }
 
     /**
+     * The colour of a value written **as text only** on the board. RapfiWeb's
+     * second redesign took the chip away and wrote the number straight onto the
+     * wood, the way the desktop Yixin does. With no chip there is no dark fill
+     * to carry the rank, so here the **hue** does: losing blue, even green,
+     * yellow and orange, winning red, the desktop's `winrate2colorstr` poles. The
+     * order still comes from [ratePosition], so the five colour settings still
+     * bend it. A dark outline (`TextOutline`) lifts it off wood, stone and ghost.
+     */
+    fun textFor(tag: CellTag): Color = when (tag.kind) {
+        TagKind.WIN -> textInk(0f)
+        TagKind.LOSE -> textInk(220f)
+        TagKind.RATE -> textInk(textHue(ratePosition(tag.winRatePct ?: 50)))
+    }
+
+    /** Database values on the same scale; a free-form note is not a value at all. */
+    fun textForDb(kind: DbCellKind, ratePct: Int?): Color = when (kind) {
+        DbCellKind.WIN -> textInk(0f)
+        DbCellKind.LOSS -> textInk(220f)
+        DbCellKind.DRAW -> textInk(textHue(0.5f))
+        DbCellKind.RATE -> textInk(textHue(ratePosition(ratePct ?: 50)))
+        DbCellKind.NOTE -> NoteText
+    }
+
+    /** Ladder position (0 lost, 1 won) to hue, 240 degrees blue down to 0 red. */
+    internal fun textHue(position: Float): Float = (1f - position.coerceIn(0f, 1f)) * 240f
+
+    private fun textInk(hue: Float): Color =
+        hsl(hue, 0.95f, 0.62f * (value / 100f).coerceIn(0.6f, 1f))
+
+    /** Exposed for the tests: where a win rate sits on the ladder. */
+    internal fun positionOf(percent: Int): Float = ratePosition(percent)
+
+    /**
      * Ladder position of a win rate. 0.5 is even; the two rate settings say how
      * fast a value leaves the neutral middle ([minRateSaturation], as the
      * exponent of the ramp) and how far it can get ([maxRateSaturation]).
@@ -210,7 +248,23 @@ data class TagPalette(
 
         /** Board text is a note, not a value — parchment and ink, off the ladder. */
         val NoteColors = TagColors(Color(0xFFF2E7D3), Color(0xFF57452C))
+
+        /** A note written as text: parchment, under the same dark outline. */
+        val NoteText = Color(0xFFF2E7D3)
     }
+}
+
+/** The outline under every value written on the board. */
+internal val TextOutline = Color(0xFF140F0A)
+
+/** HSL to colour, the CSS formula (RapfiWeb `ladder.ts hslHex`). */
+internal fun hsl(h: Float, s: Float, l: Float): Color {
+    fun f(n: Float): Float {
+        val k = (n + h / 30f) % 12f
+        val a = s * min(l, 1f - l)
+        return l - a * max(-1f, min(min(k - 3f, 9f - k), 1f))
+    }
+    return Color(f(0f).coerceIn(0f, 1f), f(8f).coerceIn(0f, 1f), f(4f).coerceIn(0f, 1f))
 }
 
 /**
@@ -307,6 +361,7 @@ fun GomokuBoard(
     onLongPress: ((Move) -> Unit)? = null,
 ) {
     val n = render.size
+    BoardType.ensure(androidx.compose.ui.platform.LocalContext.current)
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -405,30 +460,7 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
         drawLine(skin.forbid, Offset(c.x - r, c.y), Offset(c.x + r, c.y), strokeWidth = hair * 1.7f)
     }
 
-    // per-cell analysis tags (winrate % / W n / L n) on empty points
     val occupiedCells = render.stones.toHashSet()
-    if (render.tags.isNotEmpty()) {
-        render.tags.forEach { (m, tag) ->
-            if (tag.label.isNotEmpty() && m !in occupiedCells) {
-                drawTag(
-                    cx(m.x), cy(m.y), radius, tag.label,
-                    render.palette.colorsFor(tag), render.textScale, skin.chipRim, hair,
-                )
-            }
-        }
-    }
-
-    // database values / board texts — the desktop draws these while the
-    // engine is idle, and never over an analysis tag for the same point.
-    render.dbLabels.forEach { (m, label) ->
-        if (label.text.isNotEmpty() && m !in occupiedCells && m !in render.tags) {
-            val pct = label.text.dropLast(1).toIntOrNull()
-            drawTag(
-                cx(m.x), cy(m.y), radius, label.text,
-                render.palette.colorsForDb(label.kind, pct), render.textScale, skin.chipRim, hair,
-            )
-        }
-    }
 
     // played stones, numbered unless "show number" is off (settings.txt line 14)
     render.stones.forEachIndexed { i, m ->
@@ -458,6 +490,35 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
         val black = (start + i) % 2 == 0
         val number = if (render.showNumbers) "${i + 1}" else ""
         drawStone(cx(m.x), cy(m.y), radius, black, number, 0.4f, skin, hair)
+    }
+
+    // Values as text, above the ghosts: since the chip went, a translucent
+    // ghost stone laid over a number blurred it, and the best move's point
+    // always carries the first ghost of the line. The outline keeps it legible.
+    val textScale = render.textScale.coerceIn(0.6f, 1.4f)
+    render.tags.forEach { (m, tag) ->
+        if (tag.label.isNotEmpty() && m !in occupiedCells) {
+            drawValueText(
+                cx(m.x), cy(m.y), geometry, tag.label, render.palette.textFor(tag), textScale,
+                bold = tag.kind != TagKind.RATE,
+            )
+        }
+    }
+    // database values and board texts, never over an analysis tag for the same point
+    render.dbLabels.forEach { (m, label) ->
+        if (label.text.isNotEmpty() && m !in occupiedCells && m !in render.tags) {
+            val pct = label.text.dropLast(1).toIntOrNull()
+            drawValueText(
+                cx(m.x), cy(m.y), geometry, label.text,
+                render.palette.textForDb(label.kind, pct), textScale,
+                bold = label.kind == DbCellKind.WIN || label.kind == DbCellKind.LOSS,
+            )
+        }
+    }
+    render.marks.forEach { (m, mark) ->
+        if (m !in occupiedCells && m !in render.tags && m !in render.dbLabels) {
+            drawValueText(cx(m.x), cy(m.y), geometry, mark.text, mark.color, textScale * 0.9f, bold = true)
+        }
     }
 
     // best-move highlight: a bright ring over a dark halo, because it lands on
@@ -613,39 +674,43 @@ private fun DrawScope.drawBadge(cx: Float, cy: Float, r: Float, quality: MoveQua
 }
 
 /**
- * A value chip on one intersection: one opaque fill from the ladder and the text
- * on top of it. No ring — the fill is far enough from the wood on its own, and a
- * ring drawn a hundred times is the noise it was meant to hide.
- *
- * A mate is drawn **bold**, which is the whole difference between `W5` and `63%`
- * on this scale: one is a fact, the other a number.
+ * A value written straight onto a point, no chip (RapfiWeb, second redesign).
+ * Heavy weight, a dark rounded outline under a bright fill, and never wider
+ * than 84 % of a cell so neighbouring numbers keep a gap.
  */
-private fun DrawScope.drawTag(
+private fun DrawScope.drawValueText(
     cx: Float,
     cy: Float,
-    r: Float,
-    label: String,
-    colors: TagColors,
-    textScale: Float = 1f,
-    rim: Color? = null,
-    hair: Float = 1f,
+    geometry: BoardGeometry,
+    text: String,
+    ink: Color,
+    textScale: Float,
+    bold: Boolean = false,
 ) {
-    drawCircle(colors.fill, radius = r * 0.82f, center = Offset(cx, cy))
-    // Only the dark board asks for this — see [BoardSkin.chipRim].
-    rim?.let {
-        drawCircle(it, radius = r * 0.82f, center = Offset(cx, cy), style = Stroke(width = hair * 1.3f))
-    }
+    val r = geometry.radius
+    var size = r * (if (text.length >= 4) 0.8f else if (text.length == 3) 0.9f else 1.05f) * textScale
     val paint = android.graphics.Paint().apply {
-        color = colors.ink.toArgb()
-        // Never wider than the point it sits on, however large the setting.
-        textSize = r * (if (label.length >= 4) 0.62f else 0.78f) * textScale.coerceIn(0.6f, 1.4f)
         textAlign = android.graphics.Paint.Align.CENTER
         isAntiAlias = true
-        isFakeBoldText = colors.bold
+        textSize = size
     }
-    drawContext.canvas.nativeCanvas.drawText(
-        label, cx, cy - (paint.descent() + paint.ascent()) / 2, paint,
-    )
+    BoardType.apply(paint, if (bold) 850 else 760)
+    val room = geometry.step * 0.84f
+    val width = paint.measureText(text) * 1.2f
+    if (width > room) {
+        size *= room / width
+        paint.textSize = size
+    }
+    val baseline = cy - (paint.descent() + paint.ascent()) / 2
+    val canvas = drawContext.canvas.nativeCanvas
+    paint.style = android.graphics.Paint.Style.STROKE
+    paint.strokeJoin = android.graphics.Paint.Join.ROUND
+    paint.strokeWidth = max(2f, size * 0.2f)
+    paint.color = TextOutline.toArgb()
+    canvas.drawText(text, cx, baseline, paint)
+    paint.style = android.graphics.Paint.Style.FILL
+    paint.color = ink.toArgb()
+    canvas.drawText(text, cx, baseline, paint)
 }
 
 /**
@@ -704,6 +769,7 @@ private fun DrawScope.drawStone(
         textAlign = android.graphics.Paint.Align.CENTER
         isAntiAlias = true
     }
+    BoardType.apply(paint, 600)
     drawContext.canvas.nativeCanvas.drawText(
         number, cx, cy - (paint.descent() + paint.ascent()) / 2, paint,
     )
@@ -721,10 +787,11 @@ private fun DrawScope.drawLabels(geometry: BoardGeometry, skin: BoardSkin) {
     val step = geometry.step
     val paint = android.graphics.Paint().apply {
         color = skin.label.toArgb()
-        textSize = step * 0.36f
+        textSize = step * 0.32f
         textAlign = android.graphics.Paint.Align.CENTER
         isAntiAlias = true
     }
+    BoardType.apply(paint, 500)
     for (i in 0 until geometry.n) {
         // Columns above the top line, rows left of the first one — both inside
         // the margin, so a label can never sit on the grid.
