@@ -152,9 +152,9 @@ private fun ConnectionContent(
             StatusChip(ui.state)
             Spacer(Modifier.weight(1f))
             if (ui.canConnect) {
-                Button(onClick = onConnect) { Text(tr("연결", "Connect")) }
+                Button(onClick = onConnect) { Text(tr("엔진 시작", "Start engine")) }
             } else {
-                OutlinedButton(onClick = onDisconnect) { Text(tr("연결 해제", "Disconnect")) }
+                OutlinedButton(onClick = onDisconnect) { Text(tr("엔진 끄기", "Stop engine")) }
             }
         }
 
@@ -192,7 +192,7 @@ private fun ConnectionContent(
             )
         } else {
             Text(
-                tr("로그 표시가 꺼져 있습니다 (설정 ▸ 표시 ▸ 로그)", "The log is turned off (Settings ▸ Display ▸ Log)"),
+                tr("로그 표시가 꺼져 있습니다", "The log is turned off"),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),

@@ -37,6 +37,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
+import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
+import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
+import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
+import dev.gomoku.rapfidroid.core.designsystem.component.Hint
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.model.DbDeleteFilter
 import kotlinx.coroutines.delay
 
@@ -65,10 +70,13 @@ fun DatabaseScreen(
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-        StatusSection(ui, viewModel)
+        if (!ui.connected) {
+            Hint(tr("엔진이 켜져야 DB 를 읽고 씁니다", "The engine has to be on to read or write the database"), color = MaterialTheme.colorScheme.error)
+        }
         PositionSection(ui, viewModel)
         RecordSection(ui, viewModel)
         FileSection(ui, viewModel)
+        StatusSection(ui, viewModel)
         BulkDeleteSection(ui, viewModel)
         LogSection(ui, viewModel)
         }
@@ -93,10 +101,10 @@ fun DatabaseScreen(
         )
     }
 
-    ui.notice?.let { text ->
-        Snackbar { Text(text) }
-        LaunchedEffect(text) {
-            delay(3_000)
+    val snackbar = LocalSnackbarHostState.current
+    LaunchedEffect(ui.notice) {
+        ui.notice?.let {
+            snackbar.showSnackbar(it)
             viewModel.onNoticeShown()
         }
     }
@@ -104,28 +112,32 @@ fun DatabaseScreen(
 
 @Composable
 private fun StatusSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
-    Section(tr("상태", "State")) {
+    FoldSection(
+        "db-options",
+        tr("옵션", "Options"),
+        summary = (if (ui.db.enabled) tr("사용", "On") else tr("꺼짐", "Off")) + if (ui.db.readOnly) tr(" · 읽기 전용", " · read-only") else "",
+    ) {
         SwitchRow(
             title = tr("데이터베이스 사용", "Use database"),
-            subtitle = tr("settings.txt 32행 · info usedatabase", "settings.txt line 32 · info usedatabase"),
+            subtitle = null,
             checked = ui.db.enabled,
             onChange = vm::onUseDatabase,
         )
         SwitchRow(
             title = tr("읽기 전용", "Read-only"),
-            subtitle = tr("settings.txt 33행 · 켜면 모든 기록·편집이 차단됩니다", "settings.txt line 33 · on blocks every write and edit"),
+            subtitle = tr("기록 · 편집을 막습니다", "Blocks writes and edits"),
             checked = ui.db.readOnly,
             onChange = vm::onReadOnly,
         )
         SwitchRow(
             title = tr("보드 텍스트 표시", "Show board text"),
-            subtitle = tr("settings.txt 34행 · 저장값 대신 사용자 라벨을 보드에 표시", "settings.txt line 34 · shows your labels on the board instead of the stored values"),
+            subtitle = tr("판에 값 대신 칸 글자", "Board text instead of values"),
             checked = ui.showBoardText,
             onChange = vm::onShowBoardText,
         )
         SwitchRow(
             title = tr("주기 자동 저장", "Periodic auto-save"),
-            subtitle = tr("settings_dev 10·11행 · 엔진이 쉴 때만 저장합니다", "settings_dev lines 10-11 · saves only while the engine is idle"),
+            subtitle = tr("엔진이 쉴 때만", "Only while the engine is idle"),
             checked = ui.autoSave,
             onChange = vm::onAutoSave,
         )
@@ -136,17 +148,10 @@ private fun StatusSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
         }
         SwitchRow(
             title = tr("파괴적 연산 해제", "Unlock destructive operations"),
-            subtitle = tr("일괄 삭제·분할을 허용합니다 (기본 잠금)", "Allows bulk deletes and splits (locked by default)"),
+            subtitle = tr("일괄 삭제 · 분할", "Bulk delete and split"),
             checked = ui.db.destructiveUnlocked,
             onChange = vm::onUnlockDestructive,
         )
-        if (!ui.connected) {
-            Text(
-                tr("엔진에 연결되어 있지 않습니다 — 연결 탭에서 접속하세요.", "Not connected to the engine — connect on the engine tab."),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
-        }
         ui.db.progress?.let { progress ->
             Text(
                 (if (progress.saving) tr("저장 중: ", "Saving:") else tr("불러오는 중: ", "Loading:")) + progress.file,
@@ -315,7 +320,7 @@ private fun FileSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BulkDeleteSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
-    Section(tr("일괄 삭제", "Bulk delete")) {
+    FoldSection("db-bulk", tr("일괄 삭제", "Bulk delete")) {
         Text(
             tr("현재 국면 아래의 기록을 조건에 맞춰 지웁니다 (PC의 dbdel all).", "Deletes records under this position by rule (dbdel all on the PC)."),
             style = MaterialTheme.typography.labelMedium,
@@ -361,7 +366,7 @@ private fun BulkDeleteSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
 @Composable
 private fun LogSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
     if (ui.db.log.isEmpty()) return
-    Section(tr("기록", "Log")) {
+    FoldSection("db-log", tr("기록", "Log")) {
         Text(
             ui.db.log.takeLast(30).joinToString("\n"),
             style = MaterialTheme.typography.labelSmall.copy(fontFamily = FontFamily.Monospace),
@@ -374,17 +379,15 @@ private fun LogSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            HorizontalDivider()
-            content()
-        }
+    CalmCard {
+        CardTitle(title)
+        content()
     }
+}
+
+@Composable
+private fun FoldSection(id: String, title: String, summary: String? = null, content: @Composable () -> Unit) {
+    DisclosureCard(id = id, title = title, summary = summary) { content() }
 }
 
 @Composable

@@ -54,6 +54,13 @@ import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.i18n.tr
+import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
+import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
+import dev.gomoku.rapfidroid.core.designsystem.component.ChoiceChips
+import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
+import dev.gomoku.rapfidroid.core.designsystem.component.FieldRow
+import dev.gomoku.rapfidroid.core.designsystem.component.Hint
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.model.AppSettings
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 import dev.gomoku.rapfidroid.core.model.SettingCategory
@@ -61,7 +68,6 @@ import dev.gomoku.rapfidroid.core.model.SettingEditor
 import dev.gomoku.rapfidroid.core.model.SettingSpec
 import dev.gomoku.rapfidroid.core.model.SettingsFile
 import dev.gomoku.rapfidroid.feature.data.RifBuildDialog
-import dev.gomoku.rapfidroid.feature.onboarding.WelcomeViewModel
 
 /**
  * Every persisted desktop setting, generated from [dev.gomoku.rapfidroid.core.model.DesktopSettings]
@@ -94,7 +100,6 @@ fun SettingsScreen(
     var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showRifBuild by rememberSaveable { mutableStateOf(false) }
     var showFiles by rememberSaveable { mutableStateOf(false) }
-    val welcome: WelcomeViewModel = hiltViewModel()
 
     // One snackbar for the whole app (see [LocalSnackbarHostState]). This screen
     // was the last holdout with an inline banner of its own, which said the same
@@ -144,7 +149,7 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = ui.query,
                 onValueChange = viewModel::onQuery,
-                label = { Text(tr("설정 검색 (이름·주석·INFO 키)", "Search settings (name, comment, INFO key)")) },
+                label = { Text(tr("설정 검색", "Search settings")) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -179,8 +184,13 @@ fun SettingsScreen(
                     Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    // Kept above the 67, and separate from them: these have no
-                    // line in either desktop file and never travel to the server.
+                    // The few things people change: language, theme, whether the
+                    // engine starts with the app, the game data (RapfiWeb's 자주 쓰는 설정).
+                    CommonCard(
+                        dark = ui.settings.darkMode,
+                        onDark = { viewModel.onValue("darkMode", if (it) "1" else "0") },
+                        onRifBuild = { showRifBuild = true },
+                    )
                     LocalEngineCard(
                         ui = ui,
                         onThreads = viewModel::onLocalThreads,
@@ -188,116 +198,77 @@ fun SettingsScreen(
                         onDatabase = viewModel::onLocalDatabase,
                         onServerEnabled = viewModel::onServerEnabled,
                     )
-                    // 67 desktop settings do not fit one phone list. The everyday
-                    // ones show by default; the rest are one switch away and
-                    // always findable by search.
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    DisclosureCard(
+                        id = "settings-files",
+                        title = tr("데스크톱 설정 파일", "Desktop settings files"),
+                        summary = "settings.txt",
                     ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(tr("고급 설정", "Advanced"), style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                if (ui.advanced) tr("데스크톱의 67개 항목을 모두 표시합니다", "Shows all 67 desktop entries")
-                                else tr("자주 쓰지 않는 ${ui.hidden}개를 숨겼습니다 (검색하면 나옵니다)", "${ui.hidden} rarely-used entries are hidden (search finds them)"),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
-                    }
-                    // 실전 통계는 이 버튼 하나로 끝난다 — 기기가 직접 만든다.
-                    OutlinedButton(
-                        onClick = { showRifBuild = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)"))
-                    }
-                    TextButton(onClick = { showFiles = !showFiles }) {
-                        Text(
-                            if (showFiles) tr("개별 파일 접기", "Hide individual files")
-                            else tr("개별 파일로 넣기 · 내보내기", "Individual files · export"),
-                        )
-                    }
-                    AnimatedVisibility(showFiles, enter = expandFadeIn, exit = shrinkFadeOut) {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
-                            SettingsFile.entries.forEach { file ->
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        tr("${file.fileName} (${file.lineCount}줄)", "${file.fileName} (${file.lineCount} lines)"),
-                                        style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    OutlinedButton(onClick = {
-                                        viewModel.prepare(file)
-                                        importLauncher.launch(arrayOf("*/*"))
-                                    }) { Text(tr("불러오기", "Load")) }
-                                    OutlinedButton(onClick = {
-                                        viewModel.prepare(file)
-                                        exportLauncher.launch(file.fileName)
-                                    }) { Text(tr("내보내기", "Export")) }
-                                }
-                            }
-                            // The desktop's `function/` and `language/` folders —
-                            // user-defined toolbar buttons and hotkeys, and the
-                            // labels their numeric ids point at. The card above
-                            // reads these too; this row stays for the one case it
-                            // cannot cover — going back to the built-in defaults.
+                        // PC와 파일을 그대로 주고받는다: 데스크톱이 쓰는 것과 같은 줄 배치.
+                        SettingsFile.entries.forEach { file ->
                             Row(
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"),
-                                        style = MaterialTheme.typography.labelMedium,
-                                    )
-                                    Text(
-                                        ui.appearanceSource?.let { tr("$it 에서 불러옴", "from $it") }
-                                            ?: tr("데스크톱 기본값 (Yixin 폴더를 선택하면 내 설정을 씁니다)", "Desktop defaults (pick a Yixin folder to use your own)"),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
-                                if (ui.appearanceSource != null) {
-                                    TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
-                                }
+                                Text(
+                                    file.fileName,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontFamily = FontFamily.Monospace),
+                                    modifier = Modifier.weight(1f),
+                                )
+                                OutlinedButton(onClick = {
+                                    viewModel.prepare(file)
+                                    importLauncher.launch(arrayOf("*/*"))
+                                }) { Text(tr("불러오기", "Load")) }
+                                OutlinedButton(onClick = {
+                                    viewModel.prepare(file)
+                                    exportLauncher.launch(file.fileName)
+                                }) { Text(tr("내보내기", "Export")) }
                             }
                         }
-                    }
-                    // settings.txt line 36 stores the flag; this is what makes it
-                    // useful — the transcript is only worth recording if it can be
-                    // handed over.
-                    if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
                         Row(
                             Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(
-                                tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log, ${ui.debugLogBytes / 1024}KB"),
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.weight(1f),
-                            )
-                            OutlinedButton(
-                                onClick = { debugLogLauncher.launch("rapfidroid-debug.log") },
-                                enabled = ui.debugLogBytes > 0,
-                            ) { Text(tr("내보내기", "Export")) }
-                            TextButton(
-                                onClick = viewModel::onClearDebugLog,
-                                enabled = ui.debugLogBytes > 0,
-                            ) { Text(tr("지우기", "Clear")) }
+                            Column(Modifier.weight(1f)) {
+                                Text(tr("툴바 · 핫키 · 언어", "Toolbar · hotkeys · language"), style = MaterialTheme.typography.labelMedium)
+                                Hint(ui.appearanceSource ?: tr("기본값", "Defaults"))
+                            }
+                            OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더 선택", "Pick a folder")) }
+                            if (ui.appearanceSource != null) {
+                                TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
+                            }
                         }
                     }
-                    TextButton(onClick = viewModel::onReset) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
+                    DisclosureCard(
+                        id = "settings-advanced",
+                        title = tr("고급", "Advanced"),
+                        summary = if (ui.advanced) tr("67개 전부", "All 67") else tr("${ui.hidden}개 숨김", "${ui.hidden} hidden"),
+                    ) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(tr("모든 데스크톱 항목 보기", "Show every desktop entry"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                            Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
+                        }
+                        if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log, ${ui.debugLogBytes / 1024}KB"),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                OutlinedButton(
+                                    onClick = { debugLogLauncher.launch("rapfidroid-debug.log") },
+                                    enabled = ui.debugLogBytes > 0,
+                                ) { Text(tr("내보내기", "Export")) }
+                                TextButton(onClick = viewModel::onClearDebugLog, enabled = ui.debugLogBytes > 0) { Text(tr("지우기", "Clear")) }
+                            }
+                        }
+                        TextButton(onClick = viewModel::onReset) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
+                    }
                 }
                 // Where the tools end and the 67 settings begin.
                 HorizontalDivider()
@@ -318,7 +289,6 @@ fun SettingsScreen(
         AboutDialog(
             onDismiss = { showAbout = false },
             onShowLicenses = { showAbout = false; showLicenses = true },
-            onReplayWelcome = { showAbout = false; welcome.onReplay() },
         )
     }
     if (showLicenses) {
@@ -632,5 +602,46 @@ private fun ChoiceEditor(
                 Button(onClick = { open = false }) { Text(tr("닫기", "Close")) }
             },
         )
+    }
+}
+
+
+/**
+ * 자주 쓰는 설정 — language, theme, starting the engine with the app, and the
+ * RenjuNet game data. Everything else is the desktop's 67 entries below.
+ */
+@Composable
+private fun CommonCard(dark: Boolean, onDark: (Boolean) -> Unit, onRifBuild: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = LocalUiPrefs.current
+    CalmCard {
+        CardTitle(tr("자주 쓰는 설정", "Common"))
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            val manager = context.getSystemService(android.app.LocaleManager::class.java)
+            val current = manager.applicationLocales.toLanguageTags().substringBefore('-').ifEmpty { "" }
+            FieldRow(tr("언어", "Language")) {
+                ChoiceChips(
+                    options = listOf("" to tr("기기 설정", "System"), "ko" to "한국어", "en" to "English"),
+                    selected = current,
+                    onSelect = { tag -> manager.applicationLocales = android.os.LocaleList.forLanguageTags(tag) },
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(tr("어두운 테마", "Dark theme"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Switch(checked = dark, onCheckedChange = onDark)
+        }
+        prefs?.let { p ->
+            val auto by p.autoStartEngine.state.collectAsStateWithLifecycle()
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(tr("앱을 열면 엔진 시작", "Start the engine with the app"), style = MaterialTheme.typography.bodyMedium)
+                }
+                Switch(checked = auto, onCheckedChange = { p.autoStartEngine.set(it) })
+            }
+        }
+        OutlinedButton(onClick = onRifBuild, modifier = Modifier.fillMaxWidth()) {
+            Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)"))
+        }
     }
 }
