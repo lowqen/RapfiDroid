@@ -33,7 +33,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Card
+import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard as Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -131,8 +131,7 @@ private fun Header(ui: RankingsUiState, onFilter: () -> Unit) {
             val sub = if (ui.freqLoaded) {
                 tr("실전 %,d판", "%,d games").format(ui.freqGameCount)
             } else {
-                tr("실전 데이터 없음 — 필터에서 freq_data.json 을 불러오세요",
-                    "No game data — load freq_data.json from the filter sheet")
+                tr("실전 데이터 없음", "No game data")
             }
             Text(sub, style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -432,8 +431,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                Text(tr("실전 데이터가 없습니다. 설정 ▸ «대국 데이터 추가» 에서 만들면 실전 빈도·승률이 표시됩니다. ", "No game data yet. Settings ▸ Add game data builds it, and then the frequencies and win rates appear. ") +
-                    tr("(RenjuNet 파생 — 기기 안에서만, 재배포 금지)", "(RenjuNet derived - stays on this device, never redistributed)"),
+                Text(tr("실전 데이터가 없습니다", "No game data yet"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

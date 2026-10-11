@@ -44,6 +44,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
+import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
+import dev.gomoku.rapfidroid.core.designsystem.component.Disclosure
+import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
+import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.Stepper
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
@@ -113,14 +118,6 @@ fun ReviewScreen(
                 onBadges = viewModel::onToggleBadges,
             )
         }
-        item {
-            FileCard(
-                onLoad = { loadGame.launch(arrayOf("*/*")) },
-                onSave = { saveGame.launch("game.sav") },
-                enabled = !ui.running,
-                lineLength = ui.lineLength,
-            )
-        }
         ui.report?.let { report ->
             item(span = { GridItemSpan(maxLineSpan) }) {
                 ReportHeader(
@@ -144,11 +141,6 @@ fun ReviewScreen(
             }
         }
         item {
-            // The desktop's Analysis menu holds Prove Position next to Game
-            // Review, and both drive the same engine, so they share a screen.
-            ProveCard(onNotice = { viewModel.onExternalNotice(it) })
-        }
-        item {
             QueueCard(
                 ui = ui,
                 onAdd = { addToQueue.launch(arrayOf("*/*")) },
@@ -157,6 +149,11 @@ fun ReviewScreen(
                 onClear = viewModel::onClearQueue,
                 onRemove = viewModel::onRemoveQueued,
             )
+        }
+        item {
+            // The proof drives the same engine as the review, so it lives here,
+            // folded at the bottom (RapfiWeb).
+            ProveCard(onNotice = { viewModel.onExternalNotice(it) })
         }
         if (ui.log.isNotEmpty()) {
             item { LogCard(ui.log) }
@@ -176,46 +173,9 @@ private fun RunCard(
     onSkipOpening: () -> Unit,
     onBadges: () -> Unit,
 ) {
-    Card(tr("게임 리뷰", "Game Review")) {
-        Text(
-            tr("판의 모든 국면을 같은 예산으로 분석해 수마다 등급을 매깁니다. ", "Analyses every position of the game on the same budget and grades each move.") +
-                tr("리뷰 중에는 엔진이 계속 점유됩니다.", "The engine is busy for the whole run."),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Card(tr("게임 리뷰", "Game review")) {
+        Hint(tr("수마다 등급과 정확도를 매깁니다", "Grades every move and each side's accuracy"))
         val budget = ui.budget
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(
-                selected = !budget.byDepth,
-                onClick = { onBudget(budget.copy(byDepth = false)) },
-                label = { Text(tr("초/수", "s per move")) },
-                enabled = !ui.running,
-            )
-            FilterChip(
-                selected = budget.byDepth,
-                onClick = { onBudget(budget.copy(byDepth = true)) },
-                label = { Text(tr("고정 깊이", "Fixed depth")) },
-                enabled = !ui.running,
-            )
-        }
-        if (budget.byDepth) {
-            Stepper(tr("깊이", "Depth"), budget.depth, 4, 64, !ui.running) { onBudget(budget.copy(depth = it)) }
-        } else {
-            Stepper(tr("초", "s"), budget.seconds, 1, 120, !ui.running) { onBudget(budget.copy(seconds = it)) }
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(
-                selected = ui.skipOpening,
-                onClick = onSkipOpening,
-                label = { Text(tr("오프닝 1-5수 제외", "Skip opening moves 1-5")) },
-                enabled = !ui.running,
-            )
-            FilterChip(
-                selected = ui.showBadges,
-                onClick = onBadges,
-                label = { Text(tr("보드에 등급 배지", "Grade badges on the board")) },
-            )
-        }
         if (ui.running) {
             val progress = ui.progress
             LinearProgressIndicator(
@@ -224,40 +184,53 @@ private fun RunCard(
             )
             Text(
                 buildString {
-                    progress.queue?.let { append(tr("큐 ${it.index}/${it.total} · ${it.name} · ", "Queue ${it.index}/${it.total} · ${it.name} ·")) }
+                    progress.queue?.let { append(tr("큐 ${it.index}/${it.total} · ${it.name} · ", "Queue ${it.index}/${it.total} · ${it.name} · ")) }
                     append(tr("국면 ${progress.index}/${progress.total + 1} · ${progress.budget.label}", "Position ${progress.index}/${progress.total + 1} · ${progress.budget.label}"))
                 },
                 style = MaterialTheme.typography.labelMedium,
             )
             OutlinedButton(onClick = onCancel) { Text(tr("중지", "Stop")) }
         } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onStart, enabled = ui.canReview) {
-                    Text(tr("리뷰 시작 (${ui.lineLength}수)", "Review (${ui.lineLength} moves)"))
-                }
+            Button(onClick = onStart, enabled = ui.canReview, modifier = Modifier.fillMaxWidth()) {
+                Text(tr("지금 판 리뷰 (${ui.lineLength}수)", "Review this game (${ui.lineLength} moves)"))
             }
-            if (!ui.connected) {
-                Text(
-                    tr("엔진에 연결한 뒤 실행하세요.", "Connect to the engine first."),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
+            if (!ui.connected) Hint(tr("엔진이 켜져야 합니다", "The engine has to be on"), color = MaterialTheme.colorScheme.error)
+        }
+        val summary = (if (budget.byDepth) tr("깊이 ${budget.depth}", "depth ${budget.depth}") else tr("${budget.seconds}초/수", "${budget.seconds}s per move")) +
+            if (ui.skipOpening) tr(" · 오프닝 제외", " · opening skipped") else ""
+        Disclosure(id = "review-options", title = tr("리뷰 설정", "Review settings"), summary = summary) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(
+                    selected = !budget.byDepth,
+                    onClick = { onBudget(budget.copy(byDepth = false)) },
+                    label = { Text(tr("시간", "Time")) },
+                    enabled = !ui.running,
+                )
+                FilterChip(
+                    selected = budget.byDepth,
+                    onClick = { onBudget(budget.copy(byDepth = true)) },
+                    label = { Text(tr("깊이", "Depth")) },
+                    enabled = !ui.running,
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun FileCard(onLoad: () -> Unit, onSave: () -> Unit, enabled: Boolean, lineLength: Int) {
-    Card(tr("기보 파일", "Game files")) {
-        Text(
-            tr("PC와 같은 형식입니다 — 불러오기 .psq/.sav/.pos, 저장은 .sav(파일 이름을 .psq로 하면 .psq).", "The same formats as the PC — .psq/.sav/.pos to load, .sav to save (name it .psq and it writes .psq)."),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = onLoad, enabled = enabled) { Text(tr("불러오기", "Load")) }
-            OutlinedButton(onClick = onSave, enabled = enabled && lineLength > 0) { Text(tr("저장", "Save")) }
+            if (budget.byDepth) {
+                Stepper(tr("깊이", "Depth"), budget.depth, 4, 64, !ui.running) { onBudget(budget.copy(depth = it)) }
+            } else {
+                Stepper(tr("초/수", "s per move"), budget.seconds, 1, 120, !ui.running) { onBudget(budget.copy(seconds = it)) }
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(
+                    selected = ui.skipOpening,
+                    onClick = onSkipOpening,
+                    label = { Text(tr("오프닝 1-5수 제외", "Skip moves 1-5")) },
+                    enabled = !ui.running,
+                )
+                FilterChip(
+                    selected = ui.showBadges,
+                    onClick = onBadges,
+                    label = { Text(tr("판에 등급 표시", "Grades on the board")) },
+                )
+            }
         }
     }
 }
@@ -273,7 +246,7 @@ private fun ReportHeader(
     onExport: (ExportFormat) -> Unit,
     onExportAll: () -> Unit,
 ) {
-    Card(tr("리포트 — ${report.title}", "Report — ${report.title}")) {
+    Card(tr("리포트 · ${report.title}", "Report · ${report.title}")) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Accuracy(tr("흑", "Black"), report.tally.blackAccuracy)
             Accuracy(tr("백", "White"), report.tally.whiteAccuracy)
@@ -456,15 +429,15 @@ private fun QueueCard(
     onClear: () -> Unit,
     onRemove: (String) -> Unit,
 ) {
-    Card(tr("분석 큐 (${ui.queue.size})", "Queue (${ui.queue.size})")) {
-        Text(
-            tr("여러 기보를 차례로 리뷰합니다. 각 대국의 리포트는 앱 폴더에 남길 수 있습니다.", "Reviews several games one after another. Each report can be left in the app folder."),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    DisclosureCard(
+        id = "review-queue",
+        title = tr("분석 큐", "Queue"),
+        summary = tr("${ui.queue.size}판", "${ui.queue.size} games"),
+    ) {
+        Hint(tr("여러 기보를 차례로 리뷰합니다", "Reviews several games in turn"))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             AssistChip(onClick = onAdd, label = { Text(tr("기보 추가", "Add files")) })
-            AssistChip(onClick = onAddCurrent, label = { Text(tr("현재 대국 추가", "Add this game")) })
+            AssistChip(onClick = onAddCurrent, label = { Text(tr("지금 판 추가", "Add this game")) })
             AssistChip(onClick = onClear, label = { Text(tr("비우기", "Empty")) })
         }
         ui.queue.forEach { entry -> QueueRow(entry, ui.running) { onRemove(entry.uri) } }
@@ -511,7 +484,7 @@ private fun QueueRow(entry: QueueEntry, running: Boolean, onRemove: () -> Unit) 
 
 @Composable
 private fun LogCard(log: List<String>) {
-    Card(tr("기록", "Log")) {
+    DisclosureCard(id = "review-log", title = tr("기록", "Log")) {
         log.takeLast(8).forEach {
             Text(it, style = MaterialTheme.typography.labelSmall)
         }
@@ -522,15 +495,9 @@ private fun LogCard(log: List<String>) {
 
 @Composable
 private fun Card(title: String, content: @Composable () -> Unit) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            content()
-        }
+    CalmCard {
+        CardTitle(title)
+        content()
     }
 }
 

@@ -31,6 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.Stepper
 import dev.gomoku.rapfidroid.core.i18n.tr
+import dev.gomoku.rapfidroid.core.designsystem.component.Disclosure
+import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
+import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.model.ProveMark
 import dev.gomoku.rapfidroid.core.model.ProveOptions
 import kotlinx.coroutines.delay
@@ -56,33 +59,42 @@ fun ProveCard(
         }
     }
 
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium,
-        modifier = modifier.fillMaxWidth(),
+    val options = ui.options
+    val editable = !ui.running
+    val budgetText = if (options.byDepth) tr("깊이 ${options.depth0}", "depth ${options.depth0}")
+    else tr("${options.budget0Sec}초", "${options.budget0Sec}s")
+    DisclosureCard(
+        id = "prove",
+        title = tr("국면 증명", "Prove position"),
+        modifier = modifier,
+        summary = if (ui.running) tr("증명 중", "Proving") else budgetText,
     ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(tr("국면 증명", "Prove Position"), style = MaterialTheme.typography.titleSmall)
-            Text(
-                tr("차례인 쪽이 이 국면에서 이기는지 AND/OR 탐색으로 증명합니다. ", "Proves whether the side to move wins this position, by AND/OR search.") +
-                    tr("결론(메이트)은 엔진의 데이터베이스에 기록되므로 PC에서도 그대로 보입니다.", "A mate is written to the engine's database, so the PC sees it too."),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            val options = ui.options
-            val editable = !ui.running
+        Hint(tr("둘 차례가 이기는지 증명합니다", "Proves whether the side to move wins"))
+        if (ui.running) {
+            RunningState(ui)
+            OutlinedButton(onClick = viewModel::onCancel) { Text(tr("중지", "Stop")) }
+        } else {
+            Button(onClick = viewModel::onStart, enabled = ui.canStart, modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    tr("지금 판 증명 (", "Prove this position (") +
+                        (if (ui.blackToMove) tr("흑", "Black") else tr("백", "White")) +
+                        tr(" 차례)", " to move)"),
+                )
+            }
+            ui.blocker?.let { Hint(it, color = MaterialTheme.colorScheme.error) }
+        }
+        Disclosure(id = "prove-options", title = tr("증명 설정", "Proof settings"), summary = budgetText) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = !options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = false)) },
-                    label = { Text(tr("초/노드", "s per node")) },
+                    label = { Text(tr("시간", "Time")) },
                     enabled = editable,
                 )
                 FilterChip(
                     selected = options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = true)) },
-                    label = { Text(tr("깊이/노드", "plies per node")) },
+                    label = { Text(tr("깊이", "Depth")) },
                     enabled = editable,
                 )
             }
@@ -118,29 +130,9 @@ fun ProveCard(
                     enabled = editable,
                 )
             }
-
-            if (ui.running) {
-                RunningState(ui)
-                OutlinedButton(onClick = viewModel::onCancel) { Text(tr("중지", "Stop")) }
-            } else {
-                Button(onClick = viewModel::onStart, enabled = ui.canStart) {
-                    Text(
-                        tr("증명 시작 (", "Prove (") +
-                            (if (ui.blackToMove) tr("흑", "Black") else tr("백", "White")) +
-                            tr(" 차례, ${ui.moveCount}수)", " to move, ${ui.moveCount} moves)"),
-                    )
-                }
-                ui.blocker?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
-
-            if (ui.log.isNotEmpty()) {
-                Text(tr("기록", "Log"), style = MaterialTheme.typography.labelMedium)
+        }
+        if (ui.log.isNotEmpty()) {
+            Disclosure(id = "prove-log", title = tr("기록", "Log")) {
                 ui.log.takeLast(6).forEach {
                     Text(it, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
                 }

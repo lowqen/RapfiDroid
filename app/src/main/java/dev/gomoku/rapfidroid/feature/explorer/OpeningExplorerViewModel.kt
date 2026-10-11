@@ -51,6 +51,8 @@ data class OpeningExplorerUiState(
     /** The line on the board, for the graded mini board — same reason as
      *  [nameChain]: it must survive NO_PACKS and NO_STATS. */
     val stones: List<Move> = emptyList(),
+    /** Redo moves kept past the board's cursor, for the forward buttons. */
+    val ahead: Int = 0,
     /**
      * 환원 — the other move orders that reach these very stones, each with its
      * own name chain. Pure computation from the board, so it too survives
@@ -98,6 +100,8 @@ class OpeningExplorerViewModel @Inject constructor(
 
         // Separate from the pack flow above on purpose: the name chain must
         // survive NO_PACKS and NO_STATS, where `position` is null.
+        game.future.onEach { f -> _ui.update { it.copy(ahead = f.size) } }.launchIn(viewModelScope)
+
         game.position.onEach { pos ->
             val chain = OpeningName.chain(pos.moves, pos.size)
             val self = OpeningName.keyOf(pos.moves, pos.size)
@@ -172,6 +176,25 @@ class OpeningExplorerViewModel @Inject constructor(
                 it.copy(notice = reason ?: tr("기보 #$id 을(를) 보드에 올렸습니다", "Game #$id is on the board"))
             }
         }
+    }
+
+    /** A tap on the explorer's board plays there, like a next-move row. */
+    fun onTapBoard(move: Move) = onPlayNext(move)
+
+    fun onBack() {
+        viewModelScope.launch { game.undo() }
+    }
+
+    fun onForward() {
+        viewModelScope.launch { game.redo() }
+    }
+
+    fun onStart() {
+        viewModelScope.launch { game.toStart() }
+    }
+
+    fun onEnd() {
+        viewModelScope.launch { game.toEnd() }
     }
 
     fun onNoticeShown() {

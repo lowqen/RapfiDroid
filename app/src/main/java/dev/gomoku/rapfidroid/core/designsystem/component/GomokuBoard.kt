@@ -67,6 +67,8 @@ data class BoardRender(
     val blocked: Set<Move> = emptySet(),
     /** Short text marks on empty points: opening grades, joseki symbols. */
     val marks: Map<Move, BoardMark> = emptyMap(),
+    /** 흑 5수 유불리 shapes on empty points (the opening explorer's next moves). */
+    val gradeMarks: Map<Move, dev.gomoku.rapfidroid.core.model.OpeningEval.Grade> = emptyMap(),
 )
 
 /** A short coloured mark on an empty point (`+3`, `!`, `A`). */
@@ -490,6 +492,10 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
         val black = (start + i) % 2 == 0
         val number = if (render.showNumbers) "${i + 1}" else ""
         drawStone(cx(m.x), cy(m.y), radius, black, number, 0.4f, skin, hair)
+    }
+
+    render.gradeMarks.forEach { (m, grade) ->
+        if (m !in occupiedCells) drawGradeMark(grade, Offset(cx(m.x), cy(m.y)), radius * 0.5f)
     }
 
     // Values as text, above the ghosts: since the chip went, a translucent

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,22 +38,13 @@ fun DataSetupCard(
     var showDialog by rememberSaveable { mutableStateOf(false) }
     val running = state as? PackBuildState.Running
 
-    Card(modifier.fillMaxWidth()) {
+    dev.gomoku.rapfidroid.core.designsystem.component.CalmCard(modifier) {
         Column(
-            Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                tr("실전 통계가 아직 없습니다", "No real-game statistics yet"),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
-                tr(
-                    "오프닝 이름과 흑 5수 유불리는 지금도 나옵니다. 실전 빈도·승률·기보 목록만 RenjuNet 대국 DB가 필요하고, 파일 하나만 받으면 기기가 알아서 만듭니다.",
-                    "Opening names and the 5th-move grades already work. Only the frequencies, win rates and game lists need the RenjuNet database — download one file and the phone builds the rest.",
-                ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                tr("RenjuNet 기보 파일을 넣으면 실전 빈도 · 승률 · 기보가 나옵니다", "Add the RenjuNet game file for real-game frequencies, scores and games"),
+                style = MaterialTheme.typography.bodyMedium,
             )
             if (running != null) {
                 Text(running.phase.label, style = MaterialTheme.typography.labelMedium)

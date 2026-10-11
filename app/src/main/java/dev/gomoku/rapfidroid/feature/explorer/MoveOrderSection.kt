@@ -25,7 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard as Card
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -119,7 +119,12 @@ fun MoveOrderSection(
             }
         }
 
-        item { OptionChips(ui, viewModel::onOptionsChange) }
+        item {
+            dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(
+                id = "sequence-options",
+                title = tr("규칙", "Rules"),
+            ) { OptionChips(ui, viewModel::onOptionsChange) }
+        }
 
         item {
             Card(Modifier.fillMaxWidth()) {
@@ -162,7 +167,7 @@ fun MoveOrderSection(
         if (ui.rows.isNotEmpty()) {
             item {
                 Text(
-                    tr("다음 수 후보 ${ui.rows.size}가지 — 누르면 그 갈래로 들어갑니다", "${ui.rows.size} continuations — tap one to follow it"),
+                    tr("다음 수 ${ui.rows.size}가지", "${ui.rows.size} continuations"),
                     style = MaterialTheme.typography.titleSmall,
                 )
             }

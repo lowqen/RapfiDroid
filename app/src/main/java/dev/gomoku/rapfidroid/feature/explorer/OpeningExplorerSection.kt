@@ -23,10 +23,12 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material.icons.automirrored.filled.LastPage
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FirstPage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +56,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.gomoku.rapfidroid.core.designsystem.component.EmptyState
+import dev.gomoku.rapfidroid.core.designsystem.component.GradeMark
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.MiniBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.ReadingWidth
@@ -114,22 +116,11 @@ fun OpeningExplorerSection(
         )
     }
 
-    LazyColumn(
-        modifier = modifier.fillMaxHeight().wrapContentWidth().widthIn(max = ReadingWidth),
-        contentPadding = PaddingValues(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item { HeaderCard(ui, onClear = viewModel::onClearPacks) }
+    val info: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
+        item { HeaderCard(ui) }
 
-        // With no data the build is the thing to do next, so it is offered
-        // here rather than only on the settings screen.
+        // With no data the build is the thing to do next.
         if (ui.status == ExplorerStatus.NO_PACKS) item { DataSetupCard() }
-
-        // 환원 is pure computation from the board, so it goes outside the
-        // position block: just as true with no packs and no statistics.
-        if (ui.transpositions.isNotEmpty()) {
-            item { TranspositionCard(ui.transpositions) }
-        }
 
         ui.position?.let { pos ->
             if (pos.games > 0) {
@@ -140,7 +131,7 @@ fun OpeningExplorerSection(
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            tr("이 국면: ", "This position: "),
+                            tr("이 국면 ", "This position "),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -148,19 +139,17 @@ fun OpeningExplorerSection(
                     }
                 }
             }
-            item { GradedBoard(pos, ui.stones) }
             if (pos.next.isNotEmpty()) {
-                item {
-                    val graded = pos.next.count { it.grade != null }
-                    SectionTitle(
-                        tr("다음 수 ${pos.next.size}가지 — 누르면 보드에 둡니다", "${pos.next.size} continuations — tap one to play it") +
-                            if (graded > 0) tr(" · 유불리 ${graded}개", " · $graded graded") else "",
-                    )
-                }
+                item { SectionTitle(tr("다음 수", "Next moves")) }
                 items(pos.next, key = { it.move.x * 100 + it.move.y }) { row ->
                     NextRow(row, ui.barScale, pos.games) { viewModel.onPlayNext(row.move) }
                 }
             }
+        }
+
+        // 환원 is pure computation from the board: true with no packs too.
+        if (ui.transpositions.isNotEmpty()) {
+            item { TranspositionCard(ui.transpositions) }
         }
 
         if (ui.status == ExplorerStatus.OK) {
@@ -168,15 +157,15 @@ fun OpeningExplorerSection(
                 OutlinedTextField(
                     value = ui.filter,
                     onValueChange = viewModel::onFilterChange,
-                    label = { Text(tr("선수 이름 검색 (라틴 문자)", "Search a player name (Latin letters)")) },
+                    label = { Text(tr("선수 이름", "Player name")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             item {
                 SectionTitle(
-                    tr("대국 ${ui.games.shown} / ${ui.games.matched}", "Games ${ui.games.shown} / ${ui.games.matched}") +
-                        if (ui.games.matched > ui.games.shown) tr(" (표시 상한 1,000)", " (1,000 shown at most)") else "",
+                    tr("대국 ${ui.games.matched}판", "${ui.games.matched} games") +
+                        if (ui.games.matched > ui.games.shown) tr(" (${ui.games.shown}판 표시)", " (${ui.games.shown} shown)") else "",
                 )
             }
             items(ui.games.rows, key = { it.id }) { row ->
@@ -191,38 +180,130 @@ fun OpeningExplorerSection(
                 item { GameDetail(g, ui.selectedRule, ui.selectedOpening) }
             }
         }
+
+        ui.packs?.let { packs ->
+            item {
+                dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(
+                    id = "explorer-data",
+                    title = tr("RenjuNet 자료", "RenjuNet data"),
+                    summary = tr("${packs.totalGames}판", "${packs.totalGames} games"),
+                ) {
+                    Text(
+                        tr("대국 ${packs.totalGames}판 · 국면 ${packs.positions}개 · ${packs.dateText}", "${packs.totalGames} games · ${packs.positions} positions · ${packs.dateText}"),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        tr("시작 ${packs.maxPlies}수 이내, ${packs.minGames}판 이상 나온 국면", "Positions within ${packs.maxPlies} moves, seen in ${packs.minGames}+ games"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    OutlinedButton(onClick = viewModel::onClearPacks) { Text(tr("자료 지우기", "Clear the data")) }
+                }
+            }
+        }
+    }
+
+    androidx.compose.foundation.layout.BoxWithConstraints(modifier.fillMaxSize()) {
+        val wide = maxWidth >= 720.dp && maxWidth > maxHeight
+        if (wide) {
+            val side = androidx.compose.ui.unit.min(maxHeight - 24.dp, maxWidth * 0.55f)
+            Row(Modifier.fillMaxSize().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                ExplorerBoard(ui, viewModel, Modifier.width(side))
+                LazyColumn(
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    content = info,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxHeight().align(Alignment.TopCenter).widthIn(max = ReadingWidth),
+                contentPadding = PaddingValues(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                item { ExplorerBoard(ui, viewModel, Modifier.fillMaxWidth()) }
+                info()
+            }
+        }
+    }
+}
+
+/**
+ * The explorer's own board: the line on the board, every graded next move as
+ * its shape and every played one as its game count. Tap a point to play it;
+ * the arrows step through the line.
+ */
+@Composable
+private fun ExplorerBoard(
+    ui: OpeningExplorerUiState,
+    viewModel: OpeningExplorerViewModel,
+    modifier: Modifier = Modifier,
+) {
+    val next = ui.position?.next.orEmpty()
+    val grades = next.mapNotNull { r -> r.grade?.let { r.move to it } }.toMap()
+    val counts = next.filter { it.games > 0 && it.move !in grades }.take(12).associate {
+        it.move to dev.gomoku.rapfidroid.core.designsystem.component.BoardMark("${it.games}", Color(0xFFF2E7D3))
+    }
+    val render = dev.gomoku.rapfidroid.core.designsystem.component.BoardRender(
+        stones = ui.stones,
+        lastMove = ui.stones.lastOrNull(),
+        gradeMarks = grades,
+        marks = counts,
+    )
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard(
+            render = render,
+            modifier = Modifier.fillMaxWidth(),
+            onTap = viewModel::onTapBoard,
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            NavButton(Icons.Filled.FirstPage, tr("처음으로", "To start"), ui.stones.isNotEmpty(), viewModel::onStart)
+            NavButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one"), ui.stones.isNotEmpty(), viewModel::onBack)
+            NavButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one"), ui.ahead > 0, viewModel::onForward)
+            NavButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end"), ui.ahead > 0, viewModel::onEnd)
+        }
     }
 }
 
 @Composable
-private fun HeaderCard(
-    ui: OpeningExplorerUiState,
-    onClear: () -> Unit,
+private fun NavButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
 ) {
+    androidx.compose.material3.IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
+        androidx.compose.material3.Icon(icon, contentDescription = label)
+    }
+}
+
+/** A card face from the calm set (white, hairline, no shadow). */
+@Composable
+private fun Card(
+    modifier: Modifier = Modifier,
+    content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    androidx.compose.material3.Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = dev.gomoku.rapfidroid.core.designsystem.component.cardColor(),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(content = content)
+    }
+}
+
+@Composable
+private fun HeaderCard(ui: OpeningExplorerUiState) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when (ui.status) {
-                // The app's one empty state (see [EmptyState]). How to *get*
-                // the packs is the card below; what stays here is the part that
-                // is true whatever the user does — the licence, and that the
-                // names and grades work regardless.
-                ExplorerStatus.NO_PACKS -> EmptyState(
-                    icon = Icons.Filled.Inventory2,
-                    title = tr("오프닝 익스플로러 팩이 없습니다", "No opening explorer packs"),
-                    body = tr("아래에서 PC 의 자료 폴더를 고르면 됩니다. RenjuNet 라이선스가 비상업·오프라인 ", "Pick the PC's data folder below. The RenjuNet licence is non-commercial and offline only, ") +
-                        tr("전용이라 팩은 앱에 동봉되지 않고 이 기기 밖으로 나가지도 않습니다. ", "so the packs are not shipped with the app and never leave this device. ") +
-                        tr("오프닝 이름과 흑 5수 유불리는 팩 없이도 그대로 나옵니다.", "Opening names and the black-5 grades work without them."),
-                )
+                ExplorerStatus.NO_PACKS ->
+                    Text(tr("실전 통계 없음 · 이름과 유불리는 그대로 나옵니다", "No real-game statistics · names and grades still work"), style = MaterialTheme.typography.bodyMedium)
                 ExplorerStatus.WRONG_SIZE ->
-                    Text(tr("익스플로러는 15×15 판에서만 동작합니다", "The explorer works on a 15×15 board only"), style = MaterialTheme.typography.titleMedium)
-                ExplorerStatus.NO_STATS -> {
+                    Text(tr("15×15 판에서만 동작합니다", "Works on a 15×15 board only"), style = MaterialTheme.typography.titleMedium)
+                ExplorerStatus.NO_STATS ->
                     Text(tr("이 국면의 통계가 없습니다", "No statistics for this position"), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        tr("팩은 시작 ${ui.packs?.maxPlies ?: 20}수 이내, ", "The packs hold positions within the first ${ui.packs?.maxPlies ?: 20} moves") +
-                            tr("${ui.packs?.minGames ?: 2}판 이상 나온 국면만 담습니다.", "that occur in at least ${ui.packs?.minGames ?: 2} games."),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
                 ExplorerStatus.OK ->
                     Text(
                         ui.position?.line.orEmpty(),
@@ -230,19 +311,7 @@ private fun HeaderCard(
                         fontFamily = FontFamily.Monospace,
                     )
             }
-            // The chain is computed from the board alone, so it belongs
-            // outside the `when`: it is just as true with no packs and no
-            // statistics as with them (main.c `rjexp_sync`).
             NameChain(ui.nameChain)
-            ui.packs?.let {
-                Text(
-                    tr("팩: 대국 ${it.totalGames}판 · 국면 ${it.positions}개 · ${it.dateText} 생성", "Packs: ${it.totalGames} games · ${it.positions} positions · built ${it.dateText}"),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-            if (ui.packs != null) {
-                OutlinedButton(onClick = onClear) { Text(tr("데이터 지우기", "Clear the data")) }
-            }
         }
     }
 }
@@ -306,30 +375,6 @@ private fun FrequencyLine(pos: ExplorerPosition, total: Int) {
 }
 
 /**
- * The 흑 5수 유불리 grade as the user's evaluation table draws it: a coloured
- * shape plus its name.
- *
- * Deliberately not the engine's winrate colour ramp — that is a number the
- * engine computed and this is one a person wrote down, and painting them alike
- * would make the two indistinguishable on the same screen.
- */
-@Composable
-private fun GradeMark(grade: OpeningEval.Grade, size: Dp = 14.dp, withName: Boolean = true) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Canvas(Modifier.size(size)) {
-            val side = this.size.minDimension
-            drawGradeMark(grade, Offset(side / 2f, side / 2f), side * 0.46f)
-        }
-        if (withName) {
-            Text(
-                "  " + tr(grade.ko, grade.en),
-                style = MaterialTheme.typography.labelMedium,
-            )
-        }
-    }
-}
-
-/**
  * 환원 — the other move orders that reach these very stones.
  *
  * Computed, never stored: three black stones and two white ones have twelve
@@ -344,7 +389,7 @@ private fun TranspositionCard(rows: List<Transposition>) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
             Text(
-                tr("환원 — 같은 모양에 이르는 다른 수순 ${rows.size}가지",
+                tr("환원 · 같은 돌에 이르는 다른 수순 ${rows.size}가지",
                     "${rows.size} other move orders reaching the same stones"),
                 style = MaterialTheme.typography.labelLarge,
             )
@@ -366,31 +411,6 @@ private fun TranspositionCard(rows: List<Transposition>) {
                     )
                 }
             }
-        }
-    }
-}
-
-/**
- * The position with every graded fifth move on it — the same picture the user's
- * evaluation table draws, and the same rows as the list below it.
- *
- * The desktop puts this beside its table for the same reason: eleven grades
- * over a dozen points are a shape, not a column of words.
- */
-@Composable
-private fun GradedBoard(pos: ExplorerPosition, stones: List<Move>) {
-    val marks = pos.next.mapNotNull { row -> row.grade?.let { row.move to it } }
-    if (marks.isEmpty()) return
-    Card(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.padding(12.dp).fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            MiniBoard(
-                stones = stones,
-                modifier = Modifier.size(260.dp),
-                marks = marks,
-            )
         }
     }
 }
@@ -529,7 +549,7 @@ private fun GameRow(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "${row.black} — ${row.white}",
+                    "${row.black} · ${row.white}",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 )
@@ -600,7 +620,7 @@ private fun mark(result: Int, side: Int) = when {
     else -> "✘"
 }
 
-private fun country(c: String) = if (c.isBlank() || c == "?") "" else " — $c"
+private fun country(c: String) = if (c.isBlank() || c == "?") "" else " · $c"
 
 @Composable
 private fun SectionTitle(text: String) {

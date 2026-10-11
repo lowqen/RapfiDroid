@@ -348,3 +348,22 @@ fun TimePicker(
 
 /** Padding every scrolling screen uses around its cards. */
 val ScreenPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+
+/**
+ * A drop-in for Material's `Card` with the calm face (white, hairline, no
+ * elevation). Screens import it as `Card` so their layouts stay untouched.
+ */
+@Composable
+fun FlatCard(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = cardColor(),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(content = content)
+    }
+}
