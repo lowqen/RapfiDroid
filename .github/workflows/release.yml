@@ -27,6 +27,19 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      # gradle.properties is sized for a 4 GB laptop. AGP 9 runs lint inside the
+      # Gradle daemon, and lintVitalAnalyzeRelease loads more classes than a
+      # 384 MiB metaspace holds (0.15.3's first run died there). The runner has
+      # memory to spare, and the user-home file outranks the project's, so only
+      # CI gets the bigger numbers.
+      - name: Size the build for the runner
+        run: |
+          mkdir -p "${GRADLE_USER_HOME:-$HOME/.gradle}"
+          cat >> "${GRADLE_USER_HOME:-$HOME/.gradle}/gradle.properties" <<PROPS
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8
+          kotlin.daemon.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
+          PROPS
+
       - run: chmod +x gradlew
 
       - name: Unit tests
