@@ -10,6 +10,7 @@ import dev.gomoku.rapfidroid.core.joseki.JosekiTree
 import dev.gomoku.rapfidroid.core.joseki.LessonLink
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.PosKey
+import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -57,11 +58,16 @@ data class JosekiHit(val tree: JosekiTree, val path: List<Int>, val ply: Int)
  * fetch, the one in the APK's assets, then asks the site for a newer one. The
  * request carries the last ETag, so an unchanged curriculum costs one empty
  * reply. A file that does not parse, or has no lessons, is never kept.
+ *
+ * That request is the app's only automatic use of the network, and Settings
+ * turns it off ([UiPrefs.curriculumAutoUpdate]); the refresh button and a
+ * lesson link still fetch, because the user asked.
  */
 @Singleton
 class JosekiRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
+    private val ui: UiPrefs,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + io)
     private val prefs = context.getSharedPreferences("joseki", Context.MODE_PRIVATE)
@@ -100,7 +106,7 @@ class JosekiRepository @Inject constructor(
             _trees.value = runCatching {
                 if (file.isFile) (JosekiJson.import(file.readText()) as? JosekiJson.Import.Ok)?.trees.orEmpty() else emptyList()
             }.getOrDefault(emptyList()).sortedByDescending { it.updatedAt }
-            refreshCurriculum()
+            if (ui.curriculumAutoUpdate.value) refreshCurriculum()
         }
     }
 

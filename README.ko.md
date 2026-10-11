@@ -3,7 +3,7 @@
 # RapfiDroid
 
 **진짜 엔진이 폰 안에서 도는 오목·렌주 보드.**
-**서버도, 계정도, 인터넷도 필요 없습니다.**
+**서버도, 계정도 필요 없고, 오프라인에서 동작합니다.**
 
 [![Build](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/lowqen/RapfiDroid?include_prereleases&sort=semver)](https://github.com/lowqen/RapfiDroid/releases/latest)
@@ -77,7 +77,9 @@
 ### 정석
 
 * **공식 커리큘럼.** 코스 › 레슨, 레슨마다 살펴보기(트리 · 해설 · 좋은 수 · 나쁜 수 ·
-  함정 · 응징)와 학습(수순을 직접 맞히기, 힌트 · 점수 · 진도). RapfiWeb 과 같은 파일입니다.
+  함정 · 응징)와 학습(수순을 직접 맞히기, 힌트 · 점수 · 진도). RapfiWeb 이 싣는 그 파일을
+  사이트에서 받아 오므로 새 레슨이 앱 업데이트 없이 들어오고, 레슨 링크
+  (`rapfiweb.pages.dev/joseki?lesson=…`)는 앱에서 열립니다.
 * **내 정석.** 판이나 `h8 i9 j10` 으로 수를 넣고, 갈래 · 평가 기호 · 마크다운 메모를
   달고, 지금 보드 국면으로 찾습니다(대칭 포함). RapfiWeb 과 같은 JSON 으로 주고받습니다.
 
@@ -143,8 +145,17 @@ aarch64 가 아니거나, `libc++_shared` 에 의존하거나, 저 플래그를 
 경우를 위해 그 모드도 남아 있습니다. 아주 큰 오프닝 데이터베이스나, 몇 시간씩
 걸어 두는 분석 같은 것입니다.
 
-**기본은 꺼져 있고 고급 설정 뒤에 있습니다.** 직접 켜고 주소를 넣기 전에는 이 앱의
-어떤 부분도 네트워크에 접속하지 않습니다.
+**기본은 꺼져 있고 고급 설정 뒤에 있습니다.** 아래의 커리큘럼 파일 말고는, 직접 켜고
+주소를 넣기 전에는 이 앱의 어떤 부분도 네트워크에 접속하지 않습니다.
+
+### 저절로 하는 요청 하나
+
+정석 탭은 공식 커리큘럼을 `https://rapfiweb.pages.dev/joseki/curriculum.json` 에서
+받습니다. RapfiWeb 사이트가 보여 주는 바로 그 파일이라, 새 레슨이 앱 업데이트 없이
+들어옵니다. 정적 파일 하나를 받는 요청이고 사용자 · 기보 · 기기에 관한 정보는 아무것도
+보내지 않으며, 바뀌지 않았으면 빈 응답 하나로 끝납니다. **설정 ▸ 정석 커리큘럼 자동
+업데이트**로 끌 수 있고, 꺼도 새로 고침 단추와 레슨 링크는 누를 때 받습니다. 그 밖의
+모든 것은, 폰에 이미 있는 커리큘럼까지 포함해, 비행기 모드에서 그대로 동작합니다.
 
 ## 소스에서 빌드하기
 

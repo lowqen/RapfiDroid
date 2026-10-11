@@ -31,6 +31,13 @@ class UiPrefs @Inject constructor(
     /** Connect to the last engine when the app opens (RapfiWeb's auto boot). */
     val autoStartEngine: BoolPref get() = bool("engine.autostart", true)
 
+    /**
+     * Fetch the official joseki curriculum from RapfiWeb by itself. The app's one
+     * automatic network request (a static file, nothing sent); off, the refresh
+     * button and lesson links still fetch when asked.
+     */
+    val curriculumAutoUpdate: BoolPref get() = bool("curriculum.autoupdate", true)
+
     /** Whether a [dev.gomoku.rapfidroid.core.designsystem.component.Disclosure] is open. */
     fun isOpen(id: String, default: Boolean): Boolean = prefs.getBoolean("open.$id", default)
 

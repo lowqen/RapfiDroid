@@ -13,7 +13,7 @@ Summary: Gomoku and renju board with the engine running on your device
 
 Description: |-
     A gomoku and renju board with the Rapfi engine running on the device
-    itself — no server and no internet. Play against it, analyse a position,
+    itself — no server, works offline. Play against it, analyse a position,
     see the principal variation and the evaluation bar, and let it mark renju
     forbidden points, all offline.
 
@@ -25,9 +25,13 @@ Description: |-
       11-grade evaluation of Black's fifth move.
     * Game review, board image export, game record import and export, and the
       67 settings of the desktop Yixin-Board interface.
+    * An official joseki curriculum to browse and learn by playing. It is
+      fetched from rapfiweb.pages.dev, the RapfiWeb site's static file, so new
+      lessons arrive without an update; nothing is sent, and a switch in
+      Settings turns this off.
     * An optional server mode for a remote Rapfi with a large database. It is
-      off by default and behind an advanced switch; nothing here talks to the
-      network unless you turn it on.
+      off by default and behind an advanced switch; apart from the curriculum
+      file, nothing here talks to the network unless you turn it on.
 
     Real-game statistics are optional and are built on the device from a
     RenjuNet database you download yourself — that data is never bundled and

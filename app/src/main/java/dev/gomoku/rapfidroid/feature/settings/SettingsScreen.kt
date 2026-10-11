@@ -523,6 +523,18 @@ private fun CommonCard(
                 Text(tr("앱을 열면 엔진 시작", "Start the engine with the app"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = auto, onCheckedChange = { p.autoStartEngine.set(it) })
             }
+            val curriculum by p.curriculumAutoUpdate.state.collectAsStateWithLifecycle()
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(tr("정석 커리큘럼 자동 업데이트", "Update the joseki curriculum"), style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        tr("rapfiweb.pages.dev 에서 받습니다. 보내는 정보는 없습니다", "From rapfiweb.pages.dev. Nothing is sent"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = curriculum, onCheckedChange = { p.curriculumAutoUpdate.set(it) })
+            }
         }
         OutlinedButton(onClick = onRifBuild, modifier = Modifier.fillMaxWidth()) {
             Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)"))

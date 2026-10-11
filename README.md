@@ -3,7 +3,7 @@
 # RapfiDroid
 
 **A gomoku and renju board with a real engine running on your phone.**
-**No server. No account. No internet.**
+**No server. No account. Works offline.**
 
 [![Build](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/lowqen/RapfiDroid?include_prereleases&sort=semver)](https://github.com/lowqen/RapfiDroid/releases/latest)
@@ -88,7 +88,9 @@ The interface is available in English and Korean.
 
 * **Official curriculum.** Courses of lessons, each with Browse (tree,
   commentary, good and bad moves, traps and refutations) and Learn (play the
-  moves yourself, with hints, a score and progress). The same file as RapfiWeb.
+  moves yourself, with hints, a score and progress). It is the file RapfiWeb
+  publishes, fetched from the site so new lessons arrive without an app update,
+  and lesson links (`rapfiweb.pages.dev/joseki?lesson=…`) open in the app.
 * **My joseki.** Add moves on the board or as `h8 i9 j10`, with branches,
   evaluation symbols and markdown notes, and find them again from the board's
   position, symmetries included. Same JSON as RapfiWeb.
@@ -159,8 +161,20 @@ The original architecture talked to Rapfi on a PC over the network, and that mod
 is still here for the cases where a phone genuinely cannot compete: a very large
 opening database, or an analysis you want to leave running for hours.
 
-It is **off by default and hidden behind an advanced switch.** Nothing in this
-app contacts the network unless you turn it on and enter an address yourself.
+It is **off by default and hidden behind an advanced switch.** Apart from the
+curriculum file below, nothing in this app contacts the network unless you turn
+it on and enter an address yourself.
+
+### The one automatic request
+
+The Joseki tab fetches the official curriculum from
+`https://rapfiweb.pages.dev/joseki/curriculum.json`, the same file the RapfiWeb
+site serves, so new lessons arrive without an app update. It is a plain request
+for a static file; nothing about you, your games or your device is sent, and an
+unchanged file costs an empty reply. **Settings ▸ Update the joseki curriculum**
+turns it off; the refresh button and lesson links still fetch when you tap
+them. Everything else, the curriculum already on the phone included, works in
+airplane mode.
 
 ## Building from source
 

@@ -69,5 +69,6 @@ RapfiWeb 은 이 앱을 웹으로 옮긴 것이다. 옮기는 동안 웹에서 �
 | P6 | 완료 — 정석 탭: 공식 커리큘럼(웹 `curriculum.json` 동봉) · 살펴보기/학습 · 진도, 내 정석 편집기 · 국면으로 찾기 · JSON/.psq, `JosekiTest` 8건 |
 | P7 | 완료 — 설정 «자주 쓰는 설정»(언어 · 테마 · 엔진 자동 시작 · 대국 데이터), 파일 · 고급 펼침, 첫 안내 창 삭제, DB 옵션 · 일괄 삭제 · 기록 펼침 |
 | P8 | 완료 — README(한/영), `release-notes-0.15.0.md`, 버전 0.15.0 |
+| 후속 | 2026-10-11 — 빈 판 분석은 H8 을 두고 멈춤, 엔진 명령 직렬화(`awaitIdle`), 평가 바 20/30dp, 설정 웹 구성, 툴체인(AGP 9 · Kotlin 2.4), 멀티 PV 기본 1(이전 기본값 이전), 보드의 DB 카드 → DB 탭, **공식 커리큘럼 RapfiWeb 연동**(`rapfiweb.pages.dev/joseki/curriculum.json` 받기 · ETag · 레슨 링크 열기/복사, 관리자는 RapfiWeb 커리큘럼 스튜디오에서 만들어 `pnpm curriculum:publish`). 0.15.0–0.15.3 시험 릴리스를 거두고 한 번의 0.15.0(versionCode 19)으로 낸다 |
 
 남은 것: 실기기 확인(이 PC 에는 SDK 가 없어 CI 컴파일 · 단위 시험까지만 확인했다), 웹의 `.rif` «끌어다 놓기»에 해당하는 파일 열기 인텐트.

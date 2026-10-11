@@ -17,8 +17,10 @@ android {
         applicationId = "dev.gomoku.rapfidroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
-        versionName = "0.15.3"
+        // versionCode only ever goes up (18 was the withdrawn 0.15.3 test build);
+        // the name restarts the 0.15 line as one release.
+        versionCode = 19
+        versionName = "0.15.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
