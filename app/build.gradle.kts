@@ -2,7 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
+    // No kotlin.android: AGP 9 compiles Kotlin itself (built-in Kotlin).
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
@@ -11,7 +11,7 @@ plugins {
 
 android {
     namespace = "dev.gomoku.rapfidroid"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "dev.gomoku.rapfidroid"
@@ -77,7 +77,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+    // Kotlin's JVM target follows targetCompatibility under AGP 9's built-in Kotlin.
     // buildConfig: the About screen states the version, and a version the
     // user cannot read is a bug report we cannot place.
     buildFeatures {
