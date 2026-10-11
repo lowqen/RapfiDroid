@@ -66,8 +66,8 @@ class PackBuildService : LifecycleService() {
     private fun build(state: PackBuildState): Notification {
         val running = state as? PackBuildState.Running
         val builder = NotificationCompat.Builder(this, EngineService.CHANNEL_ID)
-            .setContentTitle(tr("오프닝 데이터 만드는 중", "Building opening data"))
-            .setContentText(running?.phase?.label ?: tr("준비 중…", "Starting…"))
+            .setContentTitle(tr("오프닝 데이터 만드는 중", "Building opening data", "正在生成开局数据"))
+            .setContentText(running?.phase?.label ?: tr("준비 중…", "Starting…", "准备中…"))
             .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

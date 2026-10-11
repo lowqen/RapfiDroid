@@ -115,7 +115,7 @@ fun SettingsScreen(
 
     val searching = ui.query.isNotBlank()
     Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("설정", "Settings"))
+        RapfiTopBar(title = tr("설정", "Settings", "设置"))
         // RapfiWeb's settings: a search, the common card, one advanced switch,
         // then the desktop's entries grouped by what they are for. A row is its
         // name and its control; the why is not spelled out on the screen.
@@ -128,7 +128,7 @@ fun SettingsScreen(
                 OutlinedTextField(
                     value = ui.query,
                     onValueChange = viewModel::onQuery,
-                    placeholder = { Text(tr("설정 검색", "Search settings")) },
+                    placeholder = { Text(tr("설정 검색", "Search settings", "搜索设置")) },
                     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                     singleLine = true,
                     shape = MaterialTheme.shapes.extraLarge,
@@ -148,10 +148,10 @@ fun SettingsScreen(
                     CalmCard {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(tr("고급 설정", "Advanced settings"), style = MaterialTheme.typography.titleMedium)
+                                Text(tr("고급 설정", "Advanced settings", "高级设置"), style = MaterialTheme.typography.titleMedium)
                                 Hint(
-                                    if (ui.advanced) tr("엔진 · 대국 · 표시 · DB · 시스템", "Engine, game, display, database, system")
-                                    else tr("${ui.hidden}개 숨김", "${ui.hidden} hidden"),
+                                    if (ui.advanced) tr("엔진 · 대국 · 표시 · DB · 시스템", "Engine, game, display, database, system", "引擎 · 对局 · 显示 · 数据库 · 系统")
+                                    else tr("${ui.hidden}개 숨김", "${ui.hidden} hidden", "已隐藏 ${ui.hidden} 项"),
                                 )
                             }
                             Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
@@ -170,7 +170,7 @@ fun SettingsScreen(
                 }
             }
             if (searching && ui.visible.isEmpty()) {
-                item(key = "none") { Hint(tr("«${ui.query}» 에 맞는 설정이 없습니다", "No setting matches «${ui.query}»")) }
+                item(key = "none") { Hint(tr("«${ui.query}» 에 맞는 설정이 없습니다", "No setting matches «${ui.query}»", "没有与 «${ui.query}» 匹配的设置")) }
             }
             val groups = ui.visible.groupBy { it.category }
             SettingCategory.entries.forEach { category ->
@@ -192,7 +192,7 @@ fun SettingsScreen(
             if (ui.advanced && !searching) {
                 item(key = "system") {
                     CalmCard {
-                        CardTitle(tr("데스크톱 설정 파일", "Desktop settings files"))
+                        CardTitle(tr("데스크톱 설정 파일", "Desktop settings files", "桌面版设置文件"))
                         SettingsFile.entries.forEach { file ->
                             Row(
                                 Modifier.fillMaxWidth(),
@@ -207,11 +207,11 @@ fun SettingsScreen(
                                 OutlinedButton(onClick = {
                                     viewModel.prepare(file)
                                     importLauncher.launch(arrayOf("*/*"))
-                                }) { Text(tr("가져오기", "Import")) }
+                                }) { Text(tr("가져오기", "Import", "导入")) }
                                 OutlinedButton(onClick = {
                                     viewModel.prepare(file)
                                     exportLauncher.launch(file.fileName)
-                                }) { Text(tr("내보내기", "Export")) }
+                                }) { Text(tr("내보내기", "Export", "导出")) }
                             }
                         }
                         Row(
@@ -220,12 +220,12 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(tr("툴바 · 핫키 · 언어 폴더", "Toolbar, hotkeys, language folder"), style = MaterialTheme.typography.bodyMedium)
-                                Hint(ui.appearanceSource ?: tr("기본값", "Defaults"))
+                                Text(tr("툴바 · 핫키 · 언어 폴더", "Toolbar, hotkeys, language folder", "工具栏 · 快捷键 · 语言文件夹"), style = MaterialTheme.typography.bodyMedium)
+                                Hint(ui.appearanceSource ?: tr("기본값", "Defaults", "默认值"))
                             }
-                            OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더", "Folder")) }
+                            OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더", "Folder", "文件夹")) }
                             if (ui.appearanceSource != null) {
-                                TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults")) }
+                                TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults", "默认值")) }
                             }
                         }
                         if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
@@ -235,14 +235,14 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log ${ui.debugLogBytes / 1024}KB"),
+                                    tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log ${ui.debugLogBytes / 1024}KB", "调试日志 ${ui.debugLogBytes / 1024}KB"),
                                     style = MaterialTheme.typography.bodyMedium,
                                     modifier = Modifier.weight(1f),
                                 )
                                 OutlinedButton(onClick = { debugLogLauncher.launch("rapfidroid-debug.log") }, enabled = ui.debugLogBytes > 0) {
-                                    Text(tr("내보내기", "Export"))
+                                    Text(tr("내보내기", "Export", "导出"))
                                 }
-                                TextButton(onClick = viewModel::onClearDebugLog, enabled = ui.debugLogBytes > 0) { Text(tr("지우기", "Clear")) }
+                                TextButton(onClick = viewModel::onClearDebugLog, enabled = ui.debugLogBytes > 0) { Text(tr("지우기", "Clear", "清除")) }
                             }
                         }
                         ResetRow(onReset = viewModel::onReset)
@@ -254,11 +254,11 @@ fun SettingsScreen(
                     CalmCard {
                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(tr("정보", "About"), style = MaterialTheme.typography.titleMedium)
+                                Text(tr("정보", "About", "关于"), style = MaterialTheme.typography.titleMedium)
                                 Hint("RapfiDroid ${dev.gomoku.rapfidroid.BuildConfig.VERSION_NAME}")
                             }
-                            TextButton(onClick = { showAbout = true }) { Text(tr("자세히", "Details")) }
-                            TextButton(onClick = { showLicenses = true }) { Text(tr("라이선스", "Licences")) }
+                            TextButton(onClick = { showAbout = true }) { Text(tr("자세히", "Details", "详情")) }
+                            TextButton(onClick = { showLicenses = true }) { Text(tr("라이선스", "Licences", "许可证")) }
                         }
                     }
                 }
@@ -298,9 +298,9 @@ private fun LocalEngineCard(
     onServerEnabled: (Boolean) -> Unit,
 ) {
     CalmCard(spacing = 8.dp) {
-        CardTitle(tr("기기 내 엔진", "On-device engine"))
+        CardTitle(tr("기기 내 엔진", "On-device engine", "本机引擎"))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(tr("해시 크기 (MB)", "Hash size (MB)"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(tr("해시 크기 (MB)", "Hash size (MB)", "哈希表大小 (MB)"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             CommitField(
                 value = ui.localProfile.hashMb.toString(),
                 onCommit = { raw -> raw.toIntOrNull()?.let(onHash) },
@@ -310,17 +310,17 @@ private fun LocalEngineCard(
             )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(tr("기기 데이터베이스 사용", "Use the device database"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(tr("기기 데이터베이스 사용", "Use the device database", "使用本机数据库"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("서버 엔진 사용", "Use a server engine"), style = MaterialTheme.typography.bodyMedium)
-                Hint(tr("직접 운영하는 Rapfi 서버 (Tailscale)", "A Rapfi server you run (Tailscale)"))
+                Text(tr("서버 엔진 사용", "Use a server engine", "使用服务器引擎"), style = MaterialTheme.typography.bodyMedium)
+                Hint(tr("직접 운영하는 Rapfi 서버 (Tailscale)", "A Rapfi server you run (Tailscale)", "你自己运行的 Rapfi 服务器 (Tailscale)"))
             }
             Switch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
         }
-        if (!ui.localMode) Hint(tr("지금은 서버 엔진을 씁니다", "The server engine is in use"))
+        if (!ui.localMode) Hint(tr("지금은 서버 엔진을 씁니다", "The server engine is in use", "当前正在使用服务器引擎"))
     }
 }
 
@@ -370,14 +370,14 @@ private fun SettingRow(
 private fun ResetRow(onReset: () -> Unit) {
     var asking by remember { mutableStateOf(false) }
     if (!asking) {
-        TextButton(onClick = { asking = true }) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults")) }
+        TextButton(onClick = { asking = true }) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults", "恢复 PC 默认值")) }
     } else {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = {
                 onReset()
                 asking = false
-            }) { Text(tr("되돌리기", "Reset")) }
-            TextButton(onClick = { asking = false }) { Text(tr("취소", "Cancel")) }
+            }) { Text(tr("되돌리기", "Reset", "恢复")) }
+            TextButton(onClick = { asking = false }) { Text(tr("취소", "Cancel", "取消")) }
         }
     }
 }
@@ -472,7 +472,7 @@ private fun ChoiceEditor(
                 }
             },
             confirmButton = {
-                Button(onClick = { open = false }) { Text(tr("닫기", "Close")) }
+                Button(onClick = { open = false }) { Text(tr("닫기", "Close", "关闭")) }
             },
         )
     }
@@ -493,19 +493,28 @@ private fun CommonCard(
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = LocalUiPrefs.current
     CalmCard(spacing = 10.dp) {
-        CardTitle(tr("자주 쓰는 설정", "Common"))
+        CardTitle(tr("자주 쓰는 설정", "Common", "常用设置"))
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             val manager = context.getSystemService(android.app.LocaleManager::class.java)
-            val current = manager.applicationLocales.toLanguageTags().substringBefore('-')
-            FieldRow(tr("언어", "Language")) {
+            val current = manager.applicationLocales.toLanguageTags().substringBefore('-').substringBefore(',')
+            FieldRow(tr("언어", "Language", "语言")) {
                 ChoiceChips(
-                    options = listOf("" to tr("기기 설정", "System"), "ko" to "한국어", "en" to "English"),
+                    options = listOf(
+                        "" to tr("기기 설정", "System", "跟随系统"),
+                        "ko" to "한국어",
+                        "en" to "English",
+                        "zh" to "中文",
+                    ),
                     selected = current,
-                    onSelect = { tag -> manager.applicationLocales = android.os.LocaleList.forLanguageTags(tag) },
+                    // Chinese is Simplified, so ask for the mainland locale.
+                    onSelect = { tag ->
+                        manager.applicationLocales =
+                            android.os.LocaleList.forLanguageTags(if (tag == "zh") "zh-CN" else tag)
+                    },
                 )
             }
         }
-        FieldRow(tr("스레드 수", "Threads")) {
+        FieldRow(tr("스레드 수", "Threads", "线程数")) {
             val max = LocalEngineProfile.MAX_THREADS
             ChoiceChips(
                 options = (1..max).filter { it == 1 || it == 2 || it == 4 || it == max || it == 6 }.distinct().map { it to "$it" },
@@ -514,21 +523,21 @@ private fun CommonCard(
             )
         }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(tr("다크 모드", "Dark mode"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(tr("다크 모드", "Dark mode", "深色模式"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(checked = ui.settings.darkMode, onCheckedChange = onDark)
         }
         prefs?.let { p ->
             val auto by p.autoStartEngine.state.collectAsStateWithLifecycle()
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("앱을 열면 엔진 시작", "Start the engine with the app"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(tr("앱을 열면 엔진 시작", "Start the engine with the app", "打开应用时启动引擎"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                 Switch(checked = auto, onCheckedChange = { p.autoStartEngine.set(it) })
             }
             val curriculum by p.curriculumAutoUpdate.state.collectAsStateWithLifecycle()
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("정석 커리큘럼 자동 업데이트", "Update the joseki curriculum"), style = MaterialTheme.typography.bodyMedium)
+                    Text(tr("정석 커리큘럼 자동 업데이트", "Update the joseki curriculum", "自动更新定式课程"), style = MaterialTheme.typography.bodyMedium)
                     Text(
-                        tr("rapfiweb.pages.dev 에서 받습니다. 보내는 정보는 없습니다", "From rapfiweb.pages.dev. Nothing is sent"),
+                        tr("rapfiweb.pages.dev 에서 받습니다. 보내는 정보는 없습니다", "From rapfiweb.pages.dev. Nothing is sent", "从 rapfiweb.pages.dev 获取，不发送任何信息"),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -537,7 +546,7 @@ private fun CommonCard(
             }
         }
         OutlinedButton(onClick = onRifBuild, modifier = Modifier.fillMaxWidth()) {
-            Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)"))
+            Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)", "添加对局数据 (RenjuNet)"))
         }
     }
 }

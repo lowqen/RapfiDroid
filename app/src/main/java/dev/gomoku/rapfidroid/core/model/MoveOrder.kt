@@ -601,14 +601,14 @@ class MoveOrderSet private constructor(
 
         /** Orientation names, keyed by transform id (`mo_xform_name`). */
         fun xformName(t: Int): String = when (t) {
-            0 -> tr("원래 방향", "As played")
-            1 -> tr("90° 회전", "Rotated 90°")
-            2 -> tr("180° 회전", "Rotated 180°")
-            3 -> tr("270° 회전", "Rotated 270°")
-            4 -> tr("좌우 반전", "Mirrored ↔")
-            5 -> tr("상하 반전", "Mirrored ↕")
-            6 -> tr("\\ 대각 반전", "Mirrored \\")
-            else -> tr("/ 대각 반전", "Mirrored /")
+            0 -> tr("원래 방향", "As played", "原始方向")
+            1 -> tr("90° 회전", "Rotated 90°", "旋转 90°")
+            2 -> tr("180° 회전", "Rotated 180°", "旋转 180°")
+            3 -> tr("270° 회전", "Rotated 270°", "旋转 270°")
+            4 -> tr("좌우 반전", "Mirrored ↔", "左右翻转")
+            5 -> tr("상하 반전", "Mirrored ↕", "上下翻转")
+            6 -> tr("\\ 대각 반전", "Mirrored \\", "\\ 对角翻转")
+            else -> tr("/ 대각 반전", "Mirrored /", "/ 对角翻转")
         }
 
         /** The two canonical move-2 cells (displayed h9 / i9), or null on an

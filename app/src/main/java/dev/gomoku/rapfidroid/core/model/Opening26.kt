@@ -34,8 +34,18 @@ object Opening26 {
         "운월", "포월", "람월", "은월", "명성", "사월", "명월", "혜성",
     )
 
-    /** The name to show: Korean, or the romaji every other language uses. */
-    fun name(id: Int): String = tr(korean[id], romaji[id])
+    /** The name to show: Korean, the Chinese characters, or the romaji. */
+    fun name(id: Int): String = tr(korean[id], romaji[id], chinese[id])
+
+    /**
+     * Chinese names (简体) — the same characters the Japanese names are written
+     * in (花月 Kagetsu, 浦月 Hogetsu …), as Chinese renju players say them.
+     */
+    val chinese: List<String> = listOf(
+        "寒星", "溪月", "疏星", "花月", "残月", "雨月", "金星", "松月", "丘月",
+        "新月", "瑞星", "山月", "游星", "长星", "峡月", "恒星", "水月", "流星",
+        "云月", "浦月", "岚月", "银月", "明星", "斜月", "名月", "彗星",
+    )
 
     /** Romaji names, faithful to freq35 OPROMAJI. */
     val romaji: List<String> = listOf(
@@ -75,7 +85,7 @@ object Opening26 {
 
     /** Human label, e.g. "D1 한성 (Kansei)". */
     fun label(index: Int): String = when (index) {
-        NONSTD -> "기타 (규칙외)"
+        NONSTD -> tr("기타 (규칙외)", "Other (outside the rule)", "其他 (规则外)")
         else -> "${abbr[index]} ${korean[index]} (${romaji[index]})"
     }
 

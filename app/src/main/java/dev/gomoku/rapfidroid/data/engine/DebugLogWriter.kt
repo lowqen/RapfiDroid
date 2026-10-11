@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ConsoleLine
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
@@ -58,7 +59,7 @@ class DebugLogWriter @Inject constructor(
         // Roll rather than truncate: the beginning of a session is usually the
         // interesting part (the handshake), so keeping the *old* half would be
         // wrong too. Starting over at least leaves a coherent transcript.
-        if (f.length() > MAX_BYTES) f.writeText("--- 로그가 ${MAX_BYTES / 1024}KB 를 넘어 새로 시작합니다 ---\n")
+        if (f.length() > MAX_BYTES) f.writeText(tr("--- 로그가 ${MAX_BYTES / 1024}KB 를 넘어 새로 시작합니다 ---\n", "--- the log passed ${MAX_BYTES / 1024}KB and starts over ---\n", "--- 日志超过 ${MAX_BYTES / 1024}KB，重新开始 ---\n"))
         val direction = if (line.outbound) ">>" else "<<"
         f.appendText("${stamp.format(Date())} $direction ${line.text}\n")
     }
@@ -69,7 +70,7 @@ class DebugLogWriter @Inject constructor(
     suspend fun export(target: Uri): Long = withContext(io) {
         val bytes = if (file.isFile) file.readBytes() else ByteArray(0)
         context.contentResolver.openOutputStream(target)?.use { it.write(bytes) }
-            ?: error("파일을 만들 수 없습니다")
+            ?: error(tr("파일을 만들 수 없습니다", "Could not create the file", "无法创建文件"))
         bytes.size.toLong()
     }
 

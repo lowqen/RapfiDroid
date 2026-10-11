@@ -110,8 +110,8 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { n -> tr("디버그 로그 ${n / 1024}KB 를 내보냈습니다", "Exported ${n / 1024}KB of debug log") },
-                        onFailure = { e -> tr("내보내기 실패: ${e.message}", "Export failed: ${e.message}") },
+                        onSuccess = { n -> tr("디버그 로그 ${n / 1024}KB 를 내보냈습니다", "Exported ${n / 1024}KB of debug log", "已导出调试日志 ${n / 1024}KB") },
+                        onFailure = { e -> tr("내보내기 실패: ${e.message}", "Export failed: ${e.message}", "导出失败: ${e.message}") },
                     ),
                 )
             }
@@ -122,7 +122,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             debugLog.clear()
             refreshDebugLogSize()
-            _state.update { it.copy(message = tr("디버그 로그를 지웠습니다", "Debug log cleared")) }
+            _state.update { it.copy(message = tr("디버그 로그를 지웠습니다", "Debug log cleared", "已清除调试日志")) }
         }
     }
 
@@ -152,7 +152,7 @@ class SettingsViewModel @Inject constructor(
     fun onReset() {
         viewModelScope.launch {
             settingsRepository.resetToDefaults()
-            _state.update { it.copy(message = tr("설정을 PC 기본값으로 되돌렸습니다", "Settings are back to the PC defaults")) }
+            _state.update { it.copy(message = tr("설정을 PC 기본값으로 되돌렸습니다", "Settings are back to the PC defaults", "设置已恢复为 PC 默认值")) }
         }
     }
 
@@ -168,8 +168,8 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { tr("${file.fileName} ${file.lineCount}줄을 내보냈습니다", "Exported ${file.lineCount} lines to ${file.fileName}") },
-                        onFailure = { e -> tr("내보내기 실패: ${e.message}", "Export failed: ${e.message}") },
+                        onSuccess = { tr("${file.fileName} ${file.lineCount}줄을 내보냈습니다", "Exported ${file.lineCount} lines to ${file.fileName}", "已导出 ${file.fileName} 共 ${file.lineCount} 行") },
+                        onFailure = { e -> tr("내보내기 실패: ${e.message}", "Export failed: ${e.message}", "导出失败: ${e.message}") },
                     ),
                 )
             }
@@ -186,8 +186,8 @@ class SettingsViewModel @Inject constructor(
             _state.update {
                 it.copy(
                     message = result.fold(
-                        onSuccess = { n -> tr("${file.fileName} ${n}줄을 불러왔습니다", "Read ${n} lines from ${file.fileName}") },
-                        onFailure = { e -> tr("불러오기 실패: ${e.message}", "Import failed: ${e.message}") },
+                        onSuccess = { n -> tr("${file.fileName} ${n}줄을 불러왔습니다", "Read ${n} lines from ${file.fileName}", "已从 ${file.fileName} 读取 ${n} 行") },
+                        onFailure = { e -> tr("불러오기 실패: ${e.message}", "Import failed: ${e.message}", "导入失败: ${e.message}") },
                     ),
                 )
             }
@@ -207,7 +207,7 @@ class SettingsViewModel @Inject constructor(
                 it.copy(
                     message = result.fold(
                         onSuccess = { text -> text },
-                        onFailure = { e -> tr("불러오기 실패: ${e.message}", "Import failed: ${e.message}") },
+                        onFailure = { e -> tr("불러오기 실패: ${e.message}", "Import failed: ${e.message}", "导入失败: ${e.message}") },
                     ),
                 )
             }
@@ -217,7 +217,7 @@ class SettingsViewModel @Inject constructor(
     fun onResetAppearance() {
         viewModelScope.launch {
             appearance.reset()
-            _state.update { it.copy(message = tr("툴바·핫키·언어를 기본값으로 되돌렸습니다", "Toolbar, hotkeys and language are back to their defaults")) }
+            _state.update { it.copy(message = tr("툴바·핫키·언어를 기본값으로 되돌렸습니다", "Toolbar, hotkeys and language are back to their defaults", "工具栏、快捷键和语言已恢复默认")) }
         }
     }
 

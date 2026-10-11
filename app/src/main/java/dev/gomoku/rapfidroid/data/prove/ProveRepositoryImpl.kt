@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.data.prove
 
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.AnalysisSnapshot
 import dev.gomoku.rapfidroid.core.model.AppSettings
 import dev.gomoku.rapfidroid.core.model.EngineBusy
@@ -159,8 +160,8 @@ class ProveRepositoryImpl @Inject constructor(
         engine.send(EngineCommand.Info("max_node", "-1"))
         engine.send(EngineCommand.Info("max_depth", (size * size).toString()))
         note(
-            "증명: ${if (rootMoves.size % 2 == 0) "흑" else "백"} 차례, " +
-                "노드당 예산 ${this.options.label}, nbest ${this.options.nbest}",
+            tr("증명: ${if (rootMoves.size % 2 == 0) "흑" else "백"} 차례, ", "Prove: ${if (rootMoves.size % 2 == 0) "Black" else "White"} to move, ", "证明: 轮到${if (rootMoves.size % 2 == 0) "黑" else "白"}，") +
+                tr("노드당 예산 ${this.options.label}, nbest ${this.options.nbest}", "budget per node ${this.options.label}, nbest ${this.options.nbest}", "每结点预算 ${this.options.label}，nbest ${this.options.nbest}"),
         )
         startTicker()
         continueRun()
@@ -169,13 +170,13 @@ class ProveRepositoryImpl @Inject constructor(
 
     /** The desktop's four refusals (main.c:9867-9882). */
     private fun guard(): String? = when {
-        _progress.value.running -> "이미 증명이 진행 중입니다"
-        review.progress.value.running -> "게임 리뷰가 진행 중입니다 — 먼저 중지하세요"
-        !engine.state.value.isLive -> "엔진에 연결되어 있지 않습니다"
-        game.state.value.thinking -> "증명: 진행 중인 계산을 먼저 중지하세요"
-        game.state.value.over -> "증명: 이미 승부가 결정된 국면입니다"
+        _progress.value.running -> tr("이미 증명이 진행 중입니다", "A proof is already running", "已在进行证明")
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다 — 먼저 중지하세요", "A game review is running — stop it first", "正在进行对局复盘，请先停止")
+        !engine.state.value.isLive -> tr("엔진에 연결되어 있지 않습니다", "Not connected to the engine", "未连接引擎")
+        game.state.value.thinking -> tr("증명: 진행 중인 계산을 먼저 중지하세요", "Prove: stop the running calculation first", "证明: 请先停止正在进行的计算")
+        game.state.value.over -> tr("증명: 이미 승부가 결정된 국면입니다", "Prove: this position is already decided", "证明: 此局面胜负已定")
         !settings.useDatabase || settings.databaseReadonly ->
-            "증명: 데이터베이스를 켜고 읽기 전용을 해제하세요"
+            tr("증명: 데이터베이스를 켜고 읽기 전용을 해제하세요", "Prove: turn the database on and read-only off", "证明: 请开启数据库并关闭只读")
         else -> null
     }
 
@@ -310,7 +311,7 @@ class ProveRepositoryImpl @Inject constructor(
     /** `prove_watchdog_fire` (main.c:9832). */
     private suspend fun onTimeout() {
         val tree = tree ?: return
-        note("증명: 엔진 응답 없음 (단계 ${phase.name}), 다시 시도")
+        note(tr("증명: 엔진 응답 없음 (단계 ${phase.name}), 다시 시도", "Prove: no reply from the engine (phase ${phase.name}), retrying", "证明: 引擎无响应 (阶段 ${phase.name})，重试"))
         when (phase) {
             ProvePhase.SEARCH -> {
                 omit++
@@ -478,7 +479,7 @@ class ProveRepositoryImpl @Inject constructor(
             attackerWinRatePct = ((root?.wratt ?: 0.0) * 100).roundToInt(),
         )
         _outcome.value = outcome
-        note("증명 ${if (cancelled) "취소" else "완료"}: ${outcome.message.replace('\n', ' ')}")
+        note(tr("증명 ${if (cancelled) "취소" else "완료"}: ${outcome.message.replace('\n', ' ')}", "Prove ${if (cancelled) "cancelled" else "done"}: ${outcome.message.replace('\n', ' ')}", "证明${if (cancelled) "已取消" else "完成"}: ${outcome.message.replace('\n', ' ')}"))
     }
 
     /** `set_level(levelchoice)` — put the user's limits back (main.c:9539). */

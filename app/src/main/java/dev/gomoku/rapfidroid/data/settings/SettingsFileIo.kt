@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -20,14 +21,14 @@ class SettingsFileIo @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) {
     suspend fun read(uri: Uri): String = withContext(io) {
-        val stream = context.contentResolver.openInputStream(uri) ?: error("열 수 없습니다: $uri")
+        val stream = context.contentResolver.openInputStream(uri) ?: error(tr("열 수 없습니다: $uri", "Cannot open: $uri", "无法打开: $uri"))
         stream.use { it.readBytes().toString(Charsets.UTF_8) }
     }
 
     suspend fun write(uri: Uri, text: String) = withContext(io) {
         // "wt" truncates: without it a shorter file would keep the old tail.
         val stream = context.contentResolver.openOutputStream(uri, "wt")
-            ?: error("쓸 수 없습니다: $uri")
+            ?: error(tr("쓸 수 없습니다: $uri", "Cannot write: $uri", "无法写入: $uri"))
         stream.use { it.write(text.toByteArray(Charsets.UTF_8)) }
     }
 }

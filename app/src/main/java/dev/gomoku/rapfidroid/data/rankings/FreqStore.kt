@@ -3,6 +3,7 @@ package dev.gomoku.rapfidroid.data.rankings
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.domain.rankings.FreqBundle
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,7 +58,7 @@ class FreqStore @Inject constructor(
             val staged = File(file.parentFile, "$FILE_NAME.part")
             staged.outputStream().buffered().use { json.encodeToStream(dto, it) }
             file.delete()
-            check(staged.renameTo(file)) { "랭킹 데이터를 저장하지 못했습니다" }
+            check(staged.renameTo(file)) { tr("랭킹 데이터를 저장하지 못했습니다", "Could not save the ranking data", "无法保存排行数据") }
             dto.toBundle().also { _bundle.value = it }
         }
     }

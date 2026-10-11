@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.core.joseki
 
 import com.google.common.truth.Truth.assertThat
+import dev.gomoku.rapfidroid.core.i18n.AppLanguage
 import dev.gomoku.rapfidroid.core.model.Move
 import org.junit.Test
 import java.io.File
@@ -122,15 +123,31 @@ class JosekiTest {
     @Test
     fun `the shipped curriculum is valid`() {
         val file = File("src/main/assets/joseki/curriculum.json")
-        val c = CurriculumJson.parse(file.readText(), korean = true)!!
+        val c = CurriculumJson.parse(file.readText(), AppLanguage.KOREAN)!!
         assertThat(c.courses).isNotEmpty()
         assertThat(c.problems).isEmpty()
         c.courses.forEach { course ->
             assertThat(course.lessons).isNotEmpty()
             course.lessons.forEach { assertThat(CurriculumJson.learnerMoves(it.root, it.blackLearner)).isGreaterThan(0) }
         }
-        val en = CurriculumJson.parse(file.readText(), korean = false)!!
+        val en = CurriculumJson.parse(file.readText(), AppLanguage.ENGLISH)!!
         assertThat(en.courses.first().title).isNotEqualTo(c.courses.first().title)
         assertThat(c.findLesson(c.courses.first().lessons.first().id)).isNotNull()
+        // The shipped file has no Chinese yet: a Chinese reader gets the English.
+        val zh = CurriculumJson.parse(file.readText(), AppLanguage.CHINESE)!!
+        assertThat(zh.courses.first().title).isEqualTo(en.courses.first().title)
+    }
+
+    @Test
+    fun `curriculum text picks the language, falling back to English then Korean`() {
+        val both = kotlinx.serialization.json.Json.parseToJsonElement("""{"ko":"가","en":"a","zh":"甲"}""")
+        val noZh = kotlinx.serialization.json.Json.parseToJsonElement("""{"ko":"가","en":"a"}""")
+        val koOnly = kotlinx.serialization.json.Json.parseToJsonElement("""{"ko":"가"}""")
+        assertThat(CurriculumJson.text(both, 100, AppLanguage.CHINESE)).isEqualTo("甲")
+        assertThat(CurriculumJson.text(both, 100, AppLanguage.KOREAN)).isEqualTo("가")
+        assertThat(CurriculumJson.text(both, 100, AppLanguage.ENGLISH)).isEqualTo("a")
+        assertThat(CurriculumJson.text(noZh, 100, AppLanguage.CHINESE)).isEqualTo("a")
+        assertThat(CurriculumJson.text(koOnly, 100, AppLanguage.CHINESE)).isEqualTo("가")
+        assertThat(CurriculumJson.text(koOnly, 100, AppLanguage.ENGLISH)).isEqualTo("가")
     }
 }

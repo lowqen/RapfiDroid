@@ -15,6 +15,7 @@ import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.LinkHealth
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
 import dagger.hilt.android.AndroidEntryPoint
+import dev.gomoku.rapfidroid.core.i18n.tr
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -75,14 +76,14 @@ class EngineService : LifecycleService() {
     private fun buildNotification(state: ConnectionState, health: LinkHealth): Notification {
         val text = when {
             health.reconnecting && health.retryInSeconds > 0 ->
-                "재연결 대기 ${health.retryInSeconds}초 (${health.attempt}회째)"
-            health.reconnecting -> "재연결 중… (${health.attempt}회째)"
-            state is ConnectionState.Connecting -> "연결 중…"
-            state is ConnectionState.Handshaking -> "핸드셰이크…"
-            state is ConnectionState.Ready -> "연결됨 · 대기"
-            state is ConnectionState.Thinking -> "분석 중…"
-            state is ConnectionState.Error -> "오류: ${state.reason}"
-            else -> "연결 종료"
+                tr("재연결 대기 ${health.retryInSeconds}초 (${health.attempt}회째)", "Reconnecting in ${health.retryInSeconds}s (attempt ${health.attempt})", "${health.retryInSeconds} 秒后重新连接 (第 ${health.attempt} 次)")
+            health.reconnecting -> tr("재연결 중… (${health.attempt}회째)", "Reconnecting… (attempt ${health.attempt})", "正在重新连接… (第 ${health.attempt} 次)")
+            state is ConnectionState.Connecting -> tr("연결 중…", "Connecting…", "连接中…")
+            state is ConnectionState.Handshaking -> tr("핸드셰이크…", "Handshake…", "握手中…")
+            state is ConnectionState.Ready -> tr("연결됨 · 대기", "Connected · idle", "已连接 · 空闲")
+            state is ConnectionState.Thinking -> tr("분석 중…", "Analysing…", "分析中…")
+            state is ConnectionState.Error -> tr("오류: ${state.reason}", "Error: ${state.reason}", "错误: ${state.reason}")
+            else -> tr("연결 종료", "Disconnected", "连接已结束")
         }
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.engine_notif_title))

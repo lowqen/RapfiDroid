@@ -102,13 +102,13 @@ private fun ConnectionContent(
                     selected = ui.localMode,
                     onClick = { onLocalModeChange(true) },
                     enabled = ui.canConnect,
-                    label = { Text(tr("기기 내 엔진", "On-device")) },
+                    label = { Text(tr("기기 내 엔진", "On-device", "本机引擎")) },
                 )
                 FilterChip(
                     selected = !ui.localMode,
                     onClick = { onLocalModeChange(false) },
                     enabled = ui.canConnect,
-                    label = { Text(tr("서버", "Server")) },
+                    label = { Text(tr("서버", "Server", "服务器")) },
                 )
             }
 
@@ -119,7 +119,7 @@ private fun ConnectionContent(
                 OutlinedTextField(
                     value = ui.host,
                     onValueChange = onHostChange,
-                    label = { Text(tr("서버 (Tailscale)", "Server (Tailscale)")) },
+                    label = { Text(tr("서버 (Tailscale)", "Server (Tailscale)", "服务器 (Tailscale)")) },
                     singleLine = true,
                     enabled = ui.canConnect && !ui.localMode,
                     modifier = Modifier.weight(1f),
@@ -127,7 +127,7 @@ private fun ConnectionContent(
                 OutlinedTextField(
                     value = ui.port,
                     onValueChange = onPortChange,
-                    label = { Text(tr("포트", "Port")) },
+                    label = { Text(tr("포트", "Port", "端口")) },
                     singleLine = true,
                     enabled = ui.canConnect && !ui.localMode,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -139,6 +139,7 @@ private fun ConnectionContent(
                 tr(
                     "엔진은 이 기기 안에서 돌아갑니다 — 인터넷도 서버도 필요 없습니다.",
                     "The engine runs inside this device: no server, no internet.",
+                    "引擎在本设备内运行，无需服务器，也无需联网。",
                 ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -152,9 +153,9 @@ private fun ConnectionContent(
             StatusChip(ui.state)
             Spacer(Modifier.weight(1f))
             if (ui.canConnect) {
-                Button(onClick = onConnect) { Text(tr("엔진 시작", "Start engine")) }
+                Button(onClick = onConnect) { Text(tr("엔진 시작", "Start engine", "启动引擎")) }
             } else {
-                OutlinedButton(onClick = onDisconnect) { Text(tr("엔진 끄기", "Stop engine")) }
+                OutlinedButton(onClick = onDisconnect) { Text(tr("엔진 끄기", "Stop engine", "关闭引擎")) }
             }
         }
 
@@ -174,12 +175,12 @@ private fun ConnectionContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    tr("piskvork 콘솔", "piskvork console"),
+                    tr("piskvork 콘솔", "piskvork console", "piskvork 控制台"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 IconButton(onClick = onClear) {
-                    Icon(Icons.Filled.Delete, contentDescription = tr("콘솔 지우기", "Clear the console"))
+                    Icon(Icons.Filled.Delete, contentDescription = tr("콘솔 지우기", "Clear the console", "清空控制台"))
                 }
             }
 
@@ -192,7 +193,7 @@ private fun ConnectionContent(
             )
         } else {
             Text(
-                tr("로그 표시가 꺼져 있습니다", "The log is turned off"),
+                tr("로그 표시가 꺼져 있습니다", "The log is turned off", "日志显示已关闭"),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f),
@@ -206,14 +207,14 @@ private fun ConnectionContent(
             OutlinedTextField(
                 value = ui.commandDraft,
                 onValueChange = onDraftChange,
-                label = { Text(tr("명령 (예: ABOUT, START 15, TURN 7,7)", "Command (e.g. ABOUT, START 15, TURN 7,7)")) },
+                label = { Text(tr("명령 (예: ABOUT, START 15, TURN 7,7)", "Command (e.g. ABOUT, START 15, TURN 7,7)", "命令 (例: ABOUT, START 15, TURN 7,7)")) },
                 singleLine = true,
                 textStyle = MonoStyle,
                 enabled = ui.state.isLive,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onSend, enabled = ui.canSend) {
-                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = tr("전송", "Send"))
+                Icon(Icons.AutoMirrored.Filled.Send, contentDescription = tr("전송", "Send", "发送"))
             }
         }
     }
@@ -280,10 +281,10 @@ private fun LinkHealthRow(health: LinkHealth, onRetryNow: () -> Unit) {
                 Text(
                     when {
                         health.reconnecting && health.retryInSeconds > 0 ->
-                            tr("연결이 끊겼습니다 — ${health.retryInSeconds}초 후 재시도 ", "Connection lost — retrying in ${health.retryInSeconds}s") +
-                                tr("(${health.attempt}회째)", "(attempt ${health.attempt})")
-                        health.reconnecting -> tr("재연결하는 중… (${health.attempt}회째)", "Reconnecting… (attempt ${health.attempt})")
-                        else -> tr("연결이 끊겼습니다", "Connection lost")
+                            tr("연결이 끊겼습니다 — ${health.retryInSeconds}초 후 재시도 ", "Connection lost — retrying in ${health.retryInSeconds}s", "连接已断开，${health.retryInSeconds} 秒后重试") +
+                                tr("(${health.attempt}회째)", "(attempt ${health.attempt})", "(第 ${health.attempt} 次)")
+                        health.reconnecting -> tr("재연결하는 중… (${health.attempt}회째)", "Reconnecting… (attempt ${health.attempt})", "正在重新连接… (第 ${health.attempt} 次)")
+                        else -> tr("연결이 끊겼습니다", "Connection lost", "连接已断开")
                     },
                     style = MaterialTheme.typography.labelMedium,
                 )
@@ -296,13 +297,13 @@ private fun LinkHealthRow(health: LinkHealth, onRetryNow: () -> Unit) {
                 }
                 if (health.recovered > 0) {
                     Text(
-                        tr("이 세션에서 ${health.recovered}회 복구됨", "Recovered ${health.recovered} times this session"),
+                        tr("이 세션에서 ${health.recovered}회 복구됨", "Recovered ${health.recovered} times this session", "本次会话已恢复 ${health.recovered} 次"),
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
             }
             if (health.reconnecting) {
-                TextButton(onClick = onRetryNow) { Text(tr("지금 재시도", "Retry now")) }
+                TextButton(onClick = onRetryNow) { Text(tr("지금 재시도", "Retry now", "立即重试")) }
             }
         }
     }
@@ -311,12 +312,12 @@ private fun LinkHealthRow(health: LinkHealth, onRetryNow: () -> Unit) {
 @Composable
 private fun StatusChip(state: ConnectionState) {
     val (label, color) = when (state) {
-        ConnectionState.Disconnected -> tr("연결 안 됨", "Not connected") to MaterialTheme.colorScheme.onSurfaceVariant
-        ConnectionState.Connecting -> tr("연결 중", "Connecting") to MaterialTheme.colorScheme.secondary
-        ConnectionState.Handshaking -> tr("핸드셰이크", "Handshake") to MaterialTheme.colorScheme.secondary
-        ConnectionState.Ready -> tr("준비됨", "Ready") to MaterialTheme.colorScheme.primary
-        ConnectionState.Thinking -> tr("분석 중", "Searching") to MaterialTheme.colorScheme.primary
-        is ConnectionState.Error -> tr("오류", "Error") to MaterialTheme.colorScheme.error
+        ConnectionState.Disconnected -> tr("연결 안 됨", "Not connected", "未连接") to MaterialTheme.colorScheme.onSurfaceVariant
+        ConnectionState.Connecting -> tr("연결 중", "Connecting", "连接中") to MaterialTheme.colorScheme.secondary
+        ConnectionState.Handshaking -> tr("핸드셰이크", "Handshake", "握手") to MaterialTheme.colorScheme.secondary
+        ConnectionState.Ready -> tr("준비됨", "Ready", "就绪") to MaterialTheme.colorScheme.primary
+        ConnectionState.Thinking -> tr("분석 중", "Searching", "分析中") to MaterialTheme.colorScheme.primary
+        is ConnectionState.Error -> tr("오류", "Error", "错误") to MaterialTheme.colorScheme.error
     }
     Surface(
         color = color.copy(alpha = 0.18f),

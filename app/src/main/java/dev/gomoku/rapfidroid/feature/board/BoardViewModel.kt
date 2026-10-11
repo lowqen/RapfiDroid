@@ -374,7 +374,7 @@ class BoardViewModel @Inject constructor(
             return
         }
         if (game.state.value.thinking) {
-            _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move")
+            _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move", "引擎正在计算对局着法")
             return
         }
         startAnalysis()
@@ -388,7 +388,7 @@ class BoardViewModel @Inject constructor(
         }
         if (!repository.state.value.isLive) return
         if (game.state.value.thinking) {
-            _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move")
+            _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move", "引擎正在计算对局着法")
             return
         }
         startAnalysis(defend = true)
@@ -476,7 +476,7 @@ class BoardViewModel @Inject constructor(
         if (pos.moves.isEmpty()) return
         val shifted = BoardTransform.shift(pos.moves, pos.size, direction)
         if (shifted == null) {
-            _notice.value = tr("판 밖으로 나가는 수가 있어 이동할 수 없습니다", "A stone would leave the board, so nothing was moved")
+            _notice.value = tr("판 밖으로 나가는 수가 있어 이동할 수 없습니다", "A stone would leave the board, so nothing was moved", "有棋子会移出棋盘，无法平移")
             return
         }
         applyLine(shifted)
@@ -494,11 +494,11 @@ class BoardViewModel @Inject constructor(
         val moves = PositionLink.fromText(text, size)
             ?: BoardTransform.fromPositionString(text.trim(), size).takeIf { it.isNotEmpty() }
         if (moves == null) {
-            _notice.value = tr("국면 문자열을 읽을 수 없습니다", "That position string could not be read")
+            _notice.value = tr("국면 문자열을 읽을 수 없습니다", "That position string could not be read", "无法读取局面代码")
             return
         }
         applyLine(moves)
-        _notice.value = tr("${moves.size}수를 불러왔습니다", "Loaded ${moves.size} moves")
+        _notice.value = tr("${moves.size}수를 불러왔습니다", "Loaded ${moves.size} moves", "已载入 ${moves.size} 手")
     }
 
     // ---- links and files ---------------------------------------------------
@@ -515,12 +515,12 @@ class BoardViewModel @Inject constructor(
         val pos = position.value
         val moves = PositionLink.fromText(text, pos.size)
         if (moves == null) {
-            _notice.value = tr("링크의 국면을 읽을 수 없습니다", "The link's position could not be read")
+            _notice.value = tr("링크의 국면을 읽을 수 없습니다", "The link's position could not be read", "无法读取链接中的局面")
             return
         }
         if (pos.moves.isNotEmpty() && pos.moves != moves) linkBackup.value = pos.moves
         applyLine(moves)
-        _notice.value = tr("링크의 국면을 열었습니다", "Opened the linked position")
+        _notice.value = tr("링크의 국면을 열었습니다", "Opened the linked position", "已打开链接中的局面")
     }
 
     fun onRestoreLinkBackup() {
@@ -544,7 +544,7 @@ class BoardViewModel @Inject constructor(
                 else GameFileFormat.entries.firstNotNullOfOrNull { GameFile.parse(b, it, size)?.takeIf { m -> m.isNotEmpty() } }
             }
             if (moves.isNullOrEmpty()) {
-                _notice.value = tr("기보를 읽을 수 없습니다", "That game file could not be read")
+                _notice.value = tr("기보를 읽을 수 없습니다", "That game file could not be read", "无法读取棋谱")
                 return@launch
             }
             researchBusy()?.let {
@@ -553,7 +553,7 @@ class BoardViewModel @Inject constructor(
             }
             records.value = emptyList()
             game.loadLine(moves, GameFile.baseName(name))
-            _notice.value = tr("${moves.size}수를 열었습니다", "Opened ${moves.size} moves")
+            _notice.value = tr("${moves.size}수를 열었습니다", "Opened ${moves.size} moves", "已打开 ${moves.size} 手")
         }
     }
 
@@ -565,8 +565,8 @@ class BoardViewModel @Inject constructor(
                 else -> GameFile.writeSav(pos.moves, pos.size)
             }
             _notice.value = runCatching { fileIo.write(uri, bytes) }.fold(
-                onSuccess = { tr("기보를 저장했습니다", "Game saved") },
-                onFailure = { e -> tr("저장 실패: ${e.message}", "Could not save: ${e.message}") },
+                onSuccess = { tr("기보를 저장했습니다", "Game saved", "棋谱已保存") },
+                onFailure = { e -> tr("저장 실패: ${e.message}", "Could not save: ${e.message}", "保存失败: ${e.message}") },
             )
         }
     }
@@ -592,11 +592,11 @@ class BoardViewModel @Inject constructor(
             if (position.value != target) return@launch
             val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
             if (legal.isEmpty()) {
-                _notice.value = tr("균형점을 찾지 못했습니다", "No balancing move was found")
+                _notice.value = tr("균형점을 찾지 못했습니다", "No balancing move was found", "未找到平衡点")
                 return@launch
             }
             game.replaceLine(target.moves + legal)
-            _notice.value = tr("균형점: ", "Balance: ") + legal.joinToString(" ") { it.label(target.size) }
+            _notice.value = tr("균형점: ", "Balance: ", "平衡点:") + legal.joinToString(" ") { it.label(target.size) }
         }
     }
 
@@ -686,8 +686,8 @@ class BoardViewModel @Inject constructor(
     fun onSaveImage(uri: Uri, bytes: ByteArray) {
         viewModelScope.launch {
             _notice.value = runCatching { imageIo.write(uri, bytes) }.fold(
-                onSuccess = { tr("보드 이미지를 저장했습니다", "Board image saved") },
-                onFailure = { e -> tr("이미지 저장 실패: ${e.message}", "Could not save the image: ${e.message}") },
+                onSuccess = { tr("보드 이미지를 저장했습니다", "Board image saved", "棋盘图片已保存") },
+                onFailure = { e -> tr("이미지 저장 실패: ${e.message}", "Could not save the image: ${e.message}", "图片保存失败: ${e.message}") },
             )
         }
     }
@@ -789,7 +789,7 @@ class BoardViewModel @Inject constructor(
             ResearchBanner(first, second, isProve = true)
         }
         panel.reviewProgress.running -> ResearchBanner(
-            tr("리뷰 ${panel.reviewProgress.index}/${panel.reviewProgress.total}", "Review ${panel.reviewProgress.index}/${panel.reviewProgress.total}"),
+            tr("리뷰 ${panel.reviewProgress.index}/${panel.reviewProgress.total}", "Review ${panel.reviewProgress.index}/${panel.reviewProgress.total}", "复盘 ${panel.reviewProgress.index}/${panel.reviewProgress.total}"),
             progress = panel.reviewProgress.fraction.takeIf { panel.reviewProgress.total > 0 },
         )
         else -> null
@@ -917,8 +917,8 @@ class BoardViewModel @Inject constructor(
      * `reviewactive || proveactive` (main.c:2661, 4524).
      */
     private fun researchBusy(): String? = when {
-        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다. 먼저 중지하세요", "A game review is running. Stop it first")
-        prove.progress.value.running -> tr("국면 증명이 진행 중입니다. 먼저 중지하세요", "A proof is running. Stop it first")
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다. 먼저 중지하세요", "A game review is running. Stop it first", "正在进行对局复盘，请先停止")
+        prove.progress.value.running -> tr("국면 증명이 진행 중입니다. 먼저 중지하세요", "A proof is running. Stop it first", "正在进行局面证明，请先停止")
         else -> null
     }
 

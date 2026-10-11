@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.domain.engine
 
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 
 /**
@@ -45,7 +46,7 @@ object MobileEngineConfig {
     private fun replaceScalar(text: String, key: String, value: String): String {
         val line = Regex("^[ \\t]*$key[ \\t]*=.*$", RegexOption.MULTILINE)
         require(line.containsMatchIn(text)) {
-            "config.toml 템플릿에 `$key` 항목이 없습니다 — 서버 config 를 새로 복사했다면 이 코드를 함께 고칠 것"
+            tr("config.toml 템플릿에 `$key` 항목이 없습니다 — 서버 config 를 새로 복사했다면 이 코드를 함께 고칠 것", "config.toml template has no `$key` entry — if the server config was copied anew, fix this code with it", "config.toml 模板中没有 `$key` 项，如果重新复制了服务器配置，请一并修改这段代码")
         }
         return line.replace(text) { "$key = $value" }
     }
@@ -59,7 +60,7 @@ object MobileEngineConfig {
     private fun requireCoordModeNone(text: String) {
         val ok = Regex("^[ \\t]*coord_conversion_mode[ \\t]*=[ \\t]*\"none\"", RegexOption.MULTILINE)
         require(ok.containsMatchIn(text)) {
-            "config.toml 의 coord_conversion_mode 가 \"none\" 이 아닙니다 — 앱의 y,x 좌표 해석이 깨집니다"
+            tr("config.toml 의 coord_conversion_mode 가 \"none\" 이 아닙니다 — 앱의 y,x 좌표 해석이 깨집니다", "coord_conversion_mode in config.toml is not \"none\" — the app's y,x coordinates would break", "config.toml 中的 coord_conversion_mode 不是 \"none\"，应用的 y,x 坐标解析会出错")
         }
     }
 }

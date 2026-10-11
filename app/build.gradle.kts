@@ -17,18 +17,19 @@ android {
         applicationId = "dev.gomoku.rapfidroid"
         minSdk = 26
         targetSdk = 35
-        // versionCode only ever goes up (18 was the withdrawn 0.15.3 test build);
-        // the name restarts the 0.15 line as one release.
-        versionCode = 19
+        // versionCode only ever goes up (18 was the withdrawn 0.15.3 test build,
+        // 19 the first 0.15.0 build); the name stays 0.15.0 for the Chinese update.
+        versionCode = 20
         versionName = "0.15.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Two languages, and only two. Without this the APK carries every locale
-    // AndroidX ships and the system offers them, which would put a Compose
-    // screen of Korean literals under a French system label.
+    // Three languages, and only these. Without this the APK carries every locale
+    // AndroidX ships and the system offers them, which would put a French system
+    // label over a screen the app cannot translate. Chinese is listed with its
+    // regions because AndroidX keeps its Chinese strings in values-zh-rCN/-rTW/-rHK.
     androidResources {
-        localeFilters += listOf("en", "ko")
+        localeFilters += listOf("en", "ko", "zh", "zh-rCN", "zh-rTW", "zh-rHK")
         // The NNUE weights are already LZ4 and the classical model is dense
         // binary: deflating them again costs install time and copy time and
         // saves nothing.

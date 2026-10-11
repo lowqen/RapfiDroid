@@ -34,7 +34,7 @@ fun AboutDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("확인", "OK")) } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("확인", "OK", "确定")) } },
         // Name and version are one block, the way an About screen reads: the
         // version used to be the first line of the body, above the first
         // heading, where it looked like a section of its own.
@@ -42,7 +42,7 @@ fun AboutDialog(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text("RapfiDroid", style = MaterialTheme.typography.titleLarge)
                 Text(
-                    tr("버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"),
+                    tr("버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"),
                     style = MaterialTheme.typography.labelMedium.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -55,21 +55,24 @@ fun AboutDialog(
             ) {
                 Text(
                     tr("Rapfi 엔진을 기기 안에서 돌리는 오목 · 렌주 분석반입니다. RapfiWeb 의 안드로이드판입니다.",
-                        "A gomoku and renju analysis board with the Rapfi engine on the device. The Android sibling of RapfiWeb."),
+                        "A gomoku and renju analysis board with the Rapfi engine on the device. The Android sibling of RapfiWeb.",
+                        "在本设备上运行 Rapfi 引擎的五子棋 · 连珠分析棋盘。RapfiWeb 的安卓版。"),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Section(
-                    tr("자료", "Data"),
+                    tr("자료", "Data", "数据"),
                     tr("RenjuNet 자료는 앱에 들어 있지 않고, 기기에서 만들어 기기 밖으로 내보내지 않습니다(비상업 · 오프라인 전용).",
-                        "RenjuNet data is not shipped; the phone builds it and never sends it anywhere (offline, non-commercial only)."),
+                        "RenjuNet data is not shipped; the phone builds it and never sends it anywhere (offline, non-commercial only).",
+                        "RenjuNet 数据不随应用附带，由本机生成且不会发送到任何地方(仅限非商业、离线使用)。"),
                 )
                 Section(
-                    tr("라이선스", "Licences"),
+                    tr("라이선스", "Licences", "许可证"),
                     tr("엔진 Rapfi(dhbloo) GPL-3.0 · GUI 는 Yixin-Board(© 2009-2017 Kai Sun) BSD 2-Clause 에서 이식 · 가중치 CC0 · 글꼴 Pretendard OFL-1.1.",
-                        "Engine Rapfi (dhbloo) GPL-3.0 · GUI ported from Yixin-Board (© 2009-2017 Kai Sun) BSD 2-Clause · weights CC0 · font Pretendard OFL-1.1."),
+                        "Engine Rapfi (dhbloo) GPL-3.0 · GUI ported from Yixin-Board (© 2009-2017 Kai Sun) BSD 2-Clause · weights CC0 · font Pretendard OFL-1.1.",
+                        "引擎 Rapfi(dhbloo) GPL-3.0 · 界面移植自 Yixin-Board(© 2009-2017 Kai Sun) BSD 2-Clause · 权重 CC0 · 字体 Pretendard OFL-1.1。"),
                 )
                 TextButton(onClick = onShowLicenses) {
-                    Text(tr("라이선스 전문 보기", "Read the licence texts"))
+                    Text(tr("라이선스 전문 보기", "Read the licence texts", "查看许可证全文"))
                 }
             }
         },

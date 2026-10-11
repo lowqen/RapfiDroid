@@ -85,16 +85,20 @@ data class SettingsUiState(
             "threadNum" -> tr(
                 "기기 내 엔진에서는 ${localProfile.threads} 스레드",
                 "On-device: ${localProfile.threads} threads",
+                "本机引擎: ${localProfile.threads} 线程",
             )
             "hashSizeMb" -> tr(
                 "기기 내 엔진에서는 ${localProfile.hashMb} MB",
                 "On-device: ${localProfile.hashMb} MB",
+                "本机引擎: ${localProfile.hashMb} MB",
             )
             "useDatabase" -> tr(
                 if (localProfile.useDatabase) "기기 내 엔진에서는 기기의 rapfi.db 를 씁니다"
                 else "기기 내 엔진에서는 데이터베이스를 쓰지 않습니다",
                 if (localProfile.useDatabase) "On-device: uses this phone's rapfi.db"
                 else "On-device: no database",
+                if (localProfile.useDatabase) "本机引擎: 使用本机的 rapfi.db"
+                else "本机引擎: 不使用数据库",
             )
             else -> null
         }

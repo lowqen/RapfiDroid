@@ -41,6 +41,7 @@ object OpeningEval {
         val code: Int,
         val ko: String,
         val en: String,
+        val zh: String,
         val mark: Mark,
         /** ARGB. */
         val fill: Long,
@@ -53,17 +54,17 @@ object OpeningEval {
     /** Best for black first. Wording follows the user's evaluation table, so
      *  this screen and the table they read say the same words. */
     val ladder: List<Grade> = listOf(
-        Grade(5, "흑승", "Black wins", Mark.CIRCLE, 0xFF16181C),
-        Grade(4, "흑 거의 승", "Black nearly wins", Mark.PENTAGON, 0xFF3B4FC0),
-        Grade(3, "흑 매우 유리", "Black clearly better", Mark.PENTAGON, 0xFF8478DF),
-        Grade(2, "흑 조금 유리", "Black slightly better", Mark.PENTAGON, 0xFFA6D5EF),
-        Grade(1, "흑 미세 유리", "Black marginally better", Mark.SQUARE, 0xFF1F9D3A, 0xFF0D0F12),
-        Grade(0, "동등", "Balanced", Mark.SQUARE, 0xFF5CE062),
-        Grade(-1, "백 미세 유리", "White marginally better", Mark.SQUARE, 0xFFBDF0BB, 0xFFFFFFFF),
-        Grade(-2, "백 조금 유리", "White slightly better", Mark.TRIANGLE, 0xFFFFE14D),
-        Grade(-3, "백 매우 유리", "White clearly better", Mark.TRIANGLE, 0xFFFFA726),
-        Grade(-4, "백 거의 승", "White nearly wins", Mark.TRIANGLE, 0xFFEF5A25),
-        Grade(-5, "백승", "White wins", Mark.CROSS, 0xFFE5322D),
+        Grade(5, "흑승", "Black wins", "黑胜", Mark.CIRCLE, 0xFF16181C),
+        Grade(4, "흑 거의 승", "Black nearly wins", "黑几乎必胜", Mark.PENTAGON, 0xFF3B4FC0),
+        Grade(3, "흑 매우 유리", "Black clearly better", "黑明显优势", Mark.PENTAGON, 0xFF8478DF),
+        Grade(2, "흑 조금 유리", "Black slightly better", "黑稍优", Mark.PENTAGON, 0xFFA6D5EF),
+        Grade(1, "흑 미세 유리", "Black marginally better", "黑微优", Mark.SQUARE, 0xFF1F9D3A, 0xFF0D0F12),
+        Grade(0, "동등", "Balanced", "均势", Mark.SQUARE, 0xFF5CE062),
+        Grade(-1, "백 미세 유리", "White marginally better", "白微优", Mark.SQUARE, 0xFFBDF0BB, 0xFFFFFFFF),
+        Grade(-2, "백 조금 유리", "White slightly better", "白稍优", Mark.TRIANGLE, 0xFFFFE14D),
+        Grade(-3, "백 매우 유리", "White clearly better", "白明显优势", Mark.TRIANGLE, 0xFFFFA726),
+        Grade(-4, "백 거의 승", "White nearly wins", "白几乎必胜", Mark.TRIANGLE, 0xFFEF5A25),
+        Grade(-5, "백승", "White wins", "白胜", Mark.CROSS, 0xFFE5322D),
     )
 
     const val MIN_CODE = -5

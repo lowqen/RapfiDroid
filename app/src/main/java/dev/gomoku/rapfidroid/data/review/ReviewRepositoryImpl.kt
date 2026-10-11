@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.data.review
 
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.AnalysisSnapshot
 import dev.gomoku.rapfidroid.core.model.AppSettings
 import dev.gomoku.rapfidroid.core.model.GameFile
@@ -142,7 +143,7 @@ class ReviewRepositoryImpl @Inject constructor(
         val refusal = guard()
         if (refusal != null) return@withLock ReviewStart.Refused(refusal)
         val whole = game.position.value.moves + game.future.value
-        if (whole.isEmpty()) return@withLock ReviewStart.Refused("분석할 수가 없습니다")
+        if (whole.isEmpty()) return@withLock ReviewStart.Refused(tr("분석할 수가 없습니다", "Nothing to analyse", "没有可分析的着法"))
         queueRunning = false
         beginRun(whole, game.position.value.size, budget.sanitized(), title = boardTitle(whole))
         ReviewStart.Started
@@ -151,7 +152,7 @@ class ReviewRepositoryImpl @Inject constructor(
     override suspend fun startQueue(budget: ReviewBudget): ReviewStart = lock.withLock {
         val refusal = guard()
         if (refusal != null) return@withLock ReviewStart.Refused(refusal)
-        if (_queue.value.isEmpty()) return@withLock ReviewStart.Refused("큐가 비어 있습니다")
+        if (_queue.value.isEmpty()) return@withLock ReviewStart.Refused(tr("큐가 비어 있습니다", "The queue is empty", "队列为空"))
         queueRunning = true
         queueIndex = 0
         queueOk = 0
@@ -159,16 +160,16 @@ class ReviewRepositoryImpl @Inject constructor(
         _queueReports.value = emptyList()
         _queue.update { list -> list.map { it.copy(status = QueueStatus.PENDING, result = "") } }
         this.budget = budget.sanitized()
-        if (!queueNext()) return@withLock ReviewStart.Refused("읽을 수 있는 기보가 없습니다")
+        if (!queueNext()) return@withLock ReviewStart.Refused(tr("읽을 수 있는 기보가 없습니다", "No readable game file", "没有可读取的棋谱"))
         ReviewStart.Started
     }
 
     /** The desktop's refusals (main.c:7189, 7195, 7440). */
     private fun guard(): String? = when {
-        _progress.value.running -> "이미 리뷰가 진행 중입니다"
-        prove.get().progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
-        !engine.state.value.isLive -> "엔진에 연결되어 있지 않습니다"
-        game.state.value.thinking -> "엔진이 대국 수를 계산 중입니다 — 먼저 중지하세요"
+        _progress.value.running -> tr("이미 리뷰가 진행 중입니다", "A review is already running", "已在进行复盘")
+        prove.get().progress.value.running -> tr("국면 증명이 진행 중입니다 — 먼저 중지하세요", "A proof is running — stop it first", "正在进行局面证明，请先停止")
+        !engine.state.value.isLive -> tr("엔진에 연결되어 있지 않습니다", "Not connected to the engine", "未连接引擎")
+        game.state.value.thinking -> tr("엔진이 대국 수를 계산 중입니다 — 먼저 중지하세요", "The engine is working on a game move — stop it first", "引擎正在计算对局着法，请先停止")
         else -> null
     }
 
@@ -188,7 +189,7 @@ class ReviewRepositoryImpl @Inject constructor(
         // The engine is ours until finish(): a database save now would rewrite
         // the file out from under a search that is still adding to it.
         busy.acquire(EngineBusy.REVIEW)
-        note("게임 리뷰 시작: ${total + 1}개 국면, 수당 ${budget.label}")
+        note(tr("게임 리뷰 시작: ${total + 1}개 국면, 수당 ${budget.label}", "Game review started: ${total + 1} positions, ${budget.label} per move", "对局复盘开始: ${total + 1} 个局面，每手 ${budget.label}"))
         sendBudget()
         analyzeCurrent()
     }
@@ -270,7 +271,7 @@ class ReviewRepositoryImpl @Inject constructor(
             delay(seconds * 1000L)
             lock.withLock {
                 if (!_progress.value.running || !searching) return@withLock
-                note("리뷰: 엔진 응답이 없어 ${index}번 국면을 다시 보냅니다")
+                note(tr("리뷰: 엔진 응답이 없어 ${index}번 국면을 다시 보냅니다", "Review: no reply from the engine, resending position ${index}", "复盘: 引擎无响应，重新发送第 ${index} 个局面"))
                 omit++
                 runCatching { engine.send(EngineCommand.YxStop) }
                 searching = false
@@ -353,17 +354,17 @@ class ReviewRepositoryImpl @Inject constructor(
         runCatching { restoreLevel() }
 
         if (cancelled) {
-            note("게임 리뷰 취소 (${index}/${total + 1})")
+            note(tr("게임 리뷰 취소 (${index}/${total + 1})", "Game review cancelled (${index}/${total + 1})", "对局复盘已取消 (${index}/${total + 1})"))
         } else {
             val report = buildReport()
             _report.value = report
-            note("게임 리뷰 완료: ${total + 1}개 국면")
+            note(tr("게임 리뷰 완료: ${total + 1}개 국면", "Game review done: ${total + 1} positions", "对局复盘完成: ${total + 1} 个局面"))
             if (queueRunning) {
                 _queueReports.update { it + report }
                 markQueue(
                     QueueStatus.DONE,
-                    "완료 — 정확도 흑 ${percent(report.tally.blackAccuracy)} / " +
-                        "백 ${percent(report.tally.whiteAccuracy)}, ${report.moveCount}수",
+                    tr("완료 — 정확도 흑 ${percent(report.tally.blackAccuracy)} / ", "Done — accuracy Black ${percent(report.tally.blackAccuracy)} / ", "完成，准确度 黑 ${percent(report.tally.blackAccuracy)} /") +
+                        tr("백 ${percent(report.tally.whiteAccuracy)}, ${report.moveCount}수", "White ${percent(report.tally.whiteAccuracy)}, ${report.moveCount} moves", "白 ${percent(report.tally.whiteAccuracy)}，${report.moveCount} 手"),
                 )
                 queueOk++
             }
@@ -426,15 +427,15 @@ class ReviewRepositoryImpl @Inject constructor(
                 GameFile.parse(bytes, format, settings.boardSize)
             }
             if (moves.isNullOrEmpty()) {
-                note("큐: ${entry.name} 을(를) 읽을 수 없어 건너뜁니다")
-                markQueue(QueueStatus.FAILED, if (moves == null) "실패: 파일을 읽을 수 없음" else "실패: 수가 없음")
+                note(tr("큐: ${entry.name} 을(를) 읽을 수 없어 건너뜁니다", "Queue: ${entry.name} cannot be read, skipping", "队列: 无法读取 ${entry.name}，已跳过"))
+                markQueue(QueueStatus.FAILED, if (moves == null) tr("실패: 파일을 읽을 수 없음", "Failed: the file could not be read", "失败: 无法读取文件") else tr("실패: 수가 없음", "Failed: no moves", "失败: 没有着法"))
                 queueFailed++
                 queueIndex++
                 continue
             }
             markQueue(QueueStatus.RUNNING, "")
             game.replaceLine(moves)
-            note("큐 ${queueIndex + 1}/${_queue.value.size}: ${entry.name}")
+            note(tr("큐 ${queueIndex + 1}/${_queue.value.size}: ${entry.name}", "Queue ${queueIndex + 1}/${_queue.value.size}: ${entry.name}", "队列 ${queueIndex + 1}/${_queue.value.size}: ${entry.name}"))
             beginRun(moves, settings.boardSize, budget, GameFile.baseName(entry.name))
             return true
         }
@@ -452,8 +453,8 @@ class ReviewRepositoryImpl @Inject constructor(
     private fun finishQueue(cancelled: Boolean) {
         queueRunning = false
         note(
-            "분석 큐 ${if (cancelled) "취소" else "완료"}: " +
-                "리뷰 $queueOk, 실패 $queueFailed / 총 ${_queue.value.size}",
+            tr("분석 큐 ${if (cancelled) "취소" else "완료"}: ", "Analysis queue ${if (cancelled) "cancelled" else "done"}: ", "分析队列${if (cancelled) "已取消" else "完成"}:") +
+                tr("리뷰 $queueOk, 실패 $queueFailed / 총 ${_queue.value.size}", "$queueOk reviewed, $queueFailed failed / ${_queue.value.size} in all", "复盘 $queueOk，失败 $queueFailed / 共 ${_queue.value.size}"),
         )
     }
 
@@ -463,7 +464,7 @@ class ReviewRepositoryImpl @Inject constructor(
         game.newGame(resetClock = true)
         game.replaceLine(content.moves)
         title = content.name
-        note("기보 불러오기: ${content.name} (${content.moves.size}수)")
+        note(tr("기보 불러오기: ${content.name} (${content.moves.size}수)", "Game loaded: ${content.name} (${content.moves.size} moves)", "已载入棋谱: ${content.name} (${content.moves.size} 手)"))
     }
 
     override fun setPreset(preset: GradingPreset) {

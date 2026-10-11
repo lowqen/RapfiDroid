@@ -54,7 +54,7 @@ fun JosekiScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("정석", "Joseki"))
+        RapfiTopBar(title = tr("정석", "Joseki", "定式"))
         val lesson = ui.lesson
         val course = ui.course
         val editing = ui.editing
@@ -72,7 +72,7 @@ fun JosekiScreen(
             }
             else -> {
                 TabRow(selectedTabIndex = nav.tab) {
-                    listOf(tr("공식 커리큘럼", "Curriculum"), tr("내 정석", "My joseki")).forEachIndexed { i, title ->
+                    listOf(tr("공식 커리큘럼", "Curriculum", "官方课程"), tr("내 정석", "My joseki", "我的定式")).forEachIndexed { i, title ->
                         Tab(
                             selected = nav.tab == i,
                             onClick = { viewModel.onTab(i) },

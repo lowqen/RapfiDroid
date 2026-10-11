@@ -93,8 +93,8 @@ fun RankingsScreen(
         // row rather than two levels; a segmented button says "two views of the
         // same thing", which is what these are.
         val tabs = listOf(
-            RankTab.THREE_MOVE to tr("3수 (주형)", "Move 3 (openings)"),
-            RankTab.FIVE_MOVE to tr("5수 모양", "Move 5 shapes"),
+            RankTab.THREE_MOVE to tr("3수 (주형)", "Move 3 (openings)", "第3手 (开局)"),
+            RankTab.FIVE_MOVE to tr("5수 모양", "Move 5 shapes", "第5手形状"),
         )
         SingleChoiceSegmentedButtonRow(
             Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
@@ -129,14 +129,14 @@ private fun Header(ui: RankingsUiState, onFilter: () -> Unit) {
             // No title of its own: the tab above already says 랭킹, and a screen
             // that repeats its own tab label spends a line saying nothing.
             val sub = if (ui.freqLoaded) {
-                tr("실전 %,d판", "%,d games").format(ui.freqGameCount)
+                tr("실전 %,d판", "%,d games", "实战 %,d 盘").format(ui.freqGameCount)
             } else {
-                tr("실전 데이터 없음", "No game data")
+                tr("실전 데이터 없음", "No game data", "无实战数据")
             }
             Text(sub, style = MaterialTheme.typography.bodyMedium.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        val badge = if (ui.filterActive) tr("필터·", "Filter ·") + selectedLabel(ui) else tr("필터", "Filter")
+        val badge = if (ui.filterActive) tr("필터·", "Filter ·", "筛选 ·") + selectedLabel(ui) else tr("필터", "Filter", "筛选")
         AssistChip(onClick = onFilter, label = { Text(badge) },
             leadingIcon = { Icon(Icons.Filled.FilterList, contentDescription = null) })
     }
@@ -145,14 +145,14 @@ private fun Header(ui: RankingsUiState, onFilter: () -> Unit) {
 private fun selectedLabel(ui: RankingsUiState): String = buildString {
     if (ui.selectedPlayers.isNotEmpty()) append(ui.selectedPlayers.first().name)
     val rules = ui.filter.ruleIndices.size
-    if (rules > 0) { if (isNotEmpty()) append("·"); append(tr("룰$rules", "rule$rules")) }
+    if (rules > 0) { if (isNotEmpty()) append("·"); append(tr("룰$rules", "rule$rules", "规则$rules")) }
     val extra = ui.selectedPlayers.size - 1
     if (extra > 0) append(" +$extra")
     // A side on its own is a whole filter — it decides which side the win-rate
     // sort reads — so without this the chip could read "필터·" and name nothing.
     val side = when (ui.filter.side) {
-        RankSide.BLACK -> tr("흑", "Black")
-        RankSide.WHITE -> tr("백", "White")
+        RankSide.BLACK -> tr("흑", "Black", "黑")
+        RankSide.WHITE -> tr("백", "White", "白")
         RankSide.EITHER -> ""
     }
     if (side.isNotEmpty()) { if (isNotEmpty()) append("·"); append(side) }
@@ -165,7 +165,7 @@ private fun ErrorBanner(message: String, onDismiss: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically) {
             Text(message, color = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
-            TextButton(onClick = onDismiss) { Text(tr("닫기", "Close")) }
+            TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) }
         }
     }
 }
@@ -191,8 +191,8 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
             DirectFilter.entries.forEach { df ->
                 FilterChip(selected = ui.directFilter == df, onClick = { vm.onDirectFilter(df) },
                     label = { Text(when (df) {
-                        DirectFilter.ALL -> tr("전체", "All"); DirectFilter.DIRECT -> tr("직접(直)", "Direct")
-                        DirectFilter.INDIRECT -> tr("간접(間)", "Indirect")
+                        DirectFilter.ALL -> tr("전체", "All", "全部"); DirectFilter.DIRECT -> tr("직접(直)", "Direct", "直接(直)")
+                        DirectFilter.INDIRECT -> tr("간접(間)", "Indirect", "间接(间)")
                     }) })
             }
         }
@@ -202,7 +202,7 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
         // the win-rate chip off the edge of a phone.
         SortChips(ui.sortOptions(RankTab.THREE_MOVE), ui.threeSort, ui.scoringSide, vm::onThreeSort)
         if (ui.freqLoaded) {
-            Text(tr("필터 대국 %,d판", "%,d games match").format(ui.threeTotalGames),
+            Text(tr("필터 대국 %,d판", "%,d games match", "符合筛选 %,d 盘").format(ui.threeTotalGames),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp))
@@ -243,7 +243,7 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
             Spacer(Modifier.height(6.dp))
             if (freqLoaded && card.split != null && card.split.total > 0) {
                 val pct = if (totalGames > 0) card.split.total * 100.0 / totalGames else 0.0
-                Text(tr("%,d판 · %.1f%%", "%,d games · %.1f%%").format(card.split.total, pct),
+                Text(tr("%,d판 · %.1f%%", "%,d games · %.1f%%", "%,d 盘 · %.1f%%").format(card.split.total, pct),
                     style = MaterialTheme.typography.labelMedium.tabular())
                 Spacer(Modifier.height(4.dp))
                 ResultBar(card.split)
@@ -264,7 +264,7 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
     Column(modifier) {
         OutlinedTextField(
             value = ui.fiveQuery, onValueChange = vm::onFiveQueryChange,
-            label = { Text(tr("수순 검색 (예: h8 i9)", "Search a move order (e.g. h8 i9)")) }, singleLine = true,
+            label = { Text(tr("수순 검색 (예: h8 i9)", "Search a move order (e.g. h8 i9)", "搜索手顺 (例: h8 i9)")) }, singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
         )
         SortChips(ui.sortOptions(RankTab.FIVE_MOVE), ui.fiveSort, ui.scoringSide, vm::onFiveSort)
@@ -282,10 +282,11 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     EmptyState(
                         icon = Icons.Filled.BarChart,
-                        title = tr("표시할 모양이 없습니다", "Nothing to show"),
+                        title = tr("표시할 모양이 없습니다", "Nothing to show", "没有可显示的形状"),
                         body = tr(
                             "5수 탭은 실전 빈도만 보여 줍니다. 설정 탭에서 「대국 데이터 추가」로 채워집니다.",
                             "This tab is built from real games only. Add a game database in Settings and it fills in.",
+                            "第5手页只显示实战频率。在设置页«添加对局数据»后即可填充。",
                         ),
                     )
                 }
@@ -314,7 +315,7 @@ private fun FiveRowView(row: FiveRow, totalGames: Int) {
                         else MaterialTheme.colorScheme.tertiary,
                     )
                     Text(
-                        tr("실전 %,d판", "%,d games").format(row.count) +
+                        tr("실전 %,d판", "%,d games", "实战 %,d 盘").format(row.count) +
                             if (totalGames > 0) " · %.2f%%".format(row.count * 100.0 / totalGames) else "",
                         style = MaterialTheme.typography.labelSmall.tabular(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -365,7 +366,8 @@ private fun SortChips(
     if (current == RankSort.WIN_RATE) {
         Text(
             tr("대국 수가 적은 모양은 아래로 내려갑니다 (1판 100%는 20판 55%보다 아래).",
-                "Shapes with few games rank lower — 100% from one game sits below 55% from twenty."),
+                "Shapes with few games rank lower — 100% from one game sits below 55% from twenty.",
+                "对局数少的形状排在后面 (1 盘 100% 排在 20 盘 55% 之后)。"),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 12.dp),
@@ -376,11 +378,11 @@ private fun SortChips(
 /** The win-rate chip names the side, because that is the one thing about it that
  *  changes underneath the user: it follows the filter's side selection. */
 private fun sortLabel(sort: RankSort, side: RankSide): String = when (sort) {
-    RankSort.NUMBER -> tr("번호순", "By number")
-    RankSort.GAMES -> tr("실전순", "By games")
+    RankSort.NUMBER -> tr("번호순", "By number", "按编号")
+    RankSort.GAMES -> tr("실전순", "By games", "按实战数")
     RankSort.WIN_RATE ->
-        if (side == RankSide.WHITE) tr("백 승률순", "White win rate")
-        else tr("흑 승률순", "Black win rate")
+        if (side == RankSide.WHITE) tr("백 승률순", "White win rate", "按白胜率")
+        else tr("흑 승률순", "Black win rate", "按黑胜率")
 }
 
 @Composable
@@ -393,7 +395,7 @@ private fun ResultBar(split: ResultSplit) {
             Box(Modifier.weight(split.draws.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultDraw))
             Box(Modifier.weight(split.whiteWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultWhite))
         }
-        Text(tr("흑 ${pct(split.blackWins, decided)} · 무 ${pct(split.draws, decided)} · 백 ${pct(split.whiteWins, decided)}", "Black ${pct(split.blackWins, decided)} · draw ${pct(split.draws, decided)} · White ${pct(split.whiteWins, decided)}"),
+        Text(tr("흑 ${pct(split.blackWins, decided)} · 무 ${pct(split.draws, decided)} · 백 ${pct(split.whiteWins, decided)}", "Black ${pct(split.blackWins, decided)} · draw ${pct(split.draws, decided)} · White ${pct(split.whiteWins, decided)}", "黑 ${pct(split.blackWins, decided)} · 和 ${pct(split.draws, decided)} · 白 ${pct(split.whiteWins, decided)}"),
             style = MaterialTheme.typography.labelSmall.tabular(),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -423,28 +425,28 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(tr("필터", "Filter"), style = MaterialTheme.typography.titleLarge)
+            Text(tr("필터", "Filter", "筛选"), style = MaterialTheme.typography.titleLarge)
 
             // dataset
             if (ui.freqLoaded) {
-                Text(tr("실전 데이터: %,d판 (%s)", "Game data: %,d games (%s)").format(ui.freqGameCount, ui.freqGenerated ?: "-"),
+                Text(tr("실전 데이터: %,d판 (%s)", "Game data: %,d games (%s)", "实战数据: %,d 盘 (%s)").format(ui.freqGameCount, ui.freqGenerated ?: "-"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                Text(tr("실전 데이터가 없습니다", "No game data yet"),
+                Text(tr("실전 데이터가 없습니다", "No game data yet", "还没有实战数据"),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (ui.freqLoaded) {
-                    AssistChip(onClick = vm::onClearFreq, label = { Text(tr("데이터 지우기", "Clear the data")) })
+                    AssistChip(onClick = vm::onClearFreq, label = { Text(tr("데이터 지우기", "Clear the data", "清除数据")) })
                 }
             }
 
             if (ui.freqLoaded) {
                 // player search
                 OutlinedTextField(value = ui.playerQuery, onValueChange = vm::onPlayerQueryChange,
-                    label = { Text(tr("선수 검색 (이름/국가)", "Search a player (name or country)")) }, singleLine = true,
+                    label = { Text(tr("선수 검색 (이름/국가)", "Search a player (name or country)", "搜索棋手 (姓名/国家)")) }, singleLine = true,
                     modifier = Modifier.fillMaxWidth())
                 if (ui.playerSuggestions.isNotEmpty()) {
                     Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.small) {
@@ -464,7 +466,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                         ui.selectedPlayers.forEach { p ->
                             InputChip(selected = true, onClick = { vm.onRemovePlayer(p) },
                                 label = { Text(p.name) },
-                                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = tr("제거", "Remove"),
+                                trailingIcon = { Icon(Icons.Filled.Close, contentDescription = tr("제거", "Remove", "移除"),
                                     modifier = Modifier.size(16.dp)) })
                         }
                     }
@@ -472,7 +474,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
 
                 // rule chips
                 if (ui.ruleOptions.isNotEmpty()) {
-                    Text(tr("룰", "Rule"), style = MaterialTheme.typography.labelLarge)
+                    Text(tr("룰", "Rule", "规则"), style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         ui.ruleOptions.forEach { (idx, name) ->
                             FilterChip(selected = idx in ui.filter.ruleIndices,
@@ -482,24 +484,26 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                 }
 
                 // side
-                Text(tr("색", "Side"), style = MaterialTheme.typography.labelLarge)
+                Text(tr("색", "Side", "执色"), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     RankSide.entries.forEach { s ->
                         FilterChip(selected = ui.filter.side == s, onClick = { vm.onSide(s) },
                             label = { Text(when (s) {
-                                RankSide.EITHER -> tr("양쪽", "Either")
-                                RankSide.BLACK -> tr("흑", "Black")
-                                RankSide.WHITE -> tr("백", "White")
+                                RankSide.EITHER -> tr("양쪽", "Either", "双方")
+                                RankSide.BLACK -> tr("흑", "Black", "黑")
+                                RankSide.WHITE -> tr("백", "White", "白")
                             }) })
                     }
                 }
                 Text(
                     if (ui.selectedPlayers.isEmpty()) {
                         tr("승률 정렬이 어느 쪽 승률을 읽을지 정합니다.",
-                            "Decides whose win rate the win-rate sort reads.")
+                            "Decides whose win rate the win-rate sort reads.",
+                            "决定胜率排序读取哪一方的胜率。")
                     } else {
                         tr("선수가 그 색으로 둔 대국만 셉니다. 승률 정렬도 그 색을 읽습니다.",
-                            "Counts only the games they played with that colour, and the win-rate sort reads it too.")
+                            "Counts only the games they played with that colour, and the win-rate sort reads it too.",
+                            "只统计棋手执该色的对局，胜率排序也读取该色。")
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -516,9 +520,9 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = vm::onClearFilter) { Text(tr("필터 초기화", "Reset the filter")) }
+                TextButton(onClick = vm::onClearFilter) { Text(tr("필터 초기화", "Reset the filter", "重置筛选")) }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = vm::onCloseFilter) { Text(tr("적용", "Apply")) }
+                TextButton(onClick = vm::onCloseFilter) { Text(tr("적용", "Apply", "应用")) }
             }
         }
     }

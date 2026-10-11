@@ -181,7 +181,7 @@ fun Disclosure(
             )
             Icon(
                 Icons.Filled.ChevronRight,
-                contentDescription = if (open) tr("접기", "Collapse") else tr("펼치기", "Expand"),
+                contentDescription = if (open) tr("접기", "Collapse", "收起") else tr("펼치기", "Expand", "展开"),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp).rotate(turn),
             )
@@ -315,8 +315,8 @@ fun DurationField(
         modifier = modifier.width(132.dp),
         enabled = enabled,
         singleLine = true,
-        label = { Text(tr("직접", "Custom")) },
-        placeholder = { Text(if (spec.unit == Duration.Unit.S) tr("초", "sec") else "ms") },
+        label = { Text(tr("직접", "Custom", "自定义")) },
+        placeholder = { Text(if (spec.unit == Duration.Unit.S) tr("초", "sec", "秒") else "ms") },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { commit() }),
         textStyle = MaterialTheme.typography.bodyMedium,

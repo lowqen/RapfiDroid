@@ -39,7 +39,7 @@ object ToolScripts {
 
     /** The evaluation modes the deployment actually ships a config for. */
     val evaluationModes: List<Pair<String, String>> = listOf(
-        tr("NNUE (기본)", "NNUE (default)") to CONFIG_NNUE,
-        tr("Classic (사활)", "Classic (life and death)") to CONFIG_CLASSIC,
+        tr("NNUE (기본)", "NNUE (default)", "NNUE (普通)") to CONFIG_NNUE,
+        tr("Classic (사활)", "Classic (life and death)", "传统 (算杀)") to CONFIG_CLASSIC,
     )
 }

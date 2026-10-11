@@ -153,7 +153,7 @@ class ReviewViewModel @Inject constructor(
             val name = fileIo.displayName(uri)
             val format = GameFileFormat.of(name)
             if (format == null) {
-                notice.value = tr("지원하지 않는 형식입니다 (.psq / .sav / .pos)", "Unsupported format (.psq / .sav / .pos)")
+                notice.value = tr("지원하지 않는 형식입니다 (.psq / .sav / .pos)", "Unsupported format (.psq / .sav / .pos)", "不支持的格式 (.psq / .sav / .pos)")
                 return@launch
             }
             val bytes = fileIo.read(uri.toString())
@@ -161,11 +161,11 @@ class ReviewViewModel @Inject constructor(
                 GameFile.parse(it, format, settingsRepository.settings.value.boardSize)
             }
             if (moves.isNullOrEmpty()) {
-                notice.value = tr("기보를 읽을 수 없습니다", "The game file could not be read")
+                notice.value = tr("기보를 읽을 수 없습니다", "The game file could not be read", "无法读取棋谱")
                 return@launch
             }
             review.loadGame(GameFileContent(moves, GameFile.baseName(name)))
-            notice.value = tr("${moves.size}수를 불러왔습니다", "Loaded ${moves.size} moves")
+            notice.value = tr("${moves.size}수를 불러왔습니다", "Loaded ${moves.size} moves", "已载入 ${moves.size} 手")
         }
     }
 
@@ -179,8 +179,8 @@ class ReviewViewModel @Inject constructor(
                 else -> GameFile.writeSav(moves, size)   // the desktop's default
             }
             notice.value = runCatching { fileIo.write(uri, bytes) }.fold(
-                onSuccess = { tr("${moves.size}수를 저장했습니다", "Saved ${moves.size} moves") },
-                onFailure = { tr("저장 실패: ${it.message}", "Save failed: ${it.message}") },
+                onSuccess = { tr("${moves.size}수를 저장했습니다", "Saved ${moves.size} moves", "已保存 ${moves.size} 手") },
+                onFailure = { tr("저장 실패: ${it.message}", "Save failed: ${it.message}", "保存失败: ${it.message}") },
             )
         }
     }
@@ -191,11 +191,11 @@ class ReviewViewModel @Inject constructor(
                 QueueEntry(uri = uri.toString(), name = fileIo.displayName(uri))
             }.filter { GameFileFormat.of(it.name) != null }
             if (entries.isEmpty()) {
-                notice.value = tr("큐에 넣을 수 있는 기보가 없습니다", "No game file could be queued")
+                notice.value = tr("큐에 넣을 수 있는 기보가 없습니다", "No game file could be queued", "没有可加入队列的棋谱")
                 return@launch
             }
             review.enqueue(entries)
-            notice.value = tr("${entries.size}개를 큐에 넣었습니다", "Queued ${entries.size}")
+            notice.value = tr("${entries.size}개를 큐에 넣었습니다", "Queued ${entries.size}", "已加入队列 ${entries.size} 个")
         }
     }
 
@@ -204,7 +204,7 @@ class ReviewViewModel @Inject constructor(
         viewModelScope.launch {
             val moves = game.position.value.moves + game.future.value
             if (moves.isEmpty()) {
-                notice.value = tr("보드에 수가 없습니다", "The board is empty")
+                notice.value = tr("보드에 수가 없습니다", "The board is empty", "棋盘上没有棋子")
                 return@launch
             }
             val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
@@ -215,7 +215,7 @@ class ReviewViewModel @Inject constructor(
                 String(GameFile.writePsq(moves, game.position.value.size)),
             )
             review.enqueue(listOf(QueueEntry(uri = Uri.fromFile(java.io.File(path)).toString(), name = name)))
-            notice.value = tr("현재 대국을 큐에 넣었습니다 ($name)", "This game is queued ($name)")
+            notice.value = tr("현재 대국을 큐에 넣었습니다 ($name)", "This game is queued ($name)", "已将当前对局加入队列 ($name)")
         }
     }
 
@@ -230,8 +230,8 @@ class ReviewViewModel @Inject constructor(
         viewModelScope.launch {
             val text = render(report, format)
             notice.value = runCatching { fileIo.write(uri, text.toByteArray()) }.fold(
-                onSuccess = { tr("리포트를 저장했습니다", "Report saved") },
-                onFailure = { tr("저장 실패: ${it.message}", "Save failed: ${it.message}") },
+                onSuccess = { tr("리포트를 저장했습니다", "Report saved", "报告已保存") },
+                onFailure = { tr("저장 실패: ${it.message}", "Save failed: ${it.message}", "保存失败: ${it.message}") },
             )
         }
     }
@@ -245,7 +245,7 @@ class ReviewViewModel @Inject constructor(
             val paths = ExportFormat.entries.map { format ->
                 fileIo.writeLocal(REPORTS, "$base.${format.extension}", render(report, format))
             }
-            notice.value = tr("리포트 저장: ${paths.first().substringBeforeLast('/')}", "Reports written to ${paths.first().substringBeforeLast('/')}")
+            notice.value = tr("리포트 저장: ${paths.first().substringBeforeLast('/')}", "Reports written to ${paths.first().substringBeforeLast('/')}", "报告已保存到: ${paths.first().substringBeforeLast('/')}")
         }
     }
 
@@ -292,7 +292,7 @@ class ReviewViewModel @Inject constructor(
 }
 
 enum class ExportFormat(val extension: String, val mime: String, val label: String) {
-    HTML("html", "text/html", tr("HTML 리포트", "HTML report")),
-    MD("md", "text/markdown", tr("마크다운", "Markdown")),
+    HTML("html", "text/html", tr("HTML 리포트", "HTML report", "HTML 报告")),
+    MD("md", "text/markdown", tr("마크다운", "Markdown", "Markdown")),
     CSV("csv", "text/csv", "CSV"),
 }

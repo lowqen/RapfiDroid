@@ -44,13 +44,13 @@ fun LicensesDialog(onDismiss: () -> Unit) {
         val name = selected ?: return@remember ""
         runCatching {
             context.assets.open("$LICENSE_DIR/$name").use { it.readBytes() }.decodeToString()
-        }.getOrElse { e -> tr("읽지 못했습니다: ${e.message}", "Could not read it: ${e.message}") }
+        }.getOrElse { e -> tr("읽지 못했습니다: ${e.message}", "Could not read it: ${e.message}", "无法读取: ${e.message}") }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close")) } },
-        title = { Text(tr("라이선스 전문", "Licence texts")) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) } },
+        title = { Text(tr("라이선스 전문", "Licence texts", "许可证全文")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (files.isEmpty()) {
@@ -58,6 +58,7 @@ fun LicensesDialog(onDismiss: () -> Unit) {
                         tr(
                             "라이선스 파일을 찾지 못했습니다 (assets/licenses).",
                             "No licence files found (assets/licenses).",
+                            "未找到许可证文件 (assets/licenses)。",
                         ),
                         style = MaterialTheme.typography.bodySmall,
                     )

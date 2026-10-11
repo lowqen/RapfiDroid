@@ -132,10 +132,10 @@ object OpeningName {
         val line = moves.take(ply)
         if (frameTransform(line, size) < 0) return null
         return when (ply) {
-            1 -> tr("천원", "Tengen")
+            1 -> tr("천원", "Tengen", "天元")
             2 -> when (move2Kind(line, size)) {
-                Move2Kind.DIRECT -> tr("직접막기", "Direct block")
-                Move2Kind.INDIRECT -> tr("간접막기", "Indirect block")
+                Move2Kind.DIRECT -> tr("직접막기", "Direct block", "直接阻挡")
+                Move2Kind.INDIRECT -> tr("간접막기", "Indirect block", "间接阻挡")
                 Move2Kind.NONE -> null
             }
             3 -> Opening26.classify(line).let {
@@ -143,7 +143,9 @@ object OpeningName {
             }
             else -> {      // 4수 — the user's table, keyed by the frame key
                 val n = keyOf(line, size)?.let { OpeningTables.names[it] }
-                n?.let { tr(it.ko, it.en ?: it.ko) }
+                // The 4th-move names are the user's own Korean terms; there is no
+                // Chinese set, so Chinese shows what English does.
+                n?.let { tr(it.ko, it.en ?: it.ko, it.en ?: it.ko) }
             }
         }
     }

@@ -93,7 +93,7 @@ data class DbEntry(
 ) {
     fun summary(): String = buildString {
         if (label.isNotEmpty()) append("$label: ")
-        append("tag=${tag ?: "(없음)"}  값=$value  깊이=$depth  범위=${bound.label}")
+        append(tr("tag=${tag ?: "(없음)"}  값=$value  깊이=$depth  범위=${bound.label}", "tag=${tag ?: "(none)"}  value=$value  depth=$depth  bound=${bound.label}", "标记=${tag ?: "(无)"}  估值=$value  深度=$depth  范围=${bound.label}"))
     }
 }
 
@@ -204,14 +204,18 @@ data class DbPositionValue(
 )
 
 /** Which record set a bulk delete touches (`yxdeletedatabaseall <filter>`). */
-enum class DbDeleteFilter(val wire: String, val title: String) {
-    ALL("", tr("모든 분기", "Every branch")),
-    NON_WL("nonwl", tr("승/패가 아닌 기록", "Records that are neither a win nor a loss")),
-    WL("wl", tr("승/패 기록", "Win and loss records")),
-    WIN("w", tr("승 기록", "Win records")),
-    LOSE("l", tr("패 기록", "Loss records")),
-    WL_NO_STEP("wlnostep", tr("수순 없는 승/패", "Wins and losses with no move count")),
-    WL_IN_STEP("wlinstep", tr("N수 이내 승/패", "Wins and losses within N moves")),
+enum class DbDeleteFilter(val wire: String, private val ko: String, private val en: String, private val zh: String) {
+    ALL("", "모든 분기", "Every branch", "所有分支"),
+    NON_WL("nonwl", "승/패가 아닌 기록", "Records that are neither a win nor a loss", "非胜/负记录"),
+    WL("wl", "승/패 기록", "Win and loss records", "胜/负记录"),
+    WIN("w", "승 기록", "Win records", "胜记录"),
+    LOSE("l", "패 기록", "Loss records", "负记录"),
+    WL_NO_STEP("wlnostep", "수순 없는 승/패", "Wins and losses with no move count", "无步数的胜/负"),
+    WL_IN_STEP("wlinstep", "N수 이내 승/패", "Wins and losses within N moves", "N 步以内的胜/负"),
+    ;
+
+    /** Read when shown, so a language change reaches it (an enum is built once). */
+    val title: String get() = tr(ko, en, zh)
 }
 
 /**
@@ -234,8 +238,8 @@ data class DbDeleteScope(
     }
 
     fun title(): String = buildString {
-        append(if (filter == DbDeleteFilter.WL_IN_STEP) tr("${step}수 이내 승/패", "Wins and losses within ${step} moves") else filter.title)
-        if (recursive && filter != DbDeleteFilter.ALL) append(tr(" (하위 분기까지)", " (including sub-branches)"))
+        append(if (filter == DbDeleteFilter.WL_IN_STEP) tr("${step}수 이내 승/패", "Wins and losses within ${step} moves", "${step} 步以内的胜/负") else filter.title)
+        if (recursive && filter != DbDeleteFilter.ALL) append(tr(" (하위 분기까지)", " (including sub-branches)", " (包括子分支)"))
     }
 }
 

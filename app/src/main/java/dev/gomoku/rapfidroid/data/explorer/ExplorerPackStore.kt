@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.OpeningTables
 import dev.gomoku.rapfidroid.core.model.PackInfo
 import dev.gomoku.rapfidroid.domain.rif.RenjuPack
@@ -95,9 +96,9 @@ class ExplorerPackStore @Inject constructor(
         OpeningTables.names = names.rows
         OpeningTables.evals = evals.rows
         tableNote = buildString {
-            append("이름 ${names.rows.size}개 · 유불리 ${evals.rows.size}개")
+            append(tr("이름 ${names.rows.size}개 · 유불리 ${evals.rows.size}개", "${names.rows.size} names · ${evals.rows.size} grades", "名称 ${names.rows.size} 个 · 优劣 ${evals.rows.size} 个"))
             val bad = names.bad + evals.bad
-            if (bad > 0) append(" (읽지 못한 줄 ${bad}개)")
+            if (bad > 0) append(tr(" (읽지 못한 줄 ${bad}개)", " (${bad} unreadable lines)", " (无法读取的行 ${bad} 个)"))
         }
         _tables.value = _tables.value + 1
     }
@@ -148,13 +149,13 @@ class ExplorerPackStore @Inject constructor(
     suspend fun adopt(built: File): Result<Packs> = withContext(io) {
         runCatching {
             dir.mkdirs()
-            require(built.isFile) { "생성된 팩 파일이 없습니다" }
+            require(built.isFile) { tr("생성된 팩 파일이 없습니다", "No pack file was produced", "没有生成数据包文件") }
             packFile.delete()
-            check(built.renameTo(packFile)) { "생성한 데이터를 저장하지 못했습니다" }
+            check(built.renameTo(packFile)) { tr("생성한 데이터를 저장하지 못했습니다", "Could not save the data that was built", "无法保存生成的数据") }
             // The desktop-format packs of earlier versions are superseded.
             statsFile.delete()
             gamesFile.delete()
-            val loaded = load() ?: error("생성한 데이터를 읽지 못했습니다")
+            val loaded = load() ?: error(tr("생성한 데이터를 읽지 못했습니다", "Could not read the data that was built", "无法读取生成的数据"))
             _packs.value = loaded
             loaded
         }

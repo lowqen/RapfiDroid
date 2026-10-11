@@ -1,0 +1,15 @@
+<!-- Simplified Chinese. A Traditional-Chinese system gets these too (values-zh). -->
+<resources>
+    <string name="app_name">RapfiDroid</string>
+
+    <string name="tab_board">棋盘</string>
+    <string name="tab_research">研究</string>
+    <string name="tab_joseki">定式</string>
+    <string name="tab_database">数据库</string>
+    <string name="tab_settings">设置</string>
+    <string name="tab_connect">引擎</string>
+
+    <string name="engine_channel_name">引擎连接</string>
+    <string name="engine_channel_desc">保持 Rapfi 引擎会话</string>
+    <string name="engine_notif_title">RapfiDroid 引擎</string>
+</resources>

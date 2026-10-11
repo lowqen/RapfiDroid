@@ -82,17 +82,17 @@ internal fun MyJosekiList(
     ) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { vm.onNewJoseki(fromBoard = false) }) { Text(tr("새 정석", "New")) }
-                OutlinedButton(onClick = { vm.onNewJoseki(fromBoard = true) }) { Text(tr("보드에서 만들기", "From the board")) }
+                Button(onClick = { vm.onNewJoseki(fromBoard = false) }) { Text(tr("새 정석", "New", "新建")) }
+                OutlinedButton(onClick = { vm.onNewJoseki(fromBoard = true) }) { Text(tr("보드에서 만들기", "From the board", "从棋盘新建")) }
             }
         }
         if (ui.hits.isNotEmpty()) {
             item {
                 CalmCard {
-                    CardTitle(tr("지금 보드 국면", "The board's position"))
+                    CardTitle(tr("지금 보드 국면", "The board's position", "当前棋盘局面"))
                     ui.hits.forEach { hit ->
                         Text(
-                            "${hit.tree.title} · " + tr("${hit.ply}수", "move ${hit.ply}"),
+                            "${hit.tree.title} · " + tr("${hit.ply}수", "move ${hit.ply}", "第 ${hit.ply} 手"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.clickable { vm.onEdit(hit.tree.id, hit.path) }.padding(vertical = 4.dp),
@@ -102,7 +102,7 @@ internal fun MyJosekiList(
             }
         }
         if (ui.trees.isEmpty()) {
-            item { Hint(tr("아직 정석이 없습니다", "No joseki yet")) }
+            item { Hint(tr("아직 정석이 없습니다", "No joseki yet", "还没有定式")) }
         }
         items(ui.trees, key = { it.id }) { tree ->
             val cls = JosekiOps.classify(tree)
@@ -115,18 +115,18 @@ internal fun MyJosekiList(
                             Text(cls.category, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             cls.grade?.let { GradeMark(it, withName = false) }
                         }
-                        Hint(tr("수 ${JosekiOps.countNodes(tree.root)}개", "${JosekiOps.countNodes(tree.root)} moves"))
+                        Hint(tr("수 ${JosekiOps.countNodes(tree.root)}개", "${JosekiOps.countNodes(tree.root)} moves", "${JosekiOps.countNodes(tree.root)} 手"))
                     }
-                    TextButton(onClick = { confirmDelete = tree }) { Text(tr("삭제", "Delete")) }
+                    TextButton(onClick = { confirmDelete = tree }) { Text(tr("삭제", "Delete", "删除")) }
                 }
             }
         }
         item {
-            dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(id = "joseki-files", title = tr("파일", "Files")) {
-                Hint(tr("RapfiWeb 과 같은 JSON · 기보 파일은 초안으로", "Same JSON as RapfiWeb; game files become drafts"))
+            dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(id = "joseki-files", title = tr("파일", "Files", "文件")) {
+                Hint(tr("RapfiWeb 과 같은 JSON · 기보 파일은 초안으로", "Same JSON as RapfiWeb; game files become drafts", "与 RapfiWeb 相同的 JSON；棋谱文件会成为草稿"))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = onImport) { Text(tr("가져오기", "Import")) }
-                    OutlinedButton(onClick = onExport, enabled = ui.trees.isNotEmpty()) { Text(tr("내보내기", "Export")) }
+                    OutlinedButton(onClick = onImport) { Text(tr("가져오기", "Import", "导入")) }
+                    OutlinedButton(onClick = onExport, enabled = ui.trees.isNotEmpty()) { Text(tr("내보내기", "Export", "导出")) }
                 }
             }
         }
@@ -134,14 +134,14 @@ internal fun MyJosekiList(
     confirmDelete?.let { t ->
         AlertDialog(
             onDismissRequest = { confirmDelete = null },
-            title = { Text(tr("«${t.title}» 을 지울까요?", "Delete «${t.title}»?")) },
+            title = { Text(tr("«${t.title}» 을 지울까요?", "Delete «${t.title}»?", "要删除 «${t.title}» 吗?")) },
             confirmButton = {
                 Button(onClick = {
                     vm.onDelete(t.id)
                     confirmDelete = null
-                }) { Text(tr("삭제", "Delete")) }
+                }) { Text(tr("삭제", "Delete", "删除")) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text(tr("취소", "Cancel")) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = null }) { Text(tr("취소", "Cancel", "取消")) } },
         )
     }
 }
@@ -169,7 +169,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
     val board: @Composable (Modifier) -> Unit = { m -> GomokuBoard(render = render, modifier = m, onTap = vm::onEditTap) }
     val panel: @Composable ColumnScope.() -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { vm.onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("목록으로", "Back to the list")) }
+            IconButton(onClick = { vm.onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("목록으로", "Back to the list", "返回列表")) }
             OutlinedTextField(
                 value = title,
                 onValueChange = {
@@ -177,7 +177,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                     vm.onTitle(it)
                 },
                 singleLine = true,
-                label = { Text(tr("제목", "Title")) },
+                label = { Text(tr("제목", "Title", "标题")) },
                 modifier = Modifier.weight(1f),
             )
         }
@@ -186,11 +186,11 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
             cls.grade?.let { GradeMark(it) }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            IconButton(onClick = { vm.onEditPath(emptyList()) }, enabled = path.isNotEmpty()) { Icon(Icons.Filled.FirstPage, tr("처음", "Start")) }
-            IconButton(onClick = { vm.onEditPath(path.dropLast(1)) }, enabled = path.isNotEmpty()) { Icon(Icons.Filled.ChevronLeft, tr("뒤로", "Back")) }
-            IconButton(onClick = { vm.onEditPath(path + 0) }, enabled = node.children.isNotEmpty()) { Icon(Icons.Filled.ChevronRight, tr("앞으로", "Forward")) }
+            IconButton(onClick = { vm.onEditPath(emptyList()) }, enabled = path.isNotEmpty()) { Icon(Icons.Filled.FirstPage, tr("처음", "Start", "开头")) }
+            IconButton(onClick = { vm.onEditPath(path.dropLast(1)) }, enabled = path.isNotEmpty()) { Icon(Icons.Filled.ChevronLeft, tr("뒤로", "Back", "后退")) }
+            IconButton(onClick = { vm.onEditPath(path + 0) }, enabled = node.children.isNotEmpty()) { Icon(Icons.Filled.ChevronRight, tr("앞으로", "Forward", "前进")) }
             IconButton(onClick = { vm.onEditPath(JosekiOps.mainLineFrom(tree.root, path)) }, enabled = node.children.isNotEmpty()) {
-                Icon(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end"))
+                Icon(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -198,17 +198,17 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                 value = lineText,
                 onValueChange = { lineText = it },
                 singleLine = true,
-                label = { Text(tr("수순 입력 (h8 i9 j10)", "Type a line (h8 i9 j10)")) },
+                label = { Text(tr("수순 입력 (h8 i9 j10)", "Type a line (h8 i9 j10)", "输入手顺 (h8 i9 j10)")) },
                 modifier = Modifier.weight(1f),
             )
             Button(onClick = {
                 vm.onAddText(lineText)
                 lineText = ""
-            }, enabled = lineText.isNotBlank()) { Text(tr("넣기", "Add")) }
+            }, enabled = lineText.isNotBlank()) { Text(tr("넣기", "Add", "加入")) }
         }
         if (path.isNotEmpty()) {
             CalmCard {
-                CardTitle(tr("${path.size}수 ${moves.last().label()}", "Move ${path.size} ${moves.last().label()}"))
+                CardTitle(tr("${path.size}수 ${moves.last().label()}", "Move ${path.size} ${moves.last().label()}", "第 ${path.size} 手 ${moves.last().label()}"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     JosekiMark.entries.forEach { mk ->
                         FilterChip(
@@ -233,16 +233,16 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                         comment = it
                         vm.onComment(it)
                     },
-                    label = { Text(tr("메모 (마크다운 · 좌표는 링크)", "Note (markdown, coordinates link)")) },
+                    label = { Text(tr("메모 (마크다운 · 좌표는 링크)", "Note (markdown, coordinates link)", "注释 (Markdown，坐标可点击)")) },
                     minLines = 3,
                     maxLines = 10,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    AssistChip(onClick = vm::onPromote, label = { Text(tr("주 변화로", "Make main line")) })
-                    AssistChip(onClick = { vm.onMoveSibling(-1) }, label = { Text(tr("앞으로 옮기기", "Move up")) })
-                    AssistChip(onClick = { vm.onMoveSibling(1) }, label = { Text(tr("뒤로 옮기기", "Move down")) })
-                    AssistChip(onClick = { confirmDelete = true }, label = { Text(tr("이 가지 삭제", "Delete branch")) })
+                    AssistChip(onClick = vm::onPromote, label = { Text(tr("주 변화로", "Make main line", "设为主变")) })
+                    AssistChip(onClick = { vm.onMoveSibling(-1) }, label = { Text(tr("앞으로 옮기기", "Move up", "上移")) })
+                    AssistChip(onClick = { vm.onMoveSibling(1) }, label = { Text(tr("뒤로 옮기기", "Move down", "下移")) })
+                    AssistChip(onClick = { confirmDelete = true }, label = { Text(tr("이 가지 삭제", "Delete branch", "删除此分支")) })
                 }
             }
         } else {
@@ -252,28 +252,28 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                     comment = it
                     vm.onComment(it)
                 },
-                label = { Text(tr("정석 소개 (마크다운)", "About this joseki (markdown)")) },
+                label = { Text(tr("정석 소개 (마크다운)", "About this joseki (markdown)", "定式介绍 (Markdown)")) },
                 minLines = 2,
                 maxLines = 8,
                 modifier = Modifier.fillMaxWidth(),
             )
         }
         if (comment.isNotBlank()) {
-            Disclosure(id = "joseki-preview", title = tr("메모 미리보기", "Note preview")) {
+            Disclosure(id = "joseki-preview", title = tr("메모 미리보기", "Note preview", "注释预览")) {
                 MarkdownText(comment, onCoord = { m ->
                     val i = moves.indexOf(m)
                     if (i >= 0) vm.onEditPath(path.take(i + 1))
                 })
             }
         }
-        Text(tr("수순", "Moves"), style = MaterialTheme.typography.titleSmall)
+        Text(tr("수순", "Moves", "手顺"), style = MaterialTheme.typography.titleSmall)
         TreeView(tree.root, path, tree.boardSize, vm::onEditPath)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = vm::onEditToBoard) { Text(tr("보드에 올리기", "Put on the board")) }
-            OutlinedButton(onClick = onExportPsq, enabled = path.isNotEmpty()) { Text(tr(".psq 저장", "Save .psq")) }
+            OutlinedButton(onClick = vm::onEditToBoard) { Text(tr("보드에 올리기", "Put on the board", "放到棋盘上")) }
+            OutlinedButton(onClick = onExportPsq, enabled = path.isNotEmpty()) { Text(tr(".psq 저장", "Save .psq", "保存 .psq")) }
         }
         if (JosekiOps.countNodes(tree.root) > JosekiOps.NODE_WARN) {
-            Hint(tr("수가 많습니다. 나누어 두면 가벼워집니다", "This is large; splitting it keeps it light"), color = MaterialTheme.colorScheme.error)
+            Hint(tr("수가 많습니다. 나누어 두면 가벼워집니다", "This is large; splitting it keeps it light", "手数较多，拆分后会更轻快"), color = MaterialTheme.colorScheme.error)
         }
     }
 
@@ -299,15 +299,15 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text(tr("이 가지를 지울까요?", "Delete this branch?")) },
-            text = { Text(tr("이 수와 그 아래가 모두 지워집니다", "This move and everything after it go")) },
+            title = { Text(tr("이 가지를 지울까요?", "Delete this branch?", "要删除此分支吗?")) },
+            text = { Text(tr("이 수와 그 아래가 모두 지워집니다", "This move and everything after it go", "这一手及其后的所有着法都会被删除")) },
             confirmButton = {
                 Button(onClick = {
                     vm.onDeleteBranch()
                     confirmDelete = false
-                }) { Text(tr("삭제", "Delete")) }
+                }) { Text(tr("삭제", "Delete", "删除")) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("취소", "Cancel")) } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("취소", "Cancel", "取消")) } },
         )
     }
 }

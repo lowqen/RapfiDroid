@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.data.explorer
 
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ExplorerGameRow
 import dev.gomoku.rapfidroid.core.model.ExplorerGames
 import dev.gomoku.rapfidroid.core.model.ExplorerNext
@@ -122,7 +123,7 @@ object ExplorerLookup {
 
     /** "H8, I9, F6" — the current line in played order (`rjexp_pos_line`). */
     fun lineText(pos: Position): String =
-        if (pos.moves.isEmpty()) "시작 국면"
+        if (pos.moves.isEmpty()) tr("시작 국면", "Start position", "起始局面")
         else pos.moves.joinToString(", ") { it.label(pos.size) }
 
     /**

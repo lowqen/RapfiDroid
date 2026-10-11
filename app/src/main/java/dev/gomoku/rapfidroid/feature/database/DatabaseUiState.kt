@@ -32,15 +32,15 @@ data class DatabaseUiState(
 
     /** Current path as board labels, e.g. "H8 I9 J10" (empty board = "빈 판"). */
     fun pathLabels(): String =
-        if (position.moves.isEmpty()) tr("빈 판", "empty board")
+        if (position.moves.isEmpty()) tr("빈 판", "empty board", "空棋盘")
         else position.moves.joinToString(" ") { it.label(position.size) }
 
     fun valueSummary(): String {
-        val value = db.value ?: return tr("저장된 값 없음", "No stored value")
+        val value = db.value ?: return tr("저장된 값 없음", "No stored value", "无保存的估值")
         return when {
-            value.stmMate != null && value.stmMate > 0 -> tr("두는 쪽 승 · M${value.stmMate}", "Side to move wins · M${value.stmMate}")
-            value.stmMate != null -> tr("두는 쪽 패 · M${-value.stmMate}", "Side to move loses · M${-value.stmMate}")
-            else -> tr("흑 ${(value.blackWinRate * 100).toInt()}%", "Black ${(value.blackWinRate * 100).toInt()}%")
+            value.stmMate != null && value.stmMate > 0 -> tr("두는 쪽 승 · M${value.stmMate}", "Side to move wins · M${value.stmMate}", "轮到方胜 · M${value.stmMate}")
+            value.stmMate != null -> tr("두는 쪽 패 · M${-value.stmMate}", "Side to move loses · M${-value.stmMate}", "轮到方负 · M${-value.stmMate}")
+            else -> tr("흑 ${(value.blackWinRate * 100).toInt()}%", "Black ${(value.blackWinRate * 100).toInt()}%", "黑 ${(value.blackWinRate * 100).toInt()}%")
         }
     }
 }

@@ -15,16 +15,16 @@ import java.util.UUID
  */
 
 /** Move evaluation symbols, as game annotations use them. */
-enum class JosekiMark(val symbol: String, val ko: String, val en: String) {
-    BRILLIANT("!!", "최선", "Best"),
-    GOOD("!", "좋은 수", "Good"),
-    INTERESTING("!?", "흥미로운 수", "Interesting"),
-    DUBIOUS("?!", "의문수", "Dubious"),
-    BAD("?", "나쁜 수", "Bad"),
-    BLUNDER("??", "큰 실수", "Blunder"),
+enum class JosekiMark(val symbol: String, val ko: String, val en: String, val zh: String) {
+    BRILLIANT("!!", "최선", "Best", "最佳"),
+    GOOD("!", "좋은 수", "Good", "好棋"),
+    INTERESTING("!?", "흥미로운 수", "Interesting", "有趣的着法"),
+    DUBIOUS("?!", "의문수", "Dubious", "疑问手"),
+    BAD("?", "나쁜 수", "Bad", "恶手"),
+    BLUNDER("??", "큰 실수", "Blunder", "大恶手"),
     ;
 
-    val label: String get() = tr(ko, en)
+    val label: String get() = tr(ko, en, zh)
     val isGood: Boolean get() = this == BRILLIANT || this == GOOD || this == INTERESTING
     val isBad: Boolean get() = this == DUBIOUS || this == BAD || this == BLUNDER
 
@@ -34,15 +34,15 @@ enum class JosekiMark(val symbol: String, val ko: String, val en: String) {
 }
 
 /** What a branch is for, apart from its evaluation (the official curriculum's roles). */
-enum class JosekiRole(val key: String, val ko: String, val en: String) {
+enum class JosekiRole(val key: String, val ko: String, val en: String, val zh: String) {
     /** Plausible but walks into something, or a trap the opponent sets. */
-    TRAP("trap", "함정수", "Trap"),
+    TRAP("trap", "함정수", "Trap", "陷阱"),
 
     /** The answer that punishes a bad move or a trap. */
-    REFUTE("refute", "응징", "Refutation"),
+    REFUTE("refute", "응징", "Refutation", "破解"),
     ;
 
-    val label: String get() = tr(ko, en)
+    val label: String get() = tr(ko, en, zh)
 
     companion object {
         fun of(key: String?): JosekiRole? = entries.firstOrNull { it.key == key }
@@ -131,8 +131,8 @@ object JosekiOps {
 
     /** Why [m] cannot go at the end of [path], or null when it can. */
     fun illegal(root: JosekiNode, path: Path, m: Move, size: Int = Move.DEFAULT_SIZE): String? {
-        if (!m.isInside(size)) return tr("판 밖입니다", "Off the board")
-        if (m in movesTo(root, path)) return tr("이미 돌이 있는 자리입니다", "That point is taken")
+        if (!m.isInside(size)) return tr("판 밖입니다", "Off the board", "在棋盘外")
+        if (m in movesTo(root, path)) return tr("이미 돌이 있는 자리입니다", "That point is taken", "该位置已有棋子")
         return null
     }
 
@@ -243,16 +243,16 @@ object JosekiOps {
             var at = 0
             while (at < tok.length) {
                 val m = COORD.find(tok, at)?.takeIf { it.range.first == at }
-                    ?: return Parsed.Error(tr("«$raw» 를 좌표로 읽지 못했습니다", "«$raw» is not a coordinate"))
+                    ?: return Parsed.Error(tr("«$raw» 를 좌표로 읽지 못했습니다", "«$raw» is not a coordinate", "«$raw» 不是坐标"))
                 var digits = m.groupValues[2]
                 var mv = Move.fromLabel(m.groupValues[1] + digits, size)
                 if (mv == null && digits.length == 2) {
                     digits = digits.take(1)
                     mv = Move.fromLabel(m.groupValues[1] + digits, size)
                 }
-                if (mv == null) return Parsed.Error(tr("«${m.value}» 는 판 밖입니다", "«${m.value}» is off the board"))
+                if (mv == null) return Parsed.Error(tr("«${m.value}» 는 판 밖입니다", "«${m.value}» is off the board", "«${m.value}» 在棋盘外"))
                 if (mv in moves) {
-                    return Parsed.Error(tr("${moves.size + 1}수 ${mv.label(size)} 는 이미 둔 자리입니다", "Move ${moves.size + 1}, ${mv.label(size)}, is already taken"))
+                    return Parsed.Error(tr("${moves.size + 1}수 ${mv.label(size)} 는 이미 둔 자리입니다", "Move ${moves.size + 1}, ${mv.label(size)}, is already taken", "第 ${moves.size + 1} 手 ${mv.label(size)} 已有棋子"))
                 }
                 moves.add(mv)
                 at += 1 + digits.length
@@ -288,7 +288,7 @@ object JosekiOps {
         val grade = if (line.size >= 5) OpeningName.gradeAt(line.take(5), size) else null
         val user = userCategory.trim()
         return Classification(
-            category = user.ifEmpty { names.lastOrNull() ?: tr("분류 없음", "Unclassified") },
+            category = user.ifEmpty { names.lastOrNull() ?: tr("분류 없음", "Unclassified", "未分类") },
             chain = names,
             group = group,
             grade = grade,

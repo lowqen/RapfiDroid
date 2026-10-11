@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.data.tools
 
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.BlockTargets
 import dev.gomoku.rapfidroid.core.model.BoardTransform
 import dev.gomoku.rapfidroid.core.model.CallbackConfig
@@ -142,7 +143,7 @@ class EngineToolsRepositoryImpl @Inject constructor(
             // ---- console plumbing ------------------------------------------
             is ConsoleCommand.CommandMode -> {
                 _state.update { it.copy(commandMode = cmd.on) }
-                log("명령 전달 모드 ${if (cmd.on) "켜짐 — 입력이 엔진으로 그대로 갑니다" else "꺼짐"}")
+                log(tr("명령 전달 모드 ${if (cmd.on) "켜짐 — 입력이 엔진으로 그대로 갑니다" else "꺼짐"}", "Pass-through mode ${if (cmd.on) "on — input goes straight to the engine" else "off"}", "透传模式${if (cmd.on) "开启，输入将直接发送给引擎" else "关闭"}"))
             }
             is ConsoleCommand.RawLine -> engine.send(EngineCommand.Raw(cmd.line))
             is ConsoleCommand.Echo -> log(cmd.text)
@@ -155,13 +156,13 @@ class EngineToolsRepositoryImpl @Inject constructor(
             ConsoleCommand.HashUsage -> engine.send(EngineCommand.YxShowHashUsage)
             is ConsoleCommand.HashAutoClear -> {
                 settings.set("hashAutoClear", if (cmd.on) "1" else "0")
-                log("해시 자동 지우기 ${onOff(cmd.on)}")
+                log(tr("해시 자동 지우기 ${onOff(cmd.on)}", "Auto-clear hash ${onOff(cmd.on)}", "自动清空置换表 ${onOff(cmd.on)}"))
             }
             is ConsoleCommand.HashDump ->
-                if (cmd.path.isBlank()) err("hash dump <서버 경로> 가 필요합니다")
+                if (cmd.path.isBlank()) err(tr("hash dump <서버 경로> 가 필요합니다", "hash dump needs <server path>", "hash dump 需要 <服务器路径>"))
                 else engine.send(EngineCommand.YxHashDump(cmd.path))
             is ConsoleCommand.HashLoad ->
-                if (cmd.path.isBlank()) err("hash load <서버 경로> 가 필요합니다")
+                if (cmd.path.isBlank()) err(tr("hash load <서버 경로> 가 필요합니다", "hash load needs <server path>", "hash load 需要 <服务器路径>"))
                 else engine.send(EngineCommand.YxHashLoad(cmd.path))
 
             // ---- position stack ---------------------------------------------
@@ -181,7 +182,7 @@ class EngineToolsRepositoryImpl @Inject constructor(
             is ConsoleCommand.BlockCompare -> blockCompare(cmd.cells, size)
             is ConsoleCommand.BlockAutoReset -> {
                 settings.set("blockAutoReset", if (cmd.on) "1" else "0")
-                log("차단 자동 해제 ${onOff(cmd.on)}")
+                log(tr("차단 자동 해제 ${onOff(cmd.on)}", "Auto-reset blocks ${onOff(cmd.on)}", "自动重置排除 ${onOff(cmd.on)}"))
             }
 
             is ConsoleCommand.BlockPath -> blockPath(cmd.cells, undo = false)
@@ -190,7 +191,7 @@ class EngineToolsRepositoryImpl @Inject constructor(
             is ConsoleCommand.BlockPathExcept -> blockPathExcept(cmd.cells, size)
             is ConsoleCommand.BlockPathAutoReset -> {
                 settings.set("blockPathAutoReset", if (cmd.on) "1" else "0")
-                log("차단 경로 자동 해제 ${onOff(cmd.on)}")
+                log(tr("차단 경로 자동 해제 ${onOff(cmd.on)}", "Auto-reset blocked paths ${onOff(cmd.on)}", "自动重置排除路径 ${onOff(cmd.on)}"))
             }
 
             // ---- forced forbidden points -------------------------------------
@@ -219,7 +220,7 @@ class EngineToolsRepositoryImpl @Inject constructor(
                 engine.send(EngineCommand.YxBoard(game.position.value.placements()))
                 engine.send(EngineCommand.YxBalance(cmd.two, cmd.bias))
             }
-            ConsoleCommand.BestLine -> log("BESTLINE 은 분석 패널 상태줄에 있습니다")
+            ConsoleCommand.BestLine -> log(tr("BESTLINE 은 분석 패널 상태줄에 있습니다", "BESTLINE is in the status line of the analysis panel", "BESTLINE 在分析面板的状态栏中"))
 
             // ---- engine maintenance -------------------------------------------
             ConsoleCommand.PrintFeatures -> engine.send(EngineCommand.YxPrintFeature)
@@ -245,18 +246,18 @@ class EngineToolsRepositoryImpl @Inject constructor(
             }
             is ConsoleCommand.Shift -> guarded {
                 val moved = BoardTransform.shift(game.position.value.moves, size, cmd.direction)
-                if (moved == null) err("판 밖으로 나가서 옮길 수 없습니다")
+                if (moved == null) err(tr("판 밖으로 나가서 옮길 수 없습니다", "A stone would leave the board, so nothing was moved", "有棋子会移出棋盘，无法平移"))
                 else game.replaceLine(moved)
             }
 
             // ---- callbacks -------------------------------------------------------
             is ConsoleCommand.CallbackEnabled -> {
                 _state.update { it.copy(callbacksSuspended = !cmd.on) }
-                log("콜백 ${onOff(cmd.on)}")
+                log(tr("콜백 ${onOff(cmd.on)}", "Callbacks ${onOff(cmd.on)}", "回调 ${onOff(cmd.on)}"))
             }
 
             is ConsoleCommand.Unknown ->
-                if (cmd.line.isNotEmpty()) err("알 수 없는 명령입니다: ${cmd.line}")
+                if (cmd.line.isNotEmpty()) err(tr("알 수 없는 명령입니다: ${cmd.line}", "Unknown command: ${cmd.line}", "未知命令: ${cmd.line}"))
         }
     }
 
@@ -264,33 +265,33 @@ class EngineToolsRepositoryImpl @Inject constructor(
 
     private suspend fun pushPos(slot: Int, size: Int) {
         if (slot !in 0 until ToolsState.STACK_SLOTS) {
-            return err("슬롯 번호는 0~9 여야 합니다")
+            return err(tr("슬롯 번호는 0~9 여야 합니다", "The slot number must be 0-9", "存储位编号必须为 0~9"))
         }
         val text = BoardTransform.toPositionString(game.position.value.moves, size)
         _state.update { st ->
             st.copy(stack = st.stack.toMutableList().also { it[slot] = text })
         }
-        log("현재 국면을 슬롯 $slot 에 저장했습니다")
+        log(tr("현재 국면을 슬롯 $slot 에 저장했습니다", "Stored the current position in slot $slot", "已将当前局面存入存储位 $slot"))
     }
 
     private suspend fun popPos(slot: Int, size: Int) {
         if (slot !in 0 until ToolsState.STACK_SLOTS) {
-            return err("슬롯 번호는 0~9 여야 합니다")
+            return err(tr("슬롯 번호는 0~9 여야 합니다", "The slot number must be 0-9", "存储位编号必须为 0~9"))
         }
         val text = _state.value.stack[slot]
-        if (text.isNullOrEmpty()) return err("슬롯 $slot 이 비어 있습니다")
+        if (text.isNullOrEmpty()) return err(tr("슬롯 $slot 이 비어 있습니다", "Slot $slot is empty", "存储位 $slot 为空"))
         putPos(text, size)
     }
 
     private suspend fun putPos(text: String, size: Int) {
         busy()?.let { return err(it) }
         val moves = BoardTransform.fromPositionString(text, size)
-        if (moves.isEmpty()) return err("국면 문자열을 읽을 수 없습니다: $text")
+        if (moves.isEmpty()) return err(tr("국면 문자열을 읽을 수 없습니다: $text", "Cannot read the position string: $text", "无法读取局面代码: $text"))
         game.replaceLine(moves)
     }
 
     private suspend fun block(cells: List<Move>) {
-        if (cells.isEmpty()) return err("차단할 점이 없습니다 (예: block h8i8)")
+        if (cells.isEmpty()) return err(tr("차단할 점이 없습니다 (예: block h8i8)", "No points to block (e.g. block h8i8)", "没有要排除的点 (例: block h8i8)"))
         for (c in cells) engine.send(EngineCommand.YxBlock(c))
         _state.update { it.copy(blocked = it.blocked + cells) }
     }
@@ -302,11 +303,11 @@ class EngineToolsRepositoryImpl @Inject constructor(
         engine.send(EngineCommand.YxBlockReset)
         for (c in target) engine.send(EngineCommand.YxBlock(c))
         _state.update { it.copy(blocked = target.toSet()) }
-        log("${keep.size}개 점만 남기고 ${target.size}개를 차단했습니다")
+        log(tr("${keep.size}개 점만 남기고 ${target.size}개를 차단했습니다", "Blocked ${target.size}, keeping only ${keep.size} points", "只保留 ${keep.size} 个点，排除了 ${target.size} 个"))
     }
 
     private suspend fun blockPath(cells: List<Move>, undo: Boolean) {
-        if (cells.isEmpty()) return err("차단할 경로가 없습니다 (예: blockpath h8h7)")
+        if (cells.isEmpty()) return err(tr("차단할 경로가 없습니다 (예: blockpath h8h7)", "No paths to block (e.g. blockpath h8h7)", "没有要排除的路径 (例: blockpath h8h7)"))
         engine.send(
             EngineCommand.YxBlockPath(game.position.value.moves, cells, undo),
         )
@@ -321,7 +322,7 @@ class EngineToolsRepositoryImpl @Inject constructor(
         val line = game.position.value.moves
         val target = BlockTargets.complement(cells, line, size)
         for (m in target) engine.send(EngineCommand.YxBlockPath(line, listOf(m)))
-        log("${cells.size}개 후속수만 남기고 ${target.size}개 경로를 차단했습니다")
+        log(tr("${cells.size}개 후속수만 남기고 ${target.size}개 경로를 차단했습니다", "Blocked ${target.size} paths, keeping only ${cells.size} continuations", "只保留 ${cells.size} 个后续着法，排除了 ${target.size} 条路径"))
     }
 
     private suspend fun resetBlocks() {
@@ -393,12 +394,12 @@ class EngineToolsRepositoryImpl @Inject constructor(
 
     /** Board writes are refused while a research run owns the conversation. */
     private fun busy(): String? = when {
-        review.progress.value.running -> "게임 리뷰가 진행 중입니다 — 먼저 중지하세요"
-        prove.get().progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다 — 먼저 중지하세요", "A game review is running — stop it first", "正在进行对局复盘，请先停止")
+        prove.get().progress.value.running -> tr("국면 증명이 진행 중입니다 — 먼저 중지하세요", "A proof is running — stop it first", "正在进行局面证明，请先停止")
         else -> null
     }
 
-    private fun onOff(on: Boolean) = if (on) "켜짐" else "꺼짐"
+    private fun onOff(on: Boolean) = if (on) tr("켜짐", "on", "开启") else tr("꺼짐", "off", "关闭")
 
     private fun log(text: String) {
         _output.tryEmit(ToolsOutcome(text))
@@ -409,7 +410,10 @@ class EngineToolsRepositoryImpl @Inject constructor(
     }
 
     private companion object {
-        val HELP = """
+        /** Read each time, so it follows a language change like the rest of the app. */
+        val HELP: String get() = tr(HELP_KO, HELP_EN, HELP_ZH)
+
+        val HELP_KO = """
             사용 가능한 명령
              hash clear / hash usage / hash autoclear [on,off]
              hash dump [서버경로] / hash load [서버경로]
@@ -424,6 +428,40 @@ class EngineToolsRepositoryImpl @Inject constructor(
              thinking [start,stop,toggle] / undo [one,all] / redo [one,all]
              draw / resign / rotate [90,180,270] / flip [-,|,\,/] / move [^,v,<,>]
              callback [on,off] / command [on,off] / echo [문장] / sleep [ms] / clear
+        """.trimIndent()
+
+        val HELP_EN = """
+            Commands
+             hash clear / hash usage / hash autoclear [on,off]
+             hash dump [server path] / hash load [server path]
+             block [points…] / block undo [point] / block reset / block compare [points…]
+             block autoreset [on,off]
+             blockpath [points…] / blockpath undo [points…] / blockpath reset
+             blockpath except [points…] / blockpath autoreset [on,off]
+             forbid [0,1] [point] / forbid undo [0,1] [point]
+             searchdefend / nbest [k] / search from [depth] / balance1 [n] / balance2 [n]
+             pushpos [0-9] / poppos [0-9] / getpos / putpos [string]
+             send board / dbrefresh / print features
+             thinking [start,stop,toggle] / undo [one,all] / redo [one,all]
+             draw / resign / rotate [90,180,270] / flip [-,|,\,/] / move [^,v,<,>]
+             callback [on,off] / command [on,off] / echo [text] / sleep [ms] / clear
+        """.trimIndent()
+
+        val HELP_ZH = """
+            可用命令
+             hash clear / hash usage / hash autoclear [on,off]
+             hash dump [服务器路径] / hash load [服务器路径]
+             block [坐标…] / block undo [坐标] / block reset / block compare [坐标…]
+             block autoreset [on,off]
+             blockpath [坐标…] / blockpath undo [坐标…] / blockpath reset
+             blockpath except [坐标…] / blockpath autoreset [on,off]
+             forbid [0,1] [坐标] / forbid undo [0,1] [坐标]
+             searchdefend / nbest [k] / search from [深度] / balance1 [n] / balance2 [n]
+             pushpos [0-9] / poppos [0-9] / getpos / putpos [代码]
+             send board / dbrefresh / print features
+             thinking [start,stop,toggle] / undo [one,all] / redo [one,all]
+             draw / resign / rotate [90,180,270] / flip [-,|,\,/] / move [^,v,<,>]
+             callback [on,off] / command [on,off] / echo [文字] / sleep [ms] / clear
         """.trimIndent()
     }
 }

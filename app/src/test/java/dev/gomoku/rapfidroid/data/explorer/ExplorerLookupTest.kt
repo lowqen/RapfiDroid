@@ -300,8 +300,8 @@ class ExplorerLookupTest {
 
         // after 천원, the candidates are the two ways to block it
         val blocks = namesOf(line("h8"), "h9", "i9")
-        assertThat(blocks["H9"]).isEqualTo(tr("직접막기", "Direct block"))
-        assertThat(blocks["I9"]).isEqualTo(tr("간접막기", "Indirect block"))
+        assertThat(blocks["H9"]).isEqualTo(tr("직접막기", "Direct block", "直接阻挡"))
+        assertThat(blocks["I9"]).isEqualTo(tr("간접막기", "Indirect block", "间接阻挡"))
 
         // after a 2nd move, the candidates are the 26 openings
         val openings = namesOf(line("h8", "h9"), "h10", "g9")

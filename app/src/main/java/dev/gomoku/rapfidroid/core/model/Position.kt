@@ -8,7 +8,7 @@ enum class StoneColor {
 
     fun other(): StoneColor = if (this == BLACK) WHITE else BLACK
 
-    val label: String get() = if (this == BLACK) tr("흑", "Black") else tr("백", "White")
+    val label: String get() = if (this == BLACK) tr("흑", "Black", "黑") else tr("백", "White", "白")
 }
 
 /** A placed stone as the protocol needs it: cell + whether it is the engine's

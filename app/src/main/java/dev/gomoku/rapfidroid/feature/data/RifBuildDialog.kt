@@ -65,16 +65,16 @@ fun RifBuildDialog(
         confirmButton = {
             when {
                 running != null -> TextButton(onClick = viewModel::onCancel) {
-                    Text(tr("중단", "Stop"))
+                    Text(tr("중단", "Stop", "中止"))
                 }
                 state is PackBuildState.Done -> TextButton(onClick = {
                     viewModel.onAcknowledge()
                     onDismiss()
-                }) { Text(tr("완료", "Done")) }
-                else -> TextButton(onClick = onDismiss) { Text(tr("닫기", "Close")) }
+                }) { Text(tr("완료", "Done", "完成")) }
+                else -> TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) }
             }
         },
-        title = { Text(tr("대국 데이터 추가", "Add game data")) },
+        title = { Text(tr("대국 데이터 추가", "Add game data", "添加对局数据")) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -84,6 +84,7 @@ fun RifBuildDialog(
                     tr(
                         "RenjuNet 기보 파일로 오프닝 빈도 · 랭킹을 이 기기에서 만듭니다.",
                         "Builds opening frequencies and rankings from the RenjuNet game file, on this phone.",
+                        "用 RenjuNet 棋谱文件在本机生成开局频率和排行。",
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -93,18 +94,20 @@ fun RifBuildDialog(
                     is PackBuildState.Running -> Progress(s)
 
                     is PackBuildState.Done -> Outcome(
-                        title = tr("데이터가 준비됐습니다", "The data is ready"),
+                        title = tr("데이터가 준비됐습니다", "The data is ready", "数据已就绪"),
                         body = tr(
                             "대국 ${s.games}판 · 국면 ${s.positions}개 · ${"%.1f".format(s.elapsedMs / 1000.0)}초" +
                                 if (s.skipped > 0) " · 건너뜀 ${s.skipped}" else "",
                             "${s.games} games · ${s.positions} positions · ${"%.1f".format(s.elapsedMs / 1000.0)}s" +
                                 if (s.skipped > 0) " · ${s.skipped} skipped" else "",
+                            "对局 ${s.games} 盘 · 局面 ${s.positions} 个 · ${"%.1f".format(s.elapsedMs / 1000.0)} 秒" +
+                                if (s.skipped > 0) " · 跳过 ${s.skipped}" else "",
                         ),
                         tone = MaterialTheme.colorScheme.primary,
                     )
 
                     is PackBuildState.Failed -> Outcome(
-                        title = tr("만들지 못했습니다", "The build did not finish"),
+                        title = tr("만들지 못했습니다", "The build did not finish", "未能生成"),
                         body = s.message,
                         tone = MaterialTheme.colorScheme.error,
                     )
@@ -112,37 +115,40 @@ fun RifBuildDialog(
                     PackBuildState.Idle -> {
                         Step(
                             number = 1,
-                            title = tr("renju.net 에서 받기", "Download from renju.net"),
+                            title = tr("renju.net 에서 받기", "Download from renju.net", "从 renju.net 下载"),
                             body = tr(
                                 "Games 페이지의 «XML» 단추 (약 43MB)",
                                 "The XML button on the Games page (about 43 MB)",
+                                "Games 页面的 «XML» 按钮 (约 43MB)",
                             ),
                             action = {
                                 OutlinedButton(onClick = {
                                     val intent = Intent(Intent.ACTION_VIEW, Uri.parse(RENJU_NET_GAMES))
                                     runCatching { context.startActivity(intent) }
-                                }) { Text(tr("열기", "Open")) }
+                                }) { Text(tr("열기", "Open", "打开")) }
                             },
                         )
                         Step(
                             number = 2,
-                            title = tr("받은 파일 고르기", "Pick the file"),
+                            title = tr("받은 파일 고르기", "Pick the file", "选择下载的文件"),
                             body = tr(
                                 "다운로드 폴더의 .rif 파일",
                                 "The .rif file in Downloads",
+                                "下载文件夹中的 .rif 文件",
                             ),
                             action = {
                                 Button(onClick = { picker.launch(arrayOf("*/*")) }) {
-                                    Text(tr("파일 선택", "Choose"))
+                                    Text(tr("파일 선택", "Choose", "选择文件"))
                                 }
                             },
                         )
                         Step(
                             number = 3,
-                            title = tr("기기에서 만들기", "The phone builds it"),
+                            title = tr("기기에서 만들기", "The phone builds it", "在本机生成"),
                             body = tr(
                                 "몇 초 걸립니다",
                                 "Takes a few seconds",
+                                "只需几秒",
                             ),
                         )
                     }
@@ -152,6 +158,7 @@ fun RifBuildDialog(
                     tr(
                         "비상업 · 오프라인 전용 자료라 이 기기 밖으로 나가지 않습니다.",
                         "Offline, non-commercial data: it never leaves this phone.",
+                        "这是仅限非商业、离线使用的资料，不会离开本设备。",
                     ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -216,7 +223,7 @@ private fun Progress(state: PackBuildState.Running) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             if (state.done > 0) {
                 Text(
-                    tr("${state.done / 1024}MB 읽음", "${state.done / 1024} MB read"),
+                    tr("${state.done / 1024}MB 읽음", "${state.done / 1024} MB read", "已读取 ${state.done / 1024}MB"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -226,6 +233,7 @@ private fun Progress(state: PackBuildState.Running) {
             tr(
                 "이 창을 닫아도 계속됩니다.",
                 "Closing this window does not stop it.",
+                "关闭此窗口也会继续。",
             ),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -120,7 +120,7 @@ fun BoardScreen(
         },
         copyLink = {
             clipboard.setText(AnnotatedString(viewModel.linkText()))
-            viewModel.onNotice(tr("이 국면의 링크를 복사했습니다", "Copied a link to this position"))
+            viewModel.onNotice(tr("이 국면의 링크를 복사했습니다", "Copied a link to this position", "已复制此局面的链接"))
         },
         positionString = { showPosition = true },
         saveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
@@ -209,7 +209,7 @@ fun BoardScreen(
     }
 
     Column(modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("보드", "Board"))
+        RapfiTopBar(title = tr("보드", "Board", "棋盘"))
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val landscape = maxWidth > maxHeight && maxWidth >= 560.dp
             if (landscape) {
@@ -265,7 +265,7 @@ fun BoardScreen(
                 showPosition = false
                 viewModel.onLoadPositionString(text)
             },
-            onCopied = { viewModel.onNotice(tr("국면 문자열을 복사했습니다", "Position string copied")) },
+            onCopied = { viewModel.onNotice(tr("국면 문자열을 복사했습니다", "Position string copied", "已复制局面代码")) },
         )
     }
     labelTarget?.let { cell ->
@@ -284,28 +284,28 @@ fun BoardScreen(
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
-            title = { Text(tr("새 판을 시작할까요?", "Start a new board?")) },
-            text = { Text(tr("${ui.moveCount}수를 지웁니다", "Clears ${ui.moveCount} moves")) },
+            title = { Text(tr("새 판을 시작할까요?", "Start a new board?", "开始新棋盘吗?")) },
+            text = { Text(tr("${ui.moveCount}수를 지웁니다", "Clears ${ui.moveCount} moves", "将清除 ${ui.moveCount} 手")) },
             confirmButton = {
                 Button(onClick = {
                     confirmReset = false
                     viewModel.onNewBoard()
-                }) { Text(tr("새 판", "New board")) }
+                }) { Text(tr("새 판", "New board", "新棋盘")) }
             },
-            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text(tr("취소", "Cancel")) } },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text(tr("취소", "Cancel", "取消")) } },
         )
     }
     if (confirmResign) {
         AlertDialog(
             onDismissRequest = { confirmResign = false },
-            title = { Text(tr("기권할까요?", "Resign?")) },
+            title = { Text(tr("기권할까요?", "Resign?", "要认输吗?")) },
             confirmButton = {
                 Button(onClick = {
                     confirmResign = false
                     viewModel.onResign()
-                }) { Text(tr("기권", "Resign")) }
+                }) { Text(tr("기권", "Resign", "认输")) }
             },
-            dismissButton = { TextButton(onClick = { confirmResign = false }) { Text(tr("취소", "Cancel")) } },
+            dismissButton = { TextButton(onClick = { confirmResign = false }) { Text(tr("취소", "Cancel", "取消")) } },
         )
     }
     ui.game.prompt?.let { prompt ->

@@ -23,6 +23,7 @@ import dev.gomoku.rapfidroid.domain.engine.SearchAggregator
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.gomoku.rapfidroid.core.i18n.tr
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -320,7 +321,7 @@ class EngineRepositoryImpl @Inject constructor(
             runCatching { dispatch(EngineCommand.About, echo = false) }
             withTimeoutOrNull(LinkHealth.PING_REPLY_SECONDS * 1000L) {
                 while (lastLineAt == before) delay(200)
-            } ?: connection.dropAsDead("응답 없음 (${LinkHealth.IDLE_PING_SECONDS}초)")
+            } ?: connection.dropAsDead(tr("응답 없음 (${LinkHealth.IDLE_PING_SECONDS}초)", "No reply (${LinkHealth.IDLE_PING_SECONDS}s)", "无响应 (${LinkHealth.IDLE_PING_SECONDS} 秒)"))
         }
     }
 

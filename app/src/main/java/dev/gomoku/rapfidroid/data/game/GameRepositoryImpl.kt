@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.data.game
 
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.AppSettings
 import dev.gomoku.rapfidroid.core.model.BoardMode
 import dev.gomoku.rapfidroid.core.model.BoardSessions
@@ -172,8 +173,8 @@ class GameRepositoryImpl @Inject constructor(
         if (!cell.isInside(pos.size)) return TapResult.Ignored
         // The desktop swallows clicks while the engine thinks and after the game
         // is decided (main.c:2663 / 2676).
-        if (s.thinking) return TapResult.Rejected("엔진이 생각 중입니다")
-        if (s.over) return TapResult.Rejected("대국이 끝났습니다 — 무르거나 새 대국을 시작하세요")
+        if (s.thinking) return TapResult.Rejected(tr("엔진이 생각 중입니다", "The engine is thinking", "引擎正在思考"))
+        if (s.over) return TapResult.Rejected(tr("대국이 끝났습니다 — 무르거나 새 대국을 시작하세요", "The game is over — undo or start a new game", "对局已结束，请悔棋或开始新对局"))
 
         val occupied = pos.moves.contains(cell)
 
@@ -208,7 +209,7 @@ class GameRepositoryImpl @Inject constructor(
                 _state.update { it.copy(needsRestart = true, offeringFifth = false) }
                 rewindTo(4)
                 place(cell)
-                log("5수 선택: ${cell.label(pos.size)}")
+                log(tr("5수 선택: ${cell.label(pos.size)}", "5th move chosen: ${cell.label(pos.size)}", "选定第5手: ${cell.label(pos.size)}"))
                 return TapResult.Placed
             }
             return TapResult.Ignored
@@ -217,7 +218,7 @@ class GameRepositoryImpl @Inject constructor(
         // Renju forbidden point: refused, exactly like the desktop's dialog.
         if (!s.offeringFifth && pos.sideToMove == StoneColor.BLACK && cell in _forbidden.value) {
             prompt(GamePrompt.Forbidden(cell))
-            return TapResult.Rejected("금수입니다 (${cell.label(pos.size)})")
+            return TapResult.Rejected(tr("금수입니다 (${cell.label(pos.size)})", "Forbidden point (${cell.label(pos.size)})", "禁手 (${cell.label(pos.size)})"))
         }
 
         place(cell)
@@ -336,11 +337,11 @@ class GameRepositoryImpl @Inject constructor(
 
     override suspend fun engineMove(): TapResult {
         val s = _state.value
-        if (s.thinking) return TapResult.Rejected("이미 생각 중입니다")
-        if (s.over) return TapResult.Rejected("대국이 끝났습니다")
-        if (!engine.state.value.isLive) return TapResult.Rejected("엔진에 연결되지 않았습니다")
+        if (s.thinking) return TapResult.Rejected(tr("이미 생각 중입니다", "Already thinking", "已在思考中"))
+        if (s.over) return TapResult.Rejected(tr("대국이 끝났습니다", "The game is over", "对局已结束"))
+        if (!engine.state.value.isLive) return TapResult.Rejected(tr("엔진에 연결되지 않았습니다", "Not connected to the engine", "未连接引擎"))
         if (!engineOnMove(s, _position.value)) {
-            return TapResult.Rejected("지금은 컴퓨터 차례가 아닙니다")
+            return TapResult.Rejected(tr("지금은 컴퓨터 차례가 아닙니다", "It is not the computer's turn", "现在不是计算机的回合"))
         }
         engineTurn(pushWholeBoard = true)
         return TapResult.Placed
@@ -436,7 +437,7 @@ class GameRepositoryImpl @Inject constructor(
             _state.update {
                 it.copy(
                     result = GameResult(GameEnd.RESIGNED, pos.sideToMove.other()),
-                    log = it.log + "엔진이 둘 수 없는 자리를 보냈습니다",
+                    log = it.log + tr("엔진이 둘 수 없는 자리를 보냈습니다", "The engine sent a move that cannot be played", "引擎发来了无法落子的位置"),
                 )
             }
             return
@@ -515,10 +516,10 @@ class GameRepositoryImpl @Inject constructor(
             response.swap2 && response.yes -> {
                 addIncrement(ClockSide.COMPUTER)
                 _state.update { it.copy(thinking = false, clock = it.clock.start(ClockSide.HUMAN)) }
-                log("컴퓨터가 흑을 선택했습니다")
+                log(tr("컴퓨터가 흑을 선택했습니다", "The computer chose Black", "计算机选择执黑"))
             }
             response.swap2 -> {
-                log("컴퓨터가 백을 선택했습니다")
+                log(tr("컴퓨터가 백을 선택했습니다", "The computer chose White", "计算机选择执白"))
                 applySwapSides()
                 engineTurn(pushWholeBoard = true)
             }
@@ -596,7 +597,7 @@ class GameRepositoryImpl @Inject constructor(
             }
             else -> Unit
         }
-        log("교환")
+        log(tr("교환", "Swap", "交换"))
     }
 
     override suspend fun answerSwap2(choice: Swap2Choice) {
@@ -606,7 +607,7 @@ class GameRepositoryImpl @Inject constructor(
             Swap2Choice.SWAP -> {
                 addIncrement(ClockSide.HUMAN)
                 applySwapSides()
-                log("교환")
+                log(tr("교환", "Swap", "交换"))
                 _state.update { it.copy(swapDone = true) }
                 engineTurn(pushWholeBoard = true)
             }
@@ -632,7 +633,7 @@ class GameRepositoryImpl @Inject constructor(
                 result = GameResult(GameEnd.DRAW_AGREED, null),
                 thinking = false,
                 clock = it.clock.stop(),
-                log = it.log + "무승부를 제안했습니다 (yxdraw)",
+                log = it.log + tr("무승부를 제안했습니다 (yxdraw)", "Offered a draw (yxdraw)", "已提和 (yxdraw)"),
             )
         }
     }
@@ -645,7 +646,7 @@ class GameRepositoryImpl @Inject constructor(
                 result = GameResult(GameEnd.RESIGNED, loser.other()),
                 thinking = false,
                 clock = it.clock.stop(),
-                log = it.log + "기권했습니다 (yxresign)",
+                log = it.log + tr("기권했습니다 (yxresign)", "Resigned (yxresign)", "已认输 (yxresign)"),
             )
         }
     }

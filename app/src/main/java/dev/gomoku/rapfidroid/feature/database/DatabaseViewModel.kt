@@ -184,7 +184,7 @@ class DatabaseViewModel @Inject constructor(
     private fun runWithPath(block: suspend (String) -> DbOpResult) {
         val path = pathDraft.value.trim()
         if (path.isEmpty()) {
-            notice.value = tr("엔진 쪽 파일 경로를 입력하세요", "Type a path on the engine's machine")
+            notice.value = tr("엔진 쪽 파일 경로를 입력하세요", "Type a path on the engine's machine", "请输入引擎端的文件路径")
             return
         }
         viewModelScope.launch {

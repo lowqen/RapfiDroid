@@ -60,38 +60,38 @@ internal fun GamePromptDialog(
     when (prompt) {
         is GamePrompt.Swap -> AlertDialog(
             onDismissRequest = { onSwap(false) },
-            title = { Text(tr("교환하시겠습니까?", "Swap?")) },
+            title = { Text(tr("교환하시겠습니까?", "Swap?", "交换?")) },
             text = {
                 Text(
                     buildString {
-                        append(tr("돌을 바꿔 잡으면 이후 컴퓨터가 반대 색을 둡니다.", "Swapping colours makes the computer play the other side from here on."))
-                        prompt.fifthCount?.let { append(tr("\n5수 후보 수 N = $it", "\nCandidate 5th moves N = $it")) }
+                        append(tr("돌을 바꿔 잡으면 이후 컴퓨터가 반대 색을 둡니다.", "Swapping colours makes the computer play the other side from here on.", "交换执子后，计算机将从此执另一方。"))
+                        prompt.fifthCount?.let { append(tr("\n5수 후보 수 N = $it", "\nCandidate 5th moves N = $it", "\n第5手候选数 N = $it")) }
                     },
                 )
             },
-            confirmButton = { Button(onClick = { onSwap(true) }) { Text(tr("교환", "Swap")) } },
-            dismissButton = { TextButton(onClick = { onSwap(false) }) { Text(tr("그대로", "Keep")) } },
+            confirmButton = { Button(onClick = { onSwap(true) }) { Text(tr("교환", "Swap", "交换")) } },
+            dismissButton = { TextButton(onClick = { onSwap(false) }) { Text(tr("그대로", "Keep", "不交换")) } },
         )
 
         GamePrompt.Swap2 -> AlertDialog(
             onDismissRequest = { onSwap2(Swap2Choice.STAY_WHITE) },
-            title = { Text(tr("하나를 선택하세요", "Choose one")) },
-            text = { Text(tr("스왑2: 백을 유지하거나, 돌을 바꾸거나, 2수를 더 놓습니다.", "Swap2: keep White, swap colours, or add two more moves.")) },
+            title = { Text(tr("하나를 선택하세요", "Choose one", "请选择一个选项")) },
+            text = { Text(tr("스왑2: 백을 유지하거나, 돌을 바꾸거나, 2수를 더 놓습니다.", "Swap2: keep White, swap colours, or add two more moves.", "两次交换：继续执白、交换执子，或再下两手。")) },
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(onClick = { onSwap2(Swap2Choice.STAY_WHITE) }) { Text(tr("백 유지", "Keep White")) }
-                    TextButton(onClick = { onSwap2(Swap2Choice.SWAP) }) { Text(tr("교환", "Swap")) }
-                    Button(onClick = { onSwap2(Swap2Choice.ADD_TWO) }) { Text(tr("2수 추가", "Add two")) }
+                    TextButton(onClick = { onSwap2(Swap2Choice.STAY_WHITE) }) { Text(tr("백 유지", "Keep White", "继续执白")) }
+                    TextButton(onClick = { onSwap2(Swap2Choice.SWAP) }) { Text(tr("교환", "Swap", "交换")) }
+                    Button(onClick = { onSwap2(Swap2Choice.ADD_TWO) }) { Text(tr("2수 추가", "Add two", "增加两子")) }
                 }
             },
         )
 
         GamePrompt.FifthCount -> AlertDialog(
             onDismissRequest = { onFifthCount(1) },
-            title = { Text(tr("5수 후보 개수 (1~8)", "Number of 5th-move candidates (1-8)")) },
+            title = { Text(tr("5수 후보 개수 (1~8)", "Number of 5th-move candidates (1-8)", "第5手打点数 (1~8)")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(tr("상대에게 제시할 5수의 개수 N을 고르세요.", "Choose N, how many 5th moves to offer your opponent."))
+                    Text(tr("상대에게 제시할 5수의 개수 N을 고르세요.", "Choose N, how many 5th moves to offer your opponent.", "请选择要给对手的第5手打点数 N。"))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..8).forEach { n ->
                             AssistChip(onClick = { onFifthCount(n) }, label = { Text("$n") })
@@ -102,19 +102,19 @@ internal fun GamePromptDialog(
             confirmButton = {},
         )
 
-        GamePrompt.SwapInfo -> InfoDialog(tr("교환", "Swap"), tr("상대가 돌을 바꿔 잡았습니다.", "Your opponent swapped colours."), onDismiss)
+        GamePrompt.SwapInfo -> InfoDialog(tr("교환", "Swap", "交换"), tr("상대가 돌을 바꿔 잡았습니다.", "Your opponent swapped colours.", "对手选择了交换执子。"), onDismiss)
         GamePrompt.IllegalOpening -> InfoDialog(
-            tr("표준 오프닝이 아닙니다", "Illegal Opening"),
-            tr("첫 3수는 정중앙 근처(2수는 ±1, 3수는 ±2)여야 합니다. 판을 초기화했습니다.", "The first three moves must sit near the centre (move 2 within ±1, move 3 within ±2). The board has been cleared."),
+            tr("표준 오프닝이 아닙니다", "Illegal Opening", "开局不合法"),
+            tr("첫 3수는 정중앙 근처(2수는 ±1, 3수는 ±2)여야 합니다. 판을 초기화했습니다.", "The first three moves must sit near the centre (move 2 within ±1, move 3 within ±2). The board has been cleared.", "前三手必须靠近天元(第2手在 ±1 内，第3手在 ±2 内)。棋盘已清空。"),
             onDismiss,
         )
         is GamePrompt.Forbidden -> InfoDialog(
-            tr("금수", "Forbidden"),
-            tr("${prompt.cell.label(size)}는 흑의 금수입니다.", "${prompt.cell.label(size)} is forbidden for Black."),
+            tr("금수", "Forbidden", "禁手"),
+            tr("${prompt.cell.label(size)}는 흑의 금수입니다.", "${prompt.cell.label(size)} is forbidden for Black.", "${prompt.cell.label(size)} 是黑棋的禁手。"),
             onDismiss,
         )
-        GamePrompt.Timeout -> InfoDialog(tr("시간 초과", "Time out"), tr("제한 시간을 모두 사용했습니다.", "The time limit has run out."), onDismiss)
-        is GamePrompt.Info -> InfoDialog(tr("대국", "Game"), prompt.text, onDismiss)
+        GamePrompt.Timeout -> InfoDialog(tr("시간 초과", "Time out", "超时"), tr("제한 시간을 모두 사용했습니다.", "The time limit has run out.", "限定时间已用完。"), onDismiss)
+        is GamePrompt.Info -> InfoDialog(tr("대국", "Game", "对局"), prompt.text, onDismiss)
     }
 }
 
@@ -124,7 +124,7 @@ private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text) },
-        confirmButton = { Button(onClick = onDismiss) { Text(tr("확인", "OK")) } },
+        confirmButton = { Button(onClick = onDismiss) { Text(tr("확인", "OK", "确定")) } },
     )
 }
 
@@ -139,29 +139,29 @@ internal fun BalanceDialog(onDismiss: () -> Unit, onConfirm: (Boolean, Int) -> U
     val value = bias.trim().toIntOrNull() ?: 0
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("균형점 찾기", "Balance")) },
+        title = { Text(tr("균형점 찾기", "Balance", "平衡点")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    tr("엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. ", "The engine looks for the move that brings the position closest to even (50 %).") +
-                        tr("찾은 수는 바로 판에 놓입니다.", "What it finds is played straight onto the board."),
+                    tr("엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. ", "The engine looks for the move that brings the position closest to even (50 %).", "引擎会寻找让局面最接近均势(胜率 50 %)的着法。") +
+                        tr("찾은 수는 바로 판에 놓입니다.", "What it finds is played straight onto the board.", "找到的着法会直接落在棋盘上。"),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 OutlinedTextField(
                     value = bias,
                     onValueChange = { bias = it },
                     singleLine = true,
-                    label = { Text(tr("치우침 (0 = 완전 균형)", "Bias (0 = dead even)")) },
+                    label = { Text(tr("치우침 (0 = 완전 균형)", "Bias (0 = dead even)", "偏差 (0 = 完全均势)")) },
                 )
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(false, value) }) { Text(tr("한 수", "One move")) }
+            Button(onClick = { onConfirm(false, value) }) { Text(tr("한 수", "One move", "一手")) }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) }
-                Button(onClick = { onConfirm(true, value) }) { Text(tr("두 수", "Two moves")) }
+                TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) }
+                Button(onClick = { onConfirm(true, value) }) { Text(tr("두 수", "Two moves", "两手")) }
             }
         },
     )
@@ -183,16 +183,16 @@ internal fun PositionDialog(
     var draft by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("국면 문자열", "Position string")) },
+        title = { Text(tr("국면 문자열", "Position string", "局面代码")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    ui.positionString.ifEmpty { tr("(빈 판)", "(empty board)") },
+                    ui.positionString.ifEmpty { tr("(빈 판)", "(empty board)", "(空棋盘)") },
                     style = MaterialTheme.typography.bodyMedium
                         .copy(fontFamily = FontFamily.Monospace),
                 )
                 Text(
-                    tr("${ui.moveCount}수", "${ui.moveCount} moves") + if (ui.futureCount > 0) tr(" · 되돌린 ${ui.futureCount}수는 제외", " · ${ui.futureCount} undone moves excluded") else "",
+                    tr("${ui.moveCount}수", "${ui.moveCount} moves", "${ui.moveCount} 手") + if (ui.futureCount > 0) tr(" · 되돌린 ${ui.futureCount}수는 제외", " · ${ui.futureCount} undone moves excluded", " · 不含已悔的 ${ui.futureCount} 手") else "",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -200,7 +200,7 @@ internal fun PositionDialog(
                     value = draft,
                     onValueChange = { draft = it },
                     singleLine = true,
-                    label = { Text(tr("불러올 문자열 (예: h8i9g7)", "String to load (e.g. h8i9g7)")) },
+                    label = { Text(tr("불러올 문자열 (예: h8i9g7)", "String to load (e.g. h8i9g7)", "要载入的代码 (例: h8i9g7)")) },
                 )
             }
         },
@@ -212,14 +212,14 @@ internal fun PositionDialog(
                         onCopied()
                     },
                     enabled = ui.positionString.isNotEmpty(),
-                ) { Text(tr("복사", "Copy")) }
+                ) { Text(tr("복사", "Copy", "复制")) }
                 TextButton(onClick = { draft = clipboard.getText()?.text.orEmpty() }) {
-                    Text(tr("붙여넣기", "Paste"))
+                    Text(tr("붙여넣기", "Paste", "粘贴"))
                 }
-                Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text(tr("불러오기", "Load")) }
+                Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text(tr("불러오기", "Load", "载入")) }
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) } },
     )
 }
 
@@ -239,7 +239,7 @@ internal fun BoardTextDialog(
     var text by remember(cell) { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("보드 텍스트  ${cell.label(size)}", "Board text  ${cell.label(size)}")) },
+        title = { Text(tr("보드 텍스트  ${cell.label(size)}", "Board text  ${cell.label(size)}", "棋盘文字  ${cell.label(size)}")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedTextField(
@@ -247,11 +247,11 @@ internal fun BoardTextDialog(
                     onValueChange = { if (it.length <= 6) text = it },
                     singleLine = true,
                     enabled = editable,
-                    label = { Text(tr("최대 6자", "6 characters max")) },
+                    label = { Text(tr("최대 6자", "6 characters max", "最多 6 个字")) },
                 )
                 Text(
-                    if (editable) tr("비우고 확인하면 라벨이 삭제됩니다.", "Confirming an empty value deletes the label.")
-                    else tr("읽기 전용 상태에서는 편집할 수 없습니다.", "Nothing can be edited while the database is read-only."),
+                    if (editable) tr("비우고 확인하면 라벨이 삭제됩니다.", "Confirming an empty value deletes the label.", "留空并确认会删除该标签。")
+                    else tr("읽기 전용 상태에서는 편집할 수 없습니다.", "Nothing can be edited while the database is read-only.", "数据库只读时无法编辑。"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -263,9 +263,9 @@ internal fun BoardTextDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("확인", "OK")) }
+            Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("확인", "OK", "确定")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
     )
 }
 
@@ -291,7 +291,7 @@ internal fun CommentDialog(
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("국면 주석", "Position comment")) },
+        title = { Text(tr("국면 주석", "Position comment", "局面注释")) },
         text = {
             // settings.txt line 47, the desktop's second "Database Comment Font":
             // the one the editor uses.
@@ -306,9 +306,9 @@ internal fun CommentDialog(
             )
         },
         confirmButton = {
-            Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("저장", "Save")) }
+            Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("저장", "Save", "保存")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
     )
 }
 
@@ -349,7 +349,7 @@ internal fun ResearchBadge(
                     onClick = onStop,
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                 ) {
-                    Text(tr("중지", "Stop"), color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text(tr("중지", "Stop", "停止"), color = Color.White, style = MaterialTheme.typography.labelMedium)
                 }
             }
             if (banner.detail.isNotEmpty()) {

@@ -109,7 +109,7 @@ fun RapfiTopBar(
                 IconButton(onClick = chrome.onToggleTheme) {
                     Icon(
                         if (chrome.dark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                        contentDescription = if (chrome.dark) tr("밝은 테마", "Light theme") else tr("어두운 테마", "Dark theme"),
+                        contentDescription = if (chrome.dark) tr("밝은 테마", "Light theme", "浅色主题") else tr("어두운 테마", "Dark theme", "深色主题"),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
@@ -128,8 +128,8 @@ fun RapfiTopBar(
 fun EngineChip(state: ConnectionState, onStart: () -> Unit, modifier: Modifier = Modifier) {
     val (word, color) = engineWord(state)
     val action = when (state) {
-        ConnectionState.Disconnected -> tr("켜기", "Start")
-        is ConnectionState.Error -> tr("다시 시도", "Retry")
+        ConnectionState.Disconnected -> tr("켜기", "Start", "启动")
+        is ConnectionState.Error -> tr("다시 시도", "Retry", "重试")
         else -> null
     }
     Surface(
@@ -167,12 +167,12 @@ fun EngineChip(state: ConnectionState, onStart: () -> Unit, modifier: Modifier =
 /** The word and the dot colour for an engine state — the chip and the tab badge agree. */
 @Composable
 fun engineWord(state: ConnectionState): Pair<String, Color> = when (state) {
-    ConnectionState.Ready -> tr("엔진 준비", "Ready") to RapfiTheme.colors.positive
-    ConnectionState.Thinking -> tr("탐색 중", "Searching") to RapfiTheme.colors.caution
+    ConnectionState.Ready -> tr("엔진 준비", "Ready", "引擎就绪") to RapfiTheme.colors.positive
+    ConnectionState.Thinking -> tr("탐색 중", "Searching", "搜索中") to RapfiTheme.colors.caution
     ConnectionState.Connecting, ConnectionState.Handshaking ->
-        tr("준비 중", "Starting") to RapfiTheme.colors.caution
-    is ConnectionState.Error -> tr("엔진 오류", "Engine error") to MaterialTheme.colorScheme.error
-    ConnectionState.Disconnected -> tr("엔진 꺼짐", "Engine off") to MaterialTheme.colorScheme.outline
+        tr("준비 중", "Starting", "启动中") to RapfiTheme.colors.caution
+    is ConnectionState.Error -> tr("엔진 오류", "Engine error", "引擎错误") to MaterialTheme.colorScheme.error
+    ConnectionState.Disconnected -> tr("엔진 꺼짐", "Engine off", "引擎关闭") to MaterialTheme.colorScheme.outline
 }
 
 /**

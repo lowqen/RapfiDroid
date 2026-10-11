@@ -214,7 +214,7 @@ class ProveTree(
             val a = p.alt[p.altNext++]
             val c = addChild(parent, a.move, a.winRate ?: UNKNOWN_WR, verify = false, pvMate = a.mate)
             if (c >= 0) {
-                log(tr("증명: 공격 후보 ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}", "Prove: attack candidate ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}"))
+                log(tr("증명: 공격 후보 ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}", "Prove: attack candidate ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}", "证明：进攻候选 ${p.altNext + 1}/${p.alt.size + 1} ${path(c)}"))
             }
         }
     }
@@ -247,7 +247,7 @@ class ProveTree(
                     // An attacker candidate we cannot even keep latent. Harmless
                     // on its own — one winning move is all an OR node needs — so
                     // it does not make the node incomplete.
-                    log(tr("증명: 공격 후보 ${MoveGrader.coord(pv.move, size)} 보관 한도 초과", "Prove: attack candidate ${MoveGrader.coord(pv.move, size)} past the latent cap"))
+                    log(tr("증명: 공격 후보 ${MoveGrader.coord(pv.move, size)} 보관 한도 초과", "Prove: attack candidate ${MoveGrader.coord(pv.move, size)} past the latent cap", "证明：进攻候选 ${MoveGrader.coord(pv.move, size)} 超出保留上限"))
                 }
             }
         } else {
@@ -279,7 +279,7 @@ class ProveTree(
                 }
             }
             if (dropped > 0) {
-                log(tr("증명: 방어 ${dropped}개를 담지 못해 이 국면은 «모든 방어가 진다» 로 결론내지 않는다", "Prove: $dropped defences did not fit, so this node can no longer be proven"))
+                log(tr("증명: 방어 ${dropped}개를 담지 못해 이 국면은 «모든 방어가 진다» 로 결론내지 않는다", "Prove: $dropped defences did not fit, so this node can no longer be proven", "证明：有 $dropped 个防守未能收录，此局面不能再判定为«所有防守皆败»"))
             }
             if (kept == 0 && n.pending.isNotEmpty()) {
                 // Nothing viable: verify the deferred moves right away, otherwise
@@ -288,7 +288,7 @@ class ProveTree(
                 n.pending.clear()
                 deferred.forEach { addChild(i, it, 0.98, verify = true, pvMate = 0) }
             } else if (n.pending.isNotEmpty()) {
-                log(tr("증명: 약한 방어 ${n.pending.size}개 보류 (나중에 검증)", "Prove: ${n.pending.size} weak defences deferred (verified later)"))
+                log(tr("증명: 약한 방어 ${n.pending.size}개 보류 (나중에 검증)", "Prove: ${n.pending.size} weak defences deferred (verified later)", "证明：暂缓 ${n.pending.size} 个弱防守 (稍后验证)"))
             }
         }
     }
@@ -378,7 +378,7 @@ class ProveTree(
             ProveKind.DB -> "db"
             else -> "wr"
         }
-        log(tr("증명: $verdict $by($note) ${path(i)}", "Prove: $verdict $by($note) ${path(i)}"))
+        log(tr("증명: $verdict $by($note) ${path(i)}", "Prove: $verdict $by($note) ${path(i)}", "证明：$verdict $by($note) ${path(i)}"))
         // Records read out of the database need no re-write.
         if (kind != ProveKind.DB) queueWrite(i)
         if (n.parent >= 0) propagate(n.parent)
@@ -433,7 +433,7 @@ class ProveTree(
                 val deferred = p.pending.toList()
                 p.pending.clear()
                 deferred.forEach { addChild(parent, it, 0.98, verify = true, pvMate = 0) }
-                log(tr("증명: 보류한 방어 ${deferred.size}개 검증", "Prove: verifying ${deferred.size} deferred defences"))
+                log(tr("증명: 보류한 방어 ${deferred.size}개 검증", "Prove: verifying ${deferred.size} deferred defences", "证明：验证暂缓的 ${deferred.size} 个防守"))
                 return
             }
             if (p.incomplete) {
@@ -441,7 +441,7 @@ class ProveTree(
                 // never told all of them, so "all defenses lose" is not a
                 // sentence it is allowed to say. It stays open for a wider
                 // search; a single holding defence can still refute it.
-                log(tr("증명: 방어 목록이 불완전해 결론 보류 ${path(parent)}", "Prove: defence list incomplete, no conclusion at ${path(parent)}"))
+                log(tr("증명: 방어 목록이 불완전해 결론 보류 ${path(parent)}", "Prove: defence list incomplete, no conclusion at ${path(parent)}", "证明：防守列表不完整，${path(parent)} 暂不下结论"))
                 return
             }
             resolve(parent, ProveResult.WIN, weakest, bestValue, p.recDepth + 1, "all defenses lose")
@@ -516,7 +516,7 @@ class ProveTree(
         expand(i, pvs)
         if (n.budget >= options.maxBudget) {
             n.state = ProveState.EXHAUSTED
-            log(tr("증명: 예산 소진 EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}", "Prove: EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}"))
+            log(tr("증명: 예산 소진 EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}", "Prove: EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}", "证明：预算用尽 EXHAUSTED wr_att=${fixed2(n.wratt)} ${path(i)}"))
             orWiden(n.parent)
         } else if (options.byDepth) {
             // +2 plies costs roughly what a time doubling does.

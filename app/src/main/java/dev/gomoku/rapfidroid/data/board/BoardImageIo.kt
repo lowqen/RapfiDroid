@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -22,7 +23,7 @@ class BoardImageIo @Inject constructor(
 ) {
     suspend fun write(uri: Uri, bytes: ByteArray) = withContext(io) {
         val stream = context.contentResolver.openOutputStream(uri, "wt")
-            ?: error("쓸 수 없습니다: $uri")
+            ?: error(tr("쓸 수 없습니다: $uri", "Cannot write: $uri", "无法写入: $uri"))
         stream.use { it.write(bytes) }
     }
 }

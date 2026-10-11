@@ -44,7 +44,7 @@ New releases then arrive as a notification and update with one tap.
 * About 90 MB of storage. The neural network weights ship inside the APK, so
   nothing is downloaded on first run.
 
-The interface is available in English and Korean.
+The interface is available in English, Korean and Simplified Chinese (简体中文).
 
 ## Features
 

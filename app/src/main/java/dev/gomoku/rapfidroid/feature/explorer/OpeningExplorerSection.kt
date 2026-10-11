@@ -102,16 +102,16 @@ fun OpeningExplorerSection(
     confirmLoad?.let { id ->
         AlertDialog(
             onDismissRequest = { confirmLoad = null },
-            title = { Text(tr("기보를 보드에 올릴까요?", "Put this game on the board?")) },
-            text = { Text(tr("지금 보드의 대국은 이 기보로 바뀝니다.", "The game on the board is replaced by this one.")) },
+            title = { Text(tr("기보를 보드에 올릴까요?", "Put this game on the board?", "要把这局棋谱放到棋盘上吗?")) },
+            text = { Text(tr("지금 보드의 대국은 이 기보로 바뀝니다.", "The game on the board is replaced by this one.", "棋盘上的对局会被此棋谱替换。")) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.onLoadGame(id)
                     confirmLoad = null
-                }) { Text(tr("올리기", "Put it on")) }
+                }) { Text(tr("올리기", "Put it on", "放上")) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmLoad = null }) { Text(tr("취소", "Cancel")) }
+                TextButton(onClick = { confirmLoad = null }) { Text(tr("취소", "Cancel", "取消")) }
             },
         )
     }
@@ -131,7 +131,7 @@ fun OpeningExplorerSection(
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            tr("이 국면 ", "This position "),
+                            tr("이 국면 ", "This position ", "此局面"),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -140,7 +140,7 @@ fun OpeningExplorerSection(
                 }
             }
             if (pos.next.isNotEmpty()) {
-                item { SectionTitle(tr("다음 수", "Next moves")) }
+                item { SectionTitle(tr("다음 수", "Next moves", "后续着法")) }
                 items(pos.next, key = { it.move.x * 100 + it.move.y }) { row ->
                     NextRow(row, ui.barScale, pos.games) { viewModel.onPlayNext(row.move) }
                 }
@@ -157,15 +157,15 @@ fun OpeningExplorerSection(
                 OutlinedTextField(
                     value = ui.filter,
                     onValueChange = viewModel::onFilterChange,
-                    label = { Text(tr("선수 이름", "Player name")) },
+                    label = { Text(tr("선수 이름", "Player name", "棋手姓名")) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
             item {
                 SectionTitle(
-                    tr("대국 ${ui.games.matched}판", "${ui.games.matched} games") +
-                        if (ui.games.matched > ui.games.shown) tr(" (${ui.games.shown}판 표시)", " (${ui.games.shown} shown)") else "",
+                    tr("대국 ${ui.games.matched}판", "${ui.games.matched} games", "对局 ${ui.games.matched} 盘") +
+                        if (ui.games.matched > ui.games.shown) tr(" (${ui.games.shown}판 표시)", " (${ui.games.shown} shown)", " (显示 ${ui.games.shown} 盘)") else "",
                 )
             }
             items(ui.games.rows, key = { it.id }) { row ->
@@ -185,19 +185,19 @@ fun OpeningExplorerSection(
             item {
                 dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(
                     id = "explorer-data",
-                    title = tr("RenjuNet 자료", "RenjuNet data"),
-                    summary = tr("${packs.totalGames}판", "${packs.totalGames} games"),
+                    title = tr("RenjuNet 자료", "RenjuNet data", "RenjuNet 数据"),
+                    summary = tr("${packs.totalGames}판", "${packs.totalGames} games", "${packs.totalGames} 盘"),
                 ) {
                     Text(
-                        tr("대국 ${packs.totalGames}판 · 국면 ${packs.positions}개 · ${packs.dateText}", "${packs.totalGames} games · ${packs.positions} positions · ${packs.dateText}"),
+                        tr("대국 ${packs.totalGames}판 · 국면 ${packs.positions}개 · ${packs.dateText}", "${packs.totalGames} games · ${packs.positions} positions · ${packs.dateText}", "对局 ${packs.totalGames} 盘 · 局面 ${packs.positions} 个 · ${packs.dateText}"),
                         style = MaterialTheme.typography.bodySmall,
                     )
                     Text(
-                        tr("시작 ${packs.maxPlies}수 이내, ${packs.minGames}판 이상 나온 국면", "Positions within ${packs.maxPlies} moves, seen in ${packs.minGames}+ games"),
+                        tr("시작 ${packs.maxPlies}수 이내, ${packs.minGames}판 이상 나온 국면", "Positions within ${packs.maxPlies} moves, seen in ${packs.minGames}+ games", "开局 ${packs.maxPlies} 手以内、出现 ${packs.minGames} 盘以上的局面"),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    OutlinedButton(onClick = viewModel::onClearPacks) { Text(tr("자료 지우기", "Clear the data")) }
+                    OutlinedButton(onClick = viewModel::onClearPacks) { Text(tr("자료 지우기", "Clear the data", "清除数据")) }
                 }
             }
         }
@@ -257,10 +257,10 @@ private fun ExplorerBoard(
             onTap = viewModel::onTapBoard,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-            NavButton(Icons.Filled.FirstPage, tr("처음으로", "To start"), ui.stones.isNotEmpty(), viewModel::onStart)
-            NavButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one"), ui.stones.isNotEmpty(), viewModel::onBack)
-            NavButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one"), ui.ahead > 0, viewModel::onForward)
-            NavButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end"), ui.ahead > 0, viewModel::onEnd)
+            NavButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), ui.stones.isNotEmpty(), viewModel::onStart)
+            NavButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), ui.stones.isNotEmpty(), viewModel::onBack)
+            NavButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), ui.ahead > 0, viewModel::onForward)
+            NavButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), ui.ahead > 0, viewModel::onEnd)
         }
     }
 }
@@ -299,11 +299,11 @@ private fun HeaderCard(ui: OpeningExplorerUiState) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             when (ui.status) {
                 ExplorerStatus.NO_PACKS ->
-                    Text(tr("실전 통계 없음 · 이름과 유불리는 그대로 나옵니다", "No real-game statistics · names and grades still work"), style = MaterialTheme.typography.bodyMedium)
+                    Text(tr("실전 통계 없음 · 이름과 유불리는 그대로 나옵니다", "No real-game statistics · names and grades still work", "无实战统计 · 名称和优劣评级照常显示"), style = MaterialTheme.typography.bodyMedium)
                 ExplorerStatus.WRONG_SIZE ->
-                    Text(tr("15×15 판에서만 동작합니다", "Works on a 15×15 board only"), style = MaterialTheme.typography.titleMedium)
+                    Text(tr("15×15 판에서만 동작합니다", "Works on a 15×15 board only", "仅适用于 15×15 棋盘"), style = MaterialTheme.typography.titleMedium)
                 ExplorerStatus.NO_STATS ->
-                    Text(tr("이 국면의 통계가 없습니다", "No statistics for this position"), style = MaterialTheme.typography.titleMedium)
+                    Text(tr("이 국면의 통계가 없습니다", "No statistics for this position", "此局面没有统计"), style = MaterialTheme.typography.titleMedium)
                 ExplorerStatus.OK ->
                     Text(
                         ui.position?.line.orEmpty(),
@@ -350,10 +350,10 @@ private fun NameChain(chain: List<String>) {
 private fun KpiRow(pos: ExplorerPosition) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         val colors = RapfiTheme.colors
-        Kpi(tr("대국", "Games"), pos.games, null, null, Modifier.weight(1f))
-        Kpi(tr("결과 흑승", "Result B"), pos.blackWins, pos.percent(pos.blackWins), colors.resultBlack, Modifier.weight(1f))
-        Kpi(tr("결과 백승", "Result W"), pos.whiteWins, pos.percent(pos.whiteWins), colors.resultWhite, Modifier.weight(1f))
-        Kpi(tr("결과 무승부", "Result D"), pos.draws, pos.percent(pos.draws), null, Modifier.weight(1f))
+        Kpi(tr("대국", "Games", "对局"), pos.games, null, null, Modifier.weight(1f))
+        Kpi(tr("결과 흑승", "Result B", "结果 黑胜"), pos.blackWins, pos.percent(pos.blackWins), colors.resultBlack, Modifier.weight(1f))
+        Kpi(tr("결과 백승", "Result W", "结果 白胜"), pos.whiteWins, pos.percent(pos.whiteWins), colors.resultWhite, Modifier.weight(1f))
+        Kpi(tr("결과 무승부", "Result D", "结果 和棋"), pos.draws, pos.percent(pos.draws), null, Modifier.weight(1f))
     }
 }
 
@@ -361,14 +361,14 @@ private fun KpiRow(pos: ExplorerPosition) {
 @Composable
 private fun FrequencyLine(pos: ExplorerPosition, total: Int) {
     val parts = listOfNotNull(
-        pos.shareOfParent?.let { tr("직전 국면의 %.1f%%", "%.1f%% of the move before").format(it) },
+        pos.shareOfParent?.let { tr("직전 국면의 %.1f%%", "%.1f%% of the move before", "占上一手的 %.1f%%").format(it) },
         pos.shareOfAll(total)?.let {
-            tr("전체 대비 %.2f%% (%,d판)", "%.2f%% of all games (%,d)").format(it, total)
+            tr("전체 대비 %.2f%% (%,d판)", "%.2f%% of all games (%,d)", "占全部的 %.2f%% (%,d 盘)").format(it, total)
         },
     )
     if (parts.isEmpty()) return
     Text(
-        tr("빈도: ", "Frequency: ") + parts.joinToString(" · "),
+        tr("빈도: ", "Frequency: ", "频率:") + parts.joinToString(" · "),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -390,7 +390,8 @@ private fun TranspositionCard(rows: List<Transposition>) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
             Text(
                 tr("환원 · 같은 돌에 이르는 다른 수순 ${rows.size}가지",
-                    "${rows.size} other move orders reaching the same stones"),
+                    "${rows.size} other move orders reaching the same stones",
+                    "同型 · 到达相同棋子的其他手顺 ${rows.size} 种"),
                 style = MaterialTheme.typography.labelLarge,
             )
             for (r in rows) {
@@ -399,7 +400,7 @@ private fun TranspositionCard(rows: List<Transposition>) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        r.chain.joinToString(" › ").ifEmpty { tr("이름 없음", "unnamed") },
+                        r.chain.joinToString(" › ").ifEmpty { tr("이름 없음", "unnamed", "无名称") },
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f),
                     )
@@ -478,7 +479,7 @@ private fun NextRow(row: ExplorerNext, scale: Int, parentGames: Int, onPlay: () 
                 }
                 Spacer(Modifier.weight(1f))
                 if (row.games > 0) {
-                    Text(tr("${row.games}판", "${row.games} games"), style = MaterialTheme.typography.bodySmall.tabular())
+                    Text(tr("${row.games}판", "${row.games} games", "${row.games} 盘"), style = MaterialTheme.typography.bodySmall.tabular())
                     if (parentGames > 0) {
                         Text(
                             "  %.1f%%".format(100.0 * row.games / parentGames),
@@ -563,7 +564,7 @@ private fun GameRow(
                 style = MaterialTheme.typography.titleSmall,
                 fontFamily = FontFamily.Monospace,
             )
-            TextButton(onClick = onLoad) { Text(tr("올리기", "Put it on")) }
+            TextButton(onClick = onLoad) { Text(tr("올리기", "Put it on", "放上")) }
         }
     }
 }
@@ -577,16 +578,16 @@ private fun GameDetail(g: RjGame, rule: String?, opening: String?) {
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(tr("대국 #${g.id}", "Game #${g.id}"), style = MaterialTheme.typography.titleSmall)
+            Text(tr("대국 #${g.id}", "Game #${g.id}", "对局 #${g.id}"), style = MaterialTheme.typography.titleSmall)
             Text("● ${mark(g.result, 0)} ${g.black}${country(g.blackCountry)}")
             Text("○ ${mark(g.result, 2)} ${g.white}${country(g.whiteCountry)}")
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             val bits = buildList {
-                rule?.let { add(tr("규칙 $it", "Rule $it")) }
-                if (g.rated) add(tr("레이팅", "Rating"))
-                add(tr("${g.cells.size}수", "${g.cells.size} moves"))
-                if (useful(g.swap)) add(tr("스왑 ${g.swap}", "Swap ${g.swap}"))
-                if (useful(g.alt)) add(tr("대체 ${g.alt}", "Alt ${g.alt}"))
+                rule?.let { add(tr("규칙 $it", "Rule $it", "规则 $it")) }
+                if (g.rated) add(tr("레이팅", "Rating", "等级分"))
+                add(tr("${g.cells.size}수", "${g.cells.size} moves", "${g.cells.size} 手"))
+                if (useful(g.swap)) add(tr("스왑 ${g.swap}", "Swap ${g.swap}", "交换 ${g.swap}"))
+                if (useful(g.alt)) add(tr("대체 ${g.alt}", "Alt ${g.alt}", "打点 ${g.alt}"))
                 if (useful(g.info)) add(g.info)
             }
             Text(bits.joinToString("  ·  "), style = MaterialTheme.typography.bodySmall)
@@ -600,14 +601,14 @@ private fun GameDetail(g: RjGame, rule: String?, opening: String?) {
             val tour = listOfNotNull(
                 dates.takeIf { it.isNotEmpty() },
                 g.tourCountry.takeIf { useful(it) },
-                g.round.takeIf { useful(it) }?.let { tr("라운드 $it", "Round $it") },
+                g.round.takeIf { useful(it) }?.let { tr("라운드 $it", "Round $it", "第 $it 轮") },
             )
             if (tour.isNotEmpty()) {
                 Text(tour.joinToString("  ·  "), style = MaterialTheme.typography.labelSmall)
             }
-            opening?.let { Text(tr("주형: $it", "Opening: $it"), style = MaterialTheme.typography.bodySmall) }
+            opening?.let { Text(tr("주형: $it", "Opening: $it", "开局: $it"), style = MaterialTheme.typography.bodySmall) }
             Text(
-                tr("renju.net 기보 번호 #${g.id}", "renju.net game #${g.id}"),
+                tr("renju.net 기보 번호 #${g.id}", "renju.net game #${g.id}", "renju.net 棋谱编号 #${g.id}"),
                 style = MaterialTheme.typography.labelSmall,
             )
         }

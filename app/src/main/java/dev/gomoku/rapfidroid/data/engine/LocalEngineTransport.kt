@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.data.engine
 
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 import okio.buffer
 import okio.sink
@@ -38,7 +39,7 @@ class LocalEngineTransport(
                 .start()
         } catch (e: Exception) {
             throw LocalEngineUnavailable(
-                "엔진 프로세스를 시작하지 못했습니다: ${e.message ?: e::class.simpleName}",
+                tr("엔진 프로세스를 시작하지 못했습니다: ${e.message ?: e::class.simpleName}", "Could not start the engine process: ${e.message ?: e::class.simpleName}", "无法启动引擎进程: ${e.message ?: e::class.simpleName}"),
                 e,
             )
         }

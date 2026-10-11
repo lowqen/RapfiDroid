@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.domain.review
 
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.GameReport
 import dev.gomoku.rapfidroid.core.model.GradedMove
 import dev.gomoku.rapfidroid.core.model.MoveGrader
@@ -47,28 +48,28 @@ object ReportFormats {
     // ---- Markdown ----------------------------------------------------------
 
     fun markdown(report: GameReport): String = buildString {
-        append("# 게임 리뷰: ").append(report.title).append("\n\n")
-        append("- 수: ").append(report.moveCount)
-            .append(", 수당 ").append(report.budget.label).append('\n')
-        append("- 정확도: 흑 **").append(fixed(report.tally.blackAccuracy ?: 0.0, 1))
-            .append("%** / 백 **").append(fixed(report.tally.whiteAccuracy ?: 0.0, 1))
+        append(tr("# 게임 리뷰: ", "# Game review: ", "# 对局复盘:")).append(report.title).append("\n\n")
+        append(tr("- 수: ", "- Moves: ", "- 手数:")).append(report.moveCount)
+            .append(tr(", 수당 ", ", per move ", "，每手")).append(report.budget.label).append('\n')
+        append(tr("- 정확도: 흑 **", "- Accuracy: Black **", "- 准确度: 黑 **")).append(fixed(report.tally.blackAccuracy ?: 0.0, 1))
+            .append(tr("%** / 백 **", "%** / White **", "%** / 白 **")).append(fixed(report.tally.whiteAccuracy ?: 0.0, 1))
             .append("%**\n\n")
-        append("| 등급 | 흑 | 백 |\n|---|---|---|\n")
+        append(tr("| 등급 | 흑 | 백 |\n|---|---|---|\n", "|| Grade | Black | White |\n|---|---|---|\n", "|| 评级 | 黑 | 白 |\n|---|---|---|\n"))
         MoveQuality.GRADED.forEach { quality ->
             val (black, white) = report.tally.counts[quality] ?: (0 to 0)
-            append("| ").append(quality.symbol).append(' ').append(quality.korean)
+            append("| ").append(quality.symbol).append(' ').append(quality.display)
                 .append(" | ").append(black).append(" | ").append(white).append(" |\n")
         }
-        append("\n## 최악의 수\n\n")
+        append(tr("\n## 최악의 수\n\n", "\n## Worst moves\n\n", "\n## 最差着法\n\n"))
         report.worst.forEach { move ->
             append("- #").append(move.index).append(' ')
                 .append(MoveGrader.coord(move.move, report.size))
-                .append(" (").append(if (move.black) "흑" else "백").append(") — ")
-                .append(move.quality.korean).append(", -")
-                .append(fixed(move.delta * 100, 1)).append("%p, 최선은 ")
+                .append(" (").append(if (move.black) tr("흑", "Black", "黑") else tr("백", "White", "白")).append(") — ")
+                .append(move.quality.display).append(", -")
+                .append(fixed(move.delta * 100, 1)).append(tr("%p, 최선은 ", "%p, best was ", "%p，最佳应为"))
                 .append(MoveGrader.coord(move.best, report.size)).append('\n')
         }
-        append("\n## 수순\n\n| # | 수 | 등급 | dWR | 흑 승률 | 최선 | 격차 | 코멘트 |\n")
+        append(tr("\n## 수순\n\n| # | 수 | 등급 | dWR | 흑 승률 | 최선 | 격차 | 코멘트 |\n", "\n## Moves\n\n| # | Move | Grade | dWR | Black win rate | Best | Gap | Comment |\n", "\n## 手顺\n\n| # | 着法 | 评级 | dWR | 黑胜率 | 最佳 | 差距 | 评论 |\n"))
         append("|---|---|---|---|---|---|---|---|\n")
         report.moves.forEach { move ->
             append("| ").append(move.index)
@@ -85,18 +86,18 @@ object ReportFormats {
 
     /** `queue_finish`'s summary file (main.c:7518). */
     fun queueSummary(entries: List<QueueEntry>, reviewed: Int, failed: Int): String = buildString {
-        append("# 분석 큐 요약\n\n총 ").append(entries.size)
-            .append("개: 리뷰 ").append(reviewed)
-            .append(", 실패 ").append(failed)
-            .append(", 미실행 ").append(entries.size - reviewed - failed).append("\n\n")
+        append(tr("# 분석 큐 요약\n\n총 ", "# Analysis queue summary\n\n", "# 分析队列汇总\n\n共")).append(entries.size)
+            .append(tr("개: 리뷰 ", " in all: reviewed ", " 个: 复盘")).append(reviewed)
+            .append(tr(", 실패 ", ", failed ", "，失败")).append(failed)
+            .append(tr(", 미실행 ", ", not run ", "，未运行")).append(entries.size - reviewed - failed).append("\n\n")
         entries.forEachIndexed { i, entry ->
             append("- [").append("%02d".format(i + 1)).append("] ").append(entry.name)
-                .append(" — ").append(entry.result.ifEmpty { "미실행" }).append('\n')
+                .append(" — ").append(entry.result.ifEmpty { tr("미실행", "not run", "未运行") }).append('\n')
         }
     }
 
     private fun gradeCell(move: GradedMove) =
-        if (move.quality == MoveQuality.NONE) " " else "${move.quality.symbol} ${move.quality.korean}"
+        if (move.quality == MoveQuality.NONE) " " else "${move.quality.symbol} ${move.quality.display}"
 
     private fun deltaCell(move: GradedMove) =
         if (move.quality == MoveQuality.NONE || move.quality == MoveQuality.FORCED) "-"
@@ -116,7 +117,7 @@ object ReportFormats {
     fun html(report: GameReport, shell: ReportShell, dateStamp: String, log: String = ""): String =
         buildString {
             append(shell.head)
-            append(escapeHtml(report.title)).append(" - Yixin 게임 리포트")
+            append(escapeHtml(report.title)).append(tr(" - Yixin 게임 리포트", " - Yixin game report", " - Yixin 对局报告"))
             append(shell.body)
             append(gameJson(report, dateStamp, log))
             append(shell.tail)
@@ -145,11 +146,11 @@ object ReportFormats {
             .append(",\"blunder\":").append(MoveQuality.BLUNDER.ordinal)
             .append(",\"missed\":").append(MoveQuality.MISSED_WIN.ordinal)
             .append(",\"forced\":").append(MoveQuality.FORCED.ordinal).append('}')
-        append(",\"L\":").append(KOREAN_LABELS)
+        append(",\"L\":").append(tr(KOREAN_LABELS, ENGLISH_LABELS, CHINESE_LABELS))
         append(",\"mq\":[")
         MoveQuality.entries.forEachIndexed { i, quality ->
             if (i > 0) append(',')
-            append("{\"n\":").append(json(quality.korean))
+            append("{\"n\":").append(json(quality.display))
                 .append(",\"s\":").append(json(quality.symbol))
                 .append(",\"c\":").append(json(quality.colorHex)).append('}')
         }
@@ -186,7 +187,10 @@ object ReportFormats {
         append('}')
     }
 
-    /** UI strings the page falls back on per key — the desktop's Korean block. */
+    /**
+     * UI strings the page falls back on per key — the desktop's Korean block,
+     * and the same keys in English and Chinese for a report made in those.
+     */
     private const val KOREAN_LABELS =
         "{\"black\":\"흑\",\"white\":\"백\"," +
             "\"h\":[\"#\",\"수\",\"등급\",\"ΔWR\",\"승률\",\"최선\",\"격차\",\"코멘트\"]," +
@@ -197,6 +201,28 @@ object ReportFormats {
             "\"t_mv\":\"수순\",\"t_log\":\"엔진 로그\",\"t_raw\":\"원본 데이터\"," +
             "\"hint\":\"← → 키 · 돌/점/행 클릭으로 이동\"," +
             "\"spm\":\"초/수\",\"dpm\":\"깊이\",\"permove\":\"/수\"}"
+
+    private const val ENGLISH_LABELS =
+        "{\"black\":\"Black\",\"white\":\"White\"," +
+            "\"h\":[\"#\",\"Move\",\"Grade\",\"ΔWR\",\"WR\",\"Best\",\"Gap\",\"Comment\"]," +
+            "\"worst\":\"Worst moves\",\"clean\":\"None. A clean game.\"," +
+            "\"movesw\":\"moves\",\"acclab\":\" accuracy\",\"gen\":\"Generated:\"," +
+            "\"startpos\":\"This is the start position.\",\"best\":\"Best\",\"gap\":\"Gap\"," +
+            "\"empty\":\"(empty)\",\"t_wr\":\"Win rate\",\"t_gr\":\"Grades\"," +
+            "\"t_mv\":\"Moves\",\"t_log\":\"Engine log\",\"t_raw\":\"Raw data\"," +
+            "\"hint\":\"← → keys · click a stone, point or row to move\"," +
+            "\"spm\":\"s/move\",\"dpm\":\"depth\",\"permove\":\"/move\"}"
+
+    private const val CHINESE_LABELS =
+        "{\"black\":\"黑\",\"white\":\"白\"," +
+            "\"h\":[\"#\",\"着法\",\"评级\",\"ΔWR\",\"胜率\",\"最佳\",\"差距\",\"评论\"]," +
+            "\"worst\":\"最差着法\",\"clean\":\"无，干净的对局。\"," +
+            "\"movesw\":\"手\",\"acclab\":\" 准确度\",\"gen\":\"生成:\"," +
+            "\"startpos\":\"这是起始局面。\",\"best\":\"最佳\",\"gap\":\"差距\"," +
+            "\"empty\":\"(空)\",\"t_wr\":\"胜率\",\"t_gr\":\"评级\"," +
+            "\"t_mv\":\"手顺\",\"t_log\":\"引擎日志\",\"t_raw\":\"原始数据\"," +
+            "\"hint\":\"← → 键 · 点击棋子、点或行跳转\"," +
+            "\"spm\":\"秒/手\",\"dpm\":\"深度\",\"permove\":\"/手\"}"
 
     // ---- helpers -----------------------------------------------------------
 

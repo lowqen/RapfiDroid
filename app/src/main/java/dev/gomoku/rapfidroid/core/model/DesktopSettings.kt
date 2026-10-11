@@ -18,13 +18,13 @@ enum class SettingCategory {
      *  the life of the process, and the language can change under it. */
     val label: String
         get() = when (this) {
-            GAME -> tr("대국", "Game")
-            ENGINE -> tr("엔진", "Engine")
-            DISPLAY -> tr("표시", "Display")
-            DATABASE -> tr("데이터베이스", "Database")
-            RESEARCH -> tr("연구·검토", "Research")
-            APPEARANCE -> tr("외관", "Appearance")
-            SYSTEM -> tr("시스템", "System")
+            GAME -> tr("대국", "Game", "对局")
+            ENGINE -> tr("엔진", "Engine", "引擎")
+            DISPLAY -> tr("표시", "Display", "显示")
+            DATABASE -> tr("데이터베이스", "Database", "数据库")
+            RESEARCH -> tr("연구·검토", "Research", "研究·复盘")
+            APPEARANCE -> tr("외관", "Appearance", "外观")
+            SYSTEM -> tr("시스템", "System", "系统")
         }
 }
 
@@ -113,12 +113,12 @@ object DesktopSettings {
 
     private fun buildMain(): List<SettingSpec> = build(SettingsFile.MAIN) {
         int(
-            "boardSize", "board size (10 ~ 22)", tr("보드 크기", "Board Size"), SettingCategory.GAME,
-            SettingEditor.Number(5, 22), note = tr("변경하면 엔진을 다시 시작하고 판을 비웁니다", "Changing this restarts the engine and clears the board"),
+            "boardSize", "board size (10 ~ 22)", tr("보드 크기", "Board Size", "棋盘大小"), SettingCategory.GAME,
+            SettingEditor.Number(5, 22), note = tr("변경하면 엔진을 다시 시작하고 판을 비웁니다", "Changing this restarts the engine and clears the board", "修改后会重启引擎并清空棋盘"),
             get = { it.boardSize }, set = { s, v -> s.copy(boardSize = v) },
         )
         int(
-            "language", "language (0: English, 1,2,...: custom)", tr("언어", "Language"), SettingCategory.APPEARANCE,
+            "language", "language (0: English, 1,2,...: custom)", tr("언어", "Language", "语言"), SettingCategory.APPEARANCE,
             SettingEditor.Choice(
                 listOf(
                     ChoiceOption(0, "English"), ChoiceOption(1, "简体中文"),
@@ -127,79 +127,79 @@ object DesktopSettings {
                     ChoiceOption(6, "Tiếng Việt"),
                 ),
             ),
-            note = tr("이 앱은 한국어·영어만 지원합니다. 값은 PC 파일 그대로 보관하지만, ", "This app ships Korean and English only. The value is kept as the PC file has it, but") +
-                tr("툴바 라벨은 한국어면 3.lng, 그 밖에는 0.lng(영어)를 읽습니다. ", "toolbar labels are read from 3.lng for Korean and 0.lng (English) otherwise.") +
-                tr("앱 화면의 언어는 안드로이드 시스템 언어를 따릅니다", "The app's own language follows the Android system language"),
+            note = tr("이 앱은 한국어·영어·중국어를 지원합니다. 값은 PC 파일 그대로 보관하지만, ", "This app ships Korean, English and Chinese. The value is kept as the PC file has it, but", "本应用支持韩语、英语和中文。此值按 PC 文件原样保存，") +
+                tr("툴바 라벨은 한국어면 3.lng, 중국어면 1.lng/2.lng, 그 밖에는 0.lng(영어)를 읽습니다. ", "toolbar labels are read from 3.lng for Korean, 1.lng/2.lng for Chinese and 0.lng (English) otherwise.", "工具栏标签：韩语读取 3.lng，中文读取 1.lng/2.lng，其他读取 0.lng(英语)。") +
+                tr("앱 화면의 언어는 안드로이드 시스템 언어를 따릅니다", "The app's own language follows the Android system language", "应用界面的语言跟随安卓系统语言"),
             get = { it.language }, set = { s, v -> s.copy(language = v) },
         )
         int(
             "rule",
             "rule (0: freestyle, 1: standard, 2: free renju, 3: swap after 1st move, 5: soosorv, 6: swap-2)",
-            tr("규칙", "Rule"), SettingCategory.GAME,
+            tr("규칙", "Rule", "规则"), SettingCategory.GAME,
             SettingEditor.Choice(
                 listOf(
-                    ChoiceOption(0, tr("프리스타일 오목", "Freestyle Gomoku")), ChoiceOption(1, tr("표준 오목", "Standard Gomoku")),
-                    ChoiceOption(2, tr("자유 렌주", "Free Renju")), ChoiceOption(3, tr("첫 수 이후 교환", "Swap After First Move")),
-                    ChoiceOption(4, tr("RIF 오프닝 규칙", "RIF Opening Rule")), ChoiceOption(5, tr("Soosorv-8 오프닝 규칙", "Soosorv-8 Opening Rule")),
-                    ChoiceOption(6, tr("스왑2", "Swap2")),
+                    ChoiceOption(0, tr("프리스타일 오목", "Freestyle Gomoku", "无禁手")), ChoiceOption(1, tr("표준 오목", "Standard Gomoku", "无禁手(六不赢)")),
+                    ChoiceOption(2, tr("자유 렌주", "Free Renju", "有禁手")), ChoiceOption(3, tr("첫 수 이후 교환", "Swap After First Move", "一手交换")),
+                    ChoiceOption(4, tr("RIF 오프닝 규칙", "RIF Opening Rule", "RIF规则")), ChoiceOption(5, tr("Soosorv-8 오프닝 규칙", "Soosorv-8 Opening Rule", "索索夫-8规则")),
+                    ChoiceOption(6, tr("스왑2", "Swap2", "两次交换")),
                 ),
             ),
             engineKey = "rule",
-            note = tr("오프닝 규칙(3~6)의 엔진 기본 규칙은 각각 프리스타일/렌주/렌주/표준입니다", "Opening rules 3-6 sit on freestyle / renju / renju / standard respectively"),
+            note = tr("오프닝 규칙(3~6)의 엔진 기본 규칙은 각각 프리스타일/렌주/렌주/표준입니다", "Opening rules 3-6 sit on freestyle / renju / renju / standard respectively", "开局规则(3~6)对应的引擎基础规则分别为无禁手/有禁手/有禁手/六不赢"),
             get = { it.rule }, set = { s, v -> s.copy(rule = v) },
         )
         bool(
-            "computerBlack", "computer play black (0: no, 1: yes)", tr("컴퓨터가 흑돌 플레이", "Computer Plays Black"),
-            SettingCategory.GAME, note = tr("새 대국을 시작할 때 적용됩니다(보드 화면에서도 바꿀 수 있음)", "Applies when a new game starts (the board screen can change it too)"),
+            "computerBlack", "computer play black (0: no, 1: yes)", tr("컴퓨터가 흑돌 플레이", "Computer Plays Black", "计算机执黑"),
+            SettingCategory.GAME, note = tr("새 대국을 시작할 때 적용됩니다(보드 화면에서도 바꿀 수 있음)", "Applies when a new game starts (the board screen can change it too)", "新对局开始时生效(也可在棋盘界面更改)"),
             get = { it.computerBlack }, set = { s, v -> s.copy(computerBlack = v) },
         )
         bool(
-            "computerWhite", "computer play white (0: no, 1: yes)", tr("컴퓨터가 백돌 플레이", "Computer Plays White"),
-            SettingCategory.GAME, note = tr("새 대국을 시작할 때 적용됩니다(보드 화면에서도 바꿀 수 있음)", "Applies when a new game starts (the board screen can change it too)"),
+            "computerWhite", "computer play white (0: no, 1: yes)", tr("컴퓨터가 백돌 플레이", "Computer Plays White", "计算机执白"),
+            SettingCategory.GAME, note = tr("새 대국을 시작할 때 적용됩니다(보드 화면에서도 바꿀 수 있음)", "Applies when a new game starts (the board screen can change it too)", "新对局开始时生效(也可在棋盘界面更改)"),
             get = { it.computerWhite }, set = { s, v -> s.copy(computerWhite = v) },
         )
         int(
             "level", "level (0: unlimited time 1: custom level 2-12: predefined level)",
-            tr("레벨", "Level"), SettingCategory.ENGINE,
+            tr("레벨", "Level", "棋力"), SettingCategory.ENGINE,
             SettingEditor.Choice(
                 buildList {
-                    add(ChoiceOption(0, tr("무제한 시간", "Unlimited Time")))
-                    add(ChoiceOption(1, tr("사용자 정의 레벨", "Custom Level")))
-                    for (l in 2..11) add(ChoiceOption(l, tr("사전 정의 레벨 $l", "Predefined Level $l")))
+                    add(ChoiceOption(0, tr("무제한 시간", "Unlimited Time", "不限时")))
+                    add(ChoiceOption(1, tr("사용자 정의 레벨", "Custom Level", "自定义")))
+                    for (l in 2..11) add(ChoiceOption(l, tr("사전 정의 레벨 $l", "Predefined Level $l", "预设 $l")))
                 },
             ),
             engineKey = "max_node",
-            note = tr("무제한/사전 정의는 노드 표를 쓰고, 사용자 정의만 아래 시간·깊이·노드를 씁니다", "Unlimited and predefined levels use a node table; only Custom uses the time, depth and node values below"),
+            note = tr("무제한/사전 정의는 노드 표를 쓰고, 사용자 정의만 아래 시간·깊이·노드를 씁니다", "Unlimited and predefined levels use a node table; only Custom uses the time, depth and node values below", "不限时和预设使用结点数表，只有自定义使用下方的时间、深度和结点数"),
             get = { it.level }, set = { s, v -> s.copy(level = v) },
         )
         int(
-            "timeoutTurnSec", "time limit (turn)", tr("턴 시간", "Turn time"), SettingCategory.ENGINE,
-            SettingEditor.Number(1, 1_000_000, tr("초", "s")), engineKey = "timeout_turn",
-            note = tr("사용자 정의 레벨에서만 사용", "Custom level only"),
+            "timeoutTurnSec", "time limit (turn)", tr("턴 시간", "Turn time", "步时"), SettingCategory.ENGINE,
+            SettingEditor.Number(1, 1_000_000, tr("초", "s", "秒")), engineKey = "timeout_turn",
+            note = tr("사용자 정의 레벨에서만 사용", "Custom level only", "仅自定义棋力使用"),
             get = { it.timeoutTurnSec }, set = { s, v -> s.copy(timeoutTurnSec = v) },
         )
         int(
-            "timeoutMatchSec", "time limit (match)", tr("매치 시간", "Match time"), SettingCategory.ENGINE,
-            SettingEditor.Number(1, 10_000_000, tr("초", "s")), engineKey = "timeout_match",
-            note = tr("사용자 정의 레벨에서만 사용", "Custom level only"),
+            "timeoutMatchSec", "time limit (match)", tr("매치 시간", "Match time", "局时"), SettingCategory.ENGINE,
+            SettingEditor.Number(1, 10_000_000, tr("초", "s", "秒")), engineKey = "timeout_match",
+            note = tr("사용자 정의 레벨에서만 사용", "Custom level only", "仅自定义棋力使用"),
             get = { it.timeoutMatchSec }, set = { s, v -> s.copy(timeoutMatchSec = v) },
         )
         int(
-            "maxDepth", "max depth", tr("최대 깊이", "Max depth"), SettingCategory.ENGINE,
-            SettingEditor.Number(2, 484, tr("플라이", "ply")), engineKey = "max_depth",
+            "maxDepth", "max depth", tr("최대 깊이", "Max depth", "最大深度"), SettingCategory.ENGINE,
+            SettingEditor.Number(2, 484, tr("플라이", "ply", "层")), engineKey = "max_depth",
             get = { it.maxDepth }, set = { s, v -> s.copy(maxDepth = v) },
         )
         long(
-            "maxNode", "max node", tr("최대 노드 수", "Max node number"), SettingCategory.ENGINE,
+            "maxNode", "max node", tr("최대 노드 수", "Max node number", "最大结点数"), SettingCategory.ENGINE,
             SettingEditor.Number(1_000, 2_000_000_000), engineKey = "max_node",
             get = { it.maxNode }, set = { s, v -> s.copy(maxNode = v) },
         )
         int(
-            "style", "style (rash 0 ~ 5 cautious)", tr("스타일", "Style"), SettingCategory.ENGINE,
+            "style", "style (rash 0 ~ 5 cautious)", tr("스타일", "Style", "棋风"), SettingCategory.ENGINE,
             SettingEditor.Choice(
                 listOf(
-                    ChoiceOption(0, tr("성급함 (0)", "Rash (0)")), ChoiceOption(1, "1"), ChoiceOption(2, "2"),
-                    ChoiceOption(3, "3"), ChoiceOption(4, "4"), ChoiceOption(5, tr("신중함 (5)", "Cautious (5)")),
+                    ChoiceOption(0, tr("성급함 (0)", "Rash (0)", "冒进 (0)")), ChoiceOption(1, "1"), ChoiceOption(2, "2"),
+                    ChoiceOption(3, "3"), ChoiceOption(4, "4"), ChoiceOption(5, tr("신중함 (5)", "Cautious (5)", "谨慎 (5)")),
                 ),
             ),
             engineKey = "caution_factor",
@@ -208,323 +208,327 @@ object DesktopSettings {
         int(
             "toolbarStyle",
             "toolbar style (0: only icon, 1: both icon and words, 2: both with horizontally stacked)",
-            tr("툴바 스타일", "Toolbar style"), SettingCategory.APPEARANCE,
+            tr("툴바 스타일", "Toolbar style", "工具栏样式"), SettingCategory.APPEARANCE,
             SettingEditor.Choice(
                 listOf(
-                    ChoiceOption(0, tr("아이콘만", "Icon only")), ChoiceOption(1, tr("아이콘+글자", "Icon and text")),
-                    ChoiceOption(2, tr("아이콘+글자(가로)", "Icon and text (horizontal)")),
+                    ChoiceOption(0, tr("아이콘만", "Icon only", "仅图标")), ChoiceOption(1, tr("아이콘+글자", "Icon and text", "图标和文字")),
+                    ChoiceOption(2, tr("아이콘+글자(가로)", "Icon and text (horizontal)", "图标和文字(横排)")),
                 ),
             ),
-            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more"),
+            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more", "仅桌面版使用，只保存此值"),
             get = { it.toolbarStyle }, set = { s, v -> s.copy(toolbarStyle = v) },
         )
         bool(
-            "showLog", "show log (0: no, 1: yes)", tr("로그", "Log"), SettingCategory.DISPLAY,
-            note = tr("연결 탭의 piskvork 원시 콘솔", "The raw piskvork console on the engine tab"),
+            "showLog", "show log (0: no, 1: yes)", tr("로그", "Log", "日志"), SettingCategory.DISPLAY,
+            note = tr("연결 탭의 piskvork 원시 콘솔", "The raw piskvork console on the engine tab", "引擎页的 piskvork 原始控制台"),
             get = { it.showLog }, set = { s, v -> s.copy(showLog = v) },
         )
         bool(
-            "showNumber", "show number (0: no, 1: yes)", tr("번호 매기기", "Numeration"), SettingCategory.DISPLAY,
+            "showNumber", "show number (0: no, 1: yes)", tr("번호 매기기", "Numeration", "显示数字"), SettingCategory.DISPLAY,
             get = { it.showNumber }, set = { s, v -> s.copy(showNumber = v) },
         )
         bool(
-            "showAnalysis", "show analysis (0: no, 1: yes)", tr("분석 표시", "Analysis overlay"), SettingCategory.DISPLAY,
-            note = tr("보드 위 후보수 태그·실시간 표시", "Candidate tags and realtime markers on the board"),
+            "showAnalysis", "show analysis (0: no, 1: yes)", tr("분석 표시", "Analysis overlay", "显示分析"), SettingCategory.DISPLAY,
+            note = tr("보드 위 후보수 태그·실시간 표시", "Candidate tags and realtime markers on the board", "棋盘上的候选点标签和实时标记"),
             get = { it.showAnalysis }, set = { s, v -> s.copy(showAnalysis = v) },
         )
         bool(
-            "showAnalysisWinrate", "show analysis winrate (0: no, 1: yes)", tr("승률 분석", "Win-rate analysis"),
+            "showAnalysisWinrate", "show analysis winrate (0: no, 1: yes)", tr("승률 분석", "Win-rate analysis", "分析胜率"),
             SettingCategory.DISPLAY,
-            note = tr("끄면 칸별 승률 태그를 기록하지 않습니다(실시간 후보·패배 표시는 유지) — main.c와 동일", "Off records no per-point win-rate tags, keeping the realtime candidate and loss markers — as main.c does"),
+            note = tr("끄면 칸별 승률 태그를 기록하지 않습니다(실시간 후보·패배 표시는 유지) — main.c와 동일", "Off records no per-point win-rate tags, keeping the realtime candidate and loss markers — as main.c does", "关闭后不记录各点的胜率标签(保留实时候选和必败标记)，与 main.c 相同"),
             get = { it.showAnalysisWinrate }, set = { s, v -> s.copy(showAnalysisWinrate = v) },
         )
         bool(
-            "showWarning", "show warning (0: no, 1: yes)", tr("실행 취소 경고", "Undo warning"),
-            SettingCategory.DISPLAY, note = tr("판 초기화처럼 되돌릴 수 없는 동작에 확인창", "Confirms actions that cannot be undone, like clearing the board"),
+            "showWarning", "show warning (0: no, 1: yes)", tr("실행 취소 경고", "Undo warning", "悔棋警告"),
+            SettingCategory.DISPLAY, note = tr("판 초기화처럼 되돌릴 수 없는 동작에 확인창", "Confirms actions that cannot be undone, like clearing the board", "清空棋盘等无法撤销的操作前先确认"),
             get = { it.showWarning }, set = { s, v -> s.copy(showWarning = v) },
         )
         int(
-            "threadNum", "number of threads", tr("스레드 수", "Number of Threads"), SettingCategory.ENGINE,
+            "threadNum", "number of threads", tr("스레드 수", "Number of Threads", "线程数"), SettingCategory.ENGINE,
             SettingEditor.Number(1, 256), engineKey = "thread_num",
-            note = tr("엔진이 알려주는 상한(MAX_THREAD_NUM)까지", "Up to the ceiling the engine reports (MAX_THREAD_NUM)"),
+            note = tr("엔진이 알려주는 상한(MAX_THREAD_NUM)까지", "Up to the ceiling the engine reports (MAX_THREAD_NUM)", "最多到引擎报告的上限(MAX_THREAD_NUM)"),
             get = { it.threadNum }, set = { s, v -> s.copy(threadNum = v) },
         )
         int(
-            "hashSizeMb", "hash size (MB)", tr("해시 크기", "Hash Size"), SettingCategory.ENGINE,
+            "hashSizeMb", "hash size (MB)", tr("해시 크기", "Hash Size", "哈希表大小"), SettingCategory.ENGINE,
             SettingEditor.Number(1, 65_536, "MB"), engineKey = "hash_size",
-            note = tr("엔진에는 KB로 변환해 보냅니다(MB<<10)", "Sent to the engine in KB (MB<<10)"),
+            note = tr("엔진에는 KB로 변환해 보냅니다(MB<<10)", "Sent to the engine in KB (MB<<10)", "以 KB 发送给引擎(MB<<10)"),
             get = { it.hashSizeMb }, set = { s, v -> s.copy(hashSizeMb = v) },
         )
         int(
-            "multiPv", "default number of multi-pv", tr("멀티-PV 수", "Number of Multi-PV"), SettingCategory.ENGINE,
+            "multiPv", "default number of multi-pv", tr("멀티-PV 수", "Number of Multi-PV", "多点分析数"), SettingCategory.ENGINE,
             SettingEditor.Number(1, 225), engineKey = "yxnbest",
             get = { it.multiPv }, set = { s, v -> s.copy(multiPv = v) },
         )
         bool(
-            "blockAutoReset", "block autoreset (0: no, 1: yes)", tr("차단 자동 해제", "Auto-reset blocks"),
-            SettingCategory.RESEARCH, note = tr("엔진 탭 도구에서 사용", "Used by the tools on the engine tab"),
+            "blockAutoReset", "block autoreset (0: no, 1: yes)", tr("차단 자동 해제", "Auto-reset blocks", "自动重置排除"),
+            SettingCategory.RESEARCH, note = tr("엔진 탭 도구에서 사용", "Used by the tools on the engine tab", "用于引擎页的工具"),
             get = { it.blockAutoReset }, set = { s, v -> s.copy(blockAutoReset = v) },
         )
         bool(
-            "blockPathAutoReset", "blockpath autoreset (0: no, 1: yes)", tr("차단 경로 자동 해제", "Auto-reset blocked paths"),
-            SettingCategory.RESEARCH, note = tr("엔진 탭 도구에서 사용", "Used by the tools on the engine tab"),
+            "blockPathAutoReset", "blockpath autoreset (0: no, 1: yes)", tr("차단 경로 자동 해제", "Auto-reset blocked paths", "自动重置排除路径"),
+            SettingCategory.RESEARCH, note = tr("엔진 탭 도구에서 사용", "Used by the tools on the engine tab", "用于引擎页的工具"),
             get = { it.blockPathAutoReset }, set = { s, v -> s.copy(blockPathAutoReset = v) },
         )
         bool(
-            "pondering", "pondering (0: off, 1: on)", tr("사색", "Pondering"), SettingCategory.ENGINE,
+            "pondering", "pondering (0: off, 1: on)", tr("사색", "Pondering", "后台思考"), SettingCategory.ENGINE,
             engineKey = "pondering",
             get = { it.pondering }, set = { s, v -> s.copy(pondering = v) },
         )
         int(
             "vcThread", "checkmate in global search (0: no, 1: vct, 2: vc2)",
-            tr("전역 검색 추가 위협 확인", "Additional Threat Check in Global Search"), SettingCategory.ENGINE,
+            tr("전역 검색 추가 위협 확인", "Additional Threat Check in Global Search", "全面计算中的额外威胁检查"), SettingCategory.ENGINE,
             SettingEditor.Choice(
                 listOf(
-                    ChoiceOption(0, tr("없음", "None")), ChoiceOption(1, tr("VCT 확인", "Check VCT")), ChoiceOption(2, tr("VC2 확인", "Check VC2")),
+                    ChoiceOption(0, tr("없음", "None", "不检查")), ChoiceOption(1, tr("VCT 확인", "Check VCT", "检查VCT")), ChoiceOption(2, tr("VC2 확인", "Check VC2", "检查VC2")),
                 ),
             ),
             engineKey = "vcthread",
             get = { it.vcThread }, set = { s, v -> s.copy(vcThread = v) },
         )
         bool(
-            "hashAutoClear", "hash autoclear (0: no, 1: yes)", tr("해시 자동 지우기", "Auto-clear hash"),
-            SettingCategory.ENGINE, note = tr("탐색 전에 yxhashclear 를 보냅니다", "Sends yxhashclear before a search"),
+            "hashAutoClear", "hash autoclear (0: no, 1: yes)", tr("해시 자동 지우기", "Auto-clear hash", "自动清空置换表"),
+            SettingCategory.ENGINE, note = tr("탐색 전에 yxhashclear 를 보냅니다", "Sends yxhashclear before a search", "搜索前发送 yxhashclear"),
             get = { it.hashAutoClear }, set = { s, v -> s.copy(hashAutoClear = v) },
         )
         int(
             "toolbarPos", "toolbar postion (0: left vertical, 1: right horizontal)",
-            tr("툴바 위치", "Toolbar position"), SettingCategory.APPEARANCE,
+            tr("툴바 위치", "Toolbar position", "工具栏位置"), SettingCategory.APPEARANCE,
             SettingEditor.Choice(
-                listOf(ChoiceOption(0, tr("왼쪽 세로", "Left, vertical")), ChoiceOption(1, tr("오른쪽 가로", "Right, horizontal"))),
+                listOf(ChoiceOption(0, tr("왼쪽 세로", "Left, vertical", "左侧竖排")), ChoiceOption(1, tr("오른쪽 가로", "Right, horizontal", "右侧横排"))),
             ),
-            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more"),
+            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more", "仅桌面版使用，只保存此值"),
             get = { it.toolbarPos }, set = { s, v -> s.copy(toolbarPos = v) },
         )
         bool(
-            "darkMode", "enable dark mode", tr("다크 모드", "Dark mode"), SettingCategory.APPEARANCE,
+            "darkMode", "enable dark mode", tr("다크 모드", "Dark mode", "深色模式"), SettingCategory.APPEARANCE,
             get = { it.darkMode }, set = { s, v -> s.copy(darkMode = v) },
         )
         bool(
-            "showClock", "show clock (0: no, 1: yes)", tr("시계", "Clock"), SettingCategory.GAME,
-            note = tr("보드 화면 대국 패널에 반영됩니다", "Shown in the game panel on the board screen"),
+            "showClock", "show clock (0: no, 1: yes)", tr("시계", "Clock", "棋钟"), SettingCategory.GAME,
+            note = tr("보드 화면 대국 패널에 반영됩니다", "Shown in the game panel on the board screen", "显示在棋盘界面的对局面板中"),
             get = { it.showClock }, set = { s, v -> s.copy(showClock = v) },
         )
         int(
-            "incrementMs", "time increment per move", tr("수당 시간 증가", "Time increment per move"), SettingCategory.GAME,
+            "incrementMs", "time increment per move", tr("수당 시간 증가", "Time increment per move", "每步增加时间"), SettingCategory.GAME,
             SettingEditor.Number(0, 200_000, "ms"), engineKey = "time_increment",
-            note = tr("이 줄만 밀리초 단위입니다(데스크톱 대화상자는 초로 보여줌)", "This line alone is in milliseconds (the desktop dialog shows seconds)"),
+            note = tr("이 줄만 밀리초 단위입니다(데스크톱 대화상자는 초로 보여줌)", "This line alone is in milliseconds (the desktop dialog shows seconds)", "只有这一行以毫秒为单位(桌面版对话框以秒显示)"),
             get = { it.incrementMs }, set = { s, v -> s.copy(incrementMs = v) },
         )
         bool(
-            "showForbidden", "show forbidden moves", tr("금수 표시", "Show forbidden points"), SettingCategory.DISPLAY,
-            note = tr("렌주 계열 규칙에서만 조회합니다(YXSHOWFORBID)", "Asked for under renju rules only (YXSHOWFORBID)"),
+            "showForbidden", "show forbidden moves", tr("금수 표시", "Show forbidden points", "显示禁手"), SettingCategory.DISPLAY,
+            note = tr("렌주 계열 규칙에서만 조회합니다(YXSHOWFORBID)", "Asked for under renju rules only (YXSHOWFORBID)", "只在连珠类规则下查询(YXSHOWFORBID)"),
             get = { it.showForbidden }, set = { s, v -> s.copy(showForbidden = v) },
         )
         bool(
-            "checkTimeout", "check timeout", tr("시간 초과 확인", "Timeout warning"), SettingCategory.GAME,
-            note = tr("보드 화면 대국 패널에 반영됩니다", "Shown in the game panel on the board screen"),
+            "checkTimeout", "check timeout", tr("시간 초과 확인", "Timeout warning", "超时警告"), SettingCategory.GAME,
+            note = tr("보드 화면 대국 패널에 반영됩니다", "Shown in the game panel on the board screen", "显示在棋盘界面的对局面板中"),
             get = { it.checkTimeout }, set = { s, v -> s.copy(checkTimeout = v) },
         )
         bool(
-            "useDatabase", "use database moves (0: no, 1: yes)", tr("데이터베이스 사용", "Use database"),
+            "useDatabase", "use database moves (0: no, 1: yes)", tr("데이터베이스 사용", "Use database", "使用数据库"),
             SettingCategory.DATABASE, engineKey = "usedatabase",
             get = { it.useDatabase }, set = { s, v -> s.copy(useDatabase = v) },
         )
         bool(
             "databaseReadonly", "enable database read-only mode (0: no, 1: yes)",
-            tr("데이터베이스 읽기 전용", "Database read-only"), SettingCategory.DATABASE, engineKey = "database_readonly",
-            note = tr("항상 엔진으로 밀어 보냅니다 — 서버 설정이 읽기 전용이면 탐색 결과가 조용히 버려집니다", "Always pushed to the engine — if the server's own config is read-only, search results are dropped silently"),
+            tr("데이터베이스 읽기 전용", "Database read-only", "数据库只读模式"), SettingCategory.DATABASE, engineKey = "database_readonly",
+            note = tr("항상 엔진으로 밀어 보냅니다 — 서버 설정이 읽기 전용이면 탐색 결과가 조용히 버려집니다", "Always pushed to the engine — if the server's own config is read-only, search results are dropped silently", "总是推送给引擎，如果服务器自身配置为只读，搜索结果会被悄悄丢弃"),
             get = { it.databaseReadonly }, set = { s, v -> s.copy(databaseReadonly = v) },
         )
         bool(
-            "showBoardText", "show database baord texts (0: no, 1: yes)", tr("보드 텍스트", "Board text"),
+            "showBoardText", "show database baord texts (0: no, 1: yes)", tr("보드 텍스트", "Board text", "棋盘文字"),
             SettingCategory.DATABASE, note = tr("켜면 저장된 값 대신 사용자가 쓴 라벨을 보드에 표시합니다",
-                "Shows the labels you wrote instead of the stored values"),
+                "Shows the labels you wrote instead of the stored values",
+                "显示你写的标签，而不是保存的估值"),
             get = { it.showBoardText }, set = { s, v -> s.copy(showBoardText = v) },
         )
         bool(
-            "showDbDelConfirm", "show database delall confirmation (0: no, 1: yes)", tr("삭제 확인", "Confirm deletions"),
+            "showDbDelConfirm", "show database delall confirmation (0: no, 1: yes)", tr("삭제 확인", "Confirm deletions", "删除确认"),
             SettingCategory.DATABASE, note = tr("DB 일괄 삭제 같은 되돌릴 수 없는 연산에 확인창 — 일괄 삭제 자체는 기본 잠금입니다",
-                "Confirms operations that cannot be undone; bulk deletes are locked by default anyway"),
+                "Confirms operations that cannot be undone; bulk deletes are locked by default anyway",
+                "数据库批量删除等无法撤销的操作前先确认；批量删除本身默认已锁定"),
             get = { it.showDbDelConfirm }, set = { s, v -> s.copy(showDbDelConfirm = v) },
         )
         bool(
-            "recordDebugLog", "record debug log", tr("디버그 로그 기록", "Record a debug log"), SettingCategory.SYSTEM,
+            "recordDebugLog", "record debug log", tr("디버그 로그 기록", "Record a debug log", "记录调试日志"), SettingCategory.SYSTEM,
             note = tr("콘솔 양방향을 상한 있는 파일로 남기고 설정에서 내보냅니다",
-                "Records both sides of the console to a capped file you can export from settings"),
+                "Records both sides of the console to a capped file you can export from settings",
+                "将控制台双向内容记录到有大小上限的文件，可在设置中导出"),
             get = { it.recordDebugLog }, set = { s, v -> s.copy(recordDebugLog = v) },
         )
         int(
-            "logScale", "log area horizontal scale", tr("로그 영역 배율", "Log area scale"), SettingCategory.APPEARANCE,
+            "logScale", "log area horizontal scale", tr("로그 영역 배율", "Log area scale", "日志区缩放"), SettingCategory.APPEARANCE,
             SettingEditor.Number(50, 300, "%"),
-            note = tr("원시 콘솔 글자 크기 배율 — 100 % = 앱 기본(데스크톱에서는 HiDPI 배율)", "Text size of the raw console — 100 % is the app default (HiDPI scaling on the desktop)"),
+            note = tr("원시 콘솔 글자 크기 배율 — 100 % = 앱 기본(데스크톱에서는 HiDPI 배율)", "Text size of the raw console — 100 % is the app default (HiDPI scaling on the desktop)", "原始控制台的文字大小，100 % 为应用默认(桌面版为 HiDPI 缩放)"),
             get = { it.logScale }, set = { s, v -> s.copy(logScale = v) },
         )
         bool(
-            "nbestSym", "symmetric nbest for the 5th moves", tr("5수 대칭 nbest", "Fifth-move symmetry nbest"),
+            "nbestSym", "symmetric nbest for the 5th moves", tr("5수 대칭 nbest", "Fifth-move symmetry nbest", "第5手对称 nbest"),
             SettingCategory.RESEARCH, engineKey = "nbestsym",
             get = { it.nbestSym }, set = { s, v -> s.copy(nbestSym = v) },
         )
         int(
-            "lossSaturation", "lossing move color saturation (0~100)", tr("패배 수 색 채도", "Losing move saturation"),
+            "lossSaturation", "lossing move color saturation (0~100)", tr("패배 수 색 채도", "Losing move saturation", "败着颜色饱和度"),
             SettingCategory.APPEARANCE, SettingEditor.Number(0, 100, "%"),
             get = { it.lossSaturation }, set = { s, v -> s.copy(lossSaturation = v) },
         )
         int(
-            "winSaturation", "winning move color saturation (0~100)", tr("승리 수 색 채도", "Winning move saturation"),
+            "winSaturation", "winning move color saturation (0~100)", tr("승리 수 색 채도", "Winning move saturation", "胜着颜色饱和度"),
             SettingCategory.APPEARANCE, SettingEditor.Number(0, 100, "%"),
             get = { it.winSaturation }, set = { s, v -> s.copy(winSaturation = v) },
         )
         int(
-            "minSaturation", "min winrate color saturation (0~100)", tr("최소 승률 채도", "Minimum win-rate saturation"),
+            "minSaturation", "min winrate color saturation (0~100)", tr("최소 승률 채도", "Minimum win-rate saturation", "最低胜率饱和度"),
             SettingCategory.APPEARANCE, SettingEditor.Number(0, 100, "%"),
             get = { it.minSaturation }, set = { s, v -> s.copy(minSaturation = v) },
         )
         int(
-            "maxSaturation", "max winrate color saturation (0~100)", tr("최대 승률 채도", "Maximum win-rate saturation"),
+            "maxSaturation", "max winrate color saturation (0~100)", tr("최대 승률 채도", "Maximum win-rate saturation", "最高胜率饱和度"),
             SettingCategory.APPEARANCE, SettingEditor.Number(0, 100, "%"),
             get = { it.maxSaturation }, set = { s, v -> s.copy(maxSaturation = v) },
         )
         int(
-            "colorValue", "value of color (0~100)", tr("색 명도", "Colour value"), SettingCategory.APPEARANCE,
+            "colorValue", "value of color (0~100)", tr("색 명도", "Colour value", "颜色明度"), SettingCategory.APPEARANCE,
             SettingEditor.Number(0, 100, "%"),
             get = { it.colorValue }, set = { s, v -> s.copy(colorValue = v) },
         )
         text(
-            "boardTextFont", "Board Text Font", tr("보드 텍스트 글꼴", "Board Text Font"), SettingCategory.APPEARANCE,
-            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more"),
+            "boardTextFont", "Board Text Font", tr("보드 텍스트 글꼴", "Board Text Font", "棋盘文字字体"), SettingCategory.APPEARANCE,
+            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more", "仅桌面版使用，只保存此值"),
             get = { it.boardTextFont }, set = { s, v -> s.copy(boardTextFont = v) },
         )
         text(
-            "textLogFont", "Text Log Font", tr("로그 글꼴", "Log Font"), SettingCategory.APPEARANCE,
-            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more"),
+            "textLogFont", "Text Log Font", tr("로그 글꼴", "Log Font", "日志字体"), SettingCategory.APPEARANCE,
+            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more", "仅桌面版使用，只保存此值"),
             get = { it.textLogFont }, set = { s, v -> s.copy(textLogFont = v) },
         )
         text(
-            "dbCommentFont", "Database Comment Font", tr("DB 주석 글꼴", "Database Comment Font"), SettingCategory.APPEARANCE,
-            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more"),
+            "dbCommentFont", "Database Comment Font", tr("DB 주석 글꼴", "Database Comment Font", "数据库注释字体"), SettingCategory.APPEARANCE,
+            note = tr("데스크톱 전용 — 값만 보관합니다", "Desktop only — the value is kept, nothing more", "仅桌面版使用，只保存此值"),
             get = { it.dbCommentFont }, set = { s, v -> s.copy(dbCommentFont = v) },
         )
         text(
-            "dbCommentFont2", "Database Comment Font", tr("DB 주석 글꼴 2", "Database Comment Font 2"), SettingCategory.APPEARANCE,
-            note = tr("데스크톱 전용 — 47번째 줄, 46번과 주석이 같습니다", "Desktop only — line 47, whose comment is the same as line 46"),
+            "dbCommentFont2", "Database Comment Font", tr("DB 주석 글꼴 2", "Database Comment Font 2", "数据库注释字体 2"), SettingCategory.APPEARANCE,
+            note = tr("데스크톱 전용 — 47번째 줄, 46번과 주석이 같습니다", "Desktop only — line 47, whose comment is the same as line 46", "仅桌面版使用，第 47 行，注释与第 46 行相同"),
             get = { it.dbCommentFont2 }, set = { s, v -> s.copy(dbCommentFont2 = v) },
         )
     }
 
     private fun buildDev(): List<SettingSpec> = build(SettingsFile.DEV) {
         bool(
-            "showEvalBar", "show evaluation bar (0: no, 1: yes)", tr("평가 바 표시", "Show the eval bar"),
+            "showEvalBar", "show evaluation bar (0: no, 1: yes)", tr("평가 바 표시", "Show the eval bar", "显示评价条"),
             SettingCategory.DISPLAY,
             get = { it.showEvalBar }, set = { s, v -> s.copy(showEvalBar = v) },
         )
         bool(
-            "showWrGraph", "show winrate graph (0: no, 1: yes)", tr("승률 그래프 표시", "Show the win-rate graph"),
+            "showWrGraph", "show winrate graph (0: no, 1: yes)", tr("승률 그래프 표시", "Show the win-rate graph", "显示胜率曲线"),
             SettingCategory.DISPLAY,
             get = { it.showWrGraph }, set = { s, v -> s.copy(showWrGraph = v) },
         )
         int(
             "mqPreset", "move quality preset (0: strict, 1: default, 2: lenient)",
-            tr("수 품질 기준", "Move-grade preset"), SettingCategory.RESEARCH,
+            tr("수 품질 기준", "Move-grade preset", "着法评级标准"), SettingCategory.RESEARCH,
             SettingEditor.Choice(
-                listOf(ChoiceOption(0, tr("엄격", "Strict")), ChoiceOption(1, tr("기본", "Default")), ChoiceOption(2, tr("느슨", "Lenient"))),
+                listOf(ChoiceOption(0, tr("엄격", "Strict", "严格")), ChoiceOption(1, tr("기본", "Default", "默认")), ChoiceOption(2, tr("느슨", "Lenient", "宽松"))),
             ),
-            note = tr("리뷰 등급 기준 — 같은 손실을 얼마나 엄하게 볼지", "How harshly a review judges the same loss"),
+            note = tr("리뷰 등급 기준 — 같은 손실을 얼마나 엄하게 볼지", "How harshly a review judges the same loss", "复盘对同样损失的评判有多严格"),
             get = { it.mqPreset }, set = { s, v -> s.copy(mqPreset = v) },
         )
         bool(
-            "showMoveBadge", "show move badges on stones (0: no, 1: yes)", tr("돌에 수 품질 배지", "Grade badges on stones"),
-            SettingCategory.DISPLAY, note = tr("리뷰가 끝난 뒤 돌 위에 등급 배지를 그립니다", "Draws the grade badge on the stone once a review has finished"),
+            "showMoveBadge", "show move badges on stones (0: no, 1: yes)", tr("돌에 수 품질 배지", "Grade badges on stones", "棋子上的着法评级标记"),
+            SettingCategory.DISPLAY, note = tr("리뷰가 끝난 뒤 돌 위에 등급 배지를 그립니다", "Draws the grade badge on the stone once a review has finished", "复盘结束后在棋子上画出评级标记"),
             get = { it.showMoveBadge }, set = { s, v -> s.copy(showMoveBadge = v) },
         )
         int(
             "proveBudget0Sec", "prove mode initial budget per node (seconds)",
-            tr("증명 초기 예산", "Prove: starting budget"), SettingCategory.RESEARCH, SettingEditor.Number(1, 3_600, tr("초/노드", "s per node")),
-            note = tr("노드당 시작 예산 — 실패하면 2배씩 올립니다", "Budget a node starts with — doubled each time it fails"),
+            tr("증명 초기 예산", "Prove: starting budget", "证明：初始预算"), SettingCategory.RESEARCH, SettingEditor.Number(1, 3_600, tr("초/노드", "s per node", "秒/结点")),
+            note = tr("노드당 시작 예산 — 실패하면 2배씩 올립니다", "Budget a node starts with — doubled each time it fails", "每个结点的初始预算，失败时翻倍"),
             get = { it.proveBudget0Sec }, set = { s, v -> s.copy(proveBudget0Sec = v) },
         )
         int(
-            "proveBudgetMaxSec", "prove mode budget cap (seconds)", tr("증명 예산 상한", "Prove: budget cap"),
-            SettingCategory.RESEARCH, SettingEditor.Number(1, 36_000, tr("초", "s")),
-            note = tr("이 예산까지 올려도 결론이 없으면 그 노드는 포기합니다", "A node that reaches this budget without a conclusion is given up"),
+            "proveBudgetMaxSec", "prove mode budget cap (seconds)", tr("증명 예산 상한", "Prove: budget cap", "证明：预算上限"),
+            SettingCategory.RESEARCH, SettingEditor.Number(1, 36_000, tr("초", "s", "秒")),
+            note = tr("이 예산까지 올려도 결론이 없으면 그 노드는 포기합니다", "A node that reaches this budget without a conclusion is given up", "预算提到此值仍无结论的结点会被放弃"),
             get = { it.proveBudgetMaxSec }, set = { s, v -> s.copy(proveBudgetMaxSec = v) },
         )
         int(
-            "proveNbest", "prove mode attacker candidates (yxnbest k)", tr("증명 공격 후보 수", "Prove: attack candidates"),
+            "proveNbest", "prove mode attacker candidates (yxnbest k)", tr("증명 공격 후보 수", "Prove: attack candidates", "证明：进攻候选数"),
             SettingCategory.RESEARCH, SettingEditor.Number(1, 8),
-            note = tr("OR 노드에서 yxnbest 로 받는 공격 후보 수 (실패 시 1씩 확장)", "Attack moves asked for with yxnbest at an OR node (one more each time it fails)"),
+            note = tr("OR 노드에서 yxnbest 로 받는 공격 후보 수 (실패 시 1씩 확장)", "Attack moves asked for with yxnbest at an OR node (one more each time it fails)", "在 OR 结点用 yxnbest 获取的进攻候选数(失败时每次加 1)"),
             get = { it.proveNbest }, set = { s, v -> s.copy(proveNbest = v) },
         )
         int(
-            "boardZoomPercent", "board zoom scale percent (60~300)", tr("보드 확대", "Board zoom"),
+            "boardZoomPercent", "board zoom scale percent (60~300)", tr("보드 확대", "Board zoom", "棋盘缩放"),
             SettingCategory.DISPLAY, SettingEditor.Number(60, 300, "%"),
             get = { it.boardZoomPercent }, set = { s, v -> s.copy(boardZoomPercent = v) },
         )
         fixed(
-            "reservedFitBoard", "reserved (was: fit board to window)", tr("예약 슬롯", "Reserved slot"),
+            "reservedFitBoard", "reserved (was: fit board to window)", tr("예약 슬롯", "Reserved slot", "保留位"),
             SettingCategory.SYSTEM,
-            note = tr("데스크톱이 위치로 파싱하므로 줄을 지우면 이후 설정이 모두 밀립니다 — 읽고 그대로 씁니다", "The desktop parses by line position, so deleting a line shifts every setting after it — this one is read and written back untouched"),
+            note = tr("데스크톱이 위치로 파싱하므로 줄을 지우면 이후 설정이 모두 밀립니다 — 읽고 그대로 씁니다", "The desktop parses by line position, so deleting a line shifts every setting after it — this one is read and written back untouched", "桌面版按行号解析，删除一行会让之后的设置全部错位，所以原样读写"),
             get = { it.reservedFitBoard }, set = { s, v -> s.copy(reservedFitBoard = v) },
         )
         bool(
-            "dbAutoSave", "auto-save database periodically (0: no, 1: yes)", tr("DB 주기 자동 저장", "Save the database periodically"),
+            "dbAutoSave", "auto-save database periodically (0: no, 1: yes)", tr("DB 주기 자동 저장", "Save the database periodically", "定期保存数据库"),
             SettingCategory.DATABASE, note = tr("엔진이 쉬는 동안에만 YXSAVEDATABASE 를 보냅니다 — 탐색을 끊지 않습니다",
-                "Sends YXSAVEDATABASE only while the engine is idle, so a search is never interrupted"),
+                "Sends YXSAVEDATABASE only while the engine is idle, so a search is never interrupted",
+                "只在引擎空闲时发送 YXSAVEDATABASE，不会打断搜索"),
             get = { it.dbAutoSave }, set = { s, v -> s.copy(dbAutoSave = v) },
         )
         int(
-            "dbAutoSaveMinutes", "database auto-save interval in minutes", tr("DB 자동 저장 간격", "Database auto-save interval"),
-            SettingCategory.DATABASE, SettingEditor.Number(1, 1_440, tr("분", "min")), note = null,
+            "dbAutoSaveMinutes", "database auto-save interval in minutes", tr("DB 자동 저장 간격", "Database auto-save interval", "数据库自动保存间隔"),
+            SettingCategory.DATABASE, SettingEditor.Number(1, 1_440, tr("분", "min", "分钟")), note = null,
             get = { it.dbAutoSaveMinutes }, set = { s, v -> s.copy(dbAutoSaveMinutes = v) },
         )
         bool(
             "proveBestFirst", "prove best attack move first (0: no, 1: yes)",
-            tr("증명: 최선 공격 먼저", "Prove: best attack first"), SettingCategory.RESEARCH,
-            note = tr("최선수 하나만 전개하고 실패할 때만 다음 후보를 꺼냅니다", "Expands the best move alone and reaches for the next candidate only when it fails"),
+            tr("증명: 최선 공격 먼저", "Prove: best attack first", "证明：最佳进攻优先"), SettingCategory.RESEARCH,
+            note = tr("최선수 하나만 전개하고 실패할 때만 다음 후보를 꺼냅니다", "Expands the best move alone and reaches for the next candidate only when it fails", "只展开最佳着法，失败时才取下一个候选"),
             get = { it.proveBestFirst }, set = { s, v -> s.copy(proveBestFirst = v) },
         )
         bool(
             "proveProbe", "prove early probe of strongest defense (0: no, 1: yes)",
-            tr("증명: 최강 방어 조기 탐색", "Prove: probe the strongest defence early"), SettingCategory.RESEARCH,
-            note = tr("성립할 것 같은 방어를 먼저 한 번 확인 — 반증되면 그 가지 전체가 무의미해집니다", "Checks a defence that looks like it holds once, up front — disproving it makes the whole branch moot"),
+            tr("증명: 최강 방어 조기 탐색", "Prove: probe the strongest defence early", "证明：提前探测最强防守"), SettingCategory.RESEARCH,
+            note = tr("성립할 것 같은 방어를 먼저 한 번 확인 — 반증되면 그 가지 전체가 무의미해집니다", "Checks a defence that looks like it holds once, up front — disproving it makes the whole branch moot", "先检查一次看似成立的防守，一旦被推翻，整个分支就无须再算"),
             get = { it.proveProbe }, set = { s, v -> s.copy(proveProbe = v) },
         )
         bool(
-            "reviewByDepth", "review budget unit (0: seconds, 1: depth)", tr("검토 예산 단위 = 깊이", "Review budget in depth"),
+            "reviewByDepth", "review budget unit (0: seconds, 1: depth)", tr("검토 예산 단위 = 깊이", "Review budget in depth", "复盘预算以深度计"),
             SettingCategory.RESEARCH,
             get = { it.reviewByDepth }, set = { s, v -> s.copy(reviewByDepth = v) },
         )
         int(
-            "reviewDepth", "review fixed depth per move", tr("검토 고정 깊이", "Review depth"),
-            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, tr("플라이", "ply")),
+            "reviewDepth", "review fixed depth per move", tr("검토 고정 깊이", "Review depth", "复盘固定深度"),
+            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, tr("플라이", "ply", "层")),
             get = { it.reviewDepth }, set = { s, v -> s.copy(reviewDepth = v) },
         )
         bool(
-            "proveByDepth", "prove budget unit (0: seconds, 1: depth)", tr("증명 예산 단위 = 깊이", "Prove budget in depth"),
-            SettingCategory.RESEARCH, note = tr("시간 대신 고정 깊이로 탐색합니다", "Searches to a fixed depth instead of for a fixed time"),
+            "proveByDepth", "prove budget unit (0: seconds, 1: depth)", tr("증명 예산 단위 = 깊이", "Prove budget in depth", "证明预算以深度计"),
+            SettingCategory.RESEARCH, note = tr("시간 대신 고정 깊이로 탐색합니다", "Searches to a fixed depth instead of for a fixed time", "以固定深度而不是固定时间搜索"),
             get = { it.proveByDepth }, set = { s, v -> s.copy(proveByDepth = v) },
         )
         int(
-            "proveDepth0", "prove initial depth per node", tr("증명 초기 깊이", "Prove: starting depth"),
-            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, tr("플라이", "ply")),
-            note = tr("깊이 모드에서 노드당 시작 깊이 (실패 시 +2)", "Depth a node starts with in depth mode (+2 each time it fails)"),
+            "proveDepth0", "prove initial depth per node", tr("증명 초기 깊이", "Prove: starting depth", "证明：初始深度"),
+            SettingCategory.RESEARCH, SettingEditor.Number(4, 64, tr("플라이", "ply", "层")),
+            note = tr("깊이 모드에서 노드당 시작 깊이 (실패 시 +2)", "Depth a node starts with in depth mode (+2 each time it fails)", "深度模式下每个结点的初始深度(失败时 +2)"),
             get = { it.proveDepth0 }, set = { s, v -> s.copy(proveDepth0 = v) },
         )
         int(
-            "proveDepthMax", "prove depth cap per node", tr("증명 깊이 상한", "Prove: depth cap"),
-            SettingCategory.RESEARCH, SettingEditor.Number(4, 128, tr("플라이", "ply")),
+            "proveDepthMax", "prove depth cap per node", tr("증명 깊이 상한", "Prove: depth cap", "证明：深度上限"),
+            SettingCategory.RESEARCH, SettingEditor.Number(4, 128, tr("플라이", "ply", "层")),
             get = { it.proveDepthMax }, set = { s, v -> s.copy(proveDepthMax = v) },
         )
         bool(
             "skipOpening", "skip grading/search of opening moves 1-5 (0: no, 1: yes)",
-            tr("1~5수 채점 생략", "Skip grading moves 1-5"), SettingCategory.RESEARCH,
-            note = tr("리뷰가 오프닝 국면을 탐색하지 않고 등급도 매기지 않습니다", "A review neither searches nor grades the opening positions"),
+            tr("1~5수 채점 생략", "Skip grading moves 1-5", "不评第1~5手"), SettingCategory.RESEARCH,
+            note = tr("리뷰가 오프닝 국면을 탐색하지 않고 등급도 매기지 않습니다", "A review neither searches nor grades the opening positions", "复盘不搜索、也不评级开局局面"),
             get = { it.skipOpening }, set = { s, v -> s.copy(skipOpening = v) },
         )
         fixed(
             "devDefaults", "one-time dark+korean defaults applied (do not edit)",
-            tr("초기 기본값 적용 표시", "Defaults-applied marker"), SettingCategory.SYSTEM,
-            note = tr("데스크톱이 한 번만 쓰는 표시입니다 — 편집하지 않습니다", "A marker the desktop writes once — not for editing"),
+            tr("초기 기본값 적용 표시", "Defaults-applied marker", "初始默认值标记"), SettingCategory.SYSTEM,
+            note = tr("데스크톱이 한 번만 쓰는 표시입니다 — 편집하지 않습니다", "A marker the desktop writes once — not for editing", "桌面版只写一次的标记，不用于编辑"),
             get = { if (it.devDefaults) 1 else 0 },
             set = { s, v -> s.copy(devDefaults = v != 0) },
         )

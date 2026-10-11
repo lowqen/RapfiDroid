@@ -85,13 +85,13 @@ fun MoveOrderSection(
     ui.applyPrompt?.let { prompt ->
         AlertDialog(
             onDismissRequest = viewModel::onDismissApplyPrompt,
-            title = { Text(tr("돌 위치가 바뀝니다", "The stones will move")) },
+            title = { Text(tr("돌 위치가 바뀝니다", "The stones will move", "棋子位置会改变")) },
             text = { Text(prompt) },
             confirmButton = {
-                TextButton(onClick = { viewModel.onApply(confirmed = true) }) { Text(tr("놓기", "Place")) }
+                TextButton(onClick = { viewModel.onApply(confirmed = true) }) { Text(tr("놓기", "Place", "放置")) }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::onDismissApplyPrompt) { Text(tr("취소", "Cancel")) }
+                TextButton(onClick = viewModel::onDismissApplyPrompt) { Text(tr("취소", "Cancel", "取消")) }
             },
         )
     }
@@ -122,7 +122,7 @@ fun MoveOrderSection(
         item {
             dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(
                 id = "sequence-options",
-                title = tr("규칙", "Rules"),
+                title = tr("규칙", "Rules", "规则"),
             ) { OptionChips(ui, viewModel::onOptionsChange) }
         }
 
@@ -142,13 +142,13 @@ fun MoveOrderSection(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         OutlinedButton(onClick = viewModel::onBack, enabled = ui.canBack) {
-                            Text(tr("한 수 뒤로", "Back one"))
+                            Text(tr("한 수 뒤로", "Back one", "后退一步"))
                         }
                         OutlinedButton(onClick = viewModel::onRoot, enabled = ui.canBack) {
-                            Text(tr("처음으로", "To start"))
+                            Text(tr("처음으로", "To start", "到开头"))
                         }
                         Button(onClick = { viewModel.onApply() }, enabled = ui.canApply) {
-                            Text(tr("보드에 놓기", "Put on the board"))
+                            Text(tr("보드에 놓기", "Put on the board", "放到棋盘上"))
                         }
                     }
                 }
@@ -167,7 +167,7 @@ fun MoveOrderSection(
         if (ui.rows.isNotEmpty()) {
             item {
                 Text(
-                    tr("다음 수 ${ui.rows.size}가지", "${ui.rows.size} continuations"),
+                    tr("다음 수 ${ui.rows.size}가지", "${ui.rows.size} continuations", "后续着法 ${ui.rows.size} 种"),
                     style = MaterialTheme.typography.titleSmall,
                 )
             }
@@ -191,24 +191,24 @@ private fun OptionChips(ui: MoveOrderUiState, onChange: (MoveOrderOptions) -> Un
         FilterChip(
             selected = o.openingRule,
             onClick = { onChange(o.copy(openingRule = !o.openingRule)) },
-            label = { Text(tr("오프닝 규칙", "Opening rule")) },
+            label = { Text(tr("오프닝 규칙", "Opening rule", "开局规则")) },
         )
         FilterChip(
             selected = o.move2Fix,
             // H9/I9 is a sub-rule of the opening rule (main.c:6140)
             enabled = o.openingRule,
             onClick = { onChange(o.copy(move2Fix = !o.move2Fix)) },
-            label = { Text(tr("2수 H9/I9", "Move 2 at H9/I9")) },
+            label = { Text(tr("2수 H9/I9", "Move 2 at H9/I9", "第2手 H9/I9")) },
         )
         FilterChip(
             selected = o.noFive,
             onClick = { onChange(o.copy(noFive = !o.noFive)) },
-            label = { Text(tr("중간 오목 금지", "No five before the end")) },
+            label = { Text(tr("중간 오목 금지", "No five before the end", "禁止中途成五")) },
         )
         FilterChip(
             selected = o.symmetry,
             onClick = { onChange(o.copy(symmetry = !o.symmetry)) },
-            label = { Text(tr("환원(회전·반전)", "Fold rotations and mirrors")) },
+            label = { Text(tr("환원(회전·반전)", "Fold rotations and mirrors", "合并旋转·翻转")) },
         )
     }
 }
@@ -232,13 +232,13 @@ private fun CandidateRow(
             )
             Column(Modifier.weight(1f).padding(start = 10.dp)) {
                 Text(
-                    row.label + if (row.actual) tr("  ← 실제 대국", "  ← this game") else "",
+                    row.label + if (row.actual) tr("  ← 실제 대국", "  ← this game", "  ← 实战对局") else "",
                     style = MaterialTheme.typography.titleSmall,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                 )
                 Text(
-                    tr("수순 ${row.countText}가지 · ${row.sharePercent}%", "${row.countText} orders · ${row.sharePercent}%"),
+                    tr("수순 ${row.countText}가지 · ${row.sharePercent}%", "${row.countText} orders · ${row.sharePercent}%", "手顺 ${row.countText} 种 · ${row.sharePercent}%"),
                     style = MaterialTheme.typography.labelSmall.tabular(),
                 )
             }

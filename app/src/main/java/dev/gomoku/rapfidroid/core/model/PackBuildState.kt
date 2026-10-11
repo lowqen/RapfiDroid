@@ -39,10 +39,10 @@ sealed interface PackBuildState {
 
         val label: String
             get() = when (this) {
-                Reading -> tr("기보 파일 읽는 중", "Reading the game file")
-                Counting -> tr("국면 세는 중", "Counting positions")
-                Aggregating -> tr("통계 모으는 중", "Gathering statistics")
-                Writing -> tr("데이터 저장 중", "Saving the data")
+                Reading -> tr("기보 파일 읽는 중", "Reading the game file", "正在读取棋谱文件")
+                Counting -> tr("국면 세는 중", "Counting positions", "正在统计局面")
+                Aggregating -> tr("통계 모으는 중", "Gathering statistics", "正在汇总统计")
+                Writing -> tr("데이터 저장 중", "Saving the data", "正在保存数据")
             }
     }
 }

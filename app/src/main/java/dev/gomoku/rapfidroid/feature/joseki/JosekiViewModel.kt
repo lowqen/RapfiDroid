@@ -134,6 +134,7 @@ class JosekiViewModel @Inject constructor(
             else -> notice.value = tr(
                 "레슨 «${target.lessonId ?: target.courseId}» 을(를) 찾지 못했습니다",
                 "Lesson «${target.lessonId ?: target.courseId}» was not found",
+                "未找到课程 «${target.lessonId ?: target.courseId}»",
             )
         }
     }
@@ -145,7 +146,7 @@ class JosekiViewModel @Inject constructor(
     fun lessonLink(): String? = nav.value.lessonId?.let { LessonLink.url(it, nav.value.learn) }
 
     fun onLinkCopied() {
-        notice.value = tr("레슨 링크를 복사했습니다", "Copied the lesson link")
+        notice.value = tr("레슨 링크를 복사했습니다", "Copied the lesson link", "已复制课程链接")
     }
 
     fun onNoticeShown() {
@@ -230,9 +231,9 @@ class JosekiViewModel @Inject constructor(
     fun onNewJoseki(fromBoard: Boolean) {
         val tree = if (fromBoard) {
             val moves = game.position.value.moves
-            JosekiTree(title = tr("새 정석", "New joseki"), root = JosekiOps.addLine(JosekiNode(), moves).root)
+            JosekiTree(title = tr("새 정석", "New joseki", "新定式"), root = JosekiOps.addLine(JosekiNode(), moves).root)
         } else {
-            JosekiTree(title = tr("새 정석", "New joseki"))
+            JosekiTree(title = tr("새 정석", "New joseki", "新定式"))
         }
         repo.save(tree)
         nav.update { it.copy(editingId = tree.id) }
@@ -278,7 +279,7 @@ class JosekiViewModel @Inject constructor(
             is JosekiOps.Parsed.Ok -> {
                 val r = JosekiOps.addLine(t.root, parsed.moves, editPath.value, t.boardSize)
                 editPath.value = r.path
-                r.stoppedAt?.let { notice.value = tr("${it + 1}번째 수에서 멈췄습니다", "Stopped at move ${it + 1}") }
+                r.stoppedAt?.let { notice.value = tr("${it + 1}번째 수에서 멈췄습니다", "Stopped at move ${it + 1}", "在第 ${it + 1} 手停止") }
                 t.copy(root = r.root)
             }
         }
@@ -321,7 +322,7 @@ class JosekiViewModel @Inject constructor(
     fun onImport(uri: Uri) {
         viewModelScope.launch {
             val bytes = fileIo.read(uri.toString()) ?: run {
-                notice.value = tr("파일을 읽지 못했습니다", "Could not read the file")
+                notice.value = tr("파일을 읽지 못했습니다", "Could not read the file", "无法读取文件")
                 return@launch
             }
             val name = fileIo.displayName(uri)
@@ -330,19 +331,19 @@ class JosekiViewModel @Inject constructor(
                 // A game file becomes a draft joseki.
                 val moves = GameFile.parse(bytes, format, Move.DEFAULT_SIZE).orEmpty()
                 if (moves.isEmpty()) {
-                    notice.value = tr("기보를 읽지 못했습니다", "Could not read the game")
+                    notice.value = tr("기보를 읽지 못했습니다", "Could not read the game", "无法读取棋谱")
                     return@launch
                 }
                 repo.addAll(listOf(JosekiTree(title = GameFile.baseName(name), root = JosekiOps.addLine(JosekiNode(), moves).root)))
-                notice.value = tr("기보를 정석 초안으로 들였습니다", "Imported the game as a draft joseki")
+                notice.value = tr("기보를 정석 초안으로 들였습니다", "Imported the game as a draft joseki", "已将棋谱导入为定式草稿")
                 return@launch
             }
             when (val r = JosekiJson.import(bytes.decodeToString())) {
                 is JosekiJson.Import.Error -> notice.value = r.message
                 is JosekiJson.Import.Ok -> {
                     repo.addAll(r.trees)
-                    notice.value = tr("정석 ${r.trees.size}개를 가져왔습니다", "Imported ${r.trees.size} joseki") +
-                        if (r.dropped > 0) tr(" · 버린 가지 ${r.dropped}", " · ${r.dropped} branches dropped") else ""
+                    notice.value = tr("정석 ${r.trees.size}개를 가져왔습니다", "Imported ${r.trees.size} joseki", "已导入 ${r.trees.size} 个定式") +
+                        if (r.dropped > 0) tr(" · 버린 가지 ${r.dropped}", " · ${r.dropped} branches dropped", " · 丢弃分支 ${r.dropped} 个") else ""
                 }
             }
         }
@@ -351,8 +352,8 @@ class JosekiViewModel @Inject constructor(
     fun onExport(uri: Uri) {
         viewModelScope.launch {
             notice.value = runCatching { fileIo.write(uri, repo.exportAll().toByteArray()) }.fold(
-                onSuccess = { tr("정석을 내보냈습니다", "Joseki exported") },
-                onFailure = { tr("내보내지 못했습니다", "Could not export") },
+                onSuccess = { tr("정석을 내보냈습니다", "Joseki exported", "已导出定式") },
+                onFailure = { tr("내보내지 못했습니다", "Could not export", "无法导出") },
             )
         }
     }
@@ -361,8 +362,8 @@ class JosekiViewModel @Inject constructor(
         val bytes = psqBytes() ?: return
         viewModelScope.launch {
             notice.value = runCatching { fileIo.write(uri, bytes) }.fold(
-                onSuccess = { tr("변화를 .psq 로 저장했습니다", "Saved the line as .psq") },
-                onFailure = { tr("저장하지 못했습니다", "Could not save") },
+                onSuccess = { tr("변화를 .psq 로 저장했습니다", "Saved the line as .psq", "已将变化保存为 .psq") },
+                onFailure = { tr("저장하지 못했습니다", "Could not save", "无法保存") },
             )
         }
     }
@@ -370,7 +371,7 @@ class JosekiViewModel @Inject constructor(
     private fun toBoard(moves: List<Move>) {
         viewModelScope.launch {
             game.replaceLine(moves)
-            notice.value = tr("보드에 올렸습니다 (${moves.size}수)", "Put on the board (${moves.size} moves)")
+            notice.value = tr("보드에 올렸습니다 (${moves.size}수)", "Put on the board (${moves.size} moves)", "已放到棋盘上 (${moves.size} 手)")
         }
     }
 }

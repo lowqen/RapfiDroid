@@ -85,14 +85,14 @@ internal fun StageBar(
             modifier = Modifier.height(40.dp),
         ) {
             Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(" " + tr("새 판", "New"), maxLines = 1)
+            Text(" " + tr("새 판", "New", "新建"), maxLines = 1)
         }
         if (!ui.analysisTab) {
             val side = ui.game.computerSide
             val canSwap = (side == ComputerSide.BLACK || side == ComputerSide.WHITE) &&
                 !ui.game.thinking && ui.game.prompt == null
             IconButton(onClick = onSwapSides, enabled = canSwap) {
-                Icon(Icons.Filled.SwapHoriz, contentDescription = tr("진영 전환", "Swap sides"))
+                Icon(Icons.Filled.SwapHoriz, contentDescription = tr("진영 전환", "Swap sides", "交换执子"))
             }
         }
     }
@@ -108,8 +108,8 @@ private fun ModeTabs(mode: BoardMode, onMode: (BoardMode) -> Unit) {
     ) {
         Row(Modifier.padding(3.dp), verticalAlignment = Alignment.CenterVertically) {
             listOf(
-                BoardMode.ANALYSIS to tr("분석", "Analysis"),
-                BoardMode.GAME to tr("대국", "Play"),
+                BoardMode.ANALYSIS to tr("분석", "Analysis", "分析"),
+                BoardMode.GAME to tr("대국", "Play", "对局"),
             ).forEach { (m, label) ->
                 val on = m == mode
                 Surface(
@@ -156,8 +156,8 @@ internal fun MoveTransport(
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start"), canBack, onFirst)
-        BarButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one"), canBack, onUndo)
+        BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst)
+        BarButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), canBack, onUndo)
         if (ui.analysisTab) {
             val running = ui.analyzing || ui.balancing
             FilledIconButton(
@@ -173,13 +173,13 @@ internal fun MoveTransport(
             ) {
                 Icon(
                     if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (running) tr("엔진 멈춤", "Pause engine") else tr("엔진 분석", "Analyse"),
+                    contentDescription = if (running) tr("엔진 멈춤", "Pause engine", "暂停引擎") else tr("엔진 분석", "Analyse", "引擎分析"),
                     modifier = Modifier.size(30.dp),
                 )
             }
         }
-        BarButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one"), canForward, onRedo)
-        BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end"), canForward, onLast)
+        BarButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), canForward, onRedo)
+        BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast)
     }
 }
 
@@ -260,14 +260,14 @@ private fun labels(v: EvalView?): Pair<String, String?> {
 }
 
 private fun describe(v: EvalView?): String {
-    if (v == null) return tr("평가 없음", "No evaluation")
-    val src = if (v.fromDb) tr(" · DB 기록", " · database") else ""
+    if (v == null) return tr("평가 없음", "No evaluation", "无评价")
+    val src = if (v.fromDb) tr(" · DB 기록", " · database", " · 数据库记录") else ""
     v.mate?.let {
-        return (if (it > 0) tr("흑 ${abs(it)}수 외통", "Black mates in ${abs(it)}")
-        else tr("백 ${abs(it)}수 외통", "White mates in ${abs(it)}")) + src
+        return (if (it > 0) tr("흑 ${abs(it)}수 외통", "Black mates in ${abs(it)}", "黑 ${abs(it)} 步杀")
+        else tr("백 ${abs(it)}수 외통", "White mates in ${abs(it)}", "白 ${abs(it)} 步杀")) + src
     }
     val b = v.blackPct.roundToInt()
-    return tr("흑 $b% · 백 ${100 - b}%", "Black $b% · White ${100 - b}%") + src
+    return tr("흑 $b% · 백 ${100 - b}%", "Black $b% · White ${100 - b}%", "黑 $b% · 白 ${100 - b}%") + src
 }
 
 /** Width of the eval bar beside the board. */

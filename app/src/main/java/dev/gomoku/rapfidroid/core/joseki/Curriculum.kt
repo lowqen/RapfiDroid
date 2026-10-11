@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.core.joseki
 
-import dev.gomoku.rapfidroid.core.i18n.isKorean
+import dev.gomoku.rapfidroid.core.i18n.AppLanguage
+import dev.gomoku.rapfidroid.core.i18n.appLanguage
 import dev.gomoku.rapfidroid.core.joseki.JosekiJson.obj
 import dev.gomoku.rapfidroid.core.joseki.JosekiJson.str
 import dev.gomoku.rapfidroid.core.model.Move
@@ -22,10 +23,10 @@ import kotlinx.serialization.json.intOrNull
  * Validation follows the joseki import: bad branches are dropped, ids must be
  * well-formed and unique, and a lesson the learner has no move in is dropped.
  */
-enum class CourseLevel(val key: String, val ko: String, val en: String) {
-    BEGINNER("beginner", "입문", "Beginner"),
-    INTERMEDIATE("intermediate", "중급", "Intermediate"),
-    ADVANCED("advanced", "고급", "Advanced"),
+enum class CourseLevel(val key: String, val ko: String, val en: String, val zh: String) {
+    BEGINNER("beginner", "입문", "Beginner", "入门"),
+    INTERMEDIATE("intermediate", "중급", "Intermediate", "中级"),
+    ADVANCED("advanced", "고급", "Advanced", "高级"),
 }
 
 data class Lesson(
@@ -59,13 +60,22 @@ object CurriculumJson {
     private const val MAX_SUMMARY = 4_000
     private val ID = Regex("^[a-z0-9][a-z0-9-]{0,63}$")
 
-    /** A two-language text in the app's language: English falls back to Korean. */
-    fun text(e: JsonElement?, max: Int, korean: Boolean = isKorean()): String {
+    /**
+     * A text in the app's language. The file carries Korean and English, and may
+     * carry Chinese (`zh`); a language that is missing falls back to English,
+     * then to Korean — a Chinese reader is better served by English than by Korean.
+     */
+    fun text(e: JsonElement?, max: Int, lang: AppLanguage = appLanguage()): String {
         if (e is JsonPrimitive) return e.str(max)
         val o = e.obj() ?: return ""
         val ko = o["ko"].str(max)
         val en = o["en"].str(max)
-        return if (!korean && en.isNotEmpty()) en else ko
+        val zh = o["zh"].str(max)
+        return when (lang) {
+            AppLanguage.KOREAN -> ko
+            AppLanguage.CHINESE -> zh.ifEmpty { en.ifEmpty { ko } }
+            AppLanguage.ENGLISH -> en.ifEmpty { ko }
+        }
     }
 
     /** Learner moves on the main line. */
@@ -81,7 +91,7 @@ object CurriculumJson {
         return count
     }
 
-    fun parse(text: String, korean: Boolean = isKorean()): Curriculum? {
+    fun parse(text: String, lang: AppLanguage = appLanguage()): Curriculum? {
         val raw = runCatching { Json.parseToJsonElement(text) }.getOrNull().obj() ?: return null
         if (raw["format"].str(64) != FORMAT) return null
         if ((raw["schema"] as? JsonPrimitive)?.intOrNull != 1) return null
@@ -108,7 +118,7 @@ object CurriculumJson {
                 val black = (l["quiz"].obj()?.get("side")).str(8) != "white"
                 val drop = IntArray(1)
                 val root = JosekiJson.cleanNode(l["root"], HashSet<Move>(), Move.DEFAULT_SIZE, drop, 0) {
-                    text(it, MAX_COMMENT, korean)
+                    text(it, MAX_COMMENT, lang)
                 }
                 if (drop[0] > 0) problems.add("lesson $lid: ${drop[0]} branches dropped")
                 if (learnerMoves(root, black) == 0) {
@@ -119,14 +129,14 @@ object CurriculumJson {
                 lessons.add(
                     Lesson(
                         id = lid,
-                        title = text(l["title"], MAX_TITLE, korean),
-                        summary = text(l["summary"], MAX_SUMMARY, korean),
+                        title = text(l["title"], MAX_TITLE, lang),
+                        summary = text(l["summary"], MAX_SUMMARY, lang),
                         blackLearner = black,
                         root = root,
                     ),
                 )
             }
-            courses.add(Course(id, text(c["title"], MAX_TITLE, korean), level, text(c["summary"], MAX_SUMMARY, korean), lessons))
+            courses.add(Course(id, text(c["title"], MAX_TITLE, lang), level, text(c["summary"], MAX_SUMMARY, lang), lessons))
         }
         return Curriculum(raw["version"].str(40), courses, problems)
     }

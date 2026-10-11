@@ -43,7 +43,7 @@ fun DataSetupCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                tr("RenjuNet 기보 파일을 넣으면 실전 빈도 · 승률 · 기보가 나옵니다", "Add the RenjuNet game file for real-game frequencies, scores and games"),
+                tr("RenjuNet 기보 파일을 넣으면 실전 빈도 · 승률 · 기보가 나옵니다", "Add the RenjuNet game file for real-game frequencies, scores and games", "加入 RenjuNet 棋谱文件后，可看到实战频率、胜率和棋谱"),
                 style = MaterialTheme.typography.bodyMedium,
             )
             if (running != null) {
@@ -57,8 +57,8 @@ fun DataSetupCard(
             }
             Button(onClick = { showDialog = true }) {
                 Text(
-                    if (running != null) tr("진행 상황 보기", "See progress")
-                    else tr("대국 데이터 추가", "Add game data"),
+                    if (running != null) tr("진행 상황 보기", "See progress", "查看进度")
+                    else tr("대국 데이터 추가", "Add game data", "添加对局数据"),
                 )
             }
         }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.FunctionScripts
 import dev.gomoku.rapfidroid.core.model.LngTable
 import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
@@ -70,36 +71,37 @@ class AppearanceRepositoryImpl @Inject constructor(
                     }.mapNotNull { FunctionScripts.parseHotkey(it) }
                 }.orEmpty()
 
-                // The desktop ships seven `.lng` files; this app supports two
-                // languages, so a PC set to Chinese or Japanese would otherwise
-                // put those labels on buttons in an app that speaks neither.
-                // Anything but Korean falls back to English, which is what the
-                // desktop's own `TL(idx, "…")` defaults are written in.
-                val lngIndex = if (languageIndex == LNG_KOREAN) LNG_KOREAN else LNG_ENGLISH
+                // The desktop ships seven `.lng` files; this app speaks Korean,
+                // English and Chinese, so a PC set to Japanese, Russian or
+                // Vietnamese would otherwise put those labels on buttons in an
+                // app that speaks none of them. Those fall back to English, which
+                // is what the desktop's own `TL(idx, "…")` defaults are written in;
+                // both Chinese files (1 简体, 2 繁體) are kept as the PC chose.
+                val lngIndex = if (languageIndex in LNG_SUPPORTED) languageIndex else LNG_ENGLISH
                 val lng = saf.folder("language")
                     ?.let { saf.readFile(it, "$lngIndex.lng") }
                     ?.let { LngTable.parse(it) }
 
                 if (toolbar.isNotEmpty()) {
                     _toolbar.value = toolbar
-                    found += "툴바 ${toolbar.size}개"
+                    found += tr("툴바 ${toolbar.size}개", "${toolbar.size} toolbar items", "工具栏 ${toolbar.size} 项")
                 }
                 if (hotkeys.isNotEmpty()) {
                     _hotkeys.value = hotkeys
-                    found += "핫키 ${hotkeys.size}개"
+                    found += tr("핫키 ${hotkeys.size}개", "${hotkeys.size} hotkeys", "快捷键 ${hotkeys.size} 个")
                 }
                 if (lng != null && lng.size > 0) {
                     _language.value = lng
                     val name = lng.languageName.ifEmpty { "$lngIndex.lng" }
-                    found += "언어 $name (${lng.size}개)"
+                    found += tr("언어 $name (${lng.size}개)", "language $name (${lng.size})", "语言 $name (${lng.size} 条)")
                 }
                 if (found.isEmpty()) {
                     error(
-                        "function/toolbar1.txt 도 language/$lngIndex.lng 도 없습니다 — " +
-                            "Yixin.exe 가 있는 폴더를 선택하세요",
+                        tr("function/toolbar1.txt 도 language/$lngIndex.lng 도 없습니다 — ", "Neither function/toolbar1.txt nor language/$lngIndex.lng is there — ", "既没有 function/toolbar1.txt 也没有 language/$lngIndex.lng，") +
+                            tr("Yixin.exe 가 있는 폴더를 선택하세요", "pick the folder Yixin.exe is in", "请选择 Yixin.exe 所在的文件夹"),
                     )
                 }
-                val label = saf.displayName() ?: "선택한 폴더"
+                val label = saf.displayName() ?: tr("선택한 폴더", "the chosen folder", "所选文件夹")
                 _source.value = label
                 store.save(
                     AppearanceStore.Saved(
@@ -109,7 +111,7 @@ class AppearanceRepositoryImpl @Inject constructor(
                         source = label,
                     ),
                 )
-                found.joinToString(" · ") + " 불러옴"
+                found.joinToString(" · ") + tr(" 불러옴", " loaded", " 已载入")
             }
         }
 
@@ -132,5 +134,6 @@ class AppearanceRepositoryImpl @Inject constructor(
         /** `language/<n>.lng` indices this app will read (main.c:14278). */
         const val LNG_ENGLISH = 0
         const val LNG_KOREAN = 3
+        val LNG_SUPPORTED = setOf(1, 2, LNG_KOREAN)
     }
 }

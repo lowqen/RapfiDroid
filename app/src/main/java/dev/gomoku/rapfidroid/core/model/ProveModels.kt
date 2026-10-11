@@ -54,7 +54,7 @@ data class ProveOptions(
 
     /** The log line's budget part (main.c:9970 / 9974). */
     val label: String
-        get() = if (byDepth) "d$depth0..$depthMax" else tr("$budget0Sec..${budgetMaxSec}초", "$budget0Sec..${budgetMaxSec}s")
+        get() = if (byDepth) "d$depth0..$depthMax" else tr("$budget0Sec..${budgetMaxSec}초", "$budget0Sec..${budgetMaxSec}s", "$budget0Sec..${budgetMaxSec} 秒")
 
     /**
      * Clamped to the dialog's spin ranges (main.c:9894-9915) with the two
@@ -162,7 +162,7 @@ data class ProveOverlay(
     /** Budget label of an OPEN candidate (main.c:9124). */
     fun budgetLabel(move: Move): String {
         val v = budgets[move] ?: return ""
-        return if (v > 99) "99+" else if (byDepth) "d$v" else tr("${v}초", "${v}s")
+        return if (v > 99) "99+" else if (byDepth) "d$v" else tr("${v}초", "${v}s", "${v} 秒")
     }
 
     companion object {
@@ -201,9 +201,9 @@ data class ProveProgress(
      * live search — empty unless one is running.
      */
     fun badgeLines(): Pair<String, String> {
-        val first = tr("증명: 해결 $resolved / 탐색 $searches / 미결 $open", "Prove: $resolved settled / $searches searches / $open open")
+        val first = tr("증명: 해결 $resolved / 탐색 $searches / 미결 $open", "Prove: $resolved settled / $searches searches / $open open", "证明：已定 $resolved / 搜索 $searches / 未定 $open")
         if (phase != ProvePhase.SEARCH) return first to ""
-        val side = if (attack) tr("공격", "attack") else tr("방어", "defend")
+        val side = if (attack) tr("공격", "attack", "进攻") else tr("방어", "defend", "防守")
         val value = if (mate != 0) "M${if (mate > 0) mate else -mate}" else "$winRatePct%"
         val second = buildString {
             if (byDepth) {
@@ -211,7 +211,7 @@ data class ProveProgress(
             } else {
                 append("$side  d$depth $value  ${elapsedSec}s/${budget / 1000}s")
             }
-            if (candTotal > 0) append(tr("  후보 $candIndex/$candTotal", "  candidate $candIndex/$candTotal"))
+            if (candTotal > 0) append(tr("  후보 $candIndex/$candTotal", "  candidate $candIndex/$candTotal", "  候选 $candIndex/$candTotal"))
         }
         return first to second
     }
@@ -231,21 +231,21 @@ data class ProveOutcome(
     /** Attacker win rate estimate when the run ended unresolved. */
     val attackerWinRatePct: Int,
 ) {
-    val title: String get() = if (cancelled) tr("증명 취소", "Prove cancelled") else tr("증명 완료", "Prove done")
+    val title: String get() = if (cancelled) tr("증명 취소", "Prove cancelled", "证明已取消") else tr("증명 완료", "Prove done", "证明完成")
 
     /** The dialog body, string for string as main.c builds it. */
     val message: String
         get() = if (resolved) {
-            val side = if (blackToMove) tr("흑 (차례)", "Black (to move)") else tr("백 (차례)", "White (to move)")
-            val verdict = if (win) tr("승리 증명됨", "WIN PROVEN") else tr("승리 불가 (방어 성립/무승부)", "cannot win (defence holds / draw)")
+            val side = if (blackToMove) tr("흑 (차례)", "Black (to move)", "黑 (轮到)") else tr("백 (차례)", "White (to move)", "白 (轮到)")
+            val verdict = if (win) tr("승리 증명됨", "WIN PROVEN", "已证明必胜") else tr("승리 불가 (방어 성립/무승부)", "cannot win (defence holds / draw)", "无法取胜 (防守成立/和棋)")
             val by = when (kind) {
-                ProveKind.MATE -> tr("메이트", "mate")
-                ProveKind.DB -> tr("데이터베이스", "database")
-                else -> tr("승률", "win rate")
+                ProveKind.MATE -> tr("메이트", "mate", "杀")
+                ProveKind.DB -> tr("데이터베이스", "database", "数据库")
+                else -> tr("승률", "win rate", "胜率")
             }
-            tr("$side: $verdict ($by)\n탐색 ${searches}회, 결론 ${conclusions}개, DB 기록 ${dbWrites}개", "$side: $verdict ($by)\n$searches searches, $conclusions conclusions, $dbWrites database records")
+            tr("$side: $verdict ($by)\n탐색 ${searches}회, 결론 ${conclusions}개, DB 기록 ${dbWrites}개", "$side: $verdict ($by)\n$searches searches, $conclusions conclusions, $dbWrites database records", "$side: $verdict ($by)\n搜索 $searches 次，结论 $conclusions 个，数据库记录 $dbWrites 条")
         } else {
-            tr("미결 (예산 소진), 공격측 승률 ~$attackerWinRatePct%\n", "Unresolved (budget exhausted), attacker win rate ~$attackerWinRatePct%\n") +
-                tr("탐색 ${searches}회, 결론 ${conclusions}개. 다시 실행하면 이어서 계산합니다 (DB 유지).", "$searches searches, $conclusions conclusions. Run it again to carry on where it stopped (the database is kept).")
+            tr("미결 (예산 소진), 공격측 승률 ~$attackerWinRatePct%\n", "Unresolved (budget exhausted), attacker win rate ~$attackerWinRatePct%\n", "未定 (预算用尽)，进攻方胜率 ~$attackerWinRatePct%\n") +
+                tr("탐색 ${searches}회, 결론 ${conclusions}개. 다시 실행하면 이어서 계산합니다 (DB 유지).", "$searches searches, $conclusions conclusions. Run it again to carry on where it stopped (the database is kept).", "搜索 $searches 次，结论 $conclusions 个。再次运行会接着计算(保留数据库)。")
         }
 }

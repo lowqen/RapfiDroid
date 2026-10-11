@@ -140,7 +140,7 @@ class OpeningExplorerViewModel @Inject constructor(
     fun onClearPacks() {
         viewModelScope.launch {
             repository.clearPacks()
-            _ui.update { it.copy(notice = tr("팩을 지웠습니다", "Packs cleared"), selected = null) }
+            _ui.update { it.copy(notice = tr("팩을 지웠습니다", "Packs cleared", "已清除数据包"), selected = null) }
         }
     }
 
@@ -173,7 +173,7 @@ class OpeningExplorerViewModel @Inject constructor(
         viewModelScope.launch {
             val reason = repository.loadGame(id)
             _ui.update {
-                it.copy(notice = reason ?: tr("기보 #$id 을(를) 보드에 올렸습니다", "Game #$id is on the board"))
+                it.copy(notice = reason ?: tr("기보 #$id 을(를) 보드에 올렸습니다", "Game #$id is on the board", "已将棋谱 #$id 放到棋盘上"))
             }
         }
     }

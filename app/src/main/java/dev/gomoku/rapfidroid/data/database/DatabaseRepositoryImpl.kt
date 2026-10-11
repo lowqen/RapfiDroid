@@ -196,14 +196,14 @@ class DatabaseRepositoryImpl @Inject constructor(
         }
         when (response) {
             is EngineResponse.DbOne -> log(
-                aggregator.snapshot().entry?.summary() ?: "DB 레코드 없음",
+                aggregator.snapshot().entry?.summary() ?: tr("DB 레코드 없음", "No database record", "无数据库记录"),
             )
             is EngineResponse.DbFileEvent -> log(
                 when {
-                    response.started && response.saving -> "저장 중: ${response.file}"
-                    response.started -> "불러오는 중: ${response.file}"
-                    response.saving -> "저장 완료"
-                    else -> "불러오기 완료"
+                    response.started && response.saving -> tr("저장 중: ${response.file}", "Saving: ${response.file}", "正在保存: ${response.file}")
+                    response.started -> tr("불러오는 중: ${response.file}", "Loading: ${response.file}", "正在载入: ${response.file}")
+                    response.saving -> tr("저장 완료", "Saved", "保存完成")
+                    else -> tr("불러오기 완료", "Loaded", "载入完成")
                 },
             ).also {
                 // The engine's own account of what it is doing to the file, which
@@ -219,6 +219,7 @@ class DatabaseRepositoryImpl @Inject constructor(
                                 tr(
                                     "저장 완료 (${(System.currentTimeMillis() - it) / 1000}초)",
                                     "Saved in ${(System.currentTimeMillis() - it) / 1000}s",
+                                    "保存完成 (${(System.currentTimeMillis() - it) / 1000} 秒)",
                                 ),
                             )
                         }
@@ -230,7 +231,7 @@ class DatabaseRepositoryImpl @Inject constructor(
                 }
             }
             is EngineResponse.Message -> if (looksLikeDbMessage(response.text)) log(response.text)
-            is EngineResponse.Error -> if (looksLikeDbMessage(response.text)) log("오류: ${response.text}")
+            is EngineResponse.Error -> if (looksLikeDbMessage(response.text)) log(tr("오류: ${response.text}", "Error: ${response.text}", "错误: ${response.text}"))
             else -> Unit
         }
     }
@@ -300,46 +301,46 @@ class DatabaseRepositoryImpl @Inject constructor(
         send(DbEditComment(comment, _position.value.moves))
         // The desktop re-reads the comment right after writing it (main.c:10939).
         send(DbQueryText(_position.value.moves))
-        log("주석 저장")
+        log(tr("주석 저장", "Note saved", "注释已保存"))
     }
 
     override suspend fun editCellLabel(cell: Move, label: String): DbOpResult =
         guarded(write = true) {
             send(DbEditLabel(cell, label, _position.value.moves))
             log(
-                if (label.isBlank()) "${cell.label(_position.value.size)} 라벨 삭제"
-                else "${cell.label(_position.value.size)} 라벨 = $label",
+                if (label.isBlank()) tr("${cell.label(_position.value.size)} 라벨 삭제", "${cell.label(_position.value.size)} label cleared", "已删除 ${cell.label(_position.value.size)} 的标签")
+                else tr("${cell.label(_position.value.size)} 라벨 = $label", "${cell.label(_position.value.size)} label = $label", "${cell.label(_position.value.size)} 标签 = $label"),
             )
             refresh()
         }
 
     override suspend fun editTag(tag: Char?): DbOpResult = guarded(write = true) {
         send(DbEditRecord.tag(tag, _position.value.moves))
-        log(if (tag == null) "태그 삭제" else "태그 = $tag")
+        log(if (tag == null) tr("태그 삭제", "Tag cleared", "已清除标记") else tr("태그 = $tag", "Tag = $tag", "标记 = $tag"))
         refresh()
     }
 
     override suspend fun editValue(value: Int): DbOpResult = guarded(write = true) {
         send(DbEditRecord.value(value, _position.value.moves))
-        log("값 = $value")
+        log(tr("값 = $value", "Value = $value", "估值 = $value"))
         refresh()
     }
 
     override suspend fun editDepth(depth: Int): DbOpResult = guarded(write = true) {
         send(DbEditRecord.depth(depth, _position.value.moves))
-        log("깊이 = $depth")
+        log(tr("깊이 = $depth", "Depth = $depth", "深度 = $depth"))
         refresh()
     }
 
     override suspend fun setBestMove(): DbOpResult = guarded(write = true) {
         send(DbSetBestMove(_position.value.moves))
-        log("최선수로 표시")
+        log(tr("최선수로 표시", "Marked as the best move", "已标记为最佳着法"))
         refresh()
     }
 
     override suspend fun clearBestMove(): DbOpResult = guarded(write = true) {
         send(DbClearBestMove(_position.value.moves))
-        log("최선수 표시 해제")
+        log(tr("최선수 표시 해제", "Best-move mark cleared", "已取消最佳着法标记"))
         refresh()
     }
 
@@ -347,14 +348,14 @@ class DatabaseRepositoryImpl @Inject constructor(
 
     override suspend fun deleteOne(): DbOpResult = guarded(write = true) {
         send(DbDeleteOne(_position.value.moves))
-        log("이 국면 기록 삭제")
+        log(tr("이 국면 기록 삭제", "This position's record deleted", "已删除此局面的记录"))
         refresh()
     }
 
     override suspend fun deleteAll(scope: DbDeleteScope): DbOpResult =
         guarded(write = true, destructive = true) {
             send(DbDeleteAll(scope, _position.value.moves))
-            log("일괄 삭제: ${scope.title()}")
+            log(tr("일괄 삭제: ${scope.title()}", "Bulk delete: ${scope.title()}", "批量删除: ${scope.title()}"))
             refresh()
         }
 
@@ -397,6 +398,7 @@ class DatabaseRepositoryImpl @Inject constructor(
                     tr(
                         "아직 데이터베이스를 불러오지 않았습니다 — 지금 불러오는 중이니 잠시 뒤 다시 저장하세요",
                         "No database is loaded yet — loading it now, save again in a moment",
+                        "尚未载入数据库，正在载入，请稍后再保存",
                     ),
                 )
             }
@@ -404,6 +406,7 @@ class DatabaseRepositoryImpl @Inject constructor(
                 tr(
                     "불러오기가 끝나지 않았습니다 — 지금 저장하면 파일이 읽다 만 사본으로 덮입니다",
                     "The load never finished — saving now would replace the file with a partial copy",
+                    "载入尚未完成，现在保存会用不完整的副本覆盖文件",
                 ),
             )
             LoadState.LOADED -> Unit
@@ -413,6 +416,7 @@ class DatabaseRepositoryImpl @Inject constructor(
                 tr(
                     "엔진이 탐색 중입니다 — 끝난 뒤에 저장합니다",
                     "The engine is still searching — the save waits for it",
+                    "引擎正在搜索，搜索结束后再保存",
                 ),
             )
         }
@@ -423,6 +427,7 @@ class DatabaseRepositoryImpl @Inject constructor(
                     tr(
                         "이전 저장이 ${elapsed / 1000}초째 진행 중입니다 — 겹쳐 쓰면 파일이 잘립니다",
                         "The previous save has run for ${elapsed / 1000}s — overlapping writes truncate the file",
+                        "上一次保存已进行 ${elapsed / 1000} 秒，重叠写入会截断文件",
                     ),
                 )
             }
@@ -433,19 +438,19 @@ class DatabaseRepositoryImpl @Inject constructor(
         }
         return guarded(write = true) {
             send(DbSave)
-            log(tr("저장 요청", "Save requested"))
+            log(tr("저장 요청", "Save requested", "已请求保存"))
         }
     }
 
     override suspend fun openFile(path: String): DbOpResult = guarded(write = true) {
         send(DbSetFile(path))
-        log("DB 파일 지정: $path")
+        log(tr("DB 파일 지정: $path", "Database file: $path", "数据库文件: $path"))
         refresh()
     }
 
     override suspend fun merge(path: String): DbOpResult = guarded(write = true) {
         send(DbMerge(path))
-        log("병합: $path")
+        log(tr("병합: $path", "Merge: $path", "合并: $path"))
         refresh()
     }
 
@@ -454,45 +459,45 @@ class DatabaseRepositoryImpl @Inject constructor(
             // main.c sends the board first so the engine splits at this position.
             send(EngineCommand.YxBoard(_position.value.placements()))
             send(DbSplit(path))
-            log("분할: $path")
+            log(tr("분할: $path", "Split: $path", "拆分: $path"))
         }
 
     override suspend fun importLib(path: String): DbOpResult = guarded(write = true) {
         send(DbLibImport(path))
-        log("Lib 가져오기: $path")
+        log(tr("Lib 가져오기: $path", "Import Lib: $path", "导入 Lib: $path"))
         refresh()
     }
 
     override suspend fun exportLib(path: String): DbOpResult = guarded(write = false) {
         send(DbLibExport(path))
-        log("Lib 내보내기: $path")
+        log(tr("Lib 내보내기: $path", "Export Lib: $path", "导出 Lib: $path"))
     }
 
     override suspend fun exportText(path: String, all: Boolean): DbOpResult =
         guarded(write = false) {
             if (all) send(DbTextExportAll(path)) else send(DbTextExport(path))
-            log(if (all) "전체 CSV 내보내기: $path" else "이 분기 CSV 내보내기: $path")
+            log(if (all) tr("전체 CSV 내보내기: $path", "Export everything as CSV: $path", "全部导出为 CSV: $path") else tr("이 분기 CSV 내보내기: $path", "Export this branch as CSV: $path", "将此分支导出为 CSV: $path"))
         }
 
     override suspend fun importText(path: String): DbOpResult = guarded(write = true) {
         send(DbTextImport(path))
-        log("CSV 가져오기: $path")
+        log(tr("CSV 가져오기: $path", "Import CSV: $path", "导入 CSV: $path"))
         refresh()
     }
 
     override suspend fun exportPositions(path: String): DbOpResult = guarded(write = false) {
         send(DbToPos(path))
-        log("국면 목록 내보내기: $path")
+        log(tr("국면 목록 내보내기: $path", "Export position list: $path", "导出局面列表: $path"))
     }
 
     override suspend fun check(): DbOpResult = guarded(write = false) {
         send(DbCheck)
-        log("무결성 검사 요청")
+        log(tr("무결성 검사 요청", "Integrity check requested", "已请求完整性检查"))
     }
 
     override suspend fun fix(): DbOpResult = guarded(write = true) {
         send(DbFix)
-        log("복구 요청")
+        log(tr("복구 요청", "Repair requested", "已请求修复"))
     }
 
     // ---- toggles -----------------------------------------------------------
@@ -544,11 +549,11 @@ class DatabaseRepositoryImpl @Inject constructor(
         block: () -> Unit,
     ): DbOpResult {
         val current = _state.value
-        if (!engine.state.value.isLive) return DbOpResult.Refused("엔진에 연결되어 있지 않습니다")
-        if (!current.enabled) return DbOpResult.Refused("데이터베이스 사용이 꺼져 있습니다")
-        if (write && current.readOnly) return DbOpResult.Refused("읽기 전용 상태입니다")
+        if (!engine.state.value.isLive) return DbOpResult.Refused(tr("엔진에 연결되어 있지 않습니다", "Not connected to the engine", "未连接引擎"))
+        if (!current.enabled) return DbOpResult.Refused(tr("데이터베이스 사용이 꺼져 있습니다", "The database is turned off", "数据库未开启"))
+        if (write && current.readOnly) return DbOpResult.Refused(tr("읽기 전용 상태입니다", "The database is read-only", "数据库处于只读模式"))
         if (destructive && !current.destructiveUnlocked) {
-            return DbOpResult.Refused("파괴적 연산이 잠겨 있습니다 (설정에서 해제)")
+            return DbOpResult.Refused(tr("파괴적 연산이 잠겨 있습니다 (설정에서 해제)", "Destructive operations are locked (unlock them in settings)", "破坏性操作已锁定 (可在设置中解锁)"))
         }
         block()
         return DbOpResult.Sent
@@ -573,7 +578,7 @@ class DatabaseRepositoryImpl @Inject constructor(
             if (!settings.settings.value.dbAutoSave) continue
             val result = runCatching { save(attachIfMissing = false) }.getOrNull()
             if (result is DbOpResult.Sent) {
-                log(tr("자동 저장 (${interval}분 주기)", "Auto-saved (every $interval min)"))
+                log(tr("자동 저장 (${interval}분 주기)", "Auto-saved (every $interval min)", "自动保存 (每 $interval 分钟)"))
             }
         }
     }

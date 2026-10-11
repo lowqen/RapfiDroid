@@ -5,6 +5,7 @@ import android.net.Uri
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
 import dev.gomoku.rapfidroid.domain.repository.GameFileReader
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.gomoku.rapfidroid.core.i18n.tr
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -34,7 +35,7 @@ class GameFileIo @Inject constructor(
 
     suspend fun write(uri: Uri, bytes: ByteArray) = withContext(io) {
         context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(bytes) }
-            ?: error("파일을 열 수 없습니다")
+            ?: error(tr("파일을 열 수 없습니다", "Could not open the file", "无法打开文件"))
     }
 
     /** The display name of a picked document, for report titles and the queue. */

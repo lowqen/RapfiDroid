@@ -45,9 +45,9 @@ data class ProveUiState(
     val blocker: String?
         get() = when {
             running -> null
-            !connected -> tr("엔진에 연결한 뒤 실행하세요.", "Connect to the engine first.")
-            !dbWritable -> tr("데이터베이스를 켜고 읽기 전용을 해제하세요 — 증명 결과는 DB에 기록됩니다.", "Turn the database on and read-only off — a proof writes its conclusions there.")
-            gameOver -> tr("이미 승부가 결정된 국면입니다.", "This position is already decided.")
+            !connected -> tr("엔진에 연결한 뒤 실행하세요.", "Connect to the engine first.", "请先连接引擎。")
+            !dbWritable -> tr("데이터베이스를 켜고 읽기 전용을 해제하세요 — 증명 결과는 DB에 기록됩니다.", "Turn the database on and read-only off — a proof writes its conclusions there.", "请开启数据库并关闭只读，证明结果会写入数据库。")
+            gameOver -> tr("이미 승부가 결정된 국면입니다.", "This position is already decided.", "此局面胜负已定。")
             else -> null
         }
 }

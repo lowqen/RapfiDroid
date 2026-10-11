@@ -7,6 +7,11 @@ brings all of it back, without dropping anything the app already had.
 
 ### Highlights
 
+* **简体中文 — Simplified Chinese.** Every screen, notice, setting and review
+  report now speaks Chinese as well as Korean and English, with the desktop
+  Yixin's own Chinese terms and the Chinese names of the 26 openings (寒星, 花月,
+  浦月 …). It follows the phone's language, or pick it in Settings ▸ Common.
+
 * **Calm, board-first screens.** One-line top bar with the engine's state in a
   word and a theme switch, white cards with hairlines, expert settings folded
   away with their current value in one line, short wording. Pretendard is the

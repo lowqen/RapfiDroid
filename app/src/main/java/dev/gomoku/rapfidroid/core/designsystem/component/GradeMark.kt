@@ -37,7 +37,7 @@ fun GradeMark(
             drawGradeMark(grade, Offset(side / 2f, side / 2f), side * 0.46f)
         }
         if (withName) {
-            Text(tr(grade.ko, grade.en), style = MaterialTheme.typography.labelMedium)
+            Text(tr(grade.ko, grade.en, grade.zh), style = MaterialTheme.typography.labelMedium)
         }
     }
 }

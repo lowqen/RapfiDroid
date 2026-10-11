@@ -2,6 +2,7 @@ package dev.gomoku.rapfidroid.data.engine
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 import dev.gomoku.rapfidroid.domain.engine.MobileEngineConfig
 import java.io.File
@@ -53,20 +54,20 @@ class LocalEngineInstaller @Inject constructor(
         val exe = binary
         if (!exe.exists()) {
             throw LocalEngineUnavailable(
-                "온디바이스 엔진 파일이 없습니다 (${exe.path}). " +
-                    "jniLibs/arm64-v8a/libengine.so 가 빠졌거나 이 기기가 arm64 가 아닙니다.",
+                tr("온디바이스 엔진 파일이 없습니다 (${exe.path}). ", "The on-device engine file is missing (${exe.path}). ", "本机引擎文件缺失 (${exe.path})。") +
+                    tr("jniLibs/arm64-v8a/libengine.so 가 빠졌거나 이 기기가 arm64 가 아닙니다.", "Either jniLibs/arm64-v8a/libengine.so was left out, or this device is not arm64.", "可能缺少 jniLibs/arm64-v8a/libengine.so，或本设备不是 arm64。"),
             )
         }
         if (!exe.canExecute()) {
             throw LocalEngineUnavailable(
-                "엔진 파일에 실행 권한이 없습니다 (${exe.path}). " +
-                    "packaging { jniLibs { useLegacyPackaging = true } } 가 빠지면 이렇게 됩니다.",
+                tr("엔진 파일에 실행 권한이 없습니다 (${exe.path}). ", "The engine file is not executable (${exe.path}). ", "引擎文件没有执行权限 (${exe.path})。") +
+                    tr("packaging { jniLibs { useLegacyPackaging = true } } 가 빠지면 이렇게 됩니다.", "That is what happens without packaging { jniLibs { useLegacyPackaging = true } }.", "缺少 packaging { jniLibs { useLegacyPackaging = true } } 时会这样。"),
             )
         }
 
         val dir = engineDir
         if (!dir.isDirectory && !dir.mkdirs()) {
-            throw LocalEngineUnavailable("엔진 작업 폴더를 만들 수 없습니다: ${dir.path}")
+            throw LocalEngineUnavailable(tr("엔진 작업 폴더를 만들 수 없습니다: ${dir.path}", "Could not create the engine's working folder: ${dir.path}", "无法创建引擎工作文件夹: ${dir.path}"))
         }
 
         try {
@@ -84,7 +85,7 @@ class LocalEngineInstaller @Inject constructor(
             throw e
         } catch (e: Exception) {
             throw LocalEngineUnavailable(
-                "엔진 파일 준비에 실패했습니다: ${e.message ?: e::class.simpleName}",
+                tr("엔진 파일 준비에 실패했습니다: ${e.message ?: e::class.simpleName}", "Could not prepare the engine files: ${e.message ?: e::class.simpleName}", "引擎文件准备失败: ${e.message ?: e::class.simpleName}"),
                 e,
             )
         }
@@ -94,7 +95,7 @@ class LocalEngineInstaller @Inject constructor(
     private fun extractAssets(dir: File) {
         val names = context.assets.list(ASSET_DIR).orEmpty()
         if (names.isEmpty()) {
-            throw LocalEngineUnavailable("assets/$ASSET_DIR 가 비어 있습니다 — 가중치가 APK 에 들어가지 않았습니다.")
+            throw LocalEngineUnavailable(tr("assets/$ASSET_DIR 가 비어 있습니다 — 가중치가 APK 에 들어가지 않았습니다.", "assets/$ASSET_DIR is empty — the weights did not make it into the APK.", "assets/$ASSET_DIR 为空，权重没有打包进 APK。"))
         }
         for (name in names) {
             // The config is rendered, not copied: it carries the phone's own

@@ -2,6 +2,7 @@ package dev.gomoku.rapfidroid.data.explorer
 
 import android.net.Uri
 import dev.gomoku.rapfidroid.core.common.IoDispatcher
+import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.ExplorerGames
 import dev.gomoku.rapfidroid.core.model.ExplorerPosition
 import dev.gomoku.rapfidroid.core.model.ExplorerStatus
@@ -133,7 +134,7 @@ class ExplorerRepositoryImpl @Inject constructor(
         busy()?.let { return it }
         val pos = game.position.value
         if (!move.isInside(pos.size) || pos.moves.contains(move)) {
-            return "익스플로러: 이 수는 현재 국면에 맞지 않습니다"
+            return tr("익스플로러: 이 수는 현재 국면에 맞지 않습니다", "Explorer: this move does not fit the current position", "开局浏览: 这一手与当前局面不符")
         }
         game.replaceLine(pos.moves + move)
         return null
@@ -141,7 +142,7 @@ class ExplorerRepositoryImpl @Inject constructor(
 
     override suspend fun loadGame(id: Int): String? {
         busy()?.let { return it }
-        val g = game(id) ?: return "기보를 찾을 수 없습니다 (#$id)"
+        val g = game(id) ?: return tr("기보를 찾을 수 없습니다 (#$id)", "Game not found (#$id)", "找不到棋谱 (#$id)")
         val size = game.position.value.size
         // Stop at the first illegal / repeated cell, exactly like the desktop's
         // replay loop — a truncated pack must not silently drop stones later on.
@@ -150,7 +151,7 @@ class ExplorerRepositoryImpl @Inject constructor(
             if (moves.contains(m)) break
             moves.add(m)
         }
-        if (moves.isEmpty()) return "기보에 둘 수 있는 수가 없습니다 (#$id)"
+        if (moves.isEmpty()) return tr("기보에 둘 수 있는 수가 없습니다 (#$id)", "The game has no playable moves (#$id)", "棋谱中没有可下的着法 (#$id)")
         game.replaceLine(moves)
         return null
     }
@@ -158,8 +159,8 @@ class ExplorerRepositoryImpl @Inject constructor(
     /** Board writes are refused while a research run owns the engine
      *  conversation (main.c:5434/5465 — the same pair of flags). */
     private fun busy(): String? = when {
-        review.progress.value.running -> "게임 리뷰가 진행 중입니다 — 먼저 중지하세요"
-        prove.get().progress.value.running -> "국면 증명이 진행 중입니다 — 먼저 중지하세요"
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다 — 먼저 중지하세요", "A game review is running — stop it first", "正在进行对局复盘，请先停止")
+        prove.get().progress.value.running -> tr("국면 증명이 진행 중입니다 — 먼저 중지하세요", "A proof is running — stop it first", "正在进行局面证明，请先停止")
         else -> null
     }
 }

@@ -143,14 +143,14 @@ data class EvalView(
 object GameLevels {
     const val MAX = 5
 
-    data class Level(val level: Int, val ko: String, val en: String, val maxNode: Long?)
+    data class Level(val level: Int, val ko: String, val en: String, val zh: String, val maxNode: Long?)
 
     val all = listOf(
-        Level(1, "입문", "Novice", 20_000),
-        Level(2, "초급", "Beginner", 100_000),
-        Level(3, "중급", "Intermediate", 500_000),
-        Level(4, "상급", "Advanced", 2_000_000),
-        Level(5, "최강", "Strongest", null),
+        Level(1, "입문", "Novice", "入门", 20_000),
+        Level(2, "초급", "Beginner", "初级", 100_000),
+        Level(3, "중급", "Intermediate", "中级", 500_000),
+        Level(4, "상급", "Advanced", "高级", 2_000_000),
+        Level(5, "최강", "Strongest", "最强", null),
     )
 
     /** Desktop line 10's value for full strength — effectively no cap. */

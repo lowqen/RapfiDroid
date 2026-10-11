@@ -71,11 +71,12 @@ class PackBuildManager @Inject constructor(
                     tr(
                         "기기 메모리가 부족합니다. 다른 앱을 닫고 다시 시도해 보세요.",
                         "This device ran out of memory. Close other apps and try again.",
+                        "设备内存不足。请关闭其他应用后重试。",
                     ),
                 )
             } catch (e: Throwable) {
                 _state.value = PackBuildState.Failed(
-                    e.message ?: e::class.simpleName ?: tr("알 수 없는 오류", "Unknown error"),
+                    e.message ?: e::class.simpleName ?: tr("알 수 없는 오류", "Unknown error", "未知错误"),
                 )
             } finally {
                 PackBuildService.stop(context)
@@ -112,13 +113,14 @@ class PackBuildManager @Inject constructor(
                     (total shr 10).toInt(),
                 )
             }
-        } ?: error(tr("파일을 열 수 없습니다", "Could not open the file"))
+        } ?: error(tr("파일을 열 수 없습니다", "Could not open the file", "无法打开文件"))
 
         if (tables.games.count == 0) {
             error(
                 tr(
                     "기보가 하나도 없습니다. renju.net 의 XML 형식 파일이 맞는지 확인해 주세요.",
                     "No games in that file. Check it is the XML download from renju.net.",
+                    "文件中没有棋谱。请确认是 renju.net 的 XML 下载文件。",
                 ),
             )
         }

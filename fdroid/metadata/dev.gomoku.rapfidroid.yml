@@ -25,6 +25,7 @@ Description: |-
       11-grade evaluation of Black's fifth move.
     * Game review, board image export, game record import and export, and the
       67 settings of the desktop Yixin-Board interface.
+    * In English, Korean and Simplified Chinese (简体中文).
     * An official joseki curriculum to browse and learn by playing. It is
       fetched from rapfiweb.pages.dev, the RapfiWeb site's static file, so new
       lessons arrive without an update; nothing is sent, and a switch in

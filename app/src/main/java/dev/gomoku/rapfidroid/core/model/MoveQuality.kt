@@ -43,8 +43,24 @@ enum class MoveQuality(val label: String, val symbol: String, val colorHex: Stri
             FORCED -> "강제"
         }
 
-    /** The grade name to show: Korean from the desktop table, else [label]. */
-    val display: String get() = tr(korean, label)
+    /** Chinese grade names, in the words Chinese renju players use for a move. */
+    val chinese: String
+        get() = when (this) {
+            NONE -> ""
+            BRILLIANT -> "妙手"
+            GREAT -> "佳着"
+            BEST -> "最佳"
+            EXCELLENT -> "优秀"
+            GOOD -> "良好"
+            INACCURACY -> "不精确"
+            MISTAKE -> "失误"
+            BLUNDER -> "大失误"
+            MISSED_WIN -> "错失胜机"
+            FORCED -> "必应"
+        }
+
+    /** The grade name to show: Korean from the desktop table, Chinese, else [label]. */
+    val display: String get() = tr(korean, label, chinese)
 
     companion object {
         /** The grades a report enumerates, in the desktop's order. */
@@ -53,11 +69,14 @@ enum class MoveQuality(val label: String, val symbol: String, val colorHex: Stri
 }
 
 /** `mqpreset` (settings_dev line 3): the threshold scale for the dWR grades. */
-enum class GradingPreset(val scale: Double, val label: String) {
-    STRICT(0.6, tr("엄격", "Strict")),
-    DEFAULT(1.0, tr("기본", "Default")),
-    LENIENT(1.5, tr("관대", "Lenient")),
+enum class GradingPreset(val scale: Double, private val ko: String, private val en: String, private val zh: String) {
+    STRICT(0.6, "엄격", "Strict", "严格"),
+    DEFAULT(1.0, "기본", "Default", "默认"),
+    LENIENT(1.5, "관대", "Lenient", "宽松"),
     ;
+
+    /** Read when shown, so a language change reaches it (an enum is built once). */
+    val label: String get() = tr(ko, en, zh)
 
     companion object {
         fun of(value: Int): GradingPreset = when (value) {
@@ -337,33 +356,33 @@ object MoveGrader {
         // Wording taken verbatim from the desktop's Korean table (main.c:407) so
         // the same review reads the same on both machines.
         return when (graded.quality) {
-            MoveQuality.BRILLIANT -> "찾기 어려운 결정타 — 승부를 결정지었습니다."
-            MoveQuality.GREAT -> "국면을 지키는 유일한 수 — 다른 수는 모두 무너집니다."
-            MoveQuality.MISSED_WIN -> "필승(M$mb)이 있었지만 이 수로 사라졌습니다."
+            MoveQuality.BRILLIANT -> tr("찾기 어려운 결정타 — 승부를 결정지었습니다.", "A hard-to-find decisive blow — it settled the game.", "难以发现的决定性一击，决定了胜负。")
+            MoveQuality.GREAT -> tr("국면을 지키는 유일한 수 — 다른 수는 모두 무너집니다.", "The only move that holds — every other move collapses.", "唯一能守住局面的着法，其他着法都会崩溃。")
+            MoveQuality.MISSED_WIN -> tr("필승(M$mb)이 있었지만 이 수로 사라졌습니다.", "There was a forced win (M$mb), and this move let it slip.", "本有必胜(M$mb)，这一手让它溜走了。")
             MoveQuality.BEST -> when {
-                resist -> "가장 끈질긴 방어 — 메이트를 최대한 늦춥니다."
-                before.best != null && before.best == graded.move -> "엔진의 최선수입니다."
-                else -> "엔진 최선수에 못지않은 수입니다."
+                resist -> tr("가장 끈질긴 방어 — 메이트를 최대한 늦춥니다.", "The most stubborn defence — it delays the mate as long as possible.", "最顽强的防守，尽可能推迟被杀。")
+                before.best != null && before.best == graded.move -> tr("엔진의 최선수입니다.", "The engine's best move.", "这是引擎的最佳着法。")
+                else -> tr("엔진 최선수에 못지않은 수입니다.", "As good as the engine's best move.", "不逊于引擎最佳着法的一手。")
             }
-            MoveQuality.EXCELLENT -> "거의 최선 (-${d}%p) — ${best}이(가) 조금 더 정확했습니다."
+            MoveQuality.EXCELLENT -> tr("거의 최선 (-${d}%p) — ${best}이(가) 조금 더 정확했습니다.", "Nearly best (-${d}%p) — ${best} was a little more accurate.", "接近最佳(-${d}%p)，${best} 稍微更精确。")
             MoveQuality.GOOD ->
-                if (resist) "버틸 만한 방어지만 메이트를 필요 이상 ${shed}수 앞당깁니다."
-                else "무난하지만 ${d}%p 손해 — ${best}이(가) 더 유리했습니다."
+                if (resist) tr("버틸 만한 방어지만 메이트를 필요 이상 ${shed}수 앞당깁니다.", "A defence that holds, but it brings the mate ${shed} moves closer than needed.", "尚可的防守，但让被杀提前了 ${shed} 手。")
+                else tr("무난하지만 ${d}%p 손해 — ${best}이(가) 더 유리했습니다.", "Reasonable, but ${d}%p lost — ${best} was better.", "尚可，但损失 ${d}%p，${best} 更有利。")
             MoveQuality.INACCURACY ->
-                if (resist) "방어가 느슨합니다 — 메이트가 필요 이상 ${shed}수 빨라집니다."
-                else "${d}%p 손실 — ${best}이(가) 더 정확했습니다."
+                if (resist) tr("방어가 느슨합니다 — 메이트가 필요 이상 ${shed}수 빨라집니다.", "A loose defence — the mate comes ${shed} moves sooner than needed.", "防守松懈，被杀提前了 ${shed} 手。")
+                else tr("${d}%p 손실 — ${best}이(가) 더 정확했습니다.", "${d}%p lost — ${best} was more accurate.", "损失 ${d}%p，${best} 更精确。")
             MoveQuality.MISTAKE ->
-                if (resist) "약한 저항 — 패배까지의 수순을 ${shed}수 단축시킵니다."
-                else "${d}%p 손실 — ${best}이(가) 명백히 더 좋았습니다."
+                if (resist) tr("약한 저항 — 패배까지의 수순을 ${shed}수 단축시킵니다.", "Weak resistance — it cuts the road to defeat by ${shed} moves.", "抵抗薄弱，离失败缩短了 ${shed} 手。")
+                else tr("${d}%p 손실 — ${best}이(가) 명백히 더 좋았습니다.", "${d}%p lost — ${best} was clearly better.", "损失 ${d}%p，${best} 明显更好。")
             MoveQuality.BLUNDER -> when {
                 wb >= 0.65 && wa <= 0.35 ->
-                    "승세를 날렸습니다 — 이기던 국면(${(wb * 100).roundToInt()}%)이 " +
-                        "지는 국면(${(wa * 100).roundToInt()}%)이 되었습니다."
-                mb >= 0 && ma < 0 -> "필패(M${-ma})에 걸려들었습니다 — ${best}을(를) 고려해야 했습니다."
-                resist -> "방어 붕괴 — 메이트가 ${shed}수 가까워졌습니다."
-                else -> "${d}%p 손실 — 여기서는 ${best}이(가) 필요했습니다."
+                    tr("승세를 날렸습니다 — 이기던 국면(${(wb * 100).roundToInt()}%)이 ", "The win slipped away — a winning position (${(wb * 100).roundToInt()}%) ", "胜势丢失，原本领先的局面(${(wb * 100).roundToInt()}%)") +
+                        tr("지는 국면(${(wa * 100).roundToInt()}%)이 되었습니다.", "became a losing one (${(wa * 100).roundToInt()}%).", "变成了落后的局面(${(wa * 100).roundToInt()}%)。")
+                mb >= 0 && ma < 0 -> tr("필패(M${-ma})에 걸려들었습니다 — ${best}을(를) 고려해야 했습니다.", "Walked into a forced loss (M${-ma}) — ${best} deserved a look.", "落入必败(M${-ma})，应考虑 ${best}。")
+                resist -> tr("방어 붕괴 — 메이트가 ${shed}수 가까워졌습니다.", "The defence collapsed — the mate came ${shed} moves closer.", "防守崩溃，被杀提前了 ${shed} 手。")
+                else -> tr("${d}%p 손실 — 여기서는 ${best}이(가) 필요했습니다.", "${d}%p lost — ${best} was needed here.", "损失 ${d}%p，这里需要 ${best}。")
             }
-            MoveQuality.FORCED -> "이미 패배가 확정된 국면 — 어떤 방어도 결과를 바꿀 수 없습니다."
+            MoveQuality.FORCED -> tr("이미 패배가 확정된 국면 — 어떤 방어도 결과를 바꿀 수 없습니다.", "The loss was already certain — no defence could change the result.", "败局已定，任何防守都无法改变结果。")
             MoveQuality.NONE -> ""
         }
     }

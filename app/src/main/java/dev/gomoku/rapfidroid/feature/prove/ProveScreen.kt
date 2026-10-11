@@ -61,78 +61,78 @@ fun ProveCard(
 
     val options = ui.options
     val editable = !ui.running
-    val budgetText = if (options.byDepth) tr("깊이 ${options.depth0}", "depth ${options.depth0}")
-    else tr("${options.budget0Sec}초", "${options.budget0Sec}s")
+    val budgetText = if (options.byDepth) tr("깊이 ${options.depth0}", "depth ${options.depth0}", "深度 ${options.depth0}")
+    else tr("${options.budget0Sec}초", "${options.budget0Sec}s", "${options.budget0Sec} 秒")
     DisclosureCard(
         id = "prove",
-        title = tr("국면 증명", "Prove position"),
+        title = tr("국면 증명", "Prove position", "局面证明"),
         modifier = modifier,
-        summary = if (ui.running) tr("증명 중", "Proving") else budgetText,
+        summary = if (ui.running) tr("증명 중", "Proving", "证明中") else budgetText,
     ) {
-        Hint(tr("둘 차례가 이기는지 증명합니다", "Proves whether the side to move wins"))
+        Hint(tr("둘 차례가 이기는지 증명합니다", "Proves whether the side to move wins", "证明轮到的一方能否取胜"))
         if (ui.running) {
             RunningState(ui)
-            OutlinedButton(onClick = viewModel::onCancel) { Text(tr("중지", "Stop")) }
+            OutlinedButton(onClick = viewModel::onCancel) { Text(tr("중지", "Stop", "停止")) }
         } else {
             Button(onClick = viewModel::onStart, enabled = ui.canStart, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    tr("지금 판 증명 (", "Prove this position (") +
-                        (if (ui.blackToMove) tr("흑", "Black") else tr("백", "White")) +
-                        tr(" 차례)", " to move)"),
+                    tr("지금 판 증명 (", "Prove this position (", "证明当前局面 (") +
+                        (if (ui.blackToMove) tr("흑", "Black", "黑") else tr("백", "White", "白")) +
+                        tr(" 차례)", " to move)", "轮到)"),
                 )
             }
             ui.blocker?.let { Hint(it, color = MaterialTheme.colorScheme.error) }
         }
-        Disclosure(id = "prove-options", title = tr("증명 설정", "Proof settings"), summary = budgetText) {
+        Disclosure(id = "prove-options", title = tr("증명 설정", "Proof settings", "证明设置"), summary = budgetText) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = !options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = false)) },
-                    label = { Text(tr("시간", "Time")) },
+                    label = { Text(tr("시간", "Time", "时间")) },
                     enabled = editable,
                 )
                 FilterChip(
                     selected = options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = true)) },
-                    label = { Text(tr("깊이", "Depth")) },
+                    label = { Text(tr("깊이", "Depth", "深度")) },
                     enabled = editable,
                 )
             }
             if (options.byDepth) {
-                Stepper(tr("초기 깊이", "Starting depth"), options.depth0, 4, 64, editable, step = ::budgetStep) {
+                Stepper(tr("초기 깊이", "Starting depth", "初始深度"), options.depth0, 4, 64, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(depth0 = it))
                 }
-                Stepper(tr("최대 깊이", "Depth cap"), options.depthMax, 4, 128, editable, step = ::budgetStep) {
+                Stepper(tr("최대 깊이", "Depth cap", "深度上限"), options.depthMax, 4, 128, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(depthMax = it))
                 }
             } else {
-                Stepper(tr("초기 예산(초)", "Starting budget (s)"), options.budget0Sec, 1, 600, editable, step = ::budgetStep) {
+                Stepper(tr("초기 예산(초)", "Starting budget (s)", "初始预算(秒)"), options.budget0Sec, 1, 600, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(budget0Sec = it))
                 }
-                Stepper(tr("최대 예산(초)", "Budget cap (s)"), options.budgetMaxSec, 1, 3600, editable, step = ::budgetStep) {
+                Stepper(tr("최대 예산(초)", "Budget cap (s)", "预算上限(秒)"), options.budgetMaxSec, 1, 3600, editable, step = ::budgetStep) {
                     viewModel.onOptions(options.copy(budgetMaxSec = it))
                 }
             }
-            Stepper(tr("공격 후보 수", "Attack candidates"), options.nbest, 1, ProveOptions.NBEST_MAX, editable, step = ::budgetStep) {
+            Stepper(tr("공격 후보 수", "Attack candidates", "进攻候选数"), options.nbest, 1, ProveOptions.NBEST_MAX, editable, step = ::budgetStep) {
                 viewModel.onOptions(options.copy(nbest = it))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = options.bestFirst,
                     onClick = { viewModel.onOptions(options.copy(bestFirst = !options.bestFirst)) },
-                    label = { Text(tr("최선 공격수 먼저", "Best attack first")) },
+                    label = { Text(tr("최선 공격수 먼저", "Best attack first", "最佳进攻优先")) },
                     enabled = editable,
                 )
                 FilterChip(
                     selected = options.probe,
                     onClick = { viewModel.onOptions(options.copy(probe = !options.probe)) },
-                    label = { Text(tr("최강 방어 조기 탐침", "Probe the strongest defence early")) },
+                    label = { Text(tr("최강 방어 조기 탐침", "Probe the strongest defence early", "提前探测最强防守")) },
                     enabled = editable,
                 )
             }
         }
         if (ui.log.isNotEmpty()) {
-            Disclosure(id = "prove-log", title = tr("기록", "Log")) {
+            Disclosure(id = "prove-log", title = tr("기록", "Log", "日志")) {
                 ui.log.takeLast(6).forEach {
                     Text(it, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
                 }
@@ -144,7 +144,7 @@ fun ProveCard(
         AlertDialog(
             onDismissRequest = viewModel::onDismissOutcome,
             confirmButton = {
-                TextButton(onClick = viewModel::onDismissOutcome) { Text(tr("확인", "OK")) }
+                TextButton(onClick = viewModel::onDismissOutcome) { Text(tr("확인", "OK", "确定")) }
             },
             title = { Text(outcome.title) },
             text = { Text(outcome.message) },
@@ -178,7 +178,7 @@ private fun RunningState(ui: ProveUiState) {
         Text(second, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
     }
     Text(
-        tr("탐색 중인 수순: ${ui.progress.path}", "Searching: ${ui.progress.path}"),
+        tr("탐색 중인 수순: ${ui.progress.path}", "Searching: ${ui.progress.path}", "正在搜索的手顺: ${ui.progress.path}"),
         style = MaterialTheme.typography.labelSmall,
         fontFamily = FontFamily.Monospace,
     )
@@ -209,7 +209,7 @@ private fun markLabel(mark: ProveMark): String = when (mark) {
     ProveMark.WIN -> "✓"
     ProveMark.LOSS -> "✗"
     ProveMark.EXH -> "!"
-    ProveMark.LATENT -> tr("대기", "idle")
+    ProveMark.LATENT -> tr("대기", "idle", "空闲")
     else -> "…"
 }
 

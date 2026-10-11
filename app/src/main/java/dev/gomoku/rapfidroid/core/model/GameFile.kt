@@ -11,16 +11,19 @@ import dev.gomoku.rapfidroid.core.i18n.tr
  * (`fscanf("%*d")`). This does the same, and simply refuses moves that would
  * fall outside the board in use.
  */
-enum class GameFileFormat(val extension: String, val label: String) {
+enum class GameFileFormat(val extension: String, private val ko: String, private val en: String, private val zh: String) {
     /** Piskvork: header line, then `col,row,time` 1-based, terminated by `-1`. */
-    PSQ("psq", tr("Piskvork 기보", "Piskvork game")),
+    PSQ("psq", "Piskvork 기보", "Piskvork game", "Piskvork 棋谱"),
 
     /** Yixin: size, size, count, then `row col` per line. */
-    SAV("sav", tr("Yixin 저장 국면", "Yixin saved position")),
+    SAV("sav", "Yixin 저장 국면", "Yixin saved position", "Yixin 保存的局面"),
 
     /** Yixin binary: a count byte, then one byte per move (`col * 15 + row`). */
-    POS("pos", tr("POS 국면", "POS position")),
+    POS("pos", "POS 국면", "POS position", "POS 局面"),
     ;
+
+    /** Read when shown, so a language change reaches it (an enum is built once). */
+    val label: String get() = tr(ko, en, zh)
 
     companion object {
         fun of(name: String): GameFileFormat? {

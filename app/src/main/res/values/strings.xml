@@ -1,10 +1,10 @@
 <!--
-  Default (English) resources. Korean lives in values-ko/.
+  Default (English) resources. Korean lives in values-ko/, Chinese in values-zh/.
 
-  The app ships exactly two languages, declared in xml/locales_config.xml and
+  The app ships exactly three languages, declared in xml/locales_config.xml and
   enforced by `localeFilters` in build.gradle.kts: a system set to anything else
-  gets this file. Note that most of the UI text is still Korean literals in the
-  Compose sources — see the plan, §5 "언어 지원".
+  gets this file. The UI text itself is in the Kotlin sources, as
+  `tr(ko, en, zh)` (core/i18n/Tr.kt).
 -->
 <resources>
     <string name="app_name">RapfiDroid</string>

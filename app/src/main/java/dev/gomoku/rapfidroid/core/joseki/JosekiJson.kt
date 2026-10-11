@@ -130,7 +130,7 @@ object JosekiJson {
         val id = r["id"].str(64)
         return JosekiTree(
             id = id.ifEmpty { java.util.UUID.randomUUID().toString() },
-            title = r["title"].str(MAX_TITLE).ifEmpty { tr("가져온 정석", "Imported joseki") },
+            title = r["title"].str(MAX_TITLE).ifEmpty { tr("가져온 정석", "Imported joseki", "导入的定式") },
             category = r["category"].str(MAX_TITLE),
             tags = (r["tags"] as? JsonArray).orEmpty().map { it.str(40) }.filter { it.isNotEmpty() }.take(32),
             boardSize = size,
@@ -143,7 +143,7 @@ object JosekiJson {
     /** Our export (`{format, trees}`), one tree, or an array of trees. */
     fun import(text: String, now: Long = System.currentTimeMillis()): Import {
         val data = runCatching { json.parseToJsonElement(text) }.getOrNull()
-            ?: return Import.Error(tr("JSON 이 아닙니다", "Not JSON"))
+            ?: return Import.Error(tr("JSON 이 아닙니다", "Not JSON", "不是 JSON"))
         val list: List<JsonElement> = when {
             data is JsonArray -> data
             data is JsonObject && data["trees"] is JsonArray -> data["trees"] as JsonArray
@@ -156,7 +156,7 @@ object JosekiJson {
             trees.add(tree)
             dropped += d
         }
-        if (trees.isEmpty()) return Import.Error(tr("정석이 들어 있지 않습니다", "No joseki in it"))
+        if (trees.isEmpty()) return Import.Error(tr("정석이 들어 있지 않습니다", "No joseki in it", "其中没有定式"))
         return Import.Ok(trees, dropped)
     }
 

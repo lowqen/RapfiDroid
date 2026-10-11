@@ -36,15 +36,15 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val titles = remember {
         listOf(
-            tr("리뷰·증명", "Review"),
-            tr("오프닝", "Openings"),
-            tr("수순", "Move order"),
-            tr("랭킹", "Rankings"),
+            tr("리뷰·증명", "Review", "复盘·证明"),
+            tr("오프닝", "Openings", "开局"),
+            tr("수순", "Move order", "手顺"),
+            tr("랭킹", "Rankings", "排行"),
         )
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("연구", "Research"))
+        RapfiTopBar(title = tr("연구", "Research", "研究"))
         ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
             titles.forEachIndexed { i, title ->
                 Tab(
