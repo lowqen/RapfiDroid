@@ -240,6 +240,7 @@ fun BoardScreen(
                 val showBar = ui.showEvalBar && ui.analysisTab
                 val bar = if (showBar) evalBarWidth(compact = true) + 4.dp else 0.dp
                 val side = maxWidth - bar
+                val wideCards = maxWidth >= 600.dp
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                     BoardWithBar(ui, showBar, compact = true, side = side, board = board)
                     transport()
@@ -248,7 +249,7 @@ fun BoardScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         stage()
-                        cards(maxWidth >= 600.dp)
+                        cards(wideCards)
                     }
                 }
             }

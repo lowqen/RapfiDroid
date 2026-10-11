@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
@@ -17,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiDroidTheme
 import dev.gomoku.rapfidroid.core.model.HotkeyMap
@@ -53,6 +55,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var uiPrefs: UiPrefs
 
+    /** A RapfiWeb position link this activity was opened with. */
+    @Inject
+    lateinit var links: IncomingLinks
+
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
 
@@ -62,6 +68,7 @@ class MainActivity : ComponentActivity() {
         maybeRequestNotifications()
         lifecycleScope.launch { appearance.restore() }
         debugLog.start()
+        if (savedInstanceState == null) takeLink(intent)
         setContent {
             val current by settings.settings.collectAsStateWithLifecycle()
             // The system bars follow *this app's* dark mode (settings.txt line
@@ -98,6 +105,18 @@ class MainActivity : ComponentActivity() {
             return true
         }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        takeLink(intent)
+    }
+
+    /** `https://rapfiweb.pages.dev/…?p=h8i9j10` — the board picks it up. */
+    private fun takeLink(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        val url = intent.dataString ?: return
+        if (url.contains("p=")) links.offer(url)
     }
 
     private fun maybeRequestNotifications() {
