@@ -59,20 +59,22 @@ class SettingsCodecTest {
     // ---- the deployed files, round trip ----
 
     @Test
-    fun defaultsRenderTheDeployedFilesApartFromTwoDeliberateChoices() {
-        // The app's defaults are the deployed PC file's, with two exceptions
+    fun defaultsRenderTheDeployedFilesApartFromThreeDeliberateChoices() {
+        // The app's defaults are the deployed PC file's, with three exceptions
         // chosen for a phone that is someone's first contact with the program:
-        // the engine does not open as black, and the hash is not sized for a
-        // server. Pinning *which* lines differ is the point — it catches both a
+        // the engine does not open as black, the hash is not sized for a
+        // server, and analysis shows one candidate (RapfiWeb's). Pinning *which* lines differ is the point — it catches both a
         // silent drift back and a new one nobody meant.
         val rendered = SettingsCodec.render(AppSettings(), SettingsFile.MAIN).lines()
         val deployed = MAIN_TEXT.lines()
         assertThat(rendered).hasSize(deployed.size)
 
         val differingLines = deployed.indices.filter { rendered[it] != deployed[it] }.map { it + 1 }
-        assertThat(differingLines).containsExactly(4, 19)
+        assertThat(differingLines).containsExactly(4, 19, 20)
         assertThat(rendered[3]).isEqualTo("0\t;computer play black (0: no, 1: yes)")
         assertThat(rendered[18]).isEqualTo("1024\t;hash size (MB)")
+        // One candidate by default, as RapfiWeb — the PC's file asks for three.
+        assertThat(rendered[19]).startsWith("1\t;")
 
         // settings_dev.txt is untouched.
         assertThat(SettingsCodec.render(AppSettings(), SettingsFile.DEV)).isEqualTo(DEV_TEXT)
@@ -81,10 +83,10 @@ class SettingsCodecTest {
     @Test
     fun deployedFilesParseBackToTheDesktopValues() {
         // A different starting point proves the files, not the defaults, decide
-        // — including on the two lines where the app disagrees with the PC.
+        // — including on the three lines where the app disagrees with the PC.
         val other = AppSettings(rule = 0, threadNum = 1, hashSizeMb = 256, darkMode = false)
         val parsed = SettingsCodec.parseAll(MAIN_TEXT, DEV_TEXT, other)
-        assertThat(parsed).isEqualTo(AppSettings(computerBlack = true, hashSizeMb = 8192))
+        assertThat(parsed).isEqualTo(AppSettings(computerBlack = true, hashSizeMb = 8192, multiPv = 3))
     }
 
     @Test

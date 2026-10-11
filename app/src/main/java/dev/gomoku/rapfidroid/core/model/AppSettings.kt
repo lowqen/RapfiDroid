@@ -76,8 +76,13 @@ data class AppSettings(
      * restores the PC's value — the file always wins over this.
      */
     val hashSizeMb: Int = 1024,
-    /** 20. default multi-PV count (`yxnbest`). */
-    val multiPv: Int = 3,
+    /**
+     * 20. default multi-PV count (`yxnbest`). **1, not the PC's 3** — the board
+     * opens on the best move alone, as RapfiWeb does; more candidates are a tap
+     * away in the analysis options. Installs that still held the old default are
+     * moved once ([dev.gomoku.rapfidroid.data.settings.SettingsStore]).
+     */
+    val multiPv: Int = 1,
     /** 21. auto-reset blocked cells — desktop block feature (P10). */
     val blockAutoReset: Boolean = true,
     /** 22. auto-reset blocked paths — desktop block feature (P10). */

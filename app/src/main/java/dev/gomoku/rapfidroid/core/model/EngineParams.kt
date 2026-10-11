@@ -34,8 +34,8 @@ data class EngineParams(
     /** Additional threat check in global search: 0 none, 1 VCT, 2 VC2. */
     val vcThread: Int = 0,
     /** Default multi-PV count (settings.txt line 20). Not an `INFO` key: the
-     *  desktop passes it as `yxnbest <n>` per search. */
-    val multiPv: Int = 3,
+     *  desktop passes it as `yxnbest <n>` per search. 1 like [AppSettings.multiPv]. */
+    val multiPv: Int = 1,
     /** `info usedatabase` (settings.txt line 32). */
     val useDatabase: Boolean = true,
     /** `info database_readonly` (settings.txt line 33) — always pushed. */
