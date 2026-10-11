@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
 import dev.gomoku.rapfidroid.core.designsystem.component.DbLabel
 import dev.gomoku.rapfidroid.core.designsystem.component.TagPalette
@@ -11,6 +12,7 @@ import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.AnalysisSnapshot
 import dev.gomoku.rapfidroid.core.model.AnalyzeParams
 import dev.gomoku.rapfidroid.core.model.AppSettings
+import dev.gomoku.rapfidroid.core.model.BoardMode
 import dev.gomoku.rapfidroid.core.model.BoardShift
 import dev.gomoku.rapfidroid.core.model.BoardSymmetry
 import dev.gomoku.rapfidroid.core.model.BoardTransform
@@ -18,31 +20,38 @@ import dev.gomoku.rapfidroid.core.model.ComputerSide
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.DbOpResult
 import dev.gomoku.rapfidroid.core.model.DbState
-import dev.gomoku.rapfidroid.core.model.GameReport
 import dev.gomoku.rapfidroid.core.model.FontSpec
 import dev.gomoku.rapfidroid.core.model.FunctionScripts
+import dev.gomoku.rapfidroid.core.model.GameFile
+import dev.gomoku.rapfidroid.core.model.GameFileFormat
+import dev.gomoku.rapfidroid.core.model.GameReport
 import dev.gomoku.rapfidroid.core.model.GameState
 import dev.gomoku.rapfidroid.core.model.GradingPreset
 import dev.gomoku.rapfidroid.core.model.LngTable
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.MoveGrader
 import dev.gomoku.rapfidroid.core.model.MoveQuality
+import dev.gomoku.rapfidroid.core.model.OpeningName
+import dev.gomoku.rapfidroid.core.model.OpeningProtocol
 import dev.gomoku.rapfidroid.core.model.Position
+import dev.gomoku.rapfidroid.core.model.PositionLink
 import dev.gomoku.rapfidroid.core.model.PositionRecord
-import dev.gomoku.rapfidroid.core.model.ReviewData
-import dev.gomoku.rapfidroid.core.model.ReviewProgress
 import dev.gomoku.rapfidroid.core.model.ProveOverlay
 import dev.gomoku.rapfidroid.core.model.ProveProgress
+import dev.gomoku.rapfidroid.core.model.ReviewProgress
+import dev.gomoku.rapfidroid.core.model.StoneColor
 import dev.gomoku.rapfidroid.core.model.Swap2Choice
 import dev.gomoku.rapfidroid.core.model.TapResult
+import dev.gomoku.rapfidroid.core.model.ToolsState
 import dev.gomoku.rapfidroid.data.board.BoardImageIo
+import dev.gomoku.rapfidroid.data.game.GameFileIo
+import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 import dev.gomoku.rapfidroid.domain.engine.EngineResponse
 import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
 import dev.gomoku.rapfidroid.domain.repository.DatabaseRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
-import dev.gomoku.rapfidroid.domain.repository.GameRepository
-import dev.gomoku.rapfidroid.core.model.ToolsState
 import dev.gomoku.rapfidroid.domain.repository.EngineToolsRepository
+import dev.gomoku.rapfidroid.domain.repository.GameRepository
 import dev.gomoku.rapfidroid.domain.repository.ProveRepository
 import dev.gomoku.rapfidroid.domain.repository.ReviewRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
@@ -53,6 +62,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -72,6 +82,9 @@ class BoardViewModel @Inject constructor(
     private val tools: EngineToolsRepository,
     private val appearance: AppearanceRepository,
     private val imageIo: BoardImageIo,
+    private val fileIo: GameFileIo,
+    private val links: IncomingLinks,
+    uiPrefs: UiPrefs,
 ) : ViewModel() {
 
     private val settings = settingsRepository.settings
@@ -79,7 +92,15 @@ class BoardViewModel @Inject constructor(
     /** The board itself lives in [GameRepository] so a game survives this screen. */
     private val position = game.position
 
-    private val snapshot = MutableStateFlow<AnalysisSnapshot?>(null)
+    /** An analysis and the moves of the position it read. */
+    private data class Read(val moves: List<Move>, val snap: AnalysisSnapshot)
+
+    /**
+     * The last analysis — kept when the board moves on, so the engine card can
+     * go on showing it as «직전 국면의 분석» (RapfiWeb, freeze after stop). The
+     * board's overlays only ever use it while it is this position's.
+     */
+    private val reading = MutableStateFlow<Read?>(null)
     private val analyzing = MutableStateFlow(false)
     private val previewPv = MutableStateFlow<Int?>(null)
 
@@ -94,20 +115,25 @@ class BoardViewModel @Inject constructor(
     /**
      * The desktop's `isneedomit` (main.c:4557): the move a stopped search reports
      * is swallowed when the stop was made to change the board rather than to take
-     * the move. Here that is the restart in [startAnalysis] — the old search's
-     * reply lands while the new one is already running.
+     * the move — the restart in [startAnalysis].
      */
     private var omitSettles = 0
+
+    /** The user pressed stop; only then may the settled move be played. */
+    private var stopRequested = false
 
     /** Gives up waiting for a stop the engine never acknowledged. */
     private var stopFallbackJob: Job? = null
 
-    /** Black-perspective win rate per ply, for the win-rate graph. */
+    private val analysisSecPref = uiPrefs.int("analysis.sec", 0)
+    private val playBestPref = uiPrefs.bool("analysis.playBestOnStop", true)
+
+    /** The board a link replaced, kept until the user keeps or drops it. */
+    private val linkBackup = MutableStateFlow<List<Move>?>(null)
+
     /**
      * Per-ply evaluation history — the desktop's `wrhistory`/`wrmate`/`wrvalid`
-     * triple (main.c:1215). **Any** value fills it in, engine or database
-     * (`evalbar_set_black_winrate` has exactly those two callers), and that is
-     * what lets the current move carry a grade badge without a review.
+     * triple (main.c:1215). Engine or database values both fill it.
      */
     private val records = MutableStateFlow<List<PositionRecord>>(emptyList())
 
@@ -128,19 +154,24 @@ class BoardViewModel @Inject constructor(
         val prove: ProveOverlay,
         val proveProgress: ProveProgress,
         val reviewProgress: ReviewProgress,
-        /** Points the engine has been told to ignore (P10 `block`). */
         val blocked: Set<Move>,
-        /** The user's own toolbar (`function/toolbar*.txt`) and its labels. */
         val toolbar: List<FunctionScripts.ToolbarItem>,
         val language: LngTable,
-        /** The running search enumerates defenses (`searchdefend`). */
         val defending: Boolean,
+        val mode: BoardMode,
+        val gameName: String?,
+        val analysisSec: Int,
+        val playBest: Boolean,
+        val linkBackup: Boolean,
     )
 
     private val panel = combine(
-        repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
-        game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
-        tools.state, review.progress, appearance.toolbar, appearance.language, defending,
+        listOf(
+            repository.state, previewPv, analyzing, game.forbidden, database.state, _notice,
+            game.future, balancing, game.state, review.report, prove.overlay, prove.progress,
+            tools.state, review.progress, appearance.toolbar, appearance.language, defending,
+            game.mode, game.gameName, analysisSecPref.state, playBestPref.state, linkBackup,
+        ),
     ) { values ->
         @Suppress("UNCHECKED_CAST")
         Panel(
@@ -161,27 +192,48 @@ class BoardViewModel @Inject constructor(
             toolbar = values[14] as List<FunctionScripts.ToolbarItem>,
             language = values[15] as LngTable,
             defending = values[16] as Boolean,
+            mode = values[17] as BoardMode,
+            gameName = values[18] as String?,
+            analysisSec = values[19] as Int,
+            playBest = values[20] as Boolean,
+            linkBackup = values[21] != null,
         )
     }
 
     val uiState: StateFlow<BoardUiState> =
-        combine(position, snapshot, panel, settings, records) {
-                pos, snap, p, config, history ->
+        combine(position, reading, panel, settings, records) { pos, read, p, config, history ->
+            val current = read?.takeIf { it.moves == pos.moves }?.snap
+            val hasData = read != null && (read.snap.pvs.isNotEmpty() || read.snap.stats.depth > 0)
+            val stale = current == null && hasData
+            val analysisTab = p.mode == BoardMode.ANALYSIS
+            val quality = if (analysisTab) badgeFor(pos, p.report, config) else null
             BoardUiState(
-                render = buildRender(pos, snap, p, config),
+                render = buildRender(pos, current, p, config, quality),
                 moveCount = pos.moves.size,
                 connection = p.connection,
+                mode = p.mode,
                 analyzing = p.analyzing,
                 defending = p.defending,
-                snapshot = snap,
+                shown = current ?: read?.snap?.takeIf { stale },
+                stale = stale,
+                staleAt = if (stale) read?.moves?.size ?: 0 else 0,
+                eval = if (analysisTab) evalFor(pos, read, p) else null,
                 multiPv = config.multiPv,
                 previewPv = p.preview,
                 winRateHistory =
                     if (config.showWrGraph) history.map { it.blackWinRate } else emptyList(),
+                analysisSec = p.analysisSec,
+                playBestOnStop = p.playBest,
                 showEvalBar = config.showEvalBar,
                 showWrGraph = config.showWrGraph,
                 showWarning = config.showWarning,
                 boardZoomPercent = config.boardZoomPercent,
+                openingNames = (1..minOf(OpeningName.MAX_PLY, pos.moves.size))
+                    .mapNotNull { OpeningName.nameAt(it, pos.moves, pos.size) },
+                openingGrade = OpeningName.gradeAt(pos.moves, pos.size),
+                moveGrade = quality?.takeIf { it != MoveQuality.NONE },
+                gameName = p.gameName,
+                linkBackup = p.linkBackup,
                 db = p.db,
                 dbValue = p.db.value,
                 notice = p.notice,
@@ -189,18 +241,18 @@ class BoardViewModel @Inject constructor(
                 balancing = p.balancing,
                 positionString = BoardTransform.toPositionString(pos.moves, pos.size),
                 game = p.game,
+                moveTimeMs = GameLevels.moveTimeOf(config.level, config.timeoutTurnSec),
+                strength = GameLevels.strengthOf(config.level, config.maxNode),
                 sideToMove = pos.sideToMove,
                 showForbidden = config.showForbidden,
                 isRenju = config.isRenju,
+                rule = config.rule,
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
                 research = researchBanner(p),
-                // Only the buttons the board row does not already have. With the
-                // desktop defaults that is none of them, so no strip appears.
                 toolbar = p.toolbar.filterNot { FunctionScripts.isBoardRowDuplicate(it.script) },
                 language = p.language,
                 toolbarStyle = config.toolbarStyle,
-                toolbarPos = config.toolbarPos,
                 dbCommentFont = FontSpec.parse(config.dbCommentFont),
                 dbCommentEditFont = FontSpec.parse(config.dbCommentFont2),
             )
@@ -208,8 +260,7 @@ class BoardViewModel @Inject constructor(
 
     init {
         // The database reply is the desktop's *other* evaluation source
-        // (`evalbar_update_from_database`, main.c:1750). Without it a position
-        // that is only ever looked up, never searched, would stay ungraded.
+        // (`evalbar_update_from_database`, main.c:1750).
         database.state
             .map { it.value }
             .distinctUntilChanged()
@@ -220,27 +271,53 @@ class BoardViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
 
-        // main.c:13930 — a bare `y,x` on its own is the end of a search: the
-        // engine reports the move it settled on. The desktop plays that move and
-        // re-reads the database (main.c:13957-13961); the only replies it throws
-        // away are the ones it asked for while rearranging the board.
+        // main.c:13930 — a bare `y,x` on its own is the end of a search.
         repository.responses
             .filterIsInstance<EngineResponse.BestMove>()
             .onEach { onSearchSettled(it.moves) }
             .launchIn(viewModelScope)
 
-        // The database follows the board: every position change re-queries it,
-        // exactly like the desktop's show_database() call after each move.
+        // The database follows the board: every position change re-queries it.
         viewModelScope.launch {
             position.collect { pos ->
                 database.setPosition(pos)
-                snapshot.value = null
-                // Restart in whichever mode was running: someone stepping through
-                // a line with `searchdefend` on wants the defenses for the new
-                // position too, not a sudden switch back to the best moves.
                 if (analyzing.value) startAnalysis(defending.value)
             }
         }
+
+        // A RapfiWeb link the app was opened with.
+        links.pending.filterNotNull().onEach { onOpenLink(it) }.launchIn(viewModelScope)
+    }
+
+    // ---- tabs --------------------------------------------------------------
+
+    /**
+     * Switch [분석] / [대국]. Analysis → game only stops the analysis (it does not
+     * play the best move); game → analysis abandons the engine's pending move —
+     * [GameRepository.setMode] does that half.
+     */
+    fun onMode(mode: BoardMode) {
+        if (researchBusy() != null && mode == BoardMode.GAME) {
+            _notice.value = researchBusy()
+            return
+        }
+        if (analyzing.value) stopAnalysis()
+        previewPv.value = null
+        viewModelScope.launch { game.setMode(mode) }
+    }
+
+    /** «새 판»: the current tab's board starts over; colours and opening stay. */
+    fun onNewBoard() = inGame {
+        if (analyzing.value) stopAnalysis()
+        records.value = emptyList()
+        reading.value = null
+        game.newGame(resetClock = true)
+    }
+
+    /** «진영 전환»: the engine takes the other colour. */
+    fun onSwapSides() = inGame {
+        val side = game.state.value.computerSide
+        if (side == ComputerSide.BLACK || side == ComputerSide.WHITE) game.setComputerSide(side.swapped())
     }
 
     // ---- board -------------------------------------------------------------
@@ -248,6 +325,10 @@ class BoardViewModel @Inject constructor(
     /**
      * A tap goes to the game: depending on the rule and whose turn it is it
      * places a stone, answers an opening step, or starts the engine's turn.
+     *
+     * One shortcut from RapfiWeb: when the engine plays Black on an empty board
+     * of a free opening, its first move is the centre — it is placed at once
+     * rather than searched for.
      */
     fun onTap(move: Move) {
         researchBusy()?.let {
@@ -256,6 +337,7 @@ class BoardViewModel @Inject constructor(
         }
         previewPv.value = null
         viewModelScope.launch {
+            if (centreFirstMove()) return@launch
             when (val result = game.tap(move)) {
                 is TapResult.Rejected -> _notice.value = result.reason
                 else -> Unit
@@ -263,23 +345,25 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    /** One move back (`undo one`), remembering it for redo. */
+    /** Places the engine's first black stone on the centre. True when it did. */
+    private suspend fun centreFirstMove(): Boolean {
+        val pos = position.value
+        val st = game.state.value
+        if (game.mode.value != BoardMode.GAME || pos.moves.isNotEmpty()) return false
+        if (!st.computerSide.plays(StoneColor.BLACK) || st.thinking || st.over) return false
+        if (st.opening != OpeningProtocol.NONE) return false
+        game.replaceLine(listOf(Move(pos.size / 2, pos.size / 2)))
+        if (st.computerSide.plays(StoneColor.WHITE)) game.engineMove()
+        return true
+    }
+
     fun onUndo() = inGame { game.undo() }
-
-    /** One move forward along the remembered line (`redo one`). */
     fun onRedo() = inGame { game.redo() }
-
-    /** Back to the empty board without losing the line (`undo all`). */
     fun onFirst() = inGame { game.toStart() }
-
-    /** Forward to the end of the line (`redo all`). */
     fun onLast() = inGame { game.toEnd() }
 
-    /** Discard the game (`clear`), clocks and opening protocol included. */
-    fun onReset() = inGame {
-        records.value = emptyList()
-        game.newGame(resetClock = true)
-    }
+    /** Discard the board (`clear`), clocks and opening protocol included. */
+    fun onReset() = onNewBoard()
 
     fun onStartAnalyze() {
         if (analyzing.value) return
@@ -294,11 +378,7 @@ class BoardViewModel @Inject constructor(
         startAnalysis()
     }
 
-    /**
-     * `searchdefend` (main.c:10883): instead of the k best moves, every move that
-     * still defends. It is an analysis like any other — same replies, same tags,
-     * same stop button — so it runs through the same path with one flag.
-     */
+    /** `searchdefend` (main.c:10883): every move that still defends. */
     fun onSearchDefend() {
         researchBusy()?.let {
             _notice.value = it
@@ -313,24 +393,26 @@ class BoardViewModel @Inject constructor(
     }
 
     /**
-     * Stop button: ends whichever search is running — analysis, a balance search
-     * or the engine's game turn. All three stop with `YXSTOP`, which makes the
-     * engine report the best move it has found so far.
-     *
-     * The analysis is **not** torn down here. `YXSTOP` is a request, and the
-     * search is over only when the engine answers it with that move; ending the
-     * flow first would throw the answer away, which is why stopping used to leave
-     * the board exactly as it was. [onSearchSettled] does the rest when it lands.
+     * Stop. An analysis stops with `YXSTOP`, which makes the engine report its
+     * best move; with «정지하면 최선수 두기» on, that move is played when it
+     * lands ([onSearchSettled]). On an empty board the move is the centre and
+     * nothing waits for the engine.
      */
     fun onStopAnalyze() {
         if (analyzing.value) {
+            val pos = position.value
+            if (pos.moves.isEmpty() && playBestPref.value) {
+                stopAnalysis()
+                viewModelScope.launch { game.replaceLine(listOf(Move(pos.size / 2, pos.size / 2))) }
+                return
+            }
+            stopRequested = true
             viewModelScope.launch { runCatching { repository.stop() } }
             stopFallbackJob?.cancel()
             stopFallbackJob = viewModelScope.launch {
-                // A stop the engine never acknowledges (a dropped link, mostly)
-                // must not leave the UI searching forever.
                 kotlinx.coroutines.delay(STOP_REPLY_TIMEOUT_MS)
                 if (analyzing.value) {
+                    stopRequested = false
                     stopAnalysis()
                     runCatching { database.refresh() }
                 }
@@ -340,58 +422,42 @@ class BoardViewModel @Inject constructor(
         if (game.state.value.thinking) viewModelScope.launch { game.stopThinking() }
     }
 
+    /** «지금 두기»: the engine plays what it has found so far. */
+    fun onMoveNow() {
+        if (game.state.value.thinking) viewModelScope.launch { game.stopThinking() }
+    }
+
     /**
-     * The engine settled on a move — a search ended, whether the user stopped it
-     * or its own budget ran out. The desktop plays that move onto the board and
-     * re-reads the database for the new position (main.c:13957-13961).
-     *
-     * Only an analysis of ours is claimed here: a game turn belongs to
-     * [GameRepository] (which gates on its own `thinking`), a balance search to
-     * the call that is awaiting it, and a review or proof to its run.
+     * The engine settled on a move. A search the user stopped plays it (when
+     * that is switched on); one whose time ran out just ends, and its result
+     * stays on the card.
      */
     private fun onSearchSettled(moves: List<Move>) {
         if (!analyzing.value || balancing.value || game.state.value.thinking) return
-        // Checked after the ownership guard, so a reply that was never ours —
-        // a review's, a proof's — cannot spend the count meant for our own.
         if (omitSettles > 0) {
             omitSettles--
             return
         }
+        val play = stopRequested && playBestPref.value
+        stopRequested = false
         stopAnalysis()
         val target = position.value
-        // The engine may answer with a point that is already occupied when the
-        // board moved on under a late reply; the desktop's `is_legal_move` guard
-        // covers the same case.
         val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
         viewModelScope.launch {
-            if (legal.isEmpty()) {
-                // Nothing to play, but the search may well have written to the
-                // database — the values on the board have to be re-read either way.
+            if (!play || legal.isEmpty()) {
                 runCatching { database.refresh() }
                 return@launch
             }
-            game.replaceLine(target.moves + legal)
-            val played = legal.joinToString(" ") { it.label(target.size) }
-            _notice.value = tr("탐색 종료 · $played 착수", "Search over · played $played")
+            game.replaceLine(target.moves + legal.first())
         }
     }
 
-    /**
-     * `rotate` / `flip`: transform the whole shape. The desktop replays the
-     * transformed path from an empty board, so colours and numbering survive and
-     * the redo tail is dropped (main.c:10194-10266).
-     */
     fun onSymmetry(symmetry: BoardSymmetry) {
         val pos = position.value
         if (pos.moves.isEmpty()) return
         applyLine(BoardTransform.symmetry(pos.moves, pos.size, symmetry))
     }
 
-    /**
-     * `move [^,v,<,>]`: shift every stone one point. The desktop refuses the
-     * whole shift if any stone would leave the board (main.c:10304) rather than
-     * clipping the shape.
-     */
     fun onShift(direction: BoardShift) {
         val pos = position.value
         if (pos.moves.isEmpty()) return
@@ -403,18 +469,18 @@ class BoardViewModel @Inject constructor(
         applyLine(shifted)
     }
 
-    /** Replace the position with [moves] (transform result / pasted line). */
     private fun applyLine(moves: List<Move>) = inGame {
         previewPv.value = null
         records.value = emptyList()
         game.replaceLine(moves)
     }
 
-    /** `putpos`: load a line from the desktop's clipboard format ("h8i9…"). */
+    /** `putpos`: load a line from the desktop's clipboard format or a link. */
     fun onLoadPositionString(text: String) {
         val size = position.value.size
-        val moves = BoardTransform.fromPositionString(text.trim(), size)
-        if (moves.isEmpty()) {
+        val moves = PositionLink.fromText(text, size)
+            ?: BoardTransform.fromPositionString(text.trim(), size).takeIf { it.isNotEmpty() }
+        if (moves == null) {
             _notice.value = tr("국면 문자열을 읽을 수 없습니다", "That position string could not be read")
             return
         }
@@ -422,10 +488,82 @@ class BoardViewModel @Inject constructor(
         _notice.value = tr("${moves.size}수를 불러왔습니다", "Loaded ${moves.size} moves")
     }
 
+    // ---- links and files ---------------------------------------------------
+
+    /** The RapfiWeb link of this position. */
+    fun linkText(): String = position.value.let { PositionLink.url(it.moves, it.size) }
+
     /**
-     * Balance search (`balance1` / `balance2`). The desktop plays the answer onto
-     * the board — one move, or both moves of a pair — so this does the same.
+     * Open a RapfiWeb link. If it would replace a board with stones on it, that
+     * board is kept aside with «두던 판으로 돌아가기 · 버리기».
      */
+    fun onOpenLink(text: String) {
+        links.consume()
+        val pos = position.value
+        val moves = PositionLink.fromText(text, pos.size)
+        if (moves == null) {
+            _notice.value = tr("링크의 국면을 읽을 수 없습니다", "The link's position could not be read")
+            return
+        }
+        if (pos.moves.isNotEmpty() && pos.moves != moves) linkBackup.value = pos.moves
+        applyLine(moves)
+        _notice.value = tr("링크의 국면을 열었습니다", "Opened the linked position")
+    }
+
+    fun onRestoreLinkBackup() {
+        val backup = linkBackup.value ?: return
+        linkBackup.value = null
+        applyLine(backup)
+    }
+
+    fun onDropLinkBackup() {
+        linkBackup.value = null
+    }
+
+    fun onOpenFile(uri: Uri) {
+        viewModelScope.launch {
+            val bytes = fileIo.read(uri.toString())
+            val name = fileIo.displayName(uri)
+            val size = position.value.size
+            val format = GameFileFormat.of(name)
+            val moves = bytes?.let { b ->
+                if (format != null) GameFile.parse(b, format, size)
+                else GameFileFormat.entries.firstNotNullOfOrNull { GameFile.parse(b, it, size)?.takeIf { m -> m.isNotEmpty() } }
+            }
+            if (moves.isNullOrEmpty()) {
+                _notice.value = tr("기보를 읽을 수 없습니다", "That game file could not be read")
+                return@launch
+            }
+            researchBusy()?.let {
+                _notice.value = it
+                return@launch
+            }
+            records.value = emptyList()
+            game.loadLine(moves, GameFile.baseName(name))
+            _notice.value = tr("${moves.size}수를 열었습니다", "Opened ${moves.size} moves")
+        }
+    }
+
+    fun onSaveFile(uri: Uri, format: GameFileFormat) {
+        viewModelScope.launch {
+            val pos = position.value
+            val bytes = when (format) {
+                GameFileFormat.PSQ -> GameFile.writePsq(pos.moves, pos.size)
+                else -> GameFile.writeSav(pos.moves, pos.size)
+            }
+            _notice.value = runCatching { fileIo.write(uri, bytes) }.fold(
+                onSuccess = { tr("기보를 저장했습니다", "Game saved") },
+                onFailure = { e -> tr("저장 실패: ${e.message}", "Could not save: ${e.message}") },
+            )
+        }
+    }
+
+    fun saveName(format: GameFileFormat): String {
+        val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date())
+        return "rapfi_${position.value.moves.size}_$stamp.${format.extension}"
+    }
+
+    /** Balance search (`balance1` / `balance2`), played onto the board. */
     fun onBalance(two: Boolean, bias: Int) {
         if (balancing.value || !repository.state.value.isLive) return
         researchBusy()?.let {
@@ -438,9 +576,6 @@ class BoardViewModel @Inject constructor(
         viewModelScope.launch {
             val moves = runCatching { repository.balance(target, two, bias) }.getOrDefault(emptyList())
             balancing.value = false
-            // The board may have moved on while the engine was thinking; only a
-            // still-current position may be played onto (the desktop swallows a
-            // late reply through `isneedomit`, main.c:4538).
             if (position.value != target) return@launch
             val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
             if (legal.isEmpty()) {
@@ -448,50 +583,75 @@ class BoardViewModel @Inject constructor(
                 return@launch
             }
             game.replaceLine(target.moves + legal)
-            _notice.value = tr("균형점: ", "Balance: ") +
-                legal.joinToString(" ") { it.label(target.size) }
+            _notice.value = tr("균형점: ", "Balance: ") + legal.joinToString(" ") { it.label(target.size) }
         }
     }
 
-    // ---- game (P5) ---------------------------------------------------------
+    // ---- game --------------------------------------------------------------
 
-    /** Which colours the engine plays (settings.txt lines 4-5). */
     fun onComputerSide(side: ComputerSide) = inGame { game.setComputerSide(side) }
 
     /** "엔진 착수" — the desktop's `thinking start` when a game is on. */
     fun onEngineMove() = inGame {
+        if (centreFirstMove()) return@inGame
         when (val result = game.engineMove()) {
             is TapResult.Rejected -> _notice.value = result.reason
             else -> Unit
         }
     }
 
-    fun onNewGame() = onReset()
-
+    fun onNewGame() = onNewBoard()
     fun onOfferDraw() = inGame { game.offerDraw() }
-
     fun onResign() = inGame { game.resign() }
-
     fun onSwapAnswer(yes: Boolean) = inGame { game.answerSwap(yes) }
-
     fun onSwap2Answer(choice: Swap2Choice) = inGame { game.answerSwap2(choice) }
-
     fun onFifthCount(count: Int) = inGame { game.answerFifthCount(count) }
-
     fun onDismissPrompt() = game.dismissPrompt()
 
-    /** Forbidden point display (settings.txt line 30), toggled from the board. */
+    /**
+     * Engine move time (settings.txt line 7) on the desktop's custom level, or
+     * the unlimited level 0 when both time and strength are open.
+     */
+    fun onMoveTime(ms: Long) = writeLevel(ms, uiState.value.strength)
+
+    fun onStrength(level: Int) = writeLevel(uiState.value.moveTimeMs, level)
+
+    private fun writeLevel(moveTimeMs: Long, strength: Int) {
+        viewModelScope.launch {
+            val nodes = GameLevels.all.firstOrNull { it.level == strength }?.maxNode
+            val unlimited = moveTimeMs <= 0 && nodes == null
+            settingsRepository.update {
+                if (unlimited) {
+                    it.copy(level = 0)
+                } else {
+                    it.copy(
+                        level = 1,
+                        timeoutTurnSec = if (moveTimeMs <= 0) GameLevels.UNLIMITED_TURN_SEC
+                        else ((moveTimeMs + 500) / 1000).toInt().coerceAtLeast(1),
+                        maxNode = nodes ?: GameLevels.NO_CAP,
+                    )
+                }
+            }
+        }
+    }
+
+    /** settings.txt line 3 — rule and opening; the desktop starts a new game. */
+    fun onRule(rule: Int) {
+        viewModelScope.launch {
+            settingsRepository.set("rule", rule.toString())
+            game.newGame(resetClock = true)
+        }
+    }
+
     fun onToggleForbidden() {
         val next = !settings.value.showForbidden
         viewModelScope.launch { settingsRepository.set("showForbidden", if (next) "1" else "0") }
     }
 
-    /** Feedback from the screen (image export result, copied position, …). */
     fun onNotice(text: String) {
         _notice.value = text
     }
 
-    /** The stepper writes settings.txt line 20, so the choice survives restarts. */
     fun onMultiPvChange(value: Int) {
         viewModelScope.launch {
             settingsRepository.set("multiPv", value.coerceIn(1, MULTI_PV_LIMIT).toString())
@@ -499,15 +659,17 @@ class BoardViewModel @Inject constructor(
         }
     }
 
+    fun onAnalysisSec(sec: Int) {
+        analysisSecPref.set(sec.coerceAtLeast(0))
+        if (analyzing.value) startAnalysis(defending.value)
+    }
+
+    fun onPlayBestOnStop(on: Boolean) = playBestPref.set(on)
+
     fun onPreviewPv(index: Int?) {
         previewPv.value = index
     }
 
-    /**
-     * Write the current board as a PNG to a location the user picked. The bytes
-     * are rendered by the screen (it owns the Compose density) and only stored
-     * here, next to the other one-shot feedback.
-     */
     fun onSaveImage(uri: Uri, bytes: ByteArray) {
         viewModelScope.launch {
             _notice.value = runCatching { imageIo.write(uri, bytes) }.fold(
@@ -518,33 +680,27 @@ class BoardViewModel @Inject constructor(
     }
 
     private fun startAnalysis(defend: Boolean = false) {
-        // Restarting on a new position cancels the old search, and the engine
-        // answers that cancel with the move it had — for the position the user
-        // has already left. That reply is the desktop's `isneedomit` case.
         if (analyzing.value) omitSettles++
         stopFallbackJob?.cancel()
         analyzeJob?.cancel()
-        snapshot.value = null
+        stopRequested = false
         analyzing.value = true
         defending.value = defend
-        // The game's forbidden refresh must not push a board mid-search.
         game.setAnalyzing(true)
         val target = position.value
         val ply = target.moves.size
+        val limit = analysisSecPref.value * 1000L
         analyzeJob = viewModelScope.launch {
-            repository.analyze(target, AnalyzeParams(settings.value.multiPv, defend)).collect { snap ->
-                snapshot.value = snap
-                snap.blackWinRate()?.let {
-                    recordValue(ply, it, snap.blackMate() ?: 0, snap.best?.head, gapOf(snap))
+            repository.analyze(target, AnalyzeParams(settings.value.multiPv, defend, timeLimitMs = limit))
+                .collect { snap ->
+                    reading.value = Read(target.moves, snap)
+                    snap.blackWinRate()?.let {
+                        recordValue(ply, it, snap.blackMate() ?: 0, snap.best?.head, gapOf(snap))
+                    }
                 }
-            }
         }
     }
 
-    /**
-     * Record one position's evaluation, the desktop's `evalbar_set_black_winrate`
-     * (main.c:1642). A mate pins the win rate to 0/1 exactly as it does there.
-     */
     private fun recordValue(
         ply: Int,
         blackRate: Double,
@@ -564,8 +720,6 @@ class BoardViewModel @Inject constructor(
             out[ply] = PositionRecord(
                 blackWinRate = rate,
                 blackMate = blackMate,
-                // The engine's own best/gap survive a later database reply, which
-                // carries neither — losing them would drop Brilliant/Great.
                 best = best ?: previous.best,
                 gap = gap ?: previous.gap,
             )
@@ -573,7 +727,6 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    /** Best-vs-second win-rate spread, the "only move" signal (`reviewgap`). */
     private fun gapOf(snap: AnalysisSnapshot): Double? {
         val sorted = snap.pvs.sortedBy { it.index }
         val first = sorted.getOrNull(0)?.winRate ?: return null
@@ -592,10 +745,27 @@ class BoardViewModel @Inject constructor(
     }
 
     /**
-     * The badge painted on the board while a research run holds the engine —
-     * `prove_badge_lines` verbatim for a proof (totals on top, the live search
-     * below), and the review's own counter (main.c:6864) otherwise.
+     * The eval bar: this position's search, or one of the positions before it —
+     * after a move the bar keeps the last value until a new one arrives, but a
+     * value from *after* an undone move is never shown. Without a search, the
+     * database's value for this position.
      */
+    private fun evalFor(pos: Position, read: Read?, p: Panel): EvalView? {
+        val snap = read?.takeIf { it.moves.size <= pos.moves.size && pos.moves.subList(0, it.moves.size) == it.moves }?.snap
+        val rate = snap?.blackWinRate()
+        val live = p.analyzing && rate != null
+        val db = p.db.value
+        if (!live && db != null && p.db.enabled) {
+            return EvalView(db.blackWinRate * 100, mate = db.blackMate, fromDb = true)
+        }
+        if (snap == null || rate == null) return null
+        if (pos.moves.isEmpty() && !p.analyzing) return null
+        val mate = snap.blackMate()?.takeIf { it != 0 }
+        val black = snap.sideToMove == StoneColor.BLACK
+        val cp = snap.stats.evalCp?.let { if (black) it else -it }
+        return EvalView(rate * 100, evalCp = cp, mate = mate)
+    }
+
     private fun researchBanner(panel: Panel): ResearchBanner? = when {
         panel.proveProgress.running -> {
             val (first, second) = panel.proveProgress.badgeLines()
@@ -608,11 +778,6 @@ class BoardViewModel @Inject constructor(
         else -> null
     }
 
-    /**
-     * Run a user toolbar button or hotkey. It is the same console script the
-     * desktop hands to `custom_function` (main.c:10064), so it goes to the same
-     * interpreter the log input line uses — no second code path for buttons.
-     */
     fun onRunScript(script: String) {
         viewModelScope.launch { runCatching { tools.run(script) } }
     }
@@ -623,42 +788,39 @@ class BoardViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The board as drawn. The analysis tab shows the engine's overlay for this
+     * position (and keeps it after a stop that left the board alone); the game
+     * tab shows none of it — no values, no best-move ring, no line — because
+     * there it would be coaching. Database values come before engine values on
+     * the same point: a proven or hand-written record outranks an estimate.
+     */
     private fun buildRender(
         pos: Position,
         snap: AnalysisSnapshot?,
         panel: Panel,
         config: AppSettings,
+        quality: MoveQuality?,
     ): BoardRender {
+        val analysisTab = panel.mode == BoardMode.ANALYSIS
+        val shown = if (analysisTab) snap else null
         val pv = when {
-            panel.preview != null -> snap?.pvs?.firstOrNull { it.index == panel.preview }?.line
-            else -> snap?.best?.line?.ifEmpty { snap.realtimeLine }
+            panel.preview != null -> shown?.pvs?.firstOrNull { it.index == panel.preview }?.line
+            else -> shown?.best?.line?.ifEmpty { shown.realtimeLine }
         }.orEmpty()
         val ghosts = pv.filterNot { pos.moves.contains(it) }.take(GHOST_LIMIT)
-        val bestMark = snap?.realtimeBest ?: snap?.best?.head
-        // main.c only records tags while `showanalysiswinrate` is on, and draws no
-        // analysis overlay at all with `showanalysis` off. While previewing one PV
-        // the tags would fight the ghosts for space, so they are hidden there too.
-        //
-        // **Only while a search runs** (main.c:1901 `showanalysis && isthinking`).
-        // The desktop keeps one array for both, so when a search ends
-        // `show_database()` writes the stored values straight over the analysis
-        // percentages; here they are two maps and the analysis one won, which is
-        // why database values stayed hidden on exactly the points that had just
-        // been analysed.
-        val overlay = config.showAnalysis && panel.analyzing
-        val tags = if (overlay && config.showAnalysisWinrate && panel.preview == null) {
-            snap?.tags.orEmpty()
-        } else {
-            emptyMap()
-        }
-        // yixindb labels: the desktop draws them only while the engine is idle
-        // (main.c:1913 `f == 0 && usedatabase && isthinking == 0`), preferring the
-        // free-form board text over the stored value when that toggle is on.
-        val dbLabels = if (config.useDatabase && !panel.analyzing && !panel.game.thinking) {
+        val bestMark = shown?.realtimeBest ?: shown?.best?.head
+        val overlay = config.showAnalysis && shown != null
+        val dbLabels = if (analysisTab && config.useDatabase && !panel.game.thinking) {
             panel.db.snapshot.cells.mapNotNull { (move, cell) ->
                 val text = cell.display(config.showBoardText)
                 if (text.isEmpty()) null else move to DbLabel(text, cell.kindOf())
             }.toMap()
+        } else {
+            emptyMap()
+        }
+        val tags = if (overlay && config.showAnalysisWinrate && panel.preview == null) {
+            shown?.tags.orEmpty().filterKeys { it !in dbLabels }
         } else {
             emptyMap()
         }
@@ -670,20 +832,17 @@ class BoardViewModel @Inject constructor(
             ghosts = ghosts,
             bestMark = if (bestMark != null && !pos.moves.contains(bestMark)) bestMark else null,
             tags = tags,
-            candidates = if (overlay) snap?.candidates.orEmpty() else emptyMap(),
-            loseCells = if (overlay) snap?.loseCells.orEmpty() else emptySet(),
+            candidates = if (overlay && panel.analyzing) shown?.candidates.orEmpty() else emptyMap(),
+            loseCells = if (overlay && panel.analyzing) shown?.loseCells.orEmpty() else emptySet(),
             dbLabels = dbLabels,
-            // Review grades, only for the stones actually on the board and only
-            // while the line still matches the reviewed one (main.c re-grades on
-            // every board refresh; here the report is the source of truth).
-            badges = if (config.showMoveBadge) badgeFor(pos, panel.report, config) else emptyMap(),
-            // Prove overlay: ghost stones of the line under search plus a status
-            // marker on every root candidate (main.c:9061 `prove_cell_pixbuf`).
+            badges = if (config.showMoveBadge && quality != null && quality != MoveQuality.NONE && pos.moves.isNotEmpty()) {
+                mapOf(pos.moves.last() to quality)
+            } else {
+                emptyMap()
+            },
             prove = panel.prove.takeIf { it.active },
             blocked = panel.blocked,
             showNumbers = config.showNumber,
-            // settings.txt line 44 "Board Text Font": the PC families are not
-            // here, but the size the user chose is what they were adjusting.
             textScale = FontSpec.parse(config.boardTextFont).scale,
             palette = TagPalette(
                 losingSaturation = config.lossSaturation,
@@ -696,73 +855,42 @@ class BoardViewModel @Inject constructor(
     }
 
     /**
-     * Grades for the stones on the board. The report holds the whole reviewed
-     * line, so a prefix of it still matches while the user walks the game; a
-     * different line means the badges no longer belong to these stones.
+     * The grade of the **current move only** — main.c:2114 grades every move but
+     * paints just `bn == piecenum`. Live values (engine or database) and a review
+     * report whose line still matches the board feed one record list.
      */
-    /**
-     * The badge on the **current move only** — main.c:2114 grades every move but
-     * paints just `bn == piecenum`, because past moves already have their markers
-     * in the win-rate graph.
-     *
-     * Two sources feed one record list: the live evaluations collected above
-     * (engine or database), and a review report when the reviewed line still
-     * matches the board. That is why the PC shows a badge the moment a value
-     * arrives, with or without a review.
-     */
-    private fun badgeFor(
-        pos: Position,
-        report: GameReport?,
-        config: AppSettings,
-    ): Map<Move, MoveQuality> {
-        if (pos.moves.isEmpty()) return emptyMap()
+    private fun badgeFor(pos: Position, report: GameReport?, config: AppSettings): MoveQuality? {
+        if (pos.moves.isEmpty()) return null
         val ply = pos.moves.size
         val live = records.value
         val fromReport = report?.data?.takeIf { it.matchesPrefix(pos.moves) }?.records.orEmpty()
         val merged = (0..ply).map { i ->
-            // A review searched every position deliberately; prefer its record and
-            // fall back to whatever the board picked up on its own.
             fromReport.getOrNull(i)?.takeIf { it.recorded } ?: live.getOrNull(i) ?: PositionRecord()
         }
-        val quality = MoveGrader.currentBadge(
+        return MoveGrader.currentBadge(
             moves = pos.moves,
             size = pos.size,
             records = merged,
             preset = GradingPreset.of(config.mqPreset),
             skipOpening = config.skipOpening,
-        ) ?: return emptyMap()
-        return mapOf(pos.moves.last() to quality)
+        )
     }
 
     // ---- database actions (P7) ---------------------------------------------
 
-    /**
-     * Long press on a point = the desktop's board-text dialog (Ctrl/middle click,
-     * main.c:2677). It only makes sense on an empty point, and never while the
-     * database is read-only — the desktop returns early in that case too.
-     */
     fun onCellLabel(cell: Move, label: String) = runDb { database.editCellLabel(cell, label) }
-
     fun onSaveComment(comment: String) = runDb { database.editComment(comment) }
-
-    /** `dbval` — logs the stored record for this position. */
     fun onQueryDbValue() = runDb { database.queryValue() }
-
     fun onQueryDbComment() = runDb { database.queryComment() }
-
     fun onDbDeleteOne() = runDb { database.deleteOne() }
-
     fun onDbSetBestMove() = runDb { database.setBestMove() }
-
     fun onDbClearBestMove() = runDb { database.clearBestMove() }
-
     fun onDbSave() = runDb { database.save() }
 
     fun onNoticeShown() {
         _notice.value = null
     }
 
-    /** Runs a database call and surfaces a refusal as a notice instead of failing silently. */
     private fun runDb(block: suspend () -> DbOpResult) {
         viewModelScope.launch {
             when (val result = block()) {
@@ -772,16 +900,14 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    /** Runs a game call on the view-model scope (named to avoid shadowing `launch`). */
     /**
      * Board actions are locked while a review or a proof runs — main.c returns
      * early from the board click and from every navigation callback while
-     * `reviewactive || proveactive` (main.c:2661, 4524). Without this a tap would
-     * push a `TURN` into the middle of the run's own conversation.
+     * `reviewactive || proveactive` (main.c:2661, 4524).
      */
     private fun researchBusy(): String? = when {
-        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다 — 먼저 중지하세요", "A game review is running — stop it first")
-        prove.progress.value.running -> tr("국면 증명이 진행 중입니다 — 먼저 중지하세요", "A proof is running — stop it first")
+        review.progress.value.running -> tr("게임 리뷰가 진행 중입니다. 먼저 중지하세요", "A game review is running. Stop it first")
+        prove.progress.value.running -> tr("국면 증명이 진행 중입니다. 먼저 중지하세요", "A proof is running. Stop it first")
         else -> null
     }
 
@@ -796,8 +922,6 @@ class BoardViewModel @Inject constructor(
     private companion object {
         const val GHOST_LIMIT = 8
         const val MULTI_PV_LIMIT = 8
-
-        /** How long a `YXSTOP` may go unanswered before the UI stops waiting. */
         const val STOP_REPLY_TIMEOUT_MS = 5_000L
     }
 }
