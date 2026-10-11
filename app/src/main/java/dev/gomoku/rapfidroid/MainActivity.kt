@@ -18,19 +18,20 @@ import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
 import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiDroidTheme
+import dev.gomoku.rapfidroid.core.joseki.LessonLink
 import dev.gomoku.rapfidroid.core.model.HotkeyMap
 import dev.gomoku.rapfidroid.data.engine.DebugLogWriter
 import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineToolsRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
-import kotlinx.coroutines.launch
 import dev.gomoku.rapfidroid.navigation.RapfiApp
-import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -112,11 +113,18 @@ class MainActivity : ComponentActivity() {
         takeLink(intent)
     }
 
-    /** `https://rapfiweb.pages.dev/…?p=h8i9j10` — the board picks it up. */
+    /**
+     * RapfiWeb links: a curriculum lesson or course (`…/joseki?lesson=<id>`)
+     * goes to the joseki tab, a position (`…/board?p=h8i9j10`) to the board.
+     */
     private fun takeLink(intent: Intent?) {
         if (intent?.action != Intent.ACTION_VIEW) return
         val url = intent.dataString ?: return
-        if (url.contains("p=")) links.offer(url)
+        val lesson = LessonLink.parse(url)
+        when {
+            lesson != null -> links.offerLesson(lesson)
+            url.contains("p=") -> links.offer(url)
+        }
     }
 
     private fun maybeRequestNotifications() {

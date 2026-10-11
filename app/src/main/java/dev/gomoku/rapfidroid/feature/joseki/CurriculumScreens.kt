@@ -44,6 +44,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -65,12 +67,17 @@ import dev.gomoku.rapfidroid.core.joseki.Quiz
 import dev.gomoku.rapfidroid.core.joseki.QuizFeedback
 import dev.gomoku.rapfidroid.core.joseki.QuizState
 import dev.gomoku.rapfidroid.core.model.Move
+import dev.gomoku.rapfidroid.data.joseki.CurriculumSource
 
 // ---- course list --------------------------------------------------------------
 
-/** The curriculum's front page: one line, then a card per course. */
+/**
+ * The curriculum's front page: one line, then a card per course. Under the
+ * title, quietly, where the curriculum came from — it is RapfiWeb's published
+ * file, so «웹과 같음» is the normal state and the version says which one.
+ */
 @Composable
-internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit) {
+internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: () -> Unit) {
     val curriculum = ui.curriculum
     LazyColumn(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
@@ -81,6 +88,7 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit) {
             Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
                 Text(tr("공식 커리큘럼", "Official curriculum"), style = MaterialTheme.typography.headlineSmall)
                 Hint(tr("오프닝 정석을 따라 두며 배웁니다", "Learn the opening joseki by playing them"))
+                SyncLine(ui, onRefresh)
             }
         }
         if (curriculum == null) {
@@ -89,6 +97,28 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit) {
             items(curriculum.courses, key = { it.id }) { course ->
                 CourseCard(course, ui.progress.keys) { onOpen(course.id) }
             }
+        }
+    }
+}
+
+@Composable
+private fun SyncLine(ui: JosekiUiState, onRefresh: () -> Unit) {
+    val version = ui.curriculum?.version?.takeIf { it.isNotBlank() }
+    val state = when {
+        ui.sync.checking -> tr("웹에서 확인하는 중", "Checking the web")
+        ui.sync.source == CurriculumSource.ONLINE -> tr("RapfiWeb 과 같음", "Same as RapfiWeb")
+        ui.sync.offline -> tr("오프라인 · 기기에 있는 것", "Offline · the copy on this phone")
+        else -> tr("기기에 있는 것", "The copy on this phone")
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            listOfNotNull(version?.let { tr("버전 $it", "Version $it") }, state).joinToString(" · "),
+            style = MaterialTheme.typography.labelMedium.tabular(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        if (!ui.sync.checking && ui.sync.source != CurriculumSource.ONLINE) {
+            TextButton(onClick = onRefresh) { Text(tr("새로 고침", "Refresh")) }
         }
     }
 }
@@ -306,7 +336,17 @@ internal fun LessonPage(
                 }
             }
         }
-        TextButton(onClick = vm::onLessonToBoard) { Text(tr("보드에 올리기", "Put on the board")) }
+        val clipboard = LocalClipboardManager.current
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            TextButton(onClick = vm::onLessonToBoard) { Text(tr("보드에 올리기", "Put on the board")) }
+            // The same address RapfiWeb shares: opens this lesson on the web, or in the app.
+            TextButton(onClick = {
+                vm.lessonLink()?.let {
+                    clipboard.setText(AnnotatedString(it))
+                    vm.onLinkCopied()
+                }
+            }) { Text(tr("링크 복사", "Copy link")) }
+        }
     }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {

@@ -12,6 +12,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -30,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalShellChrome
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellChrome
@@ -45,13 +47,13 @@ import dev.gomoku.rapfidroid.feature.database.DatabaseScreen
 import dev.gomoku.rapfidroid.feature.joseki.JosekiScreen
 import dev.gomoku.rapfidroid.feature.settings.SettingsScreen
 import dev.gomoku.rapfidroid.feature.tools.EngineScreen
+import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * The shell's own state: the engine for the top-bar chip and the tab dot, and
@@ -66,11 +68,15 @@ import javax.inject.Inject
 @HiltViewModel
 class ShellViewModel @Inject constructor(
     private val engine: EngineRepository,
+    links: IncomingLinks,
     private val endpoints: EndpointStore,
     private val settings: SettingsRepository,
     private val ui: UiPrefs,
 ) : ViewModel() {
     val state: StateFlow<ConnectionState> = engine.state
+
+    /** A curriculum link waiting: the shell moves to the joseki tab, which opens it. */
+    val lessonLink = links.lesson
 
     val dark: StateFlow<Boolean> = settings.settings.map { it.darkMode }
         .stateIn(viewModelScope, SharingStarted.Eagerly, settings.settings.value.darkMode)
@@ -105,6 +111,16 @@ fun RapfiApp() {
     val shell: ShellViewModel = hiltViewModel()
     val connection by shell.state.collectAsStateWithLifecycle()
     val dark by shell.dark.collectAsStateWithLifecycle()
+    val lessonLink by shell.lessonLink.collectAsStateWithLifecycle()
+    LaunchedEffect(lessonLink) {
+        if (lessonLink != null && currentRoute?.route != Destination.Joseki.route) {
+            navController.navigate(Destination.Joseki.route) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
     val chrome = ShellChrome(
         connection = connection,
         dark = dark,

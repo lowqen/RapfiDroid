@@ -82,7 +82,7 @@ fun JosekiScreen(
                 }
                 QuietSwitch(nav.tab, Modifier.fillMaxSize()) { tab ->
                     if (tab == 0) {
-                        CourseList(ui, viewModel::onOpenCourse)
+                        CourseList(ui, viewModel::onOpenCourse, viewModel::onRefreshCurriculum)
                     } else {
                         MyJosekiList(
                             ui = ui,

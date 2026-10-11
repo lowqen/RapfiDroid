@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.joseki.Course
 import dev.gomoku.rapfidroid.core.joseki.Curriculum
@@ -14,6 +15,8 @@ import dev.gomoku.rapfidroid.core.joseki.JosekiOps
 import dev.gomoku.rapfidroid.core.joseki.JosekiRole
 import dev.gomoku.rapfidroid.core.joseki.JosekiTree
 import dev.gomoku.rapfidroid.core.joseki.Lesson
+import dev.gomoku.rapfidroid.core.joseki.LessonLink
+import dev.gomoku.rapfidroid.core.joseki.LessonTarget
 import dev.gomoku.rapfidroid.core.joseki.Path
 import dev.gomoku.rapfidroid.core.joseki.Quiz
 import dev.gomoku.rapfidroid.core.joseki.QuizState
@@ -21,6 +24,7 @@ import dev.gomoku.rapfidroid.core.model.GameFile
 import dev.gomoku.rapfidroid.core.model.GameFileFormat
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.data.game.GameFileIo
+import dev.gomoku.rapfidroid.data.joseki.CurriculumSync
 import dev.gomoku.rapfidroid.data.joseki.JosekiHit
 import dev.gomoku.rapfidroid.data.joseki.JosekiRepository
 import dev.gomoku.rapfidroid.data.joseki.LessonProgress
@@ -29,6 +33,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -46,6 +52,8 @@ data class JosekiNav(
 data class JosekiUiState(
     val nav: JosekiNav = JosekiNav(),
     val curriculum: Curriculum? = null,
+    /** Where the curriculum came from and whether RapfiWeb was reachable. */
+    val sync: CurriculumSync = CurriculumSync(),
     val progress: Map<String, LessonProgress> = emptyMap(),
     // ---- lesson ----
     val lessonPath: Path = emptyList(),
@@ -66,6 +74,7 @@ class JosekiViewModel @Inject constructor(
     private val repo: JosekiRepository,
     private val game: GameRepository,
     private val fileIo: GameFileIo,
+    private val links: IncomingLinks,
 ) : ViewModel() {
 
     private val nav = MutableStateFlow(JosekiNav())
@@ -79,10 +88,11 @@ class JosekiViewModel @Inject constructor(
     private val local = combine(nav, lessonPath, quiz, editPath, notice) { n, p, q, e, msg -> Local(n, p, q, e, msg) }
 
     val uiState: StateFlow<JosekiUiState> =
-        combine(local, repo.curriculum, repo.progress, repo.trees, game.position) { l, c, pr, trees, pos ->
+        combine(local, repo.curriculum, repo.progress, repo.trees, combine(game.position, repo.sync, ::Pair)) { l, c, pr, trees, (pos, sync) ->
             JosekiUiState(
                 nav = l.nav,
                 curriculum = c,
+                sync = sync,
                 progress = pr,
                 lessonPath = l.path,
                 quiz = l.quiz,
@@ -96,6 +106,46 @@ class JosekiViewModel @Inject constructor(
 
     init {
         repo.load()
+        // A curriculum link the app was opened with (`…/joseki?lesson=<id>`).
+        viewModelScope.launch {
+            links.lesson.filterNotNull().collect { openLink(it) }
+        }
+    }
+
+    /**
+     * Opens a lesson or course link. A lesson the copy on the phone does not
+     * have yet (published since the last fetch) gets one fresh look at
+     * RapfiWeb before the app says it is missing.
+     */
+    private suspend fun openLink(target: LessonTarget) {
+        links.consumeLesson()
+        var c = repo.curriculum.filterNotNull().first()
+        fun found(cur: Curriculum) =
+            target.lessonId?.let { cur.findLesson(it) != null } ?: cur.courses.any { it.id == target.courseId }
+        if (!found(c)) {
+            repo.refreshCurriculum(force = true)
+            repo.sync.first { !it.checking }
+            c = repo.curriculum.value ?: c
+        }
+        nav.value = JosekiNav(tab = 0)
+        when {
+            target.lessonId != null && c.findLesson(target.lessonId) != null -> onOpenLesson(target.lessonId, target.learn)
+            target.courseId != null && c.courses.any { it.id == target.courseId } -> onOpenCourse(target.courseId)
+            else -> notice.value = tr(
+                "레슨 «${target.lessonId ?: target.courseId}» 을(를) 찾지 못했습니다",
+                "Lesson «${target.lessonId ?: target.courseId}» was not found",
+            )
+        }
+    }
+
+    /** Checks RapfiWeb for a newer curriculum now. */
+    fun onRefreshCurriculum() = repo.refreshCurriculum(force = true)
+
+    /** The RapfiWeb address of the open lesson, in its mode — the web app opens it too. */
+    fun lessonLink(): String? = nav.value.lessonId?.let { LessonLink.url(it, nav.value.learn) }
+
+    fun onLinkCopied() {
+        notice.value = tr("레슨 링크를 복사했습니다", "Copied the lesson link")
     }
 
     fun onNoticeShown() {
