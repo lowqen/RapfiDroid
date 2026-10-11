@@ -57,10 +57,7 @@ fun DatabaseScreen(
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
 
     Column(modifier = modifier.fillMaxWidth()) {
-        RapfiTopBar(
-            title = tr("데이터베이스", "Database"),
-            subtitle = tr("서버의 yixindb 파일", "the yixindb file on the server"),
-        )
+        RapfiTopBar(title = tr("데이터베이스", "Database"))
         Column(
             modifier = Modifier
                 .fillMaxWidth()

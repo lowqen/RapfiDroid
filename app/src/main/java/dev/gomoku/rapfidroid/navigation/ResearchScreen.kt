@@ -44,10 +44,7 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(
-            title = tr("연구", "Research"),
-            subtitle = titles.getOrNull(tab),
-        )
+        RapfiTopBar(title = tr("연구", "Research"))
         ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
             titles.forEachIndexed { i, title ->
                 Tab(

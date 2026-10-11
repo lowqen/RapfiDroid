@@ -20,6 +20,7 @@
 | **엔진 설정 템플릿** `assets/engine/config.toml` | Rapfi 배포본의 설정 예시에서 파생 | GPL-3.0 (Rapfi 일부로 취급) | §3 과 함께 |
 | **오프닝 명칭 표** `assets/opening_names.txt` | 이 프로젝트에서 작성 | BSD 2-Clause (이 앱과 동일) | — |
 | **리포트 템플릿** `assets/report_*.html` | 이 프로젝트에서 작성 | BSD 2-Clause | — |
+| **Pretendard** → `res/font/rapfi_sans.ttf` (KS X 1001 한글 2,350자 + 라틴 · 기호 부분집합, 예약 글꼴 이름 규정에 따라 내부 이름을 RapfiSans 로 바꿈) | [orioncactus/pretendard](https://github.com/orioncactus/pretendard) 1.3.9 | **SIL OFL 1.1** | 라이선스 전문 동봉(`assets/licenses/OFL-1.1-Pretendard.txt`). 부분집합은 OFL 이 허락하는 수정이며, 글꼴만 따로 팔지 않는다 |
 | AndroidX · Jetpack Compose · Kotlin · Hilt/Dagger · kotlinx-coroutines · kotlinx-serialization | Google / JetBrains | **Apache-2.0** | 고지 (본 파일) |
 | Okio | Square | **Apache-2.0** | 고지 (본 파일) |
 

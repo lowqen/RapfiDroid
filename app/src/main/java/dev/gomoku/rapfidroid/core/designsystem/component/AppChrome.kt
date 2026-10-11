@@ -5,19 +5,29 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,7 +35,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.Spacing
+import dev.gomoku.rapfidroid.core.i18n.tr
+import dev.gomoku.rapfidroid.core.model.ConnectionState
 
 /**
  * The one snackbar in the app.
@@ -44,56 +57,122 @@ import dev.gomoku.rapfidroid.core.designsystem.theme.Spacing
 val LocalSnackbarHostState = staticCompositionLocalOf { SnackbarHostState() }
 
 /**
- * Every screen's header.
+ * What the top bar shows on its right, on every screen: the engine's state in a
+ * word, and the theme switch. Provided once by the app shell, so no screen has
+ * to know the engine exists to report on it (RapfiWeb `TopBar`).
+ */
+data class ShellChrome(
+    val connection: ConnectionState,
+    val dark: Boolean,
+    val onStartEngine: () -> Unit,
+    val onToggleTheme: () -> Unit,
+)
+
+val LocalShellChrome = compositionLocalOf<ShellChrome?> { null }
+
+/**
+ * Every screen's header — one line.
  *
- * Not one screen had an app bar, so each drew its own title at whatever size
- * suited it — `titleLarge` on one, `titleMedium` on the next, nothing at all on
- * the board and the database — and a screen-level action had nowhere to go but
- * the middle of the content. This is that place.
+ * The subtitle under the title is gone (RapfiWeb's calm redesign): it repeated
+ * what the tab already said and took a line of height from the board. On the
+ * right, the engine chip and the theme switch, whichever screen this is.
  *
  * Insets are zero on purpose: the app scaffold has already inset its content
- * below the status bar, and a bar that inset itself again would leave a band of
- * empty colour above every screen.
+ * below the status bar.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RapfiTopBar(
     title: String,
     modifier: Modifier = Modifier,
-    subtitle: String? = null,
-    navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    TopAppBar(
-        modifier = modifier,
-        title = {
-            Column {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!subtitle.isNullOrEmpty()) {
-                    Text(
-                        subtitle,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
+    val chrome = LocalShellChrome.current
+    Column(modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .padding(start = 16.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                title,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            actions()
+            if (chrome != null) {
+                EngineChip(chrome.connection, chrome.onStartEngine)
+                IconButton(onClick = chrome.onToggleTheme) {
+                    Icon(
+                        if (chrome.dark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                        contentDescription = if (chrome.dark) tr("밝은 테마", "Light theme") else tr("어두운 테마", "Dark theme"),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
-        },
-        navigationIcon = navigationIcon,
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            titleContentColor = MaterialTheme.colorScheme.onSurface,
-            actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        ),
-        windowInsets = WindowInsets(0, 0, 0, 0),
-    )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/**
+ * The engine in one word — 준비 · 탐색 중 · 준비 중 · 꺼짐 · 오류 — with the
+ * one action that state calls for (켜기 · 다시 시도). The address and the
+ * variant are the engine screen's business, not every screen's.
+ */
+@Composable
+fun EngineChip(state: ConnectionState, onStart: () -> Unit, modifier: Modifier = Modifier) {
+    val (word, color) = engineWord(state)
+    val action = when (state) {
+        ConnectionState.Disconnected -> tr("켜기", "Start")
+        is ConnectionState.Error -> tr("다시 시도", "Retry")
+        else -> null
+    }
+    Surface(
+        modifier = modifier.semantics { contentDescription = word },
+        shape = CircleShape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        onClick = { if (action != null) onStart() },
+        enabled = action != null,
+    ) {
+        Row(
+            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            StatusDot(color)
+            Text(
+                word,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+            if (action != null) {
+                Text(
+                    action,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** The word and the dot colour for an engine state — the chip and the tab badge agree. */
+@Composable
+fun engineWord(state: ConnectionState): Pair<String, Color> = when (state) {
+    ConnectionState.Ready -> tr("엔진 준비", "Ready") to RapfiTheme.colors.positive
+    ConnectionState.Thinking -> tr("탐색 중", "Searching") to RapfiTheme.colors.caution
+    ConnectionState.Connecting, ConnectionState.Handshaking ->
+        tr("준비 중", "Starting") to RapfiTheme.colors.caution
+    is ConnectionState.Error -> tr("엔진 오류", "Engine error") to MaterialTheme.colorScheme.error
+    ConnectionState.Disconnected -> tr("엔진 꺼짐", "Engine off") to MaterialTheme.colorScheme.outline
 }
 
 /**

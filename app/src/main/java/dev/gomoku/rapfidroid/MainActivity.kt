@@ -11,14 +11,17 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiDroidTheme
 import dev.gomoku.rapfidroid.core.model.HotkeyMap
 import dev.gomoku.rapfidroid.data.engine.DebugLogWriter
+import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineToolsRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
@@ -46,6 +49,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var debugLog: DebugLogWriter
 
+    /** Remembered folds and board tab — read in the first frame, so not a flow. */
+    @Inject
+    lateinit var uiPrefs: UiPrefs
+
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
 
@@ -68,7 +75,9 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             RapfiDroidTheme(darkTheme = current.darkMode) {
-                RapfiApp()
+                CompositionLocalProvider(LocalUiPrefs provides uiPrefs) {
+                    RapfiApp()
+                }
             }
         }
     }

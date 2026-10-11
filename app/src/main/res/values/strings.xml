@@ -11,6 +11,7 @@
 
     <string name="tab_board">Board</string>
     <string name="tab_research">Research</string>
+    <string name="tab_joseki">Joseki</string>
     <string name="tab_database">DB</string>
     <string name="tab_settings">Settings</string>
     <string name="tab_connect">Engine</string>

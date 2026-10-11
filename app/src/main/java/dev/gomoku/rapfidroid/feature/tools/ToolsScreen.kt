@@ -59,7 +59,7 @@ fun EngineScreen(modifier: Modifier = Modifier) {
     val titles = remember { listOf(tr("연결", "Connect"), tr("도구", "Tools")) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("엔진", "Engine"), subtitle = titles.getOrNull(tab))
+        RapfiTopBar(title = tr("엔진", "Engine"))
         TabRow(selectedTabIndex = tab) {
             titles.forEachIndexed { i, title ->
                 Tab(

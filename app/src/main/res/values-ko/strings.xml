@@ -3,6 +3,7 @@
 
     <string name="tab_board">보드</string>
     <string name="tab_research">연구</string>
+    <string name="tab_joseki">정석</string>
     <string name="tab_database">DB</string>
     <string name="tab_settings">설정</string>
     <string name="tab_connect">엔진</string>

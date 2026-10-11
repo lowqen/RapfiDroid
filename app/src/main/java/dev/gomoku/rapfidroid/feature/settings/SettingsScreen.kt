@@ -114,9 +114,6 @@ fun SettingsScreen(
         // as a text button between two unrelated rows.
         RapfiTopBar(
             title = tr("설정", "Settings"),
-            subtitle = tr("${ui.visible.size}/${ui.total} · ", "${ui.visible.size}/${ui.total} · ") +
-                if (ui.connected) tr("엔진 연결됨 — 변경 즉시 반영", "engine connected, changes apply at once")
-                else tr("엔진 미연결 — 연결 시 반영", "engine not connected, changes apply when it is"),
             actions = {
                 IconButton(onClick = { showAbout = true }) {
                     Icon(Icons.Filled.Info, contentDescription = tr("정보 · 도움말", "About · help"))
