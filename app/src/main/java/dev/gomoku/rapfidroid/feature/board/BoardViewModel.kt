@@ -122,6 +122,9 @@ class BoardViewModel @Inject constructor(
     /** The user pressed stop; only then may the settled move be played. */
     private var stopRequested = false
 
+    /** A search was started and has not reported its move yet. */
+    private var searchLive = false
+
     /** Gives up waiting for a stop the engine never acknowledged. */
     private var stopFallbackJob: Job? = null
 
@@ -375,6 +378,17 @@ class BoardViewModel @Inject constructor(
             _notice.value = tr("대국 착수를 계산하는 중입니다", "The engine is working on its game move")
             return
         }
+        val pos = position.value
+        if (pos.moves.isEmpty()) {
+            // The empty board has one answer, and Rapfi gives it without a search
+            // (it replies `7,7` at once and stops). Put the centre down and read
+            // the position after it instead (RapfiWeb: 빈 판이면 H8).
+            viewModelScope.launch {
+                game.replaceLine(listOf(Move(pos.size / 2, pos.size / 2)))
+                startAnalysis()
+            }
+            return
+        }
         startAnalysis()
     }
 
@@ -434,15 +448,31 @@ class BoardViewModel @Inject constructor(
      */
     private fun onSearchSettled(moves: List<Move>) {
         if (!analyzing.value || balancing.value || game.state.value.thinking) return
+        searchLive = false
         if (omitSettles > 0) {
             omitSettles--
+            return
+        }
+        val target = position.value
+        val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
+        // An answer with no line behind it is not the end of a search but a
+        // move Rapfi plays without searching — the centre of an empty board, a
+        // forced reply. Play it and keep reading, as 0.14 did; stopping there
+        // made «analyse» look like it gave up the moment it started.
+        val read = reading.value?.takeIf { it.moves == target.moves }?.snap
+        val instant = read == null || read.pvs.isEmpty()
+        if (!stopRequested && instant && legal.isNotEmpty()) {
+            val defend = defending.value
+            stopAnalysis()
+            viewModelScope.launch {
+                game.replaceLine(target.moves + legal.first())
+                startAnalysis(defend)
+            }
             return
         }
         val play = stopRequested && playBestPref.value
         stopRequested = false
         stopAnalysis()
-        val target = position.value
-        val legal = moves.filter { it.isInside(target.size) && it !in target.moves }
         viewModelScope.launch {
             if (!play || legal.isEmpty()) {
                 runCatching { database.refresh() }
@@ -680,7 +710,10 @@ class BoardViewModel @Inject constructor(
     }
 
     private fun startAnalysis(defend: Boolean = false) {
-        if (analyzing.value) omitSettles++
+        // Only a search still running answers its cancellation with a move; one
+        // that already settled would leave the count to swallow the next real reply.
+        if (analyzing.value && searchLive) omitSettles++
+        searchLive = true
         stopFallbackJob?.cancel()
         analyzeJob?.cancel()
         stopRequested = false
@@ -735,6 +768,7 @@ class BoardViewModel @Inject constructor(
     }
 
     private fun stopAnalysis() {
+        searchLive = false
         stopFallbackJob?.cancel()
         stopFallbackJob = null
         analyzeJob?.cancel()

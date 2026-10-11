@@ -1,0 +1,41 @@
+# Dependency updates, as RapfiWeb does them. PRs open on Monday mornings (KST)
+# and build.yml checks every one of them (unit tests and a debug APK).
+#
+# - Patch and minor updates come as one grouped PR per ecosystem, so a week of
+#   updates is one review and one CI run.
+# - Major updates come one at a time: they are the ones that break.
+# - Kotlin, its Compose compiler plugin and KSP are versioned together
+#   (ksp "2.0.21-1.0.28" belongs to Kotlin 2.0.21), so they move as one group;
+#   bumped apart, the build fails.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 5
+    groups:
+      kotlin-toolchain:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp"
+      gradle-minor-patch:
+        update-types: [minor, patch]
+        exclude-patterns:
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Seoul
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]

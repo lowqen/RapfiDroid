@@ -72,4 +72,11 @@ interface EngineRepository {
 
     /** YXSTOP: ends the running search, which then reports its best move. */
     suspend fun stop()
+
+    /**
+     * Stop whatever search is running and wait until Rapfi reports it has
+     * ended. Rapfi drops every other command while it searches, so a board
+     * sent before that moment is lost.
+     */
+    suspend fun awaitIdle() = Unit
 }

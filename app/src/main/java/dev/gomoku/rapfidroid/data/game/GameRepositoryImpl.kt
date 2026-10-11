@@ -357,6 +357,9 @@ class GameRepositoryImpl @Inject constructor(
      * (after anything that disturbed the line) or a single `TURN`.
      */
     private suspend fun engineTurn(pushWholeBoard: Boolean, lastMove: Move? = null) {
+        // An analysis may still be unwinding (the tab was just switched): until
+        // it has, Rapfi would drop this turn and the game would never move.
+        engine.awaitIdle()
         val s = _state.value
         engine.send(EngineCommand.InfoTimeLeft(s.clock.engineTimeLeftMs()))
         if (settings.hashAutoClear) engine.send(EngineCommand.YxHashClear)
@@ -381,6 +384,7 @@ class GameRepositoryImpl @Inject constructor(
      * and 3): the board goes over as an analysis board first, then the step.
      */
     private suspend fun askEngine(step: EngineCommand) {
+        engine.awaitIdle()
         addIncrement(ClockSide.HUMAN)
         engine.send(EngineCommand.InfoTimeLeft(_state.value.clock.engineTimeLeftMs()))
         if (settings.hashAutoClear) engine.send(EngineCommand.YxHashClear)

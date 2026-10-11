@@ -364,19 +364,27 @@ fun GomokuBoard(
 ) {
     val n = render.size
     BoardType.ensure(androidx.compose.ui.platform.LocalContext.current)
+    // The handlers are read through state: keyed on the lambdas themselves, the
+    // gesture detector restarted on every recomposition — several times a second
+    // while an analysis streams — and a tap landing in that gap was lost.
+    val tap = androidx.compose.runtime.rememberUpdatedState(onTap)
+    val longPress = androidx.compose.runtime.rememberUpdatedState(onLongPress)
+    val interactive = onTap != null || onLongPress != null
     Canvas(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .then(
-                if (onTap != null || onLongPress != null) {
-                    Modifier.pointerInput(n, onTap, onLongPress) {
+                if (interactive) {
+                    Modifier.pointerInput(n, onLongPress != null) {
                         fun cellAt(offset: Offset): Move =
                             BoardGeometry(this.size.width.toFloat(), n).cellAt(offset.x, offset.y)
                         detectTapGestures(
-                            onTap = if (onTap != null) { offset -> onTap(cellAt(offset)) } else null,
+                            onTap = { offset -> tap.value?.invoke(cellAt(offset)) },
+                            // Only when there is one: otherwise a slow tap would be
+                            // taken for a long press and do nothing.
                             onLongPress = if (onLongPress != null) {
-                                { offset -> onLongPress(cellAt(offset)) }
+                                { offset -> longPress.value?.invoke(cellAt(offset)) }
                             } else {
                                 null
                             },

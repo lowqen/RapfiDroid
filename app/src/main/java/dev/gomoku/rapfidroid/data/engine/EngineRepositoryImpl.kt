@@ -29,6 +29,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
@@ -129,6 +130,9 @@ class EngineRepositoryImpl @Inject constructor(
     )
     override val responses: SharedFlow<EngineResponse> = _responses.asSharedFlow()
 
+    /** Rapfi is searching, as its replies say; see [awaitIdle]. */
+    private val searching = MutableStateFlow(false)
+
     private val _console = MutableSharedFlow<ConsoleLine>(
         replay = CONSOLE_REPLAY,
         extraBufferCapacity = 256,
@@ -137,6 +141,21 @@ class EngineRepositoryImpl @Inject constructor(
     override val console: SharedFlow<ConsoleLine> = _console.asSharedFlow()
 
     init {
+        // A search ends with its move (or an opening reply, or an error); a
+        // dead link ends whatever was running.
+        scope.launch {
+            responses.collect { r ->
+                when (r) {
+                    is EngineResponse.BestMove, is EngineResponse.OpeningMove,
+                    is EngineResponse.OpeningSwap, is EngineResponse.SoosorvFifth,
+                    is EngineResponse.Error -> searching.value = false
+                    else -> Unit
+                }
+            }
+        }
+        scope.launch {
+            connection.state.collect { st -> if (!st.isLive) searching.value = false }
+        }
         // A dead socket means a dead engine process, and the next one starts
         // with no database. Tying the reset to the state rather than to
         // disconnect() covers the paths that reconnect on their own.
@@ -318,6 +337,14 @@ class EngineRepositoryImpl @Inject constructor(
         val text = command.serialize(coord)
         if (echo) _console.emit(ConsoleLine(outbound = true, text = text))
         for (line in text.split('\n')) connection.writeLine(line)
+        if (startsSearch(command)) searching.value = true
+    }
+
+    private fun startsSearch(command: EngineCommand): Boolean = when (command) {
+        is EngineCommand.YxNbest, EngineCommand.YxSearchDefend, is EngineCommand.Board,
+        is EngineCommand.Turn, is EngineCommand.YxBalance, EngineCommand.Begin,
+        is EngineCommand.YxSwap2Step, is EngineCommand.YxSoosorvStep -> true
+        else -> false
     }
 
     override fun disconnect() {
@@ -331,6 +358,41 @@ class EngineRepositoryImpl @Inject constructor(
         EngineService.stop(context)
     }
 
+    /**
+     * Starting and stopping analyses must not interleave. Cancelling one
+     * analysis and starting the next used to race: the old one's `YXSTOP` went
+     * out from a background job and could land *after* the new `YXNBEST`,
+     * stopping the new search the moment it began. Both now take this lock,
+     * and a stop belonging to an analysis that has already been superseded is
+     * not sent at all — the newer analysis stops the old search itself, first.
+     */
+    private val searchLock = kotlinx.coroutines.sync.Mutex()
+
+    /**
+     * Whether Rapfi is in a search right now, as far as its replies say: set by
+     * the commands that start one, cleared by the move (or error) that ends it.
+     *
+     * It matters because **Rapfi drops every command but STOP/YXSTOP/END while
+     * it searches** (`gomocup.cpp`: `else if (thinking) return false;`). A new
+     * board sent right behind a stop therefore vanished whenever the old search
+     * had not finished unwinding: the analysis seemed to start and then just
+     * stop, and the board's newest stone never reached the engine.
+     *
+     * (Declared with the response flow, above the init block that clears it.)
+     */
+
+    /** Stops a running search and waits until Rapfi says it has ended. */
+    override suspend fun awaitIdle() {
+        if (!searching.value) return
+        dispatch(EngineCommand.YxStop)
+        if (withTimeoutOrNull(STOP_WAIT_MS) { searching.first { !it } } == null) {
+            // No reply (a dead link, mostly): carry on rather than hang.
+            searching.value = false
+        }
+    }
+    @Volatile
+    private var analysisGen = 0
+
     override fun analyze(position: Position, params: AnalyzeParams): Flow<AnalysisSnapshot> =
         channelFlow {
             val aggregator = SearchAggregator(position.sideToMove)
@@ -339,40 +401,51 @@ class EngineRepositoryImpl @Inject constructor(
                     aggregator.consume(response)?.let { trySend(it) }
                 }
             }
-            // settings.txt line 25: drop the TT first when the user asked for it,
-            // so a search cannot be biased by the previous position's entries.
-            if (settingsRepository.settings.value.hashAutoClear) {
-                dispatch(EngineCommand.YxHashClear)
+            val gen = searchLock.withLock {
+                val g = ++analysisGen
+                // A search still running: stop it and let it finish before this
+                // one's board goes out, or Rapfi throws the board away.
+                awaitIdle()
+                // settings.txt line 25: drop the TT first when the user asked for it,
+                // so a search cannot be biased by the previous position's entries.
+                if (settingsRepository.settings.value.hashAutoClear) {
+                    dispatch(EngineCommand.YxHashClear)
+                }
+                // No START here: the desktop sends it once in init_engine and then
+                // only `yxboard` per analysis (main.c send_board).
+                dispatch(EngineCommand.YxBoard(position.placements()))
+                params.timeLimitMs?.let { limit ->
+                    analysisLimits(limit, position.size).forEach { (k, v) -> dispatch(EngineCommand.Info(k, v)) }
+                }
+                // `searchdefend` differs from an analysis only in its opening command.
+                if (params.defend) {
+                    dispatch(EngineCommand.YxSearchDefend)
+                } else {
+                    dispatch(EngineCommand.YxNbest(params.multiPv.coerceAtLeast(1)))
+                }
+                connection.markThinking()
+                g
             }
-            // No START here: the desktop sends it once in init_engine and then
-            // only `yxboard` per analysis (main.c send_board). A START mid-session
-            // resets the engine and cost us a redundant round trip.
-            dispatch(EngineCommand.YxBoard(position.placements()))
-            params.timeLimitMs?.let { limit ->
-                analysisLimits(limit, position.size).forEach { (k, v) -> dispatch(EngineCommand.Info(k, v)) }
-            }
-            // `searchdefend` is an ordinary analysis with a different opening
-            // command — main.c:10883 pushes the board and sends `yxsearchdefend`
-            // where `nbest` sends `yxnbest`, and reads the answer the same way.
-            if (params.defend) {
-                dispatch(EngineCommand.YxSearchDefend)
-            } else {
-                dispatch(EngineCommand.YxNbest(params.multiPv.coerceAtLeast(1)))
-            }
-            connection.markThinking()
 
             awaitClose {
                 collector.cancel()
                 scope.launch(NonCancellable) {
-                    runCatching { dispatch(EngineCommand.YxStop) }
-                    if (params.timeLimitMs != null) {
-                        // Put the game's level back for the next engine turn.
-                        runCatching {
-                            settingsRepository.settings.value.toEngineParams().levelPairs()
-                                .forEach { (k, v) -> dispatch(EngineCommand.Info(k, v)) }
+                    searchLock.withLock {
+                        // Superseded: the newer analysis already stopped this search.
+                        if (gen != analysisGen) return@withLock
+                        // Stop, and wait for the search to really end: until
+                        // then Rapfi drops whatever comes next (a database
+                        // query, a forbidden check, the next board).
+                        runCatching { awaitIdle() }
+                        if (params.timeLimitMs != null) {
+                            // Put the game's level back for the next engine turn.
+                            runCatching {
+                                settingsRepository.settings.value.toEngineParams().levelPairs()
+                                    .forEach { (k, v) -> dispatch(EngineCommand.Info(k, v)) }
+                            }
                         }
+                        connection.markSettled()
                     }
-                    connection.markSettled()
                 }
             }
         }
@@ -390,6 +463,8 @@ class EngineRepositoryImpl @Inject constructor(
     }
 
     override suspend fun forbidden(position: Position): List<Move> {
+        // Mid-search the board would be dropped, and the answer is not needed then.
+        if (searching.value) return emptyList()
         val deferred = scope.async {
             responses.filterIsInstance<EngineResponse.Forbid>().first().cells
         }
@@ -414,6 +489,7 @@ class EngineRepositoryImpl @Inject constructor(
         val deferred = scope.async {
             responses.filterIsInstance<EngineResponse.BestMove>().first().moves
         }
+        searchLock.withLock { awaitIdle() }
         dispatch(EngineCommand.YxBoard(position.placements()))
         dispatch(EngineCommand.YxBalance(two = two, bias = bias))
         connection.markThinking()
@@ -475,6 +551,7 @@ class EngineRepositoryImpl @Inject constructor(
     private companion object {
         const val CONSOLE_REPLAY = 300
         const val FORBID_TIMEOUT_MS = 3_000L
+        const val STOP_WAIT_MS = 3_000L
         const val UNLIMITED_TURN_MS = 2_000_000L
         const val UNLIMITED_MATCH_MS = 100_000_000L
 
