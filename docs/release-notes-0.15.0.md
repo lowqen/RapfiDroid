@@ -1,0 +1,41 @@
+## RapfiDroid 0.15.0
+
+**The RapfiWeb design, back on the phone.** RapfiWeb started as a port of this
+app; while it was built the interface was reworked around one idea — the board
+first, everything else quieter — and a few features were added. This release
+brings all of it back, without dropping anything the app already had.
+
+### Highlights
+
+* **Calm, board-first screens.** One-line top bar with the engine's state in a
+  word and a theme switch, white cards with hairlines, expert settings folded
+  away with their current value in one line, short wording. Pretendard is the
+  app font.
+* **The engine starts with the app.** No trip to the engine tab first; a switch
+  in Settings turns it off.
+* **Analysis and Play tabs, each with its own board.** Lines explored in
+  analysis no longer leak into the game record. Both boards are saved and come
+  back after a restart, results included.
+* **A reworked analysis card.** Best move first; the last result stays, dimmed,
+  after a stop; analysis time and "play the best move on stop" are settings.
+* **A game card from RapfiWeb.** Colours, time control with typed values, five
+  strength levels by nodes, rules, and "Move now". The engine's first black
+  move goes straight to the centre.
+* **Board values as text only**, coloured blue to red, above the PV ghosts, and
+  a vertical eval bar beside the board.
+* **Position card and Game menu.** Opening name chain and fifth-move grade, the
+  move's grade, database value and note; open and save .psq/.sav, copy a
+  RapfiWeb link (`rapfiweb.pages.dev/board?p=…`), and links open in the app.
+* **Joseki tab.** The official curriculum (courses, lessons, browse and learn
+  with hints and scores) and an editor for your own joseki, found again from
+  the board's position. Files move between RapfiWeb and the app unchanged.
+* **Game data in seconds.** The RenjuNet build now streams the file as bytes and
+  counts positions with a 64-bit Zobrist hash and a radix sort, into one pack.
+* **Opening explorer with a board.** Tap to play; graded next moves show their
+  shape and played ones their game count.
+
+### Upgrading
+
+The opening packs built by 0.14 are replaced by the new single pack file: build
+the game data again once (Settings ▸ Add game data). Your settings, database and
+game files are untouched.

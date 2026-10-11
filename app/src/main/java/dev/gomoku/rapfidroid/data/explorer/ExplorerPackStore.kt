@@ -141,16 +141,9 @@ class ExplorerPackStore @Inject constructor(
     }
 
     /**
-     * Put packs the device just built into service.
-     *
-     * Nothing needs checking here: these came out of
-     * `PackWriter` a moment ago, in this process, with the magic and version it
-     * wrote. What is shared is the part that matters — the same two filenames in
-     * the same directory, so a built pack and an imported one are afterwards the
-     * same thing to every reader.
-     *
-     * The old packs are only replaced once both new ones are in hand, so a build
-     * that dies half way leaves the previous data working.
+     * Put the pack the device just built ([RenjuPack]) into service. The old
+     * one is replaced only once the new one is in hand, so a build that dies
+     * half way leaves the previous data working.
      */
     suspend fun adopt(built: File): Result<Packs> = withContext(io) {
         runCatching {

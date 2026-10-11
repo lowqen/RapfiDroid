@@ -51,8 +51,18 @@ The interface is available in English and Korean.
 
 ### Play and analyse
 
-* Play against the engine at any strength, or let it analyse while you explore.
-* Live principal variation, depth, node count, evaluation bar and win rate.
+* The engine starts with the app, and the board has two tabs, **Analysis** and
+  **Play**, each with its own board, so lines explored in analysis never leak
+  into the game record. Both boards are saved automatically.
+* Analysis: best move, win rate, eval and depth (details on demand); the last
+  result stays after a stop; analysis time, candidates and "play the best move
+  on stop" sit in a folded settings card.
+* Play: colours, time control (presets or typed), five strength levels by nodes,
+  rules; "Move now" when the engine thinks without a limit.
+* Board values written as text only (blue, green, red) and a vertical eval bar.
+* A position card with the opening name chain and fifth-move grade, the move's
+  grade, database value and note, and a Game menu (open, save .psq/.sav, copy a
+  RapfiWeb link, image).
 * Renju forbidden points marked as you play, with the double three, double four
   and overline rules applied by the engine itself rather than approximated.
 * Freestyle, standard and renju rules, each with its own network.
@@ -64,14 +74,24 @@ The interface is available in English and Korean.
 
 * **Game review.** Walk a finished game move by move with the engine marking
   where the evaluation actually turned.
-* **Opening explorer.** 249 named openings across the first four moves, an
-  eleven grade evaluation of Black's fifth move covering 1,889 shapes, and the
-  list of transpositions that reduce to the same position.
+* **Opening explorer.** A playable board with every graded next move drawn as its
+  shape and played ones as their game count; 249 named openings across the first
+  four moves, an eleven grade evaluation of Black's fifth move covering 1,889
+  shapes, and the transpositions that reduce to the same position.
 * **Rankings.** The 26 classical openings with direct and indirect filters, plus
   fifth move shape frequency.
 * **Position proving.** Ask the engine to prove a position rather than only
   evaluate it, with a depth budget you control.
 * **Move sequence explorer** and an engine console for raw protocol commands.
+
+### Joseki
+
+* **Official curriculum.** Courses of lessons, each with Browse (tree,
+  commentary, good and bad moves, traps and refutations) and Learn (play the
+  moves yourself, with hints, a score and progress). The same file as RapfiWeb.
+* **My joseki.** Add moves on the board or as `h8 i9 j10`, with branches,
+  evaluation symbols and markdown notes, and find them again from the board's
+  position, symmetries included. Same JSON as RapfiWeb.
 
 ### Keep what it learns
 
@@ -126,12 +146,12 @@ You download the file yourself from the official source, your phone converts it,
 and the result never leaves the device. That is the one path the licence allows,
 and it is why there is no download button that does it for you.
 
-The conversion is a full port of the desktop Python pipeline, including the
-canonical position key, which is cross checked against four independent
-implementations. The hot loop computes a canonical key for every prefix of every
-game, roughly 3.3 million positions for a typical database, using an incremental
-scanner that keeps eight symmetry orderings in sorted integer arrays and never
-allocates a string until a position is actually kept.
+The conversion is RapfiWeb's fast path. The 43 MB XML is streamed as bytes into
+integer columns, every prefix position is counted by a **64-bit incremental
+Zobrist canonical hash** (one XOR per symmetry per move), and one radix sort
+produces the statistics. What used to take minutes with two passes over string
+keys takes seconds, and the result is a single pack file. Tests check that equal
+hashes mean equal canonical keys over random positions and all symmetries.
 
 ## Server mode
 
