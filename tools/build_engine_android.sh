@@ -3,8 +3,8 @@
 # Rapfi -> arm64-v8a 온디바이스 엔진 빌드 (RapfiDroid E0).
 #
 # 이 스크립트가 만드는 것:
-#   app/src/main/jniLibs/arm64-v8a/libengine.so   (탑재본, 기본 NEON)
-#   libengine_dotprod.so                          (ARMv8.2+ 전용, 측정용)
+#   app/src/main/jniLibs/arm64-v8a/libengine.so          (탑재본, 기본 NEON — 모든 arm64)
+#   app/src/main/jniLibs/arm64-v8a/libengine_dotprod.so  (탑재본, ARMv8.2+ — 앱이 런타임에 고른다)
 #   app/src/main/assets/engine/*                  (가중치 4종 + 클래식 모델)
 #   bench/                                        (폰에서 BENCH 대조할 묶음)
 #
@@ -13,6 +13,12 @@
 # 가리키기 때문이다 — 커밋된 바이너리의 출처가 없으면 재현할 수 없다.
 #
 set -euo pipefail
+
+# 소스 고정. upstream HEAD 를 받으면 같은 스크립트가 날마다 다른 엔진을 만들고, 탑재본의
+# BENCH 해시(e240ab16)와 RapfiWeb 의 패치 기준(3c94c2a9)이 말없이 어긋난다. 올릴 때는 이 두 줄을
+# 바꾸고 [6/7] · [7/7] 의 해시를 새로 확인한다(docs/엔진-고도화-마스터플랜.md).
+RAPFI_COMMIT="3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7"     # dhbloo/rapfi
+NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-networks (Networks 서브모듈)
 
 echo ">>> [1/7] 시스템 도구"
 sudo apt-get update -qq
@@ -33,12 +39,16 @@ cd "$HOME"
 rm -rf rapfi
 git clone https://github.com/dhbloo/rapfi.git
 cd rapfi
-git checkout -q -b android
+git checkout -q -b android "$RAPFI_COMMIT"
 # 패치하기 **전** 커밋을 잡아 둔다. 아래에서 로컬 패치 커밋을 만든 뒤 rev-parse HEAD 를
 # 찍으면 그건 dhbloo/rapfi 에 없는 커밋이라, ENGINE_VERSION.txt 의 upstream 필드가
 # 사실과 달라진다(RapfiWeb W0 스파이크에서 이 값으로 클론하려다 발견했다).
 UPSTREAM_COMMIT="$(git rev-parse HEAD)"
+[ "$UPSTREAM_COMMIT" = "$RAPFI_COMMIT" ] || { echo "rapfi 가 $RAPFI_COMMIT 이 아니다: $UPSTREAM_COMMIT"; exit 1; }
 git submodule update --init --depth 1 Networks
+NETWORKS_HEAD="$(git -C Networks rev-parse HEAD)"
+[ "$NETWORKS_HEAD" = "$NETWORKS_COMMIT" ] || {
+  echo "Networks 가 $NETWORKS_COMMIT 이 아니다: $NETWORKS_HEAD (rapfi 커밋의 서브모듈 포인터가 바뀌었다)"; exit 1; }
 
 echo ">>> [4/7] Android 호환 패치 (실패하면 여기서 멈춘다)"
 python3 - <<'PY'
@@ -159,7 +169,9 @@ OUT="$HOME/rapfidroid-engine"
 rm -rf "$OUT"; mkdir -p "$OUT/jniLibs/arm64-v8a" "$OUT/assets/engine" "$OUT/bench"
 
 cp "$HOME/rapfi/Rapfi/build-neon/libengine.so"    "$OUT/jniLibs/arm64-v8a/libengine.so"
-cp "$HOME/rapfi/Rapfi/build-dotprod/libengine.so" "$OUT/libengine_dotprod.so"
+# dotprod 판도 탑재한다(R1). 패키지 관리자는 lib*.so 만 추출하므로 이 이름이어야 하고, 앱의
+# LocalEngineInstaller 가 asimddp 를 보고 고른다 — 못 쓰는 기기에서는 SIGILL 뒤 NEON 으로 물러난다.
+cp "$HOME/rapfi/Rapfi/build-dotprod/libengine.so" "$OUT/jniLibs/arm64-v8a/libengine_dotprod.so"
 
 # 앱 에셋: 가중치 4종 + 서버와 같은 클래식 모델
 cp "$HOME/rapfi/Networks/mix9svq/"*.bin.lz4         "$OUT/assets/engine/"
@@ -178,8 +190,9 @@ patched    : $(git -C "$HOME/rapfi" rev-parse HEAD)  (= 위 커밋 + 안드로�
 networks   : $(git -C "$HOME/rapfi/Networks" rev-parse HEAD)
 ndk        : r27c
 abi        : arm64-v8a / android-26 / c++_static / 16KB-page ready
-cmake opts : -DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF -DNO_COMMAND_MODULES=ON -DENABLE_LTO=ON -DCMAKE_BUILD_TYPE=Release
-size       : $(stat -c%s "$OUT/jniLibs/arm64-v8a/libengine.so") bytes (stripped)
+cmake opts : -DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF|ON -DNO_COMMAND_MODULES=ON -DENABLE_LTO=ON -DCMAKE_BUILD_TYPE=Release
+binaries   : libengine.so (NEON, armv8-a+simd) / libengine_dotprod.so (armv8.2-a+dotprod)
+size       : $(stat -c%s "$OUT/jniLibs/arm64-v8a/libengine.so") / $(stat -c%s "$OUT/jniLibs/arm64-v8a/libengine_dotprod.so") bytes (stripped)
 built_at   : $(date -u +%Y-%m-%dT%H:%M:%SZ)
 bench(host): $HOST_HASH  <- 폰의 BENCH Hash 가 이 값과 같아야 한다
 build_by   : RapfiDroid/tools/build_engine_android.sh
