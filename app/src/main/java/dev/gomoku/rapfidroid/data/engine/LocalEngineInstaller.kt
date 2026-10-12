@@ -4,6 +4,8 @@ import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
+import dev.gomoku.rapfidroid.domain.engine.EngineVariant
+import dev.gomoku.rapfidroid.domain.engine.EngineVariantSelector
 import dev.gomoku.rapfidroid.domain.engine.MobileEngineConfig
 import java.io.File
 import javax.inject.Inject
@@ -40,7 +42,33 @@ class LocalEngineInstaller @Inject constructor(
 
     val engineDir: File get() = File(context.filesDir, ENGINE_DIR)
 
-    val binary: File get() = File(context.applicationInfo.nativeLibraryDir, BINARY_NAME)
+    fun binaryFor(variant: EngineVariant): File =
+        File(context.applicationInfo.nativeLibraryDir, variant.binaryName)
+
+    /**
+     * The build to start — dotprod when this CPU has it, plain NEON otherwise.
+     * Asked again on every start, so a SIGILL recorded by [markDotprodFailed]
+     * takes effect on the very next (re)connect.
+     */
+    fun variant(): EngineVariant = EngineVariantSelector.choose(
+        cpuinfo = runCatching { File(CPUINFO).readText() }.getOrNull(),
+        dotprodShipped = binaryFor(EngineVariant.DOTPROD).exists(),
+        dotprodFailed = dotprodFailedMarker.exists(),
+    )
+
+    /**
+     * Remember that the dotprod build died of an illegal instruction here, so
+     * every later start uses NEON. Kept in [engineDir], which survives app
+     * updates — the CPU does not change with the APK.
+     */
+    fun markDotprodFailed(exitCode: Int) {
+        runCatching {
+            engineDir.mkdirs()
+            dotprodFailedMarker.writeText("exit $exitCode at ${System.currentTimeMillis()}\n")
+        }
+    }
+
+    private val dotprodFailedMarker: File get() = File(engineDir, DOTPROD_FAILED_NAME)
 
     /**
      * Extract on first run (and after every app update), then write the config
@@ -50,12 +78,13 @@ class LocalEngineInstaller @Inject constructor(
      * the APK changing; the 40 MB of weights are only re-extracted when the
      * install itself changed, which is the only thing that can change them.
      */
-    fun prepare(profile: LocalEngineProfile): File {
-        val exe = binary
+    fun prepare(profile: LocalEngineProfile, variant: EngineVariant): File {
+        val exe = binaryFor(variant)
+        val name = variant.binaryName
         if (!exe.exists()) {
             throw LocalEngineUnavailable(
                 tr("온디바이스 엔진 파일이 없습니다 (${exe.path}). ", "The on-device engine file is missing (${exe.path}). ", "本机引擎文件缺失 (${exe.path})。") +
-                    tr("jniLibs/arm64-v8a/libengine.so 가 빠졌거나 이 기기가 arm64 가 아닙니다.", "Either jniLibs/arm64-v8a/libengine.so was left out, or this device is not arm64.", "可能缺少 jniLibs/arm64-v8a/libengine.so，或本设备不是 arm64。"),
+                    tr("jniLibs/arm64-v8a/$name 가 빠졌거나 이 기기가 arm64 가 아닙니다.", "Either jniLibs/arm64-v8a/$name was left out, or this device is not arm64.", "可能缺少 jniLibs/arm64-v8a/$name，或本设备不是 arm64。"),
             )
         }
         if (!exe.canExecute()) {
@@ -122,8 +151,7 @@ class LocalEngineInstaller @Inject constructor(
         const val ASSET_DIR = "engine"
         const val CONFIG_NAME = "config.toml"
         const val STAMP_NAME = ".installed"
-
-        /** Must match the CMake `OUTPUT_NAME engine / PREFIX lib / SUFFIX .so`. */
-        const val BINARY_NAME = "libengine.so"
+        const val DOTPROD_FAILED_NAME = ".dotprod-sigill"
+        const val CPUINFO = "/proc/cpuinfo"
     }
 }

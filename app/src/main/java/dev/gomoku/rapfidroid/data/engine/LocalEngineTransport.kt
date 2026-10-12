@@ -2,6 +2,8 @@ package dev.gomoku.rapfidroid.data.engine
 
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
+import dev.gomoku.rapfidroid.domain.engine.EngineVariant
+import dev.gomoku.rapfidroid.domain.engine.EngineVariantSelector
 import okio.buffer
 import okio.sink
 import okio.source
@@ -19,6 +21,9 @@ import java.util.concurrent.TimeUnit
  *     directory (it has no `--config` argument), and `chdir` in-process would
  *     move the *app's* cwd.
  *  3. Cancelling is then just killing a process, which is what the desktop does.
+ *
+ * Which executable is started — dotprod or plain NEON — is the installer's
+ * call ([LocalEngineInstaller.variant]); both search the same tree.
  */
 class LocalEngineTransport(
     private val installer: LocalEngineInstaller,
@@ -28,9 +33,10 @@ class LocalEngineTransport(
     override val label: String get() = "on-device"
 
     override suspend fun open(): EngineChannel {
-        val dir = installer.prepare(profile)
+        val variant = installer.variant()
+        val dir = installer.prepare(profile, variant)
         val process = try {
-            ProcessBuilder(listOf(installer.binary.absolutePath))
+            ProcessBuilder(listOf(installer.binaryFor(variant).absolutePath))
                 .directory(dir)
                 // Rapfi writes its ERROR lines to stdout, but anything the
                 // runtime says goes to stderr; folding them together keeps a
@@ -42,6 +48,21 @@ class LocalEngineTransport(
                 tr("엔진 프로세스를 시작하지 못했습니다: ${e.message ?: e::class.simpleName}", "Could not start the engine process: ${e.message ?: e::class.simpleName}", "无法启动引擎进程: ${e.message ?: e::class.simpleName}"),
                 e,
             )
+        }
+
+        // The dotprod build's safety net. Its CPU check reads /proc/cpuinfo, and
+        // a CPU (or emulator) that reports a feature it cannot execute kills the
+        // engine with SIGILL — at the first atomic, or at the first NNUE
+        // evaluation. To the connection that is only a dropped pipe and the
+        // reconnect loop respawns the engine; recording the cause here, the
+        // moment the process dies, makes that respawn start the NEON build.
+        if (variant == EngineVariant.DOTPROD) {
+            Thread({
+                val code = runCatching { process.waitFor() }.getOrNull()
+                if (code != null && EngineVariantSelector.isIllegalInstruction(variant, code)) {
+                    installer.markDotprodFailed(code)
+                }
+            }, "local-engine-sigill-watch").apply { isDaemon = true }.start()
         }
 
         val source = process.inputStream.source().buffer()

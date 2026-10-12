@@ -4,8 +4,12 @@ patched    : 8d16fc2cee9cfdec7ac007b24a7325c221aecb86  (= 위 커밋 + 안드로
 networks   : e32ad77a5364363b3e3a02b3f9e8610ade19ea98
 ndk        : r27c
 abi        : arm64-v8a / android-26 / c++_static / 16KB-page ready
-cmake opts : -DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF -DNO_COMMAND_MODULES=ON -DENABLE_LTO=ON -DCMAKE_BUILD_TYPE=Release
-size       : 1473032 bytes (stripped)
-built_at   : 2026-08-30T02:19:24Z
-bench(host): Hash: e240ab16
+cmake opts : -DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF|ON -DNO_COMMAND_MODULES=ON -DENABLE_LTO=ON -DCMAKE_BUILD_TYPE=Release
+binaries   : libengine.so (NEON, armv8-a+simd) / libengine_dotprod.so (armv8.2-a+dotprod)
+size       : 1473032 / 1472760 bytes (stripped)
+built_at   : libengine.so 2026-08-30T02:19:24Z (linux-x86_64 NDK) / libengine_dotprod.so 2026-10-12 (windows-x86_64 NDK)
+bench(host): Hash: e240ab16  <- 폰의 BENCH Hash 가 이 값과 같아야 한다
+bench(phone): Galaxy A16 (MT6789) cpu7 A76 — libengine.so 41,754 n/s · libengine_dotprod.so 53,886 n/s, 둘 다 e240ab16
 build_by   : RapfiDroid/tools/build_engine_android.sh
+             (dotprod 판은 같은 스크립트의 [3/7]~[6/7] 을 같은 커밋 · 같은 옵션 · 윈도용 NDK r27c 로 재현해 지었다 —
+              docs/엔진-고도화-마스터플랜.md 실행 기록 D0)
