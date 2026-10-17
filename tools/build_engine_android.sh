@@ -23,7 +23,8 @@ NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-netwo
 # 성능 패치 — tools/patches/ 아래, 적는 순서대로 [4/7] 의 안드로이드 패치 뒤에 git apply 한다.
 # 모두 결과 불변(BENCH e240ab16 유지)이어야 하고, 하나라도 안 맞으면 [4/7] 에서 멈춘다.
 #   k1-neon-vqdmulh.patch : 누산기 dwconv 의 mulhi(w, 4f) 를 NEON 에서 sqdmulh(w, 2f) 1명령으로 (비트 동일)
-RAPFI_PATCHES="k1-neon-vqdmulh.patch"
+#   k2-neon-starblock-multi.patch : 값 헤드 starBlock 의 가중치를 입력 4개에 재사용 (RapfiWeb A3 를 NEON DotProd 로, 비트 동일)
+RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch"
 PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 
 echo ">>> [1/7] 시스템 도구"
