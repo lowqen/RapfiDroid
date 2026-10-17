@@ -101,7 +101,9 @@ class LocalEngineProfileTest {
         // carry it through to the engine instead of clamping it away.
         val choices = LocalEngineProfile.THREAD_CHOICES
         assertThat(LocalEngineProfile.MAX_THREADS).isAtLeast(8)
-        assertThat(choices).containsAtLeast(6, 8, LocalEngineProfile.MAX_THREADS)
+        // Separate asserts: containsAtLeast counts duplicates, and MAX_THREADS is 8.
+        assertThat(choices).containsAtLeast(6, 8)
+        assertThat(choices).contains(LocalEngineProfile.MAX_THREADS)
         assertThat(LocalEngineProfile(threadNum = 8).clamp(desktop).threadNum).isEqualTo(8)
     }
 
