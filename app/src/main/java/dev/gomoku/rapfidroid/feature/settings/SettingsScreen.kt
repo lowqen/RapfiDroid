@@ -515,9 +515,8 @@ private fun CommonCard(
             }
         }
         FieldRow(tr("스레드 수", "Threads", "线程数")) {
-            val max = LocalEngineProfile.MAX_THREADS
             ChoiceChips(
-                options = (1..max).filter { it == 1 || it == 2 || it == 4 || it == max || it == 6 }.distinct().map { it to "$it" },
+                options = LocalEngineProfile.THREAD_CHOICES.map { it to "$it" },
                 selected = ui.localProfile.threads,
                 onSelect = onThreads,
             )

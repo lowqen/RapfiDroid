@@ -15,8 +15,12 @@ package dev.gomoku.rapfidroid.core.model
  *  2. The engine's own reply, `INFO MAX_HASH_SIZE 30`, is converted by
  *     [EngineCapabilities] with the desktop's formula and lands far above
  *     anything a phone has — so the existing clamp does not catch this.
- * Threads default to 3, not to every core: the little cores add heat and
- * scheduling noise without adding nodes.
+ * Threads default to 3 and go up to [MAX_THREADS]. Measured on a Galaxy A16
+ * (2 big + 6 little cores, docs/엔진-고도화-마스터플랜.md D4 and the peak test):
+ * the little cores **do** add nodes — 4 → 6 → 8 threads gave ×1.00 → ×1.24 →
+ * ×1.58 peak nodes/s on short searches — but 4 threads already raised the
+ * thermal status within five minutes, and 8 leave nothing free for the UI. So
+ * the default stays the cheap middle and the maximum is the user's to pick.
  *
  * The database is a different matter and is **on**. yixindb is held whole in
  * RAM, which is why the server's config refuses to attach *its* database at
@@ -50,7 +54,16 @@ data class LocalEngineProfile(
 
     companion object {
         const val DEFAULT_THREADS = 3
+        /** Every core of an 8-core phone — the fastest setting measured (see the class doc). */
         const val MAX_THREADS = 8
+
+        /**
+         * The thread counts the settings screen offers. Always contains the
+         * default (so a fresh install shows its own value as selected) and the
+         * maximum (so the fastest setting is never hidden behind the chip list).
+         */
+        val THREAD_CHOICES: List<Int> =
+            (listOf(1, 2, DEFAULT_THREADS, 4, 6, MAX_THREADS).filter { it in 1..MAX_THREADS }).distinct().sorted()
         const val DEFAULT_HASH_MB = 128
         const val MIN_HASH_MB = 16
         const val MAX_HASH_MB = 512

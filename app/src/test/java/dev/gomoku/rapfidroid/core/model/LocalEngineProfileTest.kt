@@ -93,4 +93,22 @@ class LocalEngineProfileTest {
         assertThat(LocalEngineProfile(hashSizeMb = 128).ttSizeKb).isEqualTo(131_072L)
         assertThat(LocalEngineProfile(hashSizeMb = 64).ttSizeKb).isEqualTo(65_536L)
     }
+
+    @Test
+    fun `the fastest setting can always be picked`() {
+        // 8 threads on an 8-core phone measured x1.58 the peak nodes/s of 4
+        // (Galaxy A16): the settings screen must offer it, and the profile must
+        // carry it through to the engine instead of clamping it away.
+        val choices = LocalEngineProfile.THREAD_CHOICES
+        assertThat(LocalEngineProfile.MAX_THREADS).isAtLeast(8)
+        assertThat(choices).containsAtLeast(6, 8, LocalEngineProfile.MAX_THREADS)
+        assertThat(LocalEngineProfile(threadNum = 8).clamp(desktop).threadNum).isEqualTo(8)
+    }
+
+    @Test
+    fun `the default is one of the offered choices`() {
+        // Otherwise a fresh install shows no chip selected.
+        assertThat(LocalEngineProfile.THREAD_CHOICES).contains(LocalEngineProfile.DEFAULT_THREADS)
+        assertThat(LocalEngineProfile.THREAD_CHOICES).isInStrictOrder()
+    }
 }
