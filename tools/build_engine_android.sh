@@ -20,6 +20,12 @@ set -euo pipefail
 RAPFI_COMMIT="3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7"     # dhbloo/rapfi
 NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-networks (Networks 서브모듈)
 
+# 성능 패치 — tools/patches/ 아래, 적는 순서대로 [4/7] 의 안드로이드 패치 뒤에 git apply 한다.
+# 모두 결과 불변(BENCH e240ab16 유지)이어야 하고, 하나라도 안 맞으면 [4/7] 에서 멈춘다.
+#   k1-neon-vqdmulh.patch : 누산기 dwconv 의 mulhi(w, 4f) 를 NEON 에서 sqdmulh(w, 2f) 1명령으로 (비트 동일)
+RAPFI_PATCHES="k1-neon-vqdmulh.patch"
+PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
+
 echo ">>> [1/7] 시스템 도구"
 sudo apt-get update -qq
 sudo apt-get install -y unzip ccache file
@@ -87,6 +93,13 @@ git commit -aqm "build: Android(arm64-v8a) 크로스 컴파일 지원
 
 - bionic 은 pthread 를 libc 에 넣어 두어 libpthread 가 없다 -> Android 는 atomic 만 링크
 - Android 는 nativeLibraryDir 의 lib*.so 만 exec 할 수 있다 -> 출력 이름을 libengine.so 로"
+
+for patch in $RAPFI_PATCHES; do
+  git apply --check "$PATCH_DIR/$patch" || { echo "PATCH FAILED: $patch"; exit 1; }
+  git apply "$PATCH_DIR/$patch"
+  git commit -aqm "perf: $patch"
+  echo "OK: $patch"
+done
 
 echo ">>> [5/7] 빌드 (NEON / DotProd)"
 cd "$HOME/rapfi/Rapfi"
@@ -186,7 +199,7 @@ cp "$HOME/rapfi/Rapfi/build-dotprod/libengine.so" "$OUT/bench/libengine_dotprod.
 cat > "$OUT/jniLibs/ENGINE_VERSION.txt" <<EOF
 engine     : Rapfi on-device (arm64-v8a)
 upstream   : $UPSTREAM_COMMIT  (dhbloo/rapfi, 패치 전)
-patched    : $(git -C "$HOME/rapfi" rev-parse HEAD)  (= 위 커밋 + 안드로이드 빌드 패치. 이 저장소 밖에는 없다)
+patched    : $(git -C "$HOME/rapfi" rev-parse HEAD)  (= 위 커밋 + 안드로이드 빌드 패치 + RAPFI_PATCHES. 이 저장소 밖에는 없다)
 networks   : $(git -C "$HOME/rapfi/Networks" rev-parse HEAD)
 ndk        : r27c
 abi        : arm64-v8a / android-26 / c++_static / 16KB-page ready
@@ -195,6 +208,7 @@ binaries   : libengine.so (NEON, armv8-a+simd) / libengine_dotprod.so (armv8.2-a
 size       : $(stat -c%s "$OUT/jniLibs/arm64-v8a/libengine.so") / $(stat -c%s "$OUT/jniLibs/arm64-v8a/libengine_dotprod.so") bytes (stripped)
 built_at   : $(date -u +%Y-%m-%dT%H:%M:%SZ)
 bench(host): $HOST_HASH  <- 폰의 BENCH Hash 가 이 값과 같아야 한다
+patches    : ${RAPFI_PATCHES:-없음}  (tools/patches/)
 build_by   : RapfiDroid/tools/build_engine_android.sh
 EOF
 cat "$OUT/jniLibs/ENGINE_VERSION.txt"
