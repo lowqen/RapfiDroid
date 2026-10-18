@@ -108,7 +108,20 @@ jobs:
             || { echo "::error::libengine.so 가 압축되지 않았습니다 — useLegacyPackaging 확인."; exit 1; }
           echo "OK — 엔진 동봉 확인"
 
+      # A manual run is a signed test build for the user's own phone: same key,
+      # so `adb install -r` keeps the app's data, but no tag and no release.
+      # The debug APK is already an artifact on every push; this one only lives
+      # a day.
+      - name: Upload signed test APK (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-test
+          path: app/build/outputs/apk/release/app-release.apk
+          retention-days: 1
+
       - name: Name the artifact after the tag
+        if: github.event_name == 'push'
         id: name
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -119,6 +132,7 @@ jobs:
       # action keeps the step that handles a signed artifact free of any
       # dependency we do not control.
       - name: Create the release
+        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.name.outputs.version }}
