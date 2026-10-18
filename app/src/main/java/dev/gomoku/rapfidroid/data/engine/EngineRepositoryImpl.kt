@@ -90,7 +90,7 @@ class EngineRepositoryImpl @Inject constructor(
      * numbers would do to a phone.
      */
     @Volatile
-    private var localProfile = LocalEngineProfile()
+    private var localProfile = localEngineStore.defaults
 
     private fun transportFor(target: EngineTarget): EngineTransport = when (target) {
         is EngineTarget.Remote -> TcpTransport(target.endpoint)

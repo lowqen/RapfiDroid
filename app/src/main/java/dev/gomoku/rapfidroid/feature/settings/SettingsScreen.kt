@@ -516,7 +516,7 @@ private fun CommonCard(
         }
         FieldRow(tr("스레드 수", "Threads", "线程数")) {
             ChoiceChips(
-                options = LocalEngineProfile.THREAD_CHOICES.map { it to "$it" },
+                options = ui.threadChoices.map { it to "$it" },
                 selected = ui.localProfile.threads,
                 onSelect = onThreads,
             )

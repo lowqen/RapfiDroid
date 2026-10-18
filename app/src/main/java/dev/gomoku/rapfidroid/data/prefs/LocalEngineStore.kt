@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
+import dev.gomoku.rapfidroid.data.engine.DeviceSpecReader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -32,12 +33,19 @@ class LocalEngineStore @Inject constructor(
     private val hashKey = intPreferencesKey("hash_mb")
     private val databaseKey = booleanPreferencesKey("use_database")
 
+    /** Absent on everything written before R3 — see [LocalEngineProfile.fromStored]. */
+    private val versionKey = intPreferencesKey("version")
+
+    /** This phone's out-of-box numbers: every core, a table sized by its RAM (R3). */
+    val defaults: LocalEngineProfile by lazy { LocalEngineProfile.forDevice(DeviceSpecReader.read(context)) }
+
     val profile: Flow<LocalEngineProfile> = context.localEngineDataStore.data.map { prefs ->
-        val defaults = LocalEngineProfile()
-        LocalEngineProfile(
-            threadNum = prefs[threadsKey] ?: defaults.threadNum,
-            hashSizeMb = prefs[hashKey] ?: defaults.hashSizeMb,
-            useDatabase = prefs[databaseKey] ?: defaults.useDatabase,
+        LocalEngineProfile.fromStored(
+            threads = prefs[threadsKey],
+            hashMb = prefs[hashKey],
+            useDatabase = prefs[databaseKey],
+            legacy = prefs[versionKey] == null,
+            defaults = defaults,
         )
     }
 
@@ -46,9 +54,27 @@ class LocalEngineStore @Inject constructor(
             // Stored already clamped: what is written here is what the engine is
             // told, and a value that only becomes safe on the way out is a value
             // that will one day leave by another door.
-            prefs[threadsKey] = profile.threads
-            prefs[hashKey] = profile.hashMb
+            //
+            // A number equal to the device default is *not* stored: the screen
+            // saves all three when any one changes, and pinning the others would
+            // freeze today's default into a choice nobody made.
+            if (profile.threads == defaults.threads) {
+                prefs.remove(threadsKey)
+            } else {
+                prefs[threadsKey] = profile.threads
+            }
+            if (profile.hashMb == defaults.hashMb) {
+                prefs.remove(hashKey)
+            } else {
+                prefs[hashKey] = profile.hashMb
+            }
             prefs[databaseKey] = profile.useDatabase
+            prefs[versionKey] = VERSION
         }
+    }
+
+    private companion object {
+        /** 2 = R3: unset means the device default, and 3/128 mean what they say. */
+        const val VERSION = 2
     }
 }

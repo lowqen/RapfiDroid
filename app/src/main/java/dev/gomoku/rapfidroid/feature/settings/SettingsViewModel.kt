@@ -71,7 +71,10 @@ class SettingsViewModel @Inject constructor(
         // file of this app's the user might want to pull off the phone, and it
         // is nowhere a file manager will stumble on it.
         _state.update {
-            it.copy(localDbPath = File(localEngine.engineDir, LOCAL_DB_NAME).path)
+            it.copy(
+                localDbPath = File(localEngine.engineDir, LOCAL_DB_NAME).path,
+                threadChoices = LocalEngineProfile.threadChoices(localEngineStore.defaults.threads),
+            )
         }
         viewModelScope.launch { refreshDebugLogSize() }
     }

@@ -17,6 +17,8 @@ data class SettingsUiState(
     val connected: Boolean = false,
     /** The on-device engine's own limits — no line in either desktop file. */
     val localProfile: LocalEngineProfile = LocalEngineProfile(),
+    /** Thread counts to offer — the fixed set plus this phone's own default. */
+    val threadChoices: List<Int> = LocalEngineProfile.THREAD_CHOICES,
     /** True while the on-device engine is the chosen one (connection tab). */
     val localMode: Boolean = true,
     /** Whether the server engine is offered at all; advanced switch turns it on. */
