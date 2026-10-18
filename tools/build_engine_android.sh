@@ -33,8 +33,8 @@ PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 #   PGO_MODE=use      (기본) 프로필로 최적화 빌드
 #   PGO_MODE=generate 계측 빌드 — 소스 · 패치 · NDK 를 올렸을 때 프로필을 새로 뜨는 용도. 탑재하지 말 것
 #   PGO_MODE=off      프로필 없이(이전 방식)
-# PGO_TARGETS 는 폰에서 이득을 확인한 변형만 적는다. neon 은 프로필을 떴지만 대조 측정이 1회에서 끊겨
-# 아직 안 넣었다(docs/엔진-고도화-마스터플랜.md K6). generate 는 변형을 가리지 않는다.
+# PGO_TARGETS 는 폰에서 이득을 확인한 변형만 적는다. neon 은 같은 방법으로 +0.2%(잡음)라 뺐다
+# (docs/엔진-고도화-마스터플랜.md K6). generate 는 변형을 가리지 않는다.
 PGO_MODE="${PGO_MODE:-use}"
 PGO_TARGETS="dotprod"
 PGO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/pgo"
