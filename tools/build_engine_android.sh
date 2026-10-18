@@ -27,6 +27,18 @@ NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-netwo
 RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch"
 PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 
+# K6 PGO — tools/pgo/rapfi-<변형>.profdata 는 위 커밋 + 위 패치로 만든 계측 빌드를 갤럭시 A16 에서
+# tools/pgo/train.sh 로 돌려 모은 프로필이다(BENCH 국면은 일부러 빼서 측정과 학습을 가른다). 결과 불변 —
+# 코드 배치 · 인라이닝만 바뀌므로 BENCH e240ab16 그대로, 폰에서 dotprod +3%.
+#   PGO_MODE=use      (기본) 프로필로 최적화 빌드
+#   PGO_MODE=generate 계측 빌드 — 소스 · 패치 · NDK 를 올렸을 때 프로필을 새로 뜨는 용도. 탑재하지 말 것
+#   PGO_MODE=off      프로필 없이(이전 방식)
+# PGO_TARGETS 는 폰에서 이득을 확인한 변형만 적는다. neon 은 프로필을 떴지만 대조 측정이 1회에서 끊겨
+# 아직 안 넣었다(docs/엔진-고도화-마스터플랜.md K6). generate 는 변형을 가리지 않는다.
+PGO_MODE="${PGO_MODE:-use}"
+PGO_TARGETS="dotprod"
+PGO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/pgo"
+
 echo ">>> [1/7] 시스템 도구"
 sudo apt-get update -qq
 sudo apt-get install -y unzip ccache file
@@ -105,8 +117,17 @@ done
 echo ">>> [5/7] 빌드 (NEON / DotProd)"
 cd "$HOME/rapfi/Rapfi"
 build_target () {
-  local name=$1 dotprod=$2
-  echo "--- build: $name (DotProd=$dotprod, LTO=ON) ---"
+  local name=$1 dotprod=$2 pgo="" mode="$PGO_MODE"
+  [ "$mode" = use ] && [[ " $PGO_TARGETS " != *" $name "* ]] && mode=off
+  case "$mode" in
+    # LTO 라 링크 단계에도 같은 플래그가 있어야 프로필이 먹는다.
+    use)      pgo="-fprofile-use=$PGO_DIR/rapfi-$name.profdata -Wno-profile-instr-unprofiled"
+              [ -f "$PGO_DIR/rapfi-$name.profdata" ] || { echo "프로필 없음: $PGO_DIR/rapfi-$name.profdata"; exit 1; } ;;
+    generate) pgo="-fprofile-generate" ;;
+    off)      ;;
+    *)        echo "PGO_MODE 는 use|generate|off: $PGO_MODE"; exit 1 ;;
+  esac
+  echo "--- build: $name (DotProd=$dotprod, LTO=ON, PGO=$mode) ---"
   cmake -S . -B "build-$name" -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK/build/cmake/android.toolchain.cmake" \
     -DCMAKE_C_COMPILER_LAUNCHER=ccache \
@@ -118,9 +139,10 @@ build_target () {
     -DCMAKE_BUILD_TYPE=Release \
     -DUSE_NEON=ON -DUSE_NEON_DOTPROD="$dotprod" \
     -DNO_COMMAND_MODULES=ON \
-    -DENABLE_LTO=ON
+    -DENABLE_LTO=ON \
+    -DCMAKE_CXX_FLAGS="$pgo" -DCMAKE_EXE_LINKER_FLAGS="$pgo"
   cmake --build "build-$name" -j"$(nproc)"
-  "$NDK_BIN/llvm-strip" --strip-all "build-$name/libengine.so"
+  [ "$PGO_MODE" = generate ] || "$NDK_BIN/llvm-strip" --strip-all "build-$name/libengine.so"
 }
 build_target neon    OFF   # 전 arm64 기기 안전 - 1차 탑재본
 build_target dotprod ON    # ARMv8.2+ 전용 - 구형 기기에서는 SIGILL, 런타임 선택 필요
@@ -149,6 +171,9 @@ verify () {
   fi
   if ! grep -q -- "-ffp-contract=off" "$nj"; then
     echo "  X -ffp-contract=off 없음 - 서버와 탐색 결과가 갈릴 수 있다"; fail=1
+  fi
+  if [ "$PGO_MODE" = use ] && [[ " $PGO_TARGETS " == *" $name "* ]] && ! grep -q -- "-fprofile-use=" "$nj"; then
+    echo "  X -fprofile-use 가 컴파일 명령에 없다 - PGO 없는 빌드다"; fail=1
   fi
   local sdot
   sdot=$("$NDK_BIN/llvm-objdump" -d "$so" | grep -cE '[[:space:]]sdot[[:space:]]' || true)
@@ -210,6 +235,7 @@ size       : $(stat -c%s "$OUT/jniLibs/arm64-v8a/libengine.so") / $(stat -c%s "$
 built_at   : $(date -u +%Y-%m-%dT%H:%M:%SZ)
 bench(host): $HOST_HASH  <- 폰의 BENCH Hash 가 이 값과 같아야 한다
 patches    : ${RAPFI_PATCHES:-없음}  (tools/patches/)
+pgo        : ${PGO_MODE} · ${PGO_TARGETS}  (tools/pgo/rapfi-<변형>.profdata)
 build_by   : RapfiDroid/tools/build_engine_android.sh
 EOF
 cat "$OUT/jniLibs/ENGINE_VERSION.txt"
