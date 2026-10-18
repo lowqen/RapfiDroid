@@ -1,0 +1,3 @@
+# Run on Linux or on the phone (adb shell): CRLF breaks both sh and the piskvork BOARD lines.
+*.sh               text eol=lf
+tools/pgo/*.txt    text eol=lf
