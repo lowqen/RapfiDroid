@@ -1,0 +1,125 @@
+diff --git a/Rapfi/eval/mix9svqnnue.cpp b/Rapfi/eval/mix9svqnnue.cpp
+index 8f580b3..1e043a9 100644
+--- a/Rapfi/eval/mix9svqnnue.cpp
++++ b/Rapfi/eval/mix9svqnnue.cpp
+@@ -784,6 +784,71 @@ void Accumulator::evaluatePolicy(const Weight &w, PolicyBuffer &policyBuffer)
+     }
+ }
+ 
++/// [A4] Policy result cache. Each cell's policy output depends only on the accumulator of the
++/// position (an exact function of the stones) and the global features, never on which other cells
++/// are flagged, so returning stored outputs for the same position is bit-exact. An entry is used
++/// only when every requested cell was computed before; otherwise the policy is recomputed and the
++/// new cells are merged in. One cache per evaluator (= per search thread), no locking.
++struct PolicyCache
++{
++    static constexpr int    LogEntries = 12;  // 4096 entries, ~3.9 MB at 15x15
++    static constexpr size_t NumEntries = size_t(1) << LogEntries;
++
++    explicit PolicyCache(int numCells)
++        : numCells(numCells)
++        , numWords((numCells + 63) / 64)
++        , keys(NumEntries, 0)
++        , plies(NumEntries, -1)
++        , flags(NumEntries * numWords, 0)
++        , values(NumEntries * numCells)
++    {}
++
++    /// Fill the requested cells of the buffer if all of them are stored for this position.
++    bool read(HashKey key, int ply, PolicyBuffer &buffer) const
++    {
++        size_t e = key & (NumEntries - 1);
++        if (keys[e] != key || plies[e] != ply)
++            return false;
++
++        const uint64_t *f = &flags[e * numWords];
++        for (int i = 0; i < numCells; i++)
++            if (buffer.getComputeFlag(i) && !((f[i >> 6] >> (i & 63)) & 1))
++                return false;
++
++        const float *v = &values[e * numCells];
++        for (int i = 0; i < numCells; i++)
++            if (buffer.getComputeFlag(i))
++                buffer(i) = v[i];
++        return true;
++    }
++
++    /// Store the requested cells of a freshly computed buffer.
++    void write(HashKey key, int ply, const PolicyBuffer &buffer)
++    {
++        size_t    e = key & (NumEntries - 1);
++        uint64_t *f = &flags[e * numWords];
++        if (keys[e] != key || plies[e] != ply) {
++            keys[e]  = key;
++            plies[e] = ply;
++            std::fill_n(f, numWords, uint64_t(0));
++        }
++
++        float *v = &values[e * numCells];
++        for (int i = 0; i < numCells; i++)
++            if (buffer.getComputeFlag(i)) {
++                f[i >> 6] |= uint64_t(1) << (i & 63);
++                v[i] = buffer(i);
++            }
++    }
++
++private:
++    int                   numCells, numWords;
++    std::vector<HashKey>  keys;
++    std::vector<int>      plies;
++    std::vector<uint64_t> flags;
++    std::vector<float>    values;
++};
++
+ Evaluator::Evaluator(int                   boardSize,
+                      Rule                  rule,
+                      Numa::NumaNodeId      numaNodeId,
+@@ -811,6 +876,7 @@ Evaluator::Evaluator(int                   boardSize,
+     int numCells = boardSize * boardSize;
+     moveCache[BLACK].reserve(numCells);
+     moveCache[WHITE].reserve(numCells);
++    policyCache = std::make_unique<PolicyCache>(numCells);
+ }
+ 
+ Evaluator::~Evaluator()
+@@ -852,11 +918,18 @@ ValueType Evaluator::evaluateValue(const Board &board, AccLevel level)
+ 
+ void Evaluator::evaluatePolicy(const Board &board, PolicyBuffer &policyBuffer, AccLevel level)
+ {
+-    Color self = board.sideToMove();
++    Color   self = board.sideToMove();
++    HashKey key  = board.zobristKey();
++
++    // Reuse the outputs of an earlier evaluation of this position (A4). The queued board changes
++    // stay queued: the next evaluation that misses applies them.
++    if (policyCache->read(key, board.ply(), policyBuffer))
++        return;
+ 
+     // Apply all incremental update and calculate policy
+     flushMoveCache(self);
+     accumulator[self]->evaluatePolicy(*weight[self], policyBuffer);
++    policyCache->write(key, board.ply(), policyBuffer);
+ }
+ 
+ void Evaluator::flushMoveCache(Color side)
+diff --git a/Rapfi/eval/mix9svqnnue.h b/Rapfi/eval/mix9svqnnue.h
+index 94dbc81..78d8567 100644
+--- a/Rapfi/eval/mix9svqnnue.h
++++ b/Rapfi/eval/mix9svqnnue.h
+@@ -35,6 +35,7 @@ namespace Evaluation::mix9svq {
+ // (see mix9svqnnue.cpp); only the Evaluator plugin surface is public.
+ struct Weight;
+ class Accumulator;
++struct PolicyCache;
+ 
+ class Evaluator : public Evaluation::Evaluator
+ {
+@@ -62,6 +63,8 @@ private:
+     Weight /* non-owning ptr */ *weight[2];
+     std::unique_ptr<Accumulator> accumulator[2];
+     std::vector<mixnet::MoveCache> moveCache[2];
++    /// Policy outputs already computed for recent positions (A4, see mix9svqnnue.cpp).
++    std::unique_ptr<PolicyCache> policyCache;
+ };
+ 
+ }  // namespace Evaluation::mix9svq

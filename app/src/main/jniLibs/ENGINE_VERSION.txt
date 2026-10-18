@@ -1,15 +1,15 @@
 engine     : Rapfi on-device (arm64-v8a)
 upstream   : 3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7  (dhbloo/rapfi, 패치 전)
-patches    : 안드로이드 빌드 패치 2개(스크립트 [4/7]) + k1-neon-vqdmulh.patch + k2-neon-starblock-multi.patch (tools/patches/)
-pgo        : dotprod 만 — tools/pgo/rapfi-dotprod.profdata (-fprofile-use, 갤럭시 A16 에서 tools/pgo/train.sh 로 학습). NEON 은 PGO 없음
+patches    : 안드로이드 빌드 패치 2개(스크립트 [4/7]) + k1-neon-vqdmulh.patch + k2-neon-starblock-multi.patch + k3-a4-policy-cache.patch (tools/patches/)
+pgo        : dotprod 만 — tools/pgo/rapfi-dotprod.profdata (-fprofile-use, K3 까지 든 소스로 갤럭시 A16 에서 tools/pgo/train.sh 로 학습). NEON 은 PGO 없음
 networks   : e32ad77a5364363b3e3a02b3f9e8610ade19ea98
 ndk        : r27c (windows-x86_64 프리빌트 — 스크립트 [3/7]~[6/7] 과 같은 커밋 · 같은 옵션)
 abi        : arm64-v8a / android-26 / c++_static / 16KB-page ready
 cmake opts : -DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF|ON -DNO_COMMAND_MODULES=ON -DENABLE_LTO=ON -DCMAKE_BUILD_TYPE=Release
 binaries   : libengine.so (NEON, armv8-a+simd) / libengine_dotprod.so (armv8.2-a+dotprod)
-size       : 1475480 / 1412888 bytes (stripped)
-built_at   : 2026-10-17 (NEON) / 2026-10-18 (dotprod, PGO)
-bench(host): Hash: e240ab16  <- 폰의 BENCH Hash 가 이 값과 같아야 한다 (K1 · K2 · K6 PGO 는 결과 불변)
-bench(phone): Galaxy A16 (MT6789) cpu7 A76, 1 스레드 — libengine.so 44,497 n/s · libengine_dotprod.so 62,219 n/s(K2 측정) → PGO +3.0%(같은 세션 번갈음 5쌍 모두 +), 모두 e240ab16
-             (처음 탑재본 NEON 41,754 → dotprod 53,886 → K1 57,358 → K2 62,219 → K6 ×1.03 — docs/엔진-고도화-마스터플랜.md D0 · K1 · K2 · K6)
+size       : 1476872 / 1413336 bytes (stripped)
+built_at   : 2026-10-18
+bench(host): Hash: e240ab16  <- 폰의 BENCH Hash 가 이 값과 같아야 한다 (K1 · K2 · K3 · K6 PGO 는 결과 불변)
+bench(phone): Galaxy A16 (MT6789) cpu7 A76, 1 스레드 — libengine.so 44,497 n/s(K1) → K3 +3.1% · libengine_dotprod.so 62,219 n/s(K2) → PGO +3.0% → K3 +3.1%, 모두 e240ab16
+             (처음 탑재본 NEON 41,754 → dotprod 53,886 → K1 57,358 → K2 62,219 → K6 ×1.03 → K3 ×1.031 — docs/엔진-고도화-마스터플랜.md D0 · K1 · K2 · K6 · K3)
 build_by   : RapfiDroid/tools/build_engine_android.sh

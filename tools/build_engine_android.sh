@@ -24,7 +24,8 @@ NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-netwo
 # 모두 결과 불변(BENCH e240ab16 유지)이어야 하고, 하나라도 안 맞으면 [4/7] 에서 멈춘다.
 #   k1-neon-vqdmulh.patch : 누산기 dwconv 의 mulhi(w, 4f) 를 NEON 에서 sqdmulh(w, 2f) 1명령으로 (비트 동일)
 #   k2-neon-starblock-multi.patch : 값 헤드 starBlock 의 가중치를 입력 4개에 재사용 (RapfiWeb A3 를 NEON DotProd 로, 비트 동일)
-RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch"
+#   k3-a4-policy-cache.patch : 같은 국면의 정책 출력을 스레드별 2^12 표로 재사용 (RapfiWeb A4 그대로, 결과 불변)
+RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch k3-a4-policy-cache.patch"
 PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 
 # K6 PGO — tools/pgo/rapfi-<변형>.profdata 는 위 커밋 + 위 패치로 만든 계측 빌드를 갤럭시 A16 에서
