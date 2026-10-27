@@ -2,6 +2,7 @@ package dev.gomoku.rapfidroid.data.engine
 
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
+import dev.gomoku.rapfidroid.core.model.MemoryTier
 import dev.gomoku.rapfidroid.domain.engine.EngineVariant
 import dev.gomoku.rapfidroid.domain.engine.EngineVariantSelector
 import okio.buffer
@@ -28,6 +29,8 @@ import java.util.concurrent.TimeUnit
 class LocalEngineTransport(
     private val installer: LocalEngineInstaller,
     private val profile: LocalEngineProfile,
+    /** The process died of SIGKILL without being asked to close (T3 — see [MemoryGuard]). */
+    private val onKilled: () -> Unit = {},
 ) : EngineTransport {
 
     override val label: String get() = "on-device"
@@ -56,19 +59,24 @@ class LocalEngineTransport(
         // evaluation. To the connection that is only a dropped pipe and the
         // reconnect loop respawns the engine; recording the cause here, the
         // moment the process dies, makes that respawn start the NEON build.
-        if (variant == EngineVariant.DOTPROD) {
-            Thread({
-                val code = runCatching { process.waitFor() }.getOrNull()
-                if (code != null && EngineVariantSelector.isIllegalInstruction(variant, code)) {
-                    installer.markDotprodFailed(code)
-                }
-            }, "local-engine-sigill-watch").apply { isDaemon = true }.start()
-        }
+        //
+        // The same watcher reports a SIGKILL nobody asked for: the reaper below
+        // uses one too, so a close marks itself first.
+        val closing = java.util.concurrent.atomic.AtomicBoolean(false)
+        Thread({
+            val code = runCatching { process.waitFor() }.getOrNull() ?: return@Thread
+            if (EngineVariantSelector.isIllegalInstruction(variant, code)) {
+                installer.markDotprodFailed(code)
+            } else if (!closing.get() && MemoryTier.isKill(code)) {
+                onKilled()
+            }
+        }, "local-engine-exit-watch").apply { isDaemon = true }.start()
 
         val source = process.inputStream.source().buffer()
         val sink = process.outputStream.sink().buffer()
 
         return EngineChannel(source, sink) {
+            closing.set(true)
             // Shutting down in the right order, because the database lives or
             // dies by it. yixindb is held in memory and written on command or on
             // close; a killed process runs neither, so everything this session

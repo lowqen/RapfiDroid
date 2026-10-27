@@ -309,9 +309,39 @@ private fun LocalEngineCard(
                 supporting = "${LocalEngineProfile.MIN_HASH_MB}~${LocalEngineProfile.MAX_HASH_MB}",
             )
         }
+        // The phone's own ceiling after a kill for memory (T3) — said here, where the
+        // number it overrides is, and lifted by picking a size again.
+        val cap = ui.memoryCapMb
+        if (cap != null && cap < ui.localProfile.hashMb) {
+            Hint(
+                tr(
+                    "메모리가 모자라 엔진이 종료된 적이 있어 ${cap} MB 로 줄여 씁니다 — 해시 크기를 다시 고르면 풀립니다",
+                    "The engine was once killed for lack of memory, so it uses $cap MB — pick a hash size again to lift this",
+                    "引擎曾因内存不足被终止，现使用 $cap MB — 重新选择哈希表大小即可解除",
+                ),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(tr("기기 데이터베이스 사용", "Use the device database", "使用本机数据库"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             Switch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
+        }
+        // yixindb is read whole into the engine's memory, on top of the table (T3).
+        val dbBytes = ui.localDbBytes
+        if (ui.localProfile.useDatabase && dbBytes != null) {
+            val mb = (dbBytes + (1 shl 20) - 1) shr 20
+            if (dbBytes >= ui.localDbWarnBytes) {
+                Hint(
+                    tr(
+                        "rapfi.db ${mb} MB — 엔진이 이만큼 메모리를 더 씁니다. 메모리가 모자라면 DB 탭에서 정리하세요",
+                        "rapfi.db $mb MB — the engine holds all of it in memory. If memory runs short, tidy it in the DB tab",
+                        "rapfi.db $mb MB — 引擎会把它全部放进内存。内存不足时请在数据库页整理",
+                    ),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else {
+                Hint(tr("rapfi.db ${mb} MB", "rapfi.db $mb MB", "rapfi.db $mb MB"))
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

@@ -14,6 +14,7 @@ import dev.gomoku.rapfidroid.core.model.LinkHealth
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.Position
+import dev.gomoku.rapfidroid.core.model.capHash
 import dev.gomoku.rapfidroid.core.model.capThreads
 import dev.gomoku.rapfidroid.data.prefs.LocalEngineStore
 import dev.gomoku.rapfidroid.domain.engine.CoordMapper
@@ -59,6 +60,7 @@ class EngineRepositoryImpl @Inject constructor(
     private val localEngine: LocalEngineInstaller,
     private val localEngineStore: LocalEngineStore,
     private val thermal: ThermalMonitor,
+    private val memoryGuard: MemoryGuard,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EngineRepository {
@@ -115,7 +117,7 @@ class EngineRepositoryImpl @Inject constructor(
 
     private fun transportFor(target: EngineTarget): EngineTransport = when (target) {
         is EngineTarget.Remote -> TcpTransport(target.endpoint)
-        EngineTarget.Local -> LocalEngineTransport(localEngine, localProfile)
+        EngineTarget.Local -> LocalEngineTransport(localEngine, localProfile, memoryGuard::onEngineKilled)
     }
 
     /**
@@ -195,8 +197,10 @@ class EngineRepositoryImpl @Inject constructor(
         }
         scope.launch { livenessLoop() }
         scope.launch {
-            combine(localEngineStore.profile, thermal.state) { stored, heat ->
-                stored to stored.capThreads(heat.threadCap(stored.threads))
+            // The table under the phone's own ceiling (T3, [MemoryGuard]), the threads
+            // under the thermal cap (T1); the stored profile stays the user's.
+            combine(localEngineStore.profile, localEngineStore.memoryCapMb, thermal.state) { stored, memCap, heat ->
+                stored to stored.capHash(memCap).capThreads(heat.threadCap(stored.threads))
             }.collect { (stored, profile) ->
                 // Computed against the old profile before it is replaced — the
                 // whole point of `effective` is that it reads this field.
@@ -282,6 +286,7 @@ class EngineRepositoryImpl @Inject constructor(
             connection.open(transportFor(target))
             handshake()
             _health.value = LinkHealth()
+            if (target.isLocal) memoryGuard.sessionOpened()
         } catch (e: Exception) {
             EngineService.stop(context)
             wantsConnection = false
@@ -397,6 +402,7 @@ class EngineRepositoryImpl @Inject constructor(
         _health.value = LinkHealth()
         parked = null
         connection.close()
+        memoryGuard.sessionClosed()
         EngineService.stop(context)
     }
 

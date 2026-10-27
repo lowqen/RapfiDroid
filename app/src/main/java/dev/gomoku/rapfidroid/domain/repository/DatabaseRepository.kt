@@ -67,6 +67,13 @@ interface DatabaseRepository {
     // ---- file operations (server-side paths) ----
 
     suspend fun save(): DbOpResult
+
+    /**
+     * Save only if a database is already loaded — the auto-save's rule, never an
+     * attach (which would read the whole file back in). For the app going to the
+     * background (T3), where a low-memory kill would lose everything since the last save.
+     */
+    suspend fun saveIfLoaded(): DbOpResult
     suspend fun openFile(path: String): DbOpResult
     suspend fun merge(path: String): DbOpResult
 

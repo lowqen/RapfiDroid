@@ -374,6 +374,8 @@ class DatabaseRepositoryImpl @Inject constructor(
      */
     override suspend fun save(): DbOpResult = save(attachIfMissing = true)
 
+    override suspend fun saveIfLoaded(): DbOpResult = save(attachIfMissing = false)
+
     /**
      * @param attachIfMissing whether a missing database may be attached from
      *   here. True when a person asked for the save; **false for the timer** —

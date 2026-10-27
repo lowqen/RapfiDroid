@@ -25,6 +25,12 @@ data class SettingsUiState(
     val serverEnabled: Boolean = false,
     /** Absolute path of the device's own `rapfi.db`; empty until resolved. */
     val localDbPath: String = "",
+    /** Size of that file, null when there is none yet. Held whole in the engine's memory. */
+    val localDbBytes: Long? = null,
+    /** From this size on the database is worth a warning ([MemoryTier.databaseWarnBytes]). */
+    val localDbWarnBytes: Long = Long.MAX_VALUE,
+    /** The table ceiling the phone imposed after a kill for memory (T3), or null. */
+    val memoryCapMb: Int? = null,
     /** Show every desktop setting, not just the everyday ones. */
     val advanced: Boolean = false,
     /** Where the imported toolbar/hotkeys/labels came from; null = defaults. */

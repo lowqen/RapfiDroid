@@ -3,7 +3,9 @@ package dev.gomoku.rapfidroid.data.engine
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ProcessLifecycleOwner
+import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.EngineIdlePolicy
+import dev.gomoku.rapfidroid.domain.repository.DatabaseRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,7 @@ import javax.inject.Singleton
 @Singleton
 class EngineIdleWatcher @Inject constructor(
     private val engine: EngineRepository,
+    private val database: DatabaseRepository,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -57,7 +60,15 @@ class EngineIdleWatcher @Inject constructor(
                 }
         }
         scope.launch {
-            foreground.collect { fg -> if (fg) engine.resumeParked() }
+            foreground.collect { fg ->
+                when {
+                    fg -> engine.resumeParked()
+                    // Leaving the app is when a low-memory kill becomes likely; the
+                    // database is held only in the engine's memory until saved (T3).
+                    // Only while idle — a search drops every command but stop.
+                    engine.state.value == ConnectionState.Ready -> runCatching { database.saveIfLoaded() }
+                }
+            }
         }
     }
 }

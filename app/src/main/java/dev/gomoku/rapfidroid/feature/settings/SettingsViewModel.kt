@@ -7,6 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.DesktopSettings
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
+import dev.gomoku.rapfidroid.core.model.MemoryTier
 import dev.gomoku.rapfidroid.core.model.SettingCategory
 import dev.gomoku.rapfidroid.core.model.SettingEditor
 import dev.gomoku.rapfidroid.core.model.SettingsFile
@@ -18,6 +19,7 @@ import dev.gomoku.rapfidroid.data.settings.SettingsFileIo
 import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -76,12 +78,25 @@ class SettingsViewModel @Inject constructor(
                 threadChoices = LocalEngineProfile.threadChoices(localEngineStore.defaults.threads),
             )
         }
+        viewModelScope.launch {
+            localEngineStore.memoryCapMb.collect { cap -> _state.update { it.copy(memoryCapMb = cap) } }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val db = File(localEngine.engineDir, LOCAL_DB_NAME)
+            val bytes = db.takeIf { it.isFile }?.length()
+            val warn = MemoryTier.databaseWarnBytes(localEngineStore.totalRamMb)
+            _state.update { it.copy(localDbBytes = bytes, localDbWarnBytes = warn) }
+        }
         viewModelScope.launch { refreshDebugLogSize() }
     }
 
     fun onLocalThreads(value: Int) = editLocal { it.copy(threadNum = value) }
 
-    fun onLocalHash(value: Int) = editLocal { it.copy(hashSizeMb = value) }
+    /** A table size picked by the user also lifts the phone's own ceiling (T3). */
+    fun onLocalHash(value: Int) {
+        editLocal { it.copy(hashSizeMb = value) }
+        viewModelScope.launch { localEngineStore.clearMemoryCap() }
+    }
 
     fun onLocalDatabase(on: Boolean) = editLocal { it.copy(useDatabase = on) }
 
