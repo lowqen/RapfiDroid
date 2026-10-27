@@ -1,0 +1,264 @@
+name: ARM engine bench (D3)
+
+# Linux aarch64 stand-in for the phone (docs/엔진-고도화-마스터플랜.md D3). GitHub's ubuntu-24.04-arm runner
+# (Cobalt 100 / Neoverse N2, 4 cores, no SMT — dotprod and i8mm) is free for this public repo, does not throttle,
+# and has no battery to run flat mid-match like the Galaxy A16 did.
+#
+# It builds upstream Rapfi + this repo's tools/patches with clang (the NDK's compiler family), checks the BENCH
+# hash, then one of
+#   bench : hash gate only
+#   speed : same-tree fixed-depth timing, base · control (A/A, same binary) · test — for result-invariant patches
+#   sprt  : paired games on balanced openings with SPRT — for tree-changing patches, configs or thread counts
+#
+# The harness (build_host_engine.sh, fixed-depth.mjs, speed-report.mjs, runner.mjs) is lowqen/RapfiWeb's, checked
+# out at tools_ref so a result can be re-run with the very same scripts.
+#
+# What does not carry over from here to the phone: no PGO (relative comparisons only), and the server's caches are far
+# larger than a phone SoC's, so memory-bound effects (K7's codebook misses) need a phone to confirm.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "bench (hash gate) · speed (same-tree timing) · sprt (games)"
+        default: "speed"
+        type: choice
+        options: ["bench", "speed", "sprt"]
+      variant:
+        description: "dotprod (libengine_dotprod.so) or neon (libengine.so)"
+        default: "dotprod"
+        type: choice
+        options: ["dotprod", "neon"]
+      base_patches:
+        description: "Patch file names under tools/patches for the base engine (space separated) — default = shipped"
+        default: "k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch k3-a4-policy-cache.patch"
+        type: string
+      test_patches:
+        description: "Extra patches stacked on base_patches for the test engine (empty = same as base)"
+        default: ""
+        type: string
+      config:
+        description: "config.toml for the measured engines — bench (rapfi-networks config-example, model210901) or app (assets/engine)"
+        default: "bench"
+        type: choice
+        options: ["bench", "app"]
+      expect_hash:
+        description: "BENCH hash the base build must give (empty = report only). e240ab16 = upstream 3c94c2a9 tree"
+        default: "e240ab16"
+        type: string
+      depth:
+        description: "speed: fixed depth"
+        default: "16"
+        type: string
+      repeat:
+        description: "speed: repeats per position"
+        default: "2"
+        type: string
+      positions:
+        description: "speed: position files"
+        default: "bench/sprt/openings-balanced.json,bench/gomocalc/mate-suite.json"
+        type: string
+      games:
+        description: "sprt: maximum games (rounded up to pairs)"
+        default: "120"
+        type: string
+      tc:
+        description: "sprt: time control (runner.mjs --tc)"
+        default: "turn=500,match=0,grace=1000"
+        type: string
+      threads:
+        description: "sprt: search threads per engine (INFO THREAD_NUM)"
+        default: "1"
+        type: string
+      concurrency:
+        description: "sprt: games at once — 4 cores, one engine thinks per game, keep room for runner and referee"
+        default: "2"
+        type: string
+      hash_mb:
+        description: "sprt: transposition table per engine (MB)"
+        default: "128"
+        type: string
+      openings_file:
+        default: "bench/sprt/openings-balanced.json"
+        type: string
+      elo0:
+        default: "0"
+        type: string
+      elo1:
+        default: "5"
+        type: string
+      fixed:
+        description: "sprt: play all games even after SPRT decides (to measure the Elo gap itself)"
+        default: false
+        type: boolean
+      max_minutes:
+        description: "sprt: time budget — finish started pairs and summarise before the 6 h job limit"
+        default: "330"
+        type: string
+      tools_ref:
+        description: "lowqen/RapfiWeb commit for the harness"
+        default: "dc16d269832a6fce1e19c49d08e53137b45c48e2"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  arm:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    env:
+      WORK: ${{ github.workspace }}/../rapfi-work
+      CC: clang
+      CXX: clang++
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Checkout harness (RapfiWeb)
+        uses: actions/checkout@v7
+        with:
+          repository: lowqen/RapfiWeb
+          ref: ${{ inputs.tools_ref }}
+          path: web
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "26"
+
+      - name: Tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq clang lld ninja-build cmake > /dev/null
+          clang++ --version | head -1
+
+      - name: Runner info
+        run: |
+          echo "nproc $(nproc)"
+          lscpu | grep -E '^(Model name|Vendor ID|Thread|Core|Socket|L1d|L2|L3)' || true
+          grep -m1 '^Features' /proc/cpuinfo
+          for f in asimddp i8mm sve2; do
+            grep -m1 '^Features' /proc/cpuinfo | grep -qw "$f" && echo "  $f: yes" || echo "  $f: no"
+          done
+          grep -E 'MemTotal|MemAvailable' /proc/meminfo
+
+      - name: Restore Rapfi source
+        id: src
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ env.WORK }}/rapfi
+          key: rapfi-3c94c2a9-arm-v1
+
+      - name: Build — base · test
+        env:
+          MODE: ${{ inputs.mode }}
+          VARIANT: ${{ inputs.variant }}
+          BASE: ${{ inputs.base_patches }}
+          TEST: ${{ inputs.test_patches }}
+          CONFIG: ${{ inputs.config }}
+          EXPECT: ${{ inputs.expect_hash }}
+        working-directory: web
+        run: |
+          set -euo pipefail
+          # build_host_engine.sh resolves patches against the RapfiWeb tree, so stage ours there.
+          mkdir -p tools/patches/droid
+          cp ../tools/patches/*.patch tools/patches/droid/
+          rel () { for p in $1; do printf 'tools/patches/droid/%s ' "$p"; done; }
+          case "$VARIANT" in
+            dotprod) isa="-DUSE_NEON=ON -DUSE_NEON_DOTPROD=ON" ;;
+            neon)    isa="-DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF" ;;
+          esac
+          export HOST_CMAKE_FLAGS="$isa -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld"
+          E=bench/sprt/engines
+          OUT_DIR=$E/base RAPFI_PATCHES="$(rel "$BASE")" bash tools/build_host_engine.sh
+          if [ "$MODE" != "bench" ] || [ -n "$TEST" ]; then
+            OUT_DIR=$E/test RAPFI_PATCHES="$(rel "$BASE $TEST")" bash tools/build_host_engine.sh
+          fi
+
+          # Gates: the variant really uses its ISA, and the base build is the expected tree.
+          for d in $E/*/; do
+            n=$(objdump -d "$d/pbrain-rapfi" | grep -c $'\tsdot' || true)
+            echo "$(basename "$d"): sdot $n · $(grep -oE 'Hash: [0-9a-f]+' "$d/bench.txt" | tail -1) · $(grep -oE 'Nodes: [0-9]+' "$d/bench.txt" | tail -1)"
+            if [ "$VARIANT" = dotprod ] && [ "$n" -eq 0 ]; then echo "::error::$(basename "$d") has no sdot"; exit 1; fi
+            if [ "$VARIANT" = neon ] && [ "$n" -ne 0 ]; then echo "::error::$(basename "$d") has sdot in a NEON build"; exit 1; fi
+          done
+          hash () { grep -oE 'Hash: [0-9a-f]+' "$E/$1/bench.txt" | tail -1 | cut -d' ' -f2; }
+          if [ -n "$EXPECT" ] && [ "$(hash base)" != "$EXPECT" ]; then
+            echo "::error::base BENCH hash $(hash base) != $EXPECT"; exit 1
+          fi
+          # Same-tree timing only means something when the test patch keeps the tree.
+          if [ "$MODE" = speed ] && [ "$(hash test)" != "$(hash base)" ]; then
+            echo "::error::test changes the tree ($(hash test) != $(hash base)) — use mode=sprt"; exit 1
+          fi
+          {
+            echo "### ARM build — \`$VARIANT\` · config \`$CONFIG\`"
+            echo "- base \`$BASE\`: $(hash base)"
+            if [ -d $E/test ]; then echo "- test \`+$TEST\`: $(hash test)"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$CONFIG" = app ]; then
+            # The app's own config (model220723, mate iterations, …). Thread count and hash still come from the harness.
+            for d in $E/*/; do tr -d '\r' < ../app/src/main/assets/engine/config.toml > "$d/config.toml"; done
+          fi
+          if [ "$MODE" = speed ]; then cp -r $E/base $E/control; fi
+
+      - name: Save Rapfi source
+        if: steps.src.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ env.WORK }}/rapfi
+          key: rapfi-3c94c2a9-arm-v1
+
+      - name: Same-tree timing (base · control · test)
+        if: inputs.mode == 'speed'
+        working-directory: web
+        run: |
+          set -o pipefail
+          E="$PWD/bench/sprt/engines"
+          eng () { echo "$1|$E/$1/pbrain-rapfi|$E/$1"; }
+          mkdir -p ../out
+          node bench/sprt/fixed-depth.mjs --det \
+            --engine "$(eng base)" --engine "$(eng control)" --engine "$(eng test)" \
+            --depth "${{ inputs.depth }}" --repeat "${{ inputs.repeat }}" \
+            --positions "${{ inputs.positions }}" --out ../out/fixed-depth.json | tail -8
+          node bench/sprt/speed-report.mjs ../out/fixed-depth.json --json ../out/summary.json | tee ../out/report.md
+          {
+            echo "### Same-tree timing — \`${{ inputs.variant }}\` · depth ${{ inputs.depth }} · test = +\`${{ inputs.test_patches }}\`"
+            cat ../out/report.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: SPRT
+        if: inputs.mode == 'sprt'
+        working-directory: web
+        run: |
+          set -o pipefail
+          E=bench/sprt/engines
+          extra=()
+          if [ -n "${{ inputs.openings_file }}" ]; then extra+=(--openings-file "${{ inputs.openings_file }}"); fi
+          if [ "${{ inputs.fixed }}" = true ]; then extra+=(--fixed); fi
+          mkdir -p ../out
+          node bench/sprt/runner.mjs "${extra[@]}" \
+            --a "$PWD/$E/test/pbrain-rapfi" --a-cwd "$E/test" --a-name test \
+            --b "$PWD/$E/base/pbrain-rapfi" --b-cwd "$E/base" --b-name base \
+            --games "${{ inputs.games }}" --tc "${{ inputs.tc }}" --concurrency "${{ inputs.concurrency }}" \
+            --threads "${{ inputs.threads }}" --hash-mb "${{ inputs.hash_mb }}" --max-minutes "${{ inputs.max_minutes }}" \
+            --elo0 "${{ inputs.elo0 }}" --elo1 "${{ inputs.elo1 }}" \
+            --out ../out/games.jsonl --summary ../out/summary.json | tee ../out/sprt.log
+          {
+            echo "### SPRT — test(+\`${{ inputs.test_patches }}\`) vs base(\`${{ inputs.base_patches }}\`)"
+            echo '```'
+            sed -n '/──────/,$p' ../out/sprt.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "--- leftover pbrain processes (must be 0): $(pgrep -c pbrain-rapfi || true)"
+
+      - name: Results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: arm-${{ inputs.mode }}-${{ inputs.variant }}
+          retention-days: 14
+          path: |
+            out/
+            web/bench/sprt/engines/*/ENGINE_VERSION.txt
+            web/bench/sprt/engines/*/bench.txt
