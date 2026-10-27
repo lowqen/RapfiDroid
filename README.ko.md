@@ -204,7 +204,7 @@ GPL-3.0-or-later 로 배포됩니다.
 릴리스 APK 에 들어간 엔진의 대응 소스는 **https://github.com/lowqen/rapfi** 의
 `android` 브랜치이고, 릴리스마다 태그 `rapfidroid-v<버전>` 이 있습니다(0.16.0:
 upstream `3c94c2a9` + 안드로이드 빌드를 위한 `Rapfi/CMakeLists.txt` 블록 두 개 +
-결과를 바꾸지 않는 속도 패치 셋을 커밋 하나씩, `android/` 에 빌드 옵션과 dotprod
+결과를 바꾸지 않는 패치(속도 · 스레드 변경 때 가중치 재적재 없음)를 커밋 하나씩, `android/` 에 빌드 옵션과 dotprod
 판의 PGO 프로필).
 
 전체 서드파티 고지는 [LICENSES.md](LICENSES.md) 에 있고, GPL-3.0 과 BSD-2-Clause

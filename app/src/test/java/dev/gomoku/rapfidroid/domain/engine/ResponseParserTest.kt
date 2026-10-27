@@ -34,6 +34,17 @@ class ResponseParserTest {
     }
 
     @Test
+    fun runningCountersAreStats() {
+        // R4 (P4-1): the engine reports its running totals every 0.5 s of a search.
+        assertThat(ResponseParser.parse("INFO TOTALNODES 1234567", coord))
+            .isEqualTo(EngineResponse.InfoStat("NODES", 1_234_567, "INFO TOTALNODES 1234567"))
+        assertThat(ResponseParser.parse("INFO TOTALTIME 2500", coord))
+            .isEqualTo(EngineResponse.InfoStat("TIME", 2_500, "INFO TOTALTIME 2500"))
+        assertThat(ResponseParser.parse("INFO SPEED 493827", coord))
+            .isEqualTo(EngineResponse.InfoStat("SPEED", 493_827, "INFO SPEED 493827"))
+    }
+
+    @Test
     fun evalMateAndCp() {
         assertThat((ResponseParser.parse("INFO EVAL +M5", coord) as EngineResponse.InfoEval).mate).isEqualTo(5)
         assertThat((ResponseParser.parse("INFO EVAL -M3", coord) as EngineResponse.InfoEval).mate).isEqualTo(-3)

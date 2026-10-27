@@ -25,7 +25,11 @@ NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-netwo
 #   k1-neon-vqdmulh.patch : 누산기 dwconv 의 mulhi(w, 4f) 를 NEON 에서 sqdmulh(w, 2f) 1명령으로 (비트 동일)
 #   k2-neon-starblock-multi.patch : 값 헤드 starBlock 의 가중치를 입력 4개에 재사용 (RapfiWeb A3 를 NEON DotProd 로, 비트 동일)
 #   k3-a4-policy-cache.patch : 같은 국면의 정책 출력을 스레드별 2^12 표로 재사용 (RapfiWeb A4 그대로, 결과 불변)
-RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch k3-a4-policy-cache.patch"
+#   r4-p2-2-keep-evaluators-on-rebuild.patch : 스레드 수를 바꿔도 평가기를 넘겨 가중치를 다시 읽지 않는다 (RapfiWeb P2-2, 결과 불변)
+#   r4-p4-1-periodic-node-stats.patch : 탐색 중 0.5초마다 INFO TOTALNODES · TOTALTIME · SPEED (RapfiWeb P4-1, 출력만)
+#   k7-codebook-prefetch-early.patch : 코드북 행을 인덱스가 정해지는 즉시 프리페치 (결과 불변)
+# 같은 사슬이 lowqen/rapfi 의 android 브랜치에 커밋 하나씩 있다(GPL 대응 소스 — docs/publishing.md §0).
+RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch k3-a4-policy-cache.patch r4-p2-2-keep-evaluators-on-rebuild.patch r4-p4-1-periodic-node-stats.patch k7-codebook-prefetch-early.patch"
 PATCH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/patches"
 
 # K6 PGO — tools/pgo/rapfi-<변형>.profdata 는 위 커밋 + 위 패치로 만든 계측 빌드를 갤럭시 A16 에서

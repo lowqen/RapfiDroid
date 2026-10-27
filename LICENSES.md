@@ -59,7 +59,7 @@ APK 가 `libengine.so` 를 담고 있으므로, APK 를 남에게 주는 순간 
    고쳤고(안드로이드 링크·출력 이름) 0.16.0 부터 결과 불변 속도 패치 셋(K1 ~ K3)과
    dotprod 판의 PGO 프로필을 더했으므로, 그 수정본이 소스다:
    - 저장소: `https://github.com/lowqen/rapfi` 브랜치 `android`, 릴리스마다 태그
-     `rapfidroid-v<버전>`(0.15.0 = `8d16fc2c`, 0.16.0 = `753b0085`)
+     `rapfidroid-v<버전>`(0.15.0 = `8d16fc2c`, 0.16.0 = `e1c363e`)
    - **이 저장소는 반드시 공개여야 한다.** 비공개면 GPL 위반이다.
    - 빌드 재현 절차: `RapfiDroid/tools/build_engine_android.sh`
    - 정확한 커밋은 `app/src/main/jniLibs/ENGINE_VERSION.txt` 에 적혀 있다.

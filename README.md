@@ -223,8 +223,8 @@ conveyed under GPL-3.0-or-later.
 The corresponding source for the engine in the released APK is
 **https://github.com/lowqen/rapfi**, branch `android` — for each release the
 tag `rapfidroid-v<version>` (0.16.0: upstream `3c94c2a9`, two blocks in
-`Rapfi/CMakeLists.txt` for the Android build, and three result-invariant speed
-patches, one commit each; `android/` holds the build options and the PGO
+`Rapfi/CMakeLists.txt` for the Android build, and result-invariant patches (speed,
+no weight reload on a thread change), one commit each; `android/` holds the build options and the PGO
 profile of the dotprod build).
 
 Full third party notices are in [LICENSES.md](LICENSES.md), and the GPL-3.0 and
