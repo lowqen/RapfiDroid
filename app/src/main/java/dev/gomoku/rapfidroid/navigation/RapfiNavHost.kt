@@ -74,6 +74,7 @@ class ShellViewModel @Inject constructor(
     private val ui: UiPrefs,
 ) : ViewModel() {
     val state: StateFlow<ConnectionState> = engine.state
+    val thermalThreads: StateFlow<Int?> = engine.thermalThreads
 
     /** A curriculum link waiting: the shell moves to the joseki tab, which opens it. */
     val lessonLink = links.lesson
@@ -110,6 +111,7 @@ fun RapfiApp() {
     val snackbarHostState = remember { SnackbarHostState() }
     val shell: ShellViewModel = hiltViewModel()
     val connection by shell.state.collectAsStateWithLifecycle()
+    val thermalThreads by shell.thermalThreads.collectAsStateWithLifecycle()
     val dark by shell.dark.collectAsStateWithLifecycle()
     val lessonLink by shell.lessonLink.collectAsStateWithLifecycle()
     LaunchedEffect(lessonLink) {
@@ -126,6 +128,7 @@ fun RapfiApp() {
         dark = dark,
         onStartEngine = shell::start,
         onToggleTheme = shell::toggleTheme,
+        thermalThreads = thermalThreads,
     )
 
     CompositionLocalProvider(

@@ -45,6 +45,22 @@ interface EngineRepository {
     suspend fun retryNow()
 
     /**
+     * The threads the on-device engine is held to by heat or battery saver (T1),
+     * or null when it runs what the user chose — or is not the engine in use.
+     */
+    val thermalThreads: StateFlow<Int?>
+
+    /**
+     * Hang up an idle session the user is not looking at, remembering it so
+     * [resumeParked] can bring it back. The same clean hang-up as [disconnect]
+     * (the local engine saves its database on the way out).
+     */
+    fun park()
+
+    /** Reconnect the session [park] hung up; nothing when none is parked. */
+    suspend fun resumeParked()
+
+    /**
      * Push engine parameters (rule, level, threads, hash, …) and remember them
      * for later reconnects. They are also sent automatically on connect and
      * whenever the settings change, since without them Rapfi analyses with its

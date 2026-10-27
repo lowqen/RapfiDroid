@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +67,8 @@ data class ShellChrome(
     val dark: Boolean,
     val onStartEngine: () -> Unit,
     val onToggleTheme: () -> Unit,
+    /** Threads the on-device engine is held to by heat or battery saver (T1), or null. */
+    val thermalThreads: Int? = null,
 )
 
 val LocalShellChrome = compositionLocalOf<ShellChrome?> { null }
@@ -105,7 +108,7 @@ fun RapfiTopBar(
             )
             actions()
             if (chrome != null) {
-                EngineChip(chrome.connection, chrome.onStartEngine)
+                EngineChip(chrome.connection, chrome.onStartEngine, thermalThreads = chrome.thermalThreads)
                 IconButton(onClick = chrome.onToggleTheme) {
                     Icon(
                         if (chrome.dark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
@@ -125,15 +128,23 @@ fun RapfiTopBar(
  * variant are the engine screen's business, not every screen's.
  */
 @Composable
-fun EngineChip(state: ConnectionState, onStart: () -> Unit, modifier: Modifier = Modifier) {
+fun EngineChip(
+    state: ConnectionState,
+    onStart: () -> Unit,
+    modifier: Modifier = Modifier,
+    thermalThreads: Int? = null,
+) {
     val (word, color) = engineWord(state)
+    val heat = thermalThreads?.let {
+        tr("발열·절전으로 ${it} 스레드", "$it threads (heat / saver)", "因发热/省电 $it 线程")
+    }
     val action = when (state) {
         ConnectionState.Disconnected -> tr("켜기", "Start", "启动")
         is ConnectionState.Error -> tr("다시 시도", "Retry", "重试")
         else -> null
     }
     Surface(
-        modifier = modifier.semantics { contentDescription = word },
+        modifier = modifier.semantics { contentDescription = if (heat == null) word else "$word, $heat" },
         shape = CircleShape,
         color = Color.Transparent,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
@@ -152,6 +163,22 @@ fun EngineChip(state: ConnectionState, onStart: () -> Unit, modifier: Modifier =
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
             )
+            // Held back by heat or battery saver: a thermometer and the threads in use —
+            // short enough for the top bar, spelled out for the screen reader above.
+            if (thermalThreads != null) {
+                Icon(
+                    Icons.Filled.Thermostat,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = RapfiTheme.colors.caution,
+                )
+                Text(
+                    thermalThreads.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = RapfiTheme.colors.caution,
+                    maxLines = 1,
+                )
+            }
             if (action != null) {
                 Text(
                     action,

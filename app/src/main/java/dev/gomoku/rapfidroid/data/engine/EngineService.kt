@@ -36,19 +36,19 @@ class EngineService : LifecycleService() {
 
     override fun onCreate() {
         super.onCreate()
-        startAsForeground(repository.state.value, repository.health.value)
+        startAsForeground(repository.state.value, repository.health.value, repository.thermalThreads.value)
         // A dropped socket now means "reconnecting", not "finished". Stopping
         // the service there would let the process be killed while it waits out
         // the backoff, and the session the user is trying to keep would be the
         // thing that ends it — so the service outlives the socket and only goes
         // away once nobody is trying to reconnect any more.
         lifecycleScope.launch {
-            combine(repository.state, repository.health) { st, health -> st to health }
-                .collectLatest { (st, health) ->
+            combine(repository.state, repository.health, repository.thermalThreads, ::Triple)
+                .collectLatest { (st, health, heat) ->
                     if (st is ConnectionState.Disconnected && !health.reconnecting) {
                         stopSelf()
                     } else {
-                        startAsForeground(st, health)
+                        startAsForeground(st, health, heat)
                     }
                 }
         }
@@ -56,15 +56,15 @@ class EngineService : LifecycleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        startAsForeground(repository.state.value, repository.health.value)
+        startAsForeground(repository.state.value, repository.health.value, repository.thermalThreads.value)
         return START_NOT_STICKY
     }
 
-    private fun startAsForeground(state: ConnectionState, health: LinkHealth) {
+    private fun startAsForeground(state: ConnectionState, health: LinkHealth, heat: Int?) {
         ServiceCompat.startForeground(
             this,
             NOTIF_ID,
-            buildNotification(state, health),
+            buildNotification(state, health, heat),
             when {
                 // No daily limit and no onTimeout — see the manifest comment (T2).
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
@@ -75,8 +75,8 @@ class EngineService : LifecycleService() {
         )
     }
 
-    private fun buildNotification(state: ConnectionState, health: LinkHealth): Notification {
-        val text = when {
+    private fun buildNotification(state: ConnectionState, health: LinkHealth, heat: Int?): Notification {
+        val status = when {
             health.reconnecting && health.retryInSeconds > 0 ->
                 tr("재연결 대기 ${health.retryInSeconds}초 (${health.attempt}회째)", "Reconnecting in ${health.retryInSeconds}s (attempt ${health.attempt})", "${health.retryInSeconds} 秒后重新连接 (第 ${health.attempt} 次)")
             health.reconnecting -> tr("재연결 중… (${health.attempt}회째)", "Reconnecting… (attempt ${health.attempt})", "正在重新连接… (第 ${health.attempt} 次)")
@@ -87,6 +87,9 @@ class EngineService : LifecycleService() {
             state is ConnectionState.Error -> tr("오류: ${state.reason}", "Error: ${state.reason}", "错误: ${state.reason}")
             else -> tr("연결 종료", "Disconnected", "连接已结束")
         }
+        // The thermal cap (T1) is said here because this is where a user looking at a
+        // warm phone will look; the stored thread count is untouched.
+        val text = if (heat == null) status else status + tr(" · 발열·절전으로 ${heat} 스레드", " · $heat threads (heat / saver)", " · 因发热/省电 $heat 线程")
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(getString(R.string.engine_notif_title))
             .setContentText(text)

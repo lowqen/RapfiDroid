@@ -96,6 +96,23 @@ class EngineRepositoryImpl @Inject constructor(
     @Volatile
     private var localProfile = localEngineStore.defaults
 
+    /** The profile as stored, before the thermal cap — what [thermalThreads] compares against. */
+    @Volatile
+    private var storedProfile = localEngineStore.defaults
+
+    private val _thermalThreads = MutableStateFlow<Int?>(null)
+    override val thermalThreads: StateFlow<Int?> = _thermalThreads.asStateFlow()
+
+    private fun publishThermal() {
+        _thermalThreads.value = localProfile.threads.takeIf {
+            lastTarget?.isLocal == true && it < storedProfile.threads
+        }
+    }
+
+    /** The session [park] hung up, until [resumeParked] or the user's own connect/disconnect. */
+    @Volatile
+    private var parked: EngineTarget? = null
+
     private fun transportFor(target: EngineTarget): EngineTransport = when (target) {
         is EngineTarget.Remote -> TcpTransport(target.endpoint)
         EngineTarget.Local -> LocalEngineTransport(localEngine, localProfile)
@@ -179,12 +196,14 @@ class EngineRepositoryImpl @Inject constructor(
         scope.launch { livenessLoop() }
         scope.launch {
             combine(localEngineStore.profile, thermal.state) { stored, heat ->
-                stored.capThreads(heat.threadCap(stored.threads))
-            }.collect { profile ->
+                stored to stored.capThreads(heat.threadCap(stored.threads))
+            }.collect { (stored, profile) ->
                 // Computed against the old profile before it is replaced — the
                 // whole point of `effective` is that it reads this field.
                 val before = effective(engineParams)
+                storedProfile = stored
                 localProfile = profile
+                publishThermal()
                 if (lastTarget?.isLocal != true) return@collect
                 val live = connection.state.value
                 val settled = live is ConnectionState.Ready || live is ConnectionState.Thinking
@@ -240,8 +259,23 @@ class EngineRepositoryImpl @Inject constructor(
         }
     }
 
+    /**
+     * Serialises [connect]. Two callers can ask at once — the shell's auto-start
+     * when the app is opened again and [resumeParked] on the same return — and two
+     * opens would mean two engine processes writing one `rapfi.db`.
+     */
+    private val connectLock = kotlinx.coroutines.sync.Mutex()
+
     override suspend fun connect(target: EngineTarget) {
+        connectLock.withLock { open(target) }
+    }
+
+    private suspend fun open(target: EngineTarget) {
+        parked = null
+        val now = connection.state.value
+        if (target == lastTarget && wantsConnection && (now.isLive || now is ConnectionState.Connecting)) return
         lastTarget = target
+        publishThermal()
         wantsConnection = true
         EngineService.start(context)
         try {
@@ -361,8 +395,21 @@ class EngineRepositoryImpl @Inject constructor(
         retryJob?.cancel()
         retryJob = null
         _health.value = LinkHealth()
+        parked = null
         connection.close()
         EngineService.stop(context)
+    }
+
+    override fun park() {
+        val target = lastTarget ?: return
+        disconnect()
+        parked = target
+    }
+
+    override suspend fun resumeParked() {
+        val target = parked ?: return
+        parked = null
+        if (!connection.state.value.isLive) runCatching { connect(target) }
     }
 
     /**

@@ -3,15 +3,21 @@ package dev.gomoku.rapfidroid
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import dev.gomoku.rapfidroid.data.engine.EngineIdleWatcher
 import dev.gomoku.rapfidroid.data.engine.EngineService
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
 class RapfiDroidApp : Application() {
 
+    @Inject
+    lateinit var engineIdleWatcher: EngineIdleWatcher
+
     override fun onCreate() {
         super.onCreate()
         createEngineChannel()
+        engineIdleWatcher.start()
     }
 
     private fun createEngineChannel() {
