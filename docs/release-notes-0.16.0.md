@@ -12,7 +12,7 @@ leave it idle in the background.
 * **The engine is about a third faster, same answers.** On ARMv8.2 phones
   (most phones from 2018 on) the app runs a second engine build that uses the
   dot-product instructions, picked automatically. A crash on start falls back to
-  the plain build and remembers that. Three result-invariant speed patches and
+  the plain build and remembers that. Result-invariant speed patches and
   profile-guided optimisation come on top. On a Galaxy A16, one thread, same
   search, the same positions the app analyses:
   * opening and middle-game positions: **×1.46 – 1.50**;
@@ -31,12 +31,23 @@ leave it idle in the background.
   least 2), to one when it is very hot, and to 2 in battery saver. The engine
   chip at the top of every screen shows a thermometer and the threads in use
   (🌡 4), and so does the notification. Your setting is not changed: the threads
-  come back when the phone cools. The new count applies from the next search.
+  come back when the phone cools. The new count applies from the next search,
+  and changing the thread count no longer reloads the network weights.
+* **The node counter keeps moving.** During a long multi-threaded search the
+  engine now reports its totals twice a second, so the analysis no longer sits
+  on one node count for seconds.
+* **Memory is watched.** The engine holds its hash table (plus about 95 MB) from
+  the moment it starts. If Android has to kill it for lack of memory, the next
+  start uses the next smaller table and Settings says so; picking a hash size
+  again lifts that. The database is saved when you leave the app with the
+  engine idle, and Settings ▸ On-device engine shows its size, with a warning
+  once it reaches 5 % of the phone's memory (it is held in memory as a whole).
 * **An idle engine turns itself off.** With the app in the background for three
   minutes and the engine not searching, the engine closes cleanly (its database
   is saved) and the ongoing notification goes away. Come back to the app and it
   starts again within a second. An analysis left running in the background is
-  never interrupted.
+  never interrupted — on a Galaxy A16 a 15-minute background analysis kept all
+  8 threads on the full cores throughout.
 
 ### Android 14 and 15
 
@@ -63,7 +74,8 @@ leave it idle in the background.
 The engine is **Rapfi, GPL-3.0-or-later**. The corresponding source for the
 engine in this APK is **https://github.com/lowqen/rapfi**, tag
 `rapfidroid-v0.16.0` (branch `android`): upstream `3c94c2a9`, two blocks in
-`Rapfi/CMakeLists.txt` for the Android build, and the three speed patches as one
+`Rapfi/CMakeLists.txt` for the Android build, and the result-invariant patches
+(speed, no weight reload on a thread change, periodic node counters) as one
 commit each; `android/` holds the build options and the profile the
 dot-product build was optimised with.
 
