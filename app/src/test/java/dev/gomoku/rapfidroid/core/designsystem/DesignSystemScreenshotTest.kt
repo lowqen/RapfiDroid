@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -31,6 +33,8 @@ import dev.gomoku.rapfidroid.core.designsystem.component.EngineChip
 import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalShellChrome
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiCollapsingTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellChrome
 import dev.gomoku.rapfidroid.core.designsystem.component.StatusDot
@@ -53,6 +57,9 @@ import dev.gomoku.rapfidroid.feature.board.MoveTransport
 import dev.gomoku.rapfidroid.feature.board.PositionCard
 import dev.gomoku.rapfidroid.feature.board.StageBar
 import dev.gomoku.rapfidroid.feature.board.VerticalEvalBar
+import dev.gomoku.rapfidroid.navigation.Destination
+import dev.gomoku.rapfidroid.navigation.RapfiBottomBar
+import dev.gomoku.rapfidroid.navigation.RapfiRail
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -150,6 +157,36 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
             EngineChip(ConnectionState.Ready, onStart = {}, thermalThreads = 4)
         }
         EmptyState(Icons.Filled.Storage, "기보가 없습니다", "파일을 열면 여기에 나옵니다")
+    }
+
+    /** The six tabs: upright along the bottom, and down the side when wide (P2). */
+    @Test
+    fun shellNavigation() = shot("shell_nav") {
+        RapfiBottomBar(selected = Destination.Board, connection = ConnectionState.Thinking, onSelect = {})
+        Row(Modifier.height(360.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+            // A phone on its side: only the selected tab keeps its label.
+            RapfiRail(selected = Destination.Research, connection = ConnectionState.Ready, onSelect = {}, showLabels = false)
+            RapfiRail(selected = Destination.Research, connection = ConnectionState.Error("x"), onSelect = {})
+        }
+    }
+
+    /** The board's title-less header, a list screen's tall one, the full-width tabs (P2). */
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Test
+    fun headers() = shot("headers") {
+        CompositionLocalProvider(
+            LocalShellChrome provides ShellChrome(ConnectionState.Ready, variant.dark, onStartEngine = {}, onToggleTheme = {}),
+        ) {
+            RapfiTopBar(title = null, height = 48.dp)
+            RapfiCollapsingTopBar("설정", TopAppBarDefaults.exitUntilCollapsedScrollBehavior())
+        }
+        RapfiSegmented(
+            options = listOf(0 to "리뷰·증명", 1 to "오프닝", 2 to "수순", 3 to "랭킹"),
+            selection = 0,
+            onSelect = {},
+            fill = true,
+        )
+        RapfiSegmented(options = listOf(0 to "공식 커리큘럼", 1 to "내 정석"), selection = 1, onSelect = {}, fill = true)
     }
 
     @Test

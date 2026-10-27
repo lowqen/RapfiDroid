@@ -2,10 +2,7 @@ package dev.gomoku.rapfidroid.navigation
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ScrollableTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -15,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.component.QuietSwitch
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.feature.explorer.MoveOrderSection
@@ -45,15 +43,13 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
 
     Column(modifier = modifier.fillMaxSize()) {
         RapfiTopBar(title = tr("연구", "Research", "研究"))
-        ScrollableTabRow(selectedTabIndex = tab, edgePadding = 8.dp) {
-            titles.forEachIndexed { i, title ->
-                Tab(
-                    selected = tab == i,
-                    onClick = { tab = i },
-                    text = { Text(title, style = MaterialTheme.typography.labelLarge) },
-                )
-            }
-        }
+        RapfiSegmented(
+            options = titles.mapIndexed { i, title -> i to title },
+            selection = tab,
+            onSelect = { tab = it },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            fill = true,
+        )
         // A crossfade, not a slide: four panes that swap in place, on a screen
         // whose content is mostly boards and numbers. Sliding one board off
         // while another arrives is motion sickness, not polish.

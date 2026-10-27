@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.feature.database
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -35,7 +38,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiCollapsingTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
 import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
@@ -58,6 +61,7 @@ import kotlinx.coroutines.delay
  * until the user opts in, and deletes confirm first — the desktop's
  * `show_dbdelall_query` (settings.txt line 35).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatabaseScreen(
     modifier: Modifier = Modifier,
@@ -66,8 +70,9 @@ fun DatabaseScreen(
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     var commentDraft by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = modifier.fillMaxWidth()) {
-        RapfiTopBar(title = tr("데이터베이스", "Database", "数据库"))
+    val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Column(modifier = modifier.fillMaxWidth().nestedScroll(header.nestedScrollConnection)) {
+        RapfiCollapsingTopBar(title = tr("데이터베이스", "Database", "数据库"), scrollBehavior = header)
         Column(
             modifier = Modifier
                 .fillMaxWidth()

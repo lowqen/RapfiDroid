@@ -1,16 +1,23 @@
 package dev.gomoku.rapfidroid.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
-import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationRailDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -18,10 +25,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,8 +43,11 @@ import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalShellChrome
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
+import dev.gomoku.rapfidroid.core.designsystem.component.RailLayoutMin
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellChrome
-import dev.gomoku.rapfidroid.core.designsystem.component.engineWord
+import dev.gomoku.rapfidroid.core.designsystem.theme.ChromeMotion
+import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_PANEL
+import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.EngineTarget
@@ -143,68 +152,84 @@ fun RapfiApp() {
         thermalThreads = thermalThreads,
     )
 
+    val selected = Destination.entries.firstOrNull { dest ->
+        currentRoute?.hierarchy?.any { it.route == dest.route } == true
+    }
+    val onSelect: (Destination) -> Unit = { dest ->
+        navController.navigate(dest.route) {
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+    val threshold = with(LocalDensity.current) { 28.dp.toPx() }
+    val hider = remember(threshold) { BarHider(threshold) }
+    // The board never folds the bar away, and a new tab starts with it shown.
+    LaunchedEffect(selected) {
+        hider.enabled = selected != null && selected != Destination.Board
+        hider.show()
+    }
+
     CompositionLocalProvider(
         LocalSnackbarHostState provides snackbarHostState,
         LocalShellChrome provides chrome,
     ) {
-        Scaffold(
-            snackbarHost = { SnackbarHost(snackbarHostState) },
-            bottomBar = {
-                NavigationBar {
-                    Destination.entries.forEach { dest ->
-                        val selected = currentRoute?.hierarchy?.any { it.route == dest.route } == true
-                        NavigationBarItem(
-                            selected = selected,
-                            onClick = {
-                                navController.navigate(dest.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = {
-                                // The dot rides the tab that leads to the answer.
-                                if (dest == Destination.Connect) {
-                                    val (word, color) = engineWord(connection)
-                                    BadgedBox(
-                                        badge = {
-                                            Badge(
-                                                containerColor = color,
-                                                modifier = Modifier.semantics { contentDescription = word },
-                                            )
-                                        },
-                                    ) {
-                                        Icon(dest.icon, contentDescription = null)
-                                    }
-                                } else {
-                                    Icon(dest.icon, contentDescription = null)
-                                }
-                            },
-                            label = {
-                                Text(
-                                    stringResource(dest.labelRes),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Clip,
-                                )
-                            },
-                        )
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val rail = maxWidth >= RailLayoutMin
+            Row(Modifier.fillMaxSize()) {
+                if (rail) {
+                    RapfiRail(
+                        selected = selected,
+                        connection = connection,
+                        onSelect = onSelect,
+                        // Under ~480dp of height (a phone on its side) six
+                        // labelled items do not fit; the selected one keeps its.
+                        showLabels = maxHeight >= 480.dp,
+                    )
+                }
+                Scaffold(
+                    // The rail has taken the side inset; the content must not take it again.
+                    modifier = if (rail) {
+                        Modifier.consumeWindowInsets(NavigationRailDefaults.windowInsets.only(WindowInsetsSides.Start))
+                    } else {
+                        Modifier
+                    },
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
+                    bottomBar = {
+                        if (!rail) {
+                            AnimatedVisibility(
+                                visible = !hider.hidden,
+                                enter = expandVertically(ChromeMotion.spatial(tween(MOTION_PANEL))) +
+                                    fadeIn(ChromeMotion.effects(tween(MOTION_PANEL))),
+                                exit = shrinkVertically(ChromeMotion.spatial(tween(MOTION_QUICK))) +
+                                    fadeOut(ChromeMotion.effects(tween(MOTION_QUICK))),
+                            ) {
+                                RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect)
+                            }
+                        }
+                    },
+                ) { padding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = Destination.Board.route,
+                        modifier = Modifier.padding(padding).nestedScroll(hider),
+                        // QuietSwitch's rule for every screen change: a crossfade, 150 ms.
+                        // Navigation's own default is a 700 ms fade.
+                        enterTransition = { fadeIn(tween(MOTION_QUICK)) },
+                        exitTransition = { fadeOut(tween(MOTION_QUICK)) },
+                        popEnterTransition = { fadeIn(tween(MOTION_QUICK)) },
+                        popExitTransition = { fadeOut(tween(MOTION_QUICK)) },
+                    ) {
+                        composable(Destination.Board.route) { BoardScreen() }
+                        composable(Destination.Research.route) { ResearchScreen() }
+                        composable(Destination.Joseki.route) { JosekiScreen() }
+                        composable(Destination.Database.route) { DatabaseScreen() }
+                        composable(Destination.Settings.route) { SettingsScreen() }
+                        composable(Destination.Connect.route) { EngineScreen() }
                     }
                 }
-            },
-        ) { padding ->
-            NavHost(
-                navController = navController,
-                startDestination = Destination.Board.route,
-                modifier = Modifier.padding(padding),
-            ) {
-                composable(Destination.Board.route) { BoardScreen() }
-                composable(Destination.Research.route) { ResearchScreen() }
-                composable(Destination.Joseki.route) { JosekiScreen() }
-                composable(Destination.Database.route) { DatabaseScreen() }
-                composable(Destination.Settings.route) { SettingsScreen() }
-                composable(Destination.Connect.route) { EngineScreen() }
             }
         }
     }

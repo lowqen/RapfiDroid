@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -50,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
-import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiCollapsingTopBar
 import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.i18n.tr
@@ -79,6 +82,7 @@ import dev.gomoku.rapfidroid.feature.data.RifBuildDialog
  * so the screen cannot drift from the file layout: each row shows the file and
  * line it occupies, and the `INFO` key it drives when it is an engine parameter.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
@@ -125,8 +129,9 @@ fun SettingsScreen(
     }
 
     val searching = ui.query.isNotBlank()
-    Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("설정", "Settings", "设置"))
+    val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Column(modifier = modifier.fillMaxSize().nestedScroll(header.nestedScrollConnection)) {
+        RapfiCollapsingTopBar(title = tr("설정", "Settings", "设置"), scrollBehavior = header)
         // RapfiWeb's settings: a search, the common card, one advanced switch,
         // then the desktop's entries grouped by what they are for. A row is its
         // name and its control; the why is not spelled out on the screen.

@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,13 +18,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Thermostat
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -34,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
@@ -80,45 +87,110 @@ val LocalShellChrome = compositionLocalOf<ShellChrome?> { null }
  * what the tab already said and took a line of height from the board. On the
  * right, the engine chip and the theme switch, whichever screen this is.
  *
+ * [title] null drops the title too — the board's header, where the selected tab
+ * already says «보드» and the line is better spent on the board (UI overhaul P2).
+ *
  * Insets are zero on purpose: the app scaffold has already inset its content
  * below the status bar.
  */
 @Composable
 fun RapfiTopBar(
-    title: String,
+    title: String?,
     modifier: Modifier = Modifier,
+    height: Dp = 52.dp,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    val chrome = LocalShellChrome.current
     Column(modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(52.dp)
+                .height(height)
                 .padding(start = 16.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
-                title,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            actions()
-            if (chrome != null) {
-                EngineChip(chrome.connection, chrome.onStartEngine, thermalThreads = chrome.thermalThreads)
-                IconButton(onClick = chrome.onToggleTheme) {
-                    Icon(
-                        if (chrome.dark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
-                        contentDescription = if (chrome.dark) tr("밝은 테마", "Light theme", "浅色主题") else tr("어두운 테마", "Dark theme", "深色主题"),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            if (title != null) {
+                Text(
+                    title,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            } else {
+                Spacer(Modifier.weight(1f))
             }
+            actions()
+            ShellActions()
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/**
+ * The header of a screen that is one long list — settings, the database. Tall
+ * while the list is at its top, so the screen has a name worth reading; folded
+ * to the ordinary 52dp bar as soon as the list moves (Mornye's collapsing
+ * header, decision P2 ③).
+ *
+ * Only for screens that are a list. A screen with a board on it keeps the
+ * one-line bar: a header that only folds when something scrolls would sit tall
+ * above a board that does not, and take its height for good.
+ *
+ * The screen hands [scrollBehavior]'s connection to its own column:
+ *
+ *     Column(Modifier.nestedScroll(behavior.nestedScrollConnection)) {
+ *         RapfiCollapsingTopBar(title, behavior)
+ *         LazyColumn { … }
+ *     }
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RapfiCollapsingTopBar(
+    title: String,
+    scrollBehavior: TopAppBarScrollBehavior,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier.fillMaxWidth()) {
+        LargeTopAppBar(
+            title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            actions = { ShellActions() },
+            collapsedHeight = 52.dp,
+            expandedHeight = 112.dp,
+            windowInsets = WindowInsets(0),
+            // One surface, folded or not: the calm page has no second tone for
+            // a bar to change into.
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                scrolledContainerColor = MaterialTheme.colorScheme.surface,
+            ),
+            scrollBehavior = scrollBehavior,
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/**
+ * The engine chip and the theme switch — the right end of every header, and on
+ * its own where a screen has no header (the board turned sideways, whose whole
+ * height goes to the board).
+ */
+@Composable
+fun ShellActions(modifier: Modifier = Modifier) {
+    val chrome = LocalShellChrome.current ?: return
+    Row(
+        modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        EngineChip(chrome.connection, chrome.onStartEngine, thermalThreads = chrome.thermalThreads)
+        IconButton(onClick = chrome.onToggleTheme) {
+            Icon(
+                if (chrome.dark) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+                contentDescription = if (chrome.dark) tr("밝은 테마", "Light theme", "浅色主题") else tr("어두운 테마", "Dark theme", "深色主题"),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
@@ -244,6 +316,14 @@ val ReadingWidth = 640.dp
  * being copied, and the two screens turn into two columns at the same moment.
  */
 val WideLayoutMin = 640.dp
+
+/**
+ * Wide enough for a navigation rail instead of the bottom bar: Material's
+ * compact/medium boundary. A phone on its side is past it, and there the six
+ * tabs move to the side, so the board's height is no longer shared with a bar
+ * along the bottom (UI overhaul P2).
+ */
+val RailLayoutMin = 600.dp
 
 /**
  * What a screen shows when it has nothing to show.

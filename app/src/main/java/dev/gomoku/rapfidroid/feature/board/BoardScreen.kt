@@ -43,6 +43,7 @@ import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
 import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
+import dev.gomoku.rapfidroid.core.designsystem.component.ShellActions
 import dev.gomoku.rapfidroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.i18n.tr
@@ -208,10 +209,14 @@ fun BoardScreen(
         }
     }
 
-    Column(modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("보드", "Board", "棋盘"))
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val landscape = maxWidth > maxHeight && maxWidth >= 560.dp
+    // No header on its side: there the board is sized by the height, and the
+    // engine chip and theme switch ride at the top of the card column instead.
+    // Upright, a header without the title — the selected tab already says
+    // «보드» (UI overhaul P2).
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val landscape = maxWidth > maxHeight && maxWidth >= 560.dp
+        Column(Modifier.fillMaxSize()) {
+            if (!landscape) RapfiTopBar(title = null, height = 48.dp)
             if (landscape) {
                 // Board on the left at full height, the cards on the right.
                 val side = min(maxHeight - 16.dp, maxWidth * 0.62f)
@@ -219,6 +224,7 @@ fun BoardScreen(
                 Row(Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     BoardWithBar(ui, showBar, compact = false, side = side, board = board)
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ShellActions(Modifier.align(Alignment.End))
                         stage()
                         Column(
                             Modifier.weight(1f).verticalScroll(rememberScrollState()),

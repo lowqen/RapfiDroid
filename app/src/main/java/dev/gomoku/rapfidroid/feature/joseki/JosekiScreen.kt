@@ -5,18 +5,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.QuietSwitch
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 
@@ -71,15 +70,13 @@ fun JosekiScreen(
                 exportPsq.launch("${editing.title.ifBlank { "joseki" }}.psq")
             }
             else -> {
-                TabRow(selectedTabIndex = nav.tab) {
-                    listOf(tr("공식 커리큘럼", "Curriculum", "官方课程"), tr("내 정석", "My joseki", "我的定式")).forEachIndexed { i, title ->
-                        Tab(
-                            selected = nav.tab == i,
-                            onClick = { viewModel.onTab(i) },
-                            text = { Text(title, style = MaterialTheme.typography.titleSmall) },
-                        )
-                    }
-                }
+                RapfiSegmented(
+                    options = listOf(0 to tr("공식 커리큘럼", "Curriculum", "官方课程"), 1 to tr("내 정석", "My joseki", "我的定式")),
+                    selection = nav.tab,
+                    onSelect = viewModel::onTab,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    fill = true,
+                )
                 QuietSwitch(nav.tab, Modifier.fillMaxSize()) { tab ->
                     if (tab == 0) {
                         CourseList(ui, viewModel::onOpenCourse, viewModel::onRefreshCurriculum)
