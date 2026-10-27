@@ -1,23 +1,18 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
@@ -34,16 +29,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
 import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
-import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
-import dev.gomoku.rapfidroid.core.designsystem.component.ShellActions
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberRapfiHaptics
 import dev.gomoku.rapfidroid.core.designsystem.component.renderBoardPng
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.i18n.tr
@@ -57,10 +49,11 @@ import kotlinx.coroutines.withContext
  * The board screen — two tabs, [분석] | [대국], over one board each
  * (RapfiWeb's calm board-first layout).
  *
- * **The board takes the room.** Nothing sits above or below it but the eval bar
- * beside it. On a phone in portrait the order is board, move bar, tabs, cards;
- * anything wider puts the board on the left at full height and the cards on
- * the right, tabs on top and the move bar at the bottom.
+ * **The board takes the room, and keeps it.** Upright, the board and its move
+ * toolbar are pinned under a header holding 분석 | 대국, and the cards ride on a
+ * sheet that rests below them on a one-line summary (UI overhaul P3,
+ * [BoardPortrait]). On its side the board stands at full height on the left and
+ * the cards scroll on the right ([BoardLandscape]).
  *
  *  - Analysis: engine card (best move first, frozen after a stop), evaluation
  *    graph, analysis settings (folded), position, tools. The database's
@@ -127,9 +120,32 @@ fun BoardScreen(
         saveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
     )
 
+    // Haptics at the thresholds (UI overhaul P3): the user's own stone landing,
+    // a tap that did nothing, a game decided. The engine's moves are silent —
+    // the hand did nothing. The view model is not asked: a tap is matched to
+    // what the state does next (a stone on that point, or a notice) within a
+    // second and a half, and forgotten after that.
+    val haptics = rememberRapfiHaptics()
+    var pendingTap by remember { mutableStateOf<PendingTap?>(null) }
+    fun takeTap(): PendingTap? = pendingTap?.takeIf { SystemClock.uptimeMillis() - it.at < 1_500 }.also { pendingTap = null }
+    LaunchedEffect(ui.moveCount, ui.render.lastMove) {
+        val tap = pendingTap ?: return@LaunchedEffect
+        if (ui.moveCount > tap.moves) {
+            if (takeTap()?.cell == ui.render.lastMove) haptics.stonePlaced()
+        }
+    }
+    var lastResult by remember { mutableStateOf(ui.game.result) }
+    LaunchedEffect(ui.game.result) {
+        if (ui.game.result != null && lastResult == null) haptics.decided()
+        lastResult = ui.game.result
+    }
+
     val snackbar = LocalSnackbarHostState.current
     LaunchedEffect(ui.notice) {
         ui.notice?.let {
+            // A notice right after a tap is that tap refused (occupied, forbidden,
+            // not your turn, the engine busy) — a buzz, then the words.
+            if (takeTap() != null) haptics.refused()
             snackbar.showSnackbar(it)
             viewModel.onNoticeShown()
         }
@@ -147,9 +163,15 @@ fun BoardScreen(
             ZoomableBoard(
                 render = ui.render.copy(provePulse = provePulse),
                 scale = ui.boardScale,
-                onTap = viewModel::onTap,
+                onTap = { cell ->
+                    pendingTap = PendingTap(cell, ui.moveCount, SystemClock.uptimeMillis())
+                    viewModel.onTap(cell)
+                },
                 onLongPress = { cell ->
-                    if (ui.dbActive && !ui.render.stones.contains(cell)) labelTarget = cell
+                    if (ui.dbActive && !ui.render.stones.contains(cell)) {
+                        haptics.longPress()
+                        labelTarget = cell
+                    }
                 },
             )
             ui.research?.let {
@@ -157,18 +179,18 @@ fun BoardScreen(
             }
         }
     }
-    val transport: @Composable () -> Unit = {
-        MoveTransport(
+    val modeSwitch: @Composable () -> Unit = { BoardModeSwitch(ui.mode, viewModel::onMode) }
+    val toolbar: @Composable () -> Unit = {
+        MoveToolbar(
             ui = ui,
+            onNewBoard = onNewBoard,
             onFirst = viewModel::onFirst,
             onUndo = viewModel::onUndo,
             onToggle = toggleAnalysis,
             onRedo = viewModel::onRedo,
             onLast = viewModel::onLast,
+            onSwapSides = viewModel::onSwapSides,
         )
-    }
-    val stage: @Composable () -> Unit = {
-        StageBar(ui, viewModel::onMode, onNewBoard, viewModel::onSwapSides)
     }
     val cards: @Composable ColumnScope.(Boolean) -> Unit = { wide ->
         if (ui.linkBackup) LinkBackupCard(viewModel::onRestoreLinkBackup, viewModel::onDropLinkBackup)
@@ -209,52 +231,24 @@ fun BoardScreen(
         }
     }
 
-    // No header on its side: there the board is sized by the height, and the
-    // engine chip and theme switch ride at the top of the card column instead.
-    // Upright, a header without the title — the selected tab already says
-    // «보드» (UI overhaul P2).
+    // Upright: the board pinned, the cards on a sheet (BoardPortrait). On its
+    // side: the board at full height, the cards beside it (BoardLandscape).
     BoxWithConstraints(modifier.fillMaxSize()) {
         // Read here: the layouts below are scopes of their own and cannot reach
         // this one's constraints.
         val width = maxWidth
-        val height = maxHeight
-        val landscape = width > height && width >= 560.dp
-        Column(Modifier.fillMaxSize()) {
-            if (!landscape) RapfiTopBar(title = null, height = 48.dp)
-            if (landscape) {
-                // Board on the left at full height, the cards on the right.
-                val side = min(height - 16.dp, width * 0.62f)
-                val showBar = ui.showEvalBar && ui.analysisTab
-                Row(Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    BoardWithBar(ui, showBar, compact = false, side = side, board = board)
-                    Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ShellActions(Modifier.align(Alignment.End))
-                        stage()
-                        Column(
-                            Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) { cards(true) }
-                        transport()
-                    }
-                }
-            } else {
-                val showBar = ui.showEvalBar && ui.analysisTab
-                // A 4dp gutter left of the bar, so it does not touch the screen edge.
-                val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
-                val side = width - bar
-                val wideCards = width >= 600.dp
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                    BoardWithBar(ui, showBar, compact = true, side = side, board = board, modifier = Modifier.padding(start = if (showBar) 4.dp else 0.dp))
-                    transport()
-                    Column(
-                        Modifier.padding(horizontal = 12.dp).padding(bottom = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        stage()
-                        cards(wideCards)
-                    }
-                }
-            }
+        val landscape = width > maxHeight && width >= 560.dp
+        if (landscape) {
+            BoardLandscape(ui, board, modeSwitch, toolbar, cards = { cards(true) })
+        } else {
+            BoardPortrait(
+                ui = ui,
+                board = board,
+                modeSwitch = modeSwitch,
+                toolbar = toolbar,
+                summary = { SummaryStrip(ui) },
+                cards = { cards(width >= 600.dp) },
+            )
         }
     }
 
@@ -330,28 +324,6 @@ fun BoardScreen(
     }
 }
 
-/** The eval bar beside a board of side [side]; the bar is as tall as the board. */
-@Composable
-private fun BoardWithBar(
-    ui: BoardUiState,
-    showBar: Boolean,
-    compact: Boolean,
-    side: Dp,
-    board: @Composable (Modifier) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
-        if (showBar) {
-            VerticalEvalBar(
-                ui.eval,
-                Modifier.width(evalBarWidth(compact)).height(if (compact) side else side),
-                compact = compact,
-            )
-        }
-        board(Modifier.size(side))
-    }
-}
-
 /**
  * The board at the user's zoom (settings_dev line 8). Above 100 % it is wider
  * than its box and scrolls sideways.
@@ -382,3 +354,6 @@ private fun imageFileName(moveCount: Int): String {
     val stamp = java.text.SimpleDateFormat("yyyyMMdd-HHmm", java.util.Locale.US).format(java.util.Date())
     return "rapfi_board_${moveCount}_$stamp.png"
 }
+
+/** A tap on [cell] at [at] (uptime ms), when the board had [moves] moves. */
+private data class PendingTap(val cell: Move, val moves: Int, val at: Long)

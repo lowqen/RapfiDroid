@@ -795,3 +795,84 @@ private fun timeText(ms: Long): String =
     if (ms < 60_000) "%.1fs".format(ms / 1000.0) else "${ms / 60_000}:%02d".format((ms / 1000) % 60)
 
 private fun hexColor(hex: String): Color = Color(0xFF000000L or hex.removePrefix("#").toLong(16))
+
+/** Height of [SummaryStrip]: the part of the sheet that is always showing. */
+internal val SummaryHeight = 64.dp
+
+/**
+ * The line the sheet rests on, under the board — what the board's reader wants
+ * without pulling anything up (UI overhaul P3).
+ *
+ * Analysis: the best move, then win rate, evaluation and depth, numbers as the
+ * engine card shows them (tabular, never interpolated; dimmed when they belong
+ * to the position before). Nothing read yet is one line saying what ▶ does.
+ * Game: the result, or whose move it is and who is playing whom.
+ */
+@Composable
+internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(SummaryHeight)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        if (!ui.analysisTab) {
+            val (word, color) = engineWord(ui.connection)
+            StatusDot(if (ui.game.thinking) RapfiTheme.colors.caution else color)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    ui.game.result?.describe()
+                        ?: (
+                            if (ui.game.thinking) tr("엔진이 생각 중", "Engine thinking", "引擎思考中")
+                            else tr("${ui.sideToMove.label} 차례", "${ui.sideToMove.label} to move", "轮到${ui.sideToMove.label}")
+                            ),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    ui.game.computerSide.label + " · " + tr("${ui.moveCount}수", "move ${ui.moveCount}", "第${ui.moveCount}手") +
+                        (if (!ui.connection.isLive) " · $word" else ""),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            return@Row
+        }
+        val snap = ui.shown
+        val blank = snap == null || (snap.pvs.isEmpty() && snap.stats.depth == 0)
+        if (blank) {
+            val (word, color) = engineWord(ui.connection)
+            StatusDot(color)
+            Text(
+                when {
+                    ui.analyzing || ui.balancing -> tr("읽는 중", "Reading", "读取中")
+                    ui.connection.isLive -> tr("▶ 를 누르면 엔진이 최선수를 찾습니다", "Press ▶ and the engine looks for the best move", "按 ▶，引擎会寻找最佳着法")
+                    else -> word
+                },
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            return@Row
+        }
+        val s = snap!!.stats
+        val alpha = if (ui.stale) 0.55f else 1f
+        val best = snap.best?.head ?: snap.realtimeBest
+        Text(
+            best?.label(ui.render.size) ?: tr("없음", "None", "无"),
+            style = MaterialTheme.typography.headlineSmall.tabular(),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            maxLines = 1,
+        )
+        Stat(tr("승률", "Win rate", "胜率"), s.winRatePct?.let { "$it%" } ?: tr("없음", "None", "无"), alpha, Modifier.weight(1f))
+        Stat(tr("평가", "Eval", "评价"), evalText(s.mate, s.evalCp), alpha, Modifier.weight(1f))
+        Stat(tr("깊이", "Depth", "深度"), if (s.depth > 0) "${s.depth}" else tr("없음", "None", "无"), alpha, Modifier.weight(1f))
+    }
+}

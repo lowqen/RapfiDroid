@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -20,6 +22,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -49,13 +52,17 @@ import dev.gomoku.rapfidroid.core.model.PvSnapshot
 import dev.gomoku.rapfidroid.core.model.SearchStats
 import dev.gomoku.rapfidroid.core.model.TagKind
 import dev.gomoku.rapfidroid.feature.board.AnalysisCard
+import dev.gomoku.rapfidroid.feature.board.BoardLandscape
+import dev.gomoku.rapfidroid.feature.board.BoardModeSwitch
+import dev.gomoku.rapfidroid.feature.board.BoardPortrait
 import dev.gomoku.rapfidroid.feature.board.BoardUiState
 import dev.gomoku.rapfidroid.feature.board.EvalView
 import dev.gomoku.rapfidroid.feature.board.GameCard
 import dev.gomoku.rapfidroid.feature.board.GameFileActions
-import dev.gomoku.rapfidroid.feature.board.MoveTransport
+import dev.gomoku.rapfidroid.feature.board.MoveToolbar
 import dev.gomoku.rapfidroid.feature.board.PositionCard
-import dev.gomoku.rapfidroid.feature.board.StageBar
+import dev.gomoku.rapfidroid.feature.board.PositionStrip
+import dev.gomoku.rapfidroid.feature.board.SummaryStrip
 import dev.gomoku.rapfidroid.feature.board.VerticalEvalBar
 import dev.gomoku.rapfidroid.navigation.Destination
 import dev.gomoku.rapfidroid.navigation.RapfiBottomBar
@@ -126,10 +133,95 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
 
     @Test
     fun boardChrome() = shot("board_chrome") {
-        StageBar(analysing, onMode = {}, onNewBoard = {}, onSwapSides = {})
-        MoveTransport(analysing, onFirst = {}, onUndo = {}, onToggle = {}, onRedo = {}, onLast = {})
-        StageBar(playing, onMode = {}, onNewBoard = {}, onSwapSides = {})
-        MoveTransport(playing, onFirst = {}, onUndo = {}, onToggle = {}, onRedo = {}, onLast = {})
+        BoardModeSwitch(BoardMode.ANALYSIS, onMode = {})
+        toolbar(analysing)
+        toolbar(analysing.copy(analyzing = false))
+        toolbar(playing)
+        // The summary line the sheet rests on: read, nothing read yet, a game.
+        SummaryStrip(analysing)
+        SummaryStrip(BoardUiState(connection = ConnectionState.Ready))
+        SummaryStrip(playing)
+    }
+
+    /**
+     * The board screen upright (P3): the board pinned, the cards on a sheet
+     * resting on the summary line. A Galaxy A16's board area under the header:
+     * 411 × 723dp, with the tab bar and status bar already taken.
+     */
+    @Test
+    fun boardPortrait() = screen("screen_board_portrait", 411.dp, 771.dp) {
+        portrait(SheetValue.PartiallyExpanded)
+    }
+
+    /** The same, the sheet pulled up over the board. */
+    @Test
+    fun boardPortraitSheet() {
+        assumeTrue(variant.fontScale == 1f)
+        screen("screen_board_sheet", 411.dp, 771.dp) { portrait(SheetValue.Expanded) }
+    }
+
+    /** On its side, beside the rail: board at full height, cards on the right. */
+    @Test
+    @Config(qualifiers = "+w900dp-h420dp-land")
+    fun boardLandscape() {
+        assumeTrue(variant.fontScale == 1f)
+        screen("screen_board_landscape", 811.dp, 371.dp) {
+            BoardLandscape(
+                ui = analysing,
+                board = { mod -> GomokuBoard(render = sampleRender, modifier = mod) },
+                modeSwitch = { BoardModeSwitch(BoardMode.ANALYSIS, onMode = {}) },
+                toolbar = { toolbar(analysing) },
+                cards = {
+                    AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+                    PositionCard(analysing, noFiles, onResign = {}, onDraw = {})
+                },
+            )
+        }
+    }
+
+    @Composable
+    private fun portrait(sheet: SheetValue) {
+        BoardPortrait(
+            ui = analysing,
+            board = { mod -> GomokuBoard(render = sampleRender, modifier = mod) },
+            modeSwitch = { BoardModeSwitch(BoardMode.ANALYSIS, onMode = {}) },
+            toolbar = { toolbar(analysing) },
+            summary = { SummaryStrip(analysing) },
+            cards = {
+                PositionStrip(analysing)
+                AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+                PositionCard(analysing, noFiles, onResign = {}, onDraw = {})
+            },
+            initialSheet = sheet,
+        )
+    }
+
+    @Composable
+    private fun toolbar(ui: BoardUiState) = MoveToolbar(
+        ui,
+        onNewBoard = {},
+        onFirst = {},
+        onUndo = {},
+        onToggle = {},
+        onRedo = {},
+        onLast = {},
+        onSwapSides = {},
+    )
+
+    /** A whole screen at [width] × [height], the shell's chip and switch provided. */
+    @OptIn(ExperimentalRoborazziApi::class)
+    private fun screen(name: String, width: Dp, height: Dp, content: @Composable () -> Unit) {
+        captureRoboImage("src/test/screenshots/${name}_${variant.tag}.png") {
+            RapfiDroidTheme(darkTheme = variant.dark) {
+                val density = LocalDensity.current
+                CompositionLocalProvider(
+                    LocalDensity provides Density(density.density, variant.fontScale),
+                    LocalShellChrome provides ShellChrome(ConnectionState.Thinking, variant.dark, onStartEngine = {}, onToggleTheme = {}),
+                ) {
+                    Surface(Modifier.size(width, height), color = MaterialTheme.colorScheme.background) { content() }
+                }
+            }
+        }
     }
 
     @Test
@@ -229,7 +321,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
                 CompositionLocalProvider(
                     LocalShellChrome provides ShellChrome(ConnectionState.Ready, dark, onStartEngine = {}, onToggleTheme = {}),
                 ) { RapfiTopBar(title = "보드") }
-                StageBar(analysing, onMode = {}, onNewBoard = {}, onSwapSides = {})
+                BoardModeSwitch(BoardMode.ANALYSIS, onMode = {})
                 AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
                 calmPartsContent()
             }

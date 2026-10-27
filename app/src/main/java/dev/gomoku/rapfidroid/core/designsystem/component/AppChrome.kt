@@ -90,6 +90,7 @@ val LocalShellChrome = compositionLocalOf<ShellChrome?> { null }
  *
  * [title] null drops the title too — the board's header, where the selected tab
  * already says «보드» and the line is better spent on the board (UI overhaul P2).
+ * [leading] then takes the left end: the board puts its 분석 | 대국 switch there.
  *
  * Insets are zero on purpose: the app scaffold has already inset its content
  * below the status bar.
@@ -99,6 +100,7 @@ fun RapfiTopBar(
     title: String?,
     modifier: Modifier = Modifier,
     height: Dp = 52.dp,
+    leading: (@Composable RowScope.() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth()) {
@@ -119,6 +121,7 @@ fun RapfiTopBar(
                     overflow = TextOverflow.Ellipsis,
                 )
             } else {
+                leading?.invoke(this)
                 Spacer(Modifier.weight(1f))
             }
             actions()

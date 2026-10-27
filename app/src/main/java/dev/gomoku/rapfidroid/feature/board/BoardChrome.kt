@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -15,6 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LastPage
@@ -30,22 +31,25 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberRapfiHaptics
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_VALUE
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
@@ -55,98 +59,128 @@ import dev.gomoku.rapfidroid.core.model.ComputerSide
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/**
- * The strip above the cards: the [분석] | [대국] tabs, «새 판», and on the game
- * tab the side swap with who has which colour. Nothing that the move bar
- * already does — two sets of the same buttons make people ask which to press.
- */
+/** 분석 | 대국 — analysis first, it is what a first visit opens on. */
 @Composable
-internal fun StageBar(
-    ui: BoardUiState,
-    onMode: (BoardMode) -> Unit,
-    onNewBoard: () -> Unit,
-    onSwapSides: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        // Analysis first — it is what a first visit opens on.
-        RapfiSegmented(
-            options = listOf(
-                BoardMode.ANALYSIS to tr("분석", "Analysis", "分析"),
-                BoardMode.GAME to tr("대국", "Play", "对局"),
-            ),
-            selection = ui.mode,
-            onSelect = onMode,
-        )
-        OutlinedButton(
-            onClick = onNewBoard,
-            contentPadding = PaddingValues(horizontal = 12.dp),
-            modifier = Modifier.height(40.dp),
-        ) {
-            Icon(Icons.Filled.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-            Text(" " + tr("새 판", "New", "新建"), maxLines = 1)
-        }
-        if (!ui.analysisTab) {
-            val side = ui.game.computerSide
-            val canSwap = (side == ComputerSide.BLACK || side == ComputerSide.WHITE) &&
-                !ui.game.thinking && ui.game.prompt == null
-            IconButton(onClick = onSwapSides, enabled = canSwap) {
-                Icon(Icons.Filled.SwapHoriz, contentDescription = tr("진영 전환", "Swap sides", "交换执子"))
-            }
-        }
-    }
+internal fun BoardModeSwitch(mode: BoardMode, onMode: (BoardMode) -> Unit, modifier: Modifier = Modifier) {
+    RapfiSegmented(
+        options = listOf(
+            BoardMode.ANALYSIS to tr("분석", "Analysis", "分析"),
+            BoardMode.GAME to tr("대국", "Play", "对局"),
+        ),
+        selection = mode,
+        onSelect = onMode,
+        modifier = modifier,
+    )
 }
 
+/** Finger travel along the toolbar that steps one move when scrubbing. */
+private val ScrubStep = 28.dp
+
 /**
- * The move bar — `|<` `<` `▶` `>` `>|`, and only those. ▶ lives on the
- * analysis tab alone: on the game tab the engine moves on its own turns.
+ * The move toolbar under the board (UI overhaul P3): «새 판», then
+ * `|<` `<` `▶` `>` `>|` — and on the game tab the side swap where ▶ was, because
+ * there the engine moves on its own turns.
+ *
+ * One pill instead of a loose row of icons plus a separate strip with «새 판»
+ * and the swap: two sets of controls made people ask which to press.
+ *
+ * **Scrubbing.** A finger drawn along the pill steps through the game, one move
+ * per [ScrubStep], with a tick per move — the quick way from move 40 back to
+ * move 12. It goes through the same undo and redo as the buttons, and stops
+ * where they would stop (the start, the end, an engine thinking on its move).
+ * A tap is still a tap: the drag only begins past the touch slop.
+ *
+ * Six buttons always, so the pill keeps its shape between the tabs; on a narrow
+ * column (a small phone on its side) they shrink to 36dp rather than overflow.
  */
 @Composable
-internal fun MoveTransport(
+internal fun MoveToolbar(
     ui: BoardUiState,
+    onNewBoard: () -> Unit,
     onFirst: () -> Unit,
     onUndo: () -> Unit,
     onToggle: () -> Unit,
     onRedo: () -> Unit,
     onLast: () -> Unit,
+    onSwapSides: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val blocked = ui.game.thinking || ui.game.prompt != null
     val canBack = ui.canUndo
     val canForward = ui.canRedo && !blocked
-    Row(
-        modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst)
-        BarButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), canBack, onUndo)
-        if (ui.analysisTab) {
-            val running = ui.analyzing || ui.balancing
-            FilledIconButton(
-                onClick = onToggle,
-                enabled = running || ui.canAnalyze,
-                modifier = Modifier.size(56.dp),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = if (running) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    contentColor = if (running) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurface,
-                ),
-            ) {
-                Icon(
-                    if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (running) tr("엔진 멈춤", "Pause engine", "暂停引擎") else tr("엔진 분석", "Analyse", "引擎分析"),
-                    modifier = Modifier.size(30.dp),
-                )
+    val haptics = rememberRapfiHaptics()
+    val back by rememberUpdatedState(canBack)
+    val forward by rememberUpdatedState(canForward)
+    val undo by rememberUpdatedState(onUndo)
+    val redo by rememberUpdatedState(onRedo)
+    val step = with(LocalDensity.current) { ScrubStep.toPx() }
+    BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
+        val button = ((maxWidth - 8.dp) / 6).coerceIn(36.dp, 48.dp)
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier
+                .height(button + 8.dp)
+                .pointerInput(step) {
+                    var travel = 0f
+                    detectHorizontalDragGestures(
+                        onDragStart = { travel = 0f },
+                    ) { change, dx ->
+                        change.consume()
+                        travel += dx
+                        while (travel >= step) {
+                            travel -= step
+                            if (forward) {
+                                redo()
+                                haptics.scrubTick()
+                            }
+                        }
+                        while (travel <= -step) {
+                            travel += step
+                            if (back) {
+                                undo()
+                                haptics.scrubTick()
+                            }
+                        }
+                    }
+                },
+        ) {
+            Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                BarButton(Icons.Filled.Refresh, tr("새 판", "New board", "新建"), true, onNewBoard, button)
+                BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst, button)
+                BarButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), canBack, onUndo, button)
+                if (ui.analysisTab) {
+                    val running = ui.analyzing || ui.balancing
+                    // The toolbar's one primary action: filled ink while the
+                    // engine reads, the quiet container while it does not.
+                    FilledIconButton(
+                        onClick = onToggle,
+                        enabled = running || ui.canAnalyze,
+                        modifier = Modifier.size(button),
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = if (running) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = if (running) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    ) {
+                        Icon(
+                            if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = if (running) tr("엔진 멈춤", "Pause engine", "暂停引擎") else tr("엔진 분석", "Analyse", "引擎分析"),
+                            modifier = Modifier.size(button * 0.6f),
+                        )
+                    }
+                }
+                BarButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), canForward, onRedo, button)
+                BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast, button)
+                if (!ui.analysisTab) {
+                    val side = ui.game.computerSide
+                    val canSwap = (side == ComputerSide.BLACK || side == ComputerSide.WHITE) &&
+                        !ui.game.thinking && ui.game.prompt == null
+                    BarButton(Icons.Filled.SwapHoriz, tr("진영 전환", "Swap sides", "交换执子"), canSwap, onSwapSides, button)
+                }
             }
         }
-        BarButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), canForward, onRedo)
-        BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast)
     }
 }
 
@@ -156,9 +190,10 @@ private fun BarButton(
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,
+    size: Dp = 48.dp,
 ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(48.dp)) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(28.dp))
+    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(size)) {
+        Icon(icon, contentDescription = label, modifier = Modifier.size(size * 0.55f))
     }
 }
 
