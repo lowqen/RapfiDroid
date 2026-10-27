@@ -61,6 +61,10 @@ on:
         description: "speed: CPU every engine is pinned to (empty = let the scheduler place them)"
         default: "2"
         type: string
+      no_aslr:
+        description: "speed: start engines without address randomisation (setarch -R) so every process gets the same layout"
+        default: true
+        type: boolean
       games:
         description: "sprt: maximum games (rounded up to pairs)"
         default: "120"
@@ -229,6 +233,9 @@ jobs:
           # on the vCPU it last ran on, each engine settles on its own vCPU, and vCPU speed differences show up as
           # engine differences — the first run here had the A/A copy 1.7% faster than base, every rep, every half.
           pin=""; [ -z "${{ inputs.pin_cpu }}" ] || pin="taskset -c ${{ inputs.pin_cpu }} "
+          # Pinned, A/A still swung ±1% run to run (D3 · K5 in the plan doc) — per-process memory layout is the
+          # suspect, so every engine can start with the same, non-randomised layout.
+          [ "${{ inputs.no_aslr }}" != true ] || pin="${pin}setarch $(uname -m) -R "
           eng () { echo "$1|$pin$E/$1/pbrain-rapfi|$E/$1"; }
           mkdir -p ../out
           node bench/sprt/fixed-depth.mjs --det \
