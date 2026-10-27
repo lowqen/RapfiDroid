@@ -75,6 +75,9 @@ class DatabaseRepositoryTest {
 
         override fun disconnect() = Unit
         override suspend fun retryNow() = Unit
+        override val thermalThreads: StateFlow<Int?> = MutableStateFlow(null)
+        override fun park() = Unit
+        override suspend fun resumeParked() = Unit
         override suspend fun applyParams(params: EngineParams) = Unit
         override fun analyze(position: Position, params: AnalyzeParams): Flow<AnalysisSnapshot> =
             emptyFlow()
