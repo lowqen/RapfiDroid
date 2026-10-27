@@ -221,8 +221,11 @@ the Rapfi engine, which is **GPL-3.0-or-later**, so the package as a whole is
 conveyed under GPL-3.0-or-later.
 
 The corresponding source for the engine in the released APK is
-**https://github.com/lowqen/rapfi**, branch `android`. The only change from
-upstream is two blocks in `Rapfi/CMakeLists.txt` for the Android build.
+**https://github.com/lowqen/rapfi**, branch `android` — for each release the
+tag `rapfidroid-v<version>` (0.16.0: upstream `3c94c2a9`, two blocks in
+`Rapfi/CMakeLists.txt` for the Android build, and three result-invariant speed
+patches, one commit each; `android/` holds the build options and the PGO
+profile of the dotprod build).
 
 Full third party notices are in [LICENSES.md](LICENSES.md), and the GPL-3.0 and
 BSD-2-Clause texts ship inside the app under Settings ▸ About ▸ Licences.

@@ -8,10 +8,13 @@ GPL 앱의 본래 서식지 둘로 간다. **누구의 허락도 필요 없다**
 
 ## 0. 전제 — ✅ 충족됨 (2026-08-30 확인)
 
-`https://github.com/lowqen/rapfi` 가 **공개**이고, `android` 브랜치 끝이
-`8d16fc2c…` 로 `app/src/main/jniLibs/ENGINE_VERSION.txt` 의 `upstream` 과 같다.
-이 저장소가 비공개이거나 커밋이 어긋나면 APK 배포는 **GPL 위반**이다.
-엔진을 다시 빌드할 때마다 이 두 값을 같이 맞출 것.
+`https://github.com/lowqen/rapfi` 가 **공개**이고, `android` 브랜치에 탑재 엔진의
+소스가 커밋돼 있다 — upstream `3c94c2a9`(`ENGINE_VERSION.txt` 의 `upstream`) 위에
+안드로이드 빌드 커밋, 그리고 `tools/patches/` 의 패치를 하나씩 커밋, `android/` 에
+빌드 옵션과 PGO 프로필. 릴리스마다 태그 `rapfidroid-v<버전>`(0.15.0 = `8d16fc2c`,
+0.16.0 = `753b0085`). 이 저장소가 비공개이거나 커밋이 어긋나면 APK 배포는 **GPL
+위반**이다. 패치나 프로필을 바꿀 때마다 그 브랜치와 `ENGINE_VERSION.txt` 의
+`source` 를 같이 맞출 것.
 
 ---
 

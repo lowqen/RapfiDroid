@@ -18,9 +18,9 @@ android {
         minSdk = 26
         targetSdk = 35
         // versionCode only ever goes up (18 was the withdrawn 0.15.3 test build,
-        // 19 the first 0.15.0 build); the name stays 0.15.0 for the Chinese update.
-        versionCode = 20
-        versionName = "0.15.0"
+        // 19 and 20 the two 0.15.0 builds).
+        versionCode = 21
+        versionName = "0.16.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

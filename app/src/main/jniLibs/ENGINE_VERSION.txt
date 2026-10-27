@@ -1,6 +1,7 @@
 engine     : Rapfi on-device (arm64-v8a)
 upstream   : 3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7  (dhbloo/rapfi, 패치 전)
 patches    : 안드로이드 빌드 패치 2개(스크립트 [4/7]) + k1-neon-vqdmulh.patch + k2-neon-starblock-multi.patch + k3-a4-policy-cache.patch (tools/patches/)
+source     : https://github.com/lowqen/rapfi 태그 rapfidroid-v0.16.0 = 753b0085 (브랜치 android) — 위 커밋 + 같은 패치를 커밋 하나씩, android/ 에 PGO 프로필 · 빌드 옵션. GPL 대응 소스
 pgo        : dotprod 만 — tools/pgo/rapfi-dotprod.profdata (-fprofile-use, K3 까지 든 소스로 갤럭시 A16 에서 tools/pgo/train.sh 로 학습). NEON 은 PGO 없음
 networks   : e32ad77a5364363b3e3a02b3f9e8610ade19ea98
 ndk        : r27c (windows-x86_64 프리빌트 — 스크립트 [3/7]~[6/7] 과 같은 커밋 · 같은 옵션)

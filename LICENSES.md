@@ -56,8 +56,10 @@ APK 가 `libengine.so` 를 담고 있으므로, APK 를 남에게 주는 순간 
 1. **라이선스 전문을 함께 준다.** → `assets/licenses/GPL-3.0.txt` 로 APK 안에 있고
    앱에서 읽을 수 있다.
 2. **대응 소스를 제공한다.** 우리는 upstream 을 그대로 쓰지 않고 CMake 를 두 군데
-   고쳤으므로(안드로이드 링크·출력 이름), 그 수정본이 소스다:
-   - 저장소: `https://github.com/lowqen/rapfi` 브랜치 `android`
+   고쳤고(안드로이드 링크·출력 이름) 0.16.0 부터 결과 불변 속도 패치 셋(K1 ~ K3)과
+   dotprod 판의 PGO 프로필을 더했으므로, 그 수정본이 소스다:
+   - 저장소: `https://github.com/lowqen/rapfi` 브랜치 `android`, 릴리스마다 태그
+     `rapfidroid-v<버전>`(0.15.0 = `8d16fc2c`, 0.16.0 = `753b0085`)
    - **이 저장소는 반드시 공개여야 한다.** 비공개면 GPL 위반이다.
    - 빌드 재현 절차: `RapfiDroid/tools/build_engine_android.sh`
    - 정확한 커밋은 `app/src/main/jniLibs/ENGINE_VERSION.txt` 에 적혀 있다.
@@ -128,6 +130,7 @@ renju.net 에서 직접 받아 자기 기기로 반입한다. 데이터가 없�
 
 - [ ] `https://github.com/lowqen/rapfi` (브랜치 `android`) **공개** — GPL 대응 소스
 - [ ] `ENGINE_VERSION.txt` 의 upstream 커밋이 그 브랜치에 실제로 있는지 확인
+- [ ] 패치 · PGO 프로필이 바뀌었으면 그 브랜치에 커밋으로 올리고 태그 `rapfidroid-v<버전>` 을 붙였다
 - [ ] 릴리스 노트에 GPL 소스 링크와 이 파일 링크
 - [ ] APK 에 RenjuNet 파생 파일이 없는지 확인:
       `unzip -l app-release.apk | grep -iE "renju_(stats|games)|freq_data"` → **0건**
