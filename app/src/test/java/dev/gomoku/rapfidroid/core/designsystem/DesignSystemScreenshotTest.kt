@@ -53,6 +53,7 @@ import dev.gomoku.rapfidroid.feature.board.MoveTransport
 import dev.gomoku.rapfidroid.feature.board.PositionCard
 import dev.gomoku.rapfidroid.feature.board.StageBar
 import dev.gomoku.rapfidroid.feature.board.VerticalEvalBar
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
@@ -77,7 +78,9 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 // A plain Application: the real one is a Hilt app that starts the engine watcher.
-@Config(sdk = [35], application = Application::class, qualifiers = "w420dp-h900dp-xhdpi")
+// Korean, the app's first language: Robolectric sets the JVM's default locale
+// from the qualifiers, and `tr()` reads that, so without it every label is English.
+@Config(sdk = [35], application = Application::class, qualifiers = "ko-rKR-w420dp-h900dp-xhdpi")
 class DesignSystemScreenshotTest(private val variant: Variant) {
 
     data class Variant(val dark: Boolean, val fontScale: Float) {
@@ -97,8 +100,11 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     }
 
     @Test
-    fun board() = shot("board") {
-        GomokuBoard(render = sampleRender, modifier = Modifier.width(396.dp))
+    fun board() {
+        // The board's text is drawn by `Paint` at its own size; the font scale
+        // does not reach it, so the 1.3 picture would be the 1.0 one again.
+        assumeTrue(variant.fontScale == 1f)
+        shot("board") { GomokuBoard(render = sampleRender, modifier = Modifier.width(396.dp)) }
     }
 
     @Test
