@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import dev.gomoku.rapfidroid.data.engine.EngineIdleWatcher
 import dev.gomoku.rapfidroid.data.engine.EngineService
+import dev.gomoku.rapfidroid.data.engine.MemoryGuard
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -14,9 +15,14 @@ class RapfiDroidApp : Application() {
     @Inject
     lateinit var engineIdleWatcher: EngineIdleWatcher
 
+    @Inject
+    lateinit var memoryGuard: MemoryGuard
+
     override fun onCreate() {
         super.onCreate()
         createEngineChannel()
+        // Before anything connects: a low-memory kill of the last run lowers the table (T3).
+        memoryGuard.checkLastExit()
         engineIdleWatcher.start()
     }
 
