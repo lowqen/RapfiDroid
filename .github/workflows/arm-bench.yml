@@ -57,6 +57,10 @@ on:
         description: "speed: position files"
         default: "bench/sprt/openings-balanced.json,bench/gomocalc/mate-suite.json"
         type: string
+      pin_cpu:
+        description: "speed: CPU every engine is pinned to (empty = let the scheduler place them)"
+        default: "2"
+        type: string
       games:
         description: "sprt: maximum games (rounded up to pairs)"
         default: "120"
@@ -214,7 +218,11 @@ jobs:
         run: |
           set -o pipefail
           E="$PWD/bench/sprt/engines"
-          eng () { echo "$1|$E/$1/pbrain-rapfi|$E/$1"; }
+          # Only one engine searches at a time, so all of them can share one core. Unpinned, an idle engine wakes
+          # on the vCPU it last ran on, each engine settles on its own vCPU, and vCPU speed differences show up as
+          # engine differences — the first run here had the A/A copy 1.7% faster than base, every rep, every half.
+          pin=""; [ -z "${{ inputs.pin_cpu }}" ] || pin="taskset -c ${{ inputs.pin_cpu }} "
+          eng () { echo "$1|$pin$E/$1/pbrain-rapfi|$E/$1"; }
           mkdir -p ../out
           node bench/sprt/fixed-depth.mjs --det \
             --engine "$(eng base)" --engine "$(eng control)" --engine "$(eng test)" \
