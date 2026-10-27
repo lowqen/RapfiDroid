@@ -19,8 +19,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -40,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard
 import dev.gomoku.rapfidroid.core.designsystem.component.WideLayoutMin
 import dev.gomoku.rapfidroid.core.designsystem.theme.MonoStyle
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
@@ -338,12 +337,9 @@ private fun Console(lines: List<ConsoleLine>, scale: Float, modifier: Modifier =
     LaunchedEffect(lines.size) {
         if (lines.isNotEmpty()) listState.animateScrollToItem(lines.size - 1)
     }
-    Card(
-        modifier = modifier,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-    ) {
+    // The calm card face, like every other card: on the page colour it had no
+    // edge at all, and the console read as loose text on the screen.
+    FlatCard(modifier = modifier) {
         LazyColumn(
             state = listState,
             modifier = Modifier
