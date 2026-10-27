@@ -31,7 +31,7 @@
 
 | ID | 내용 | 상태 |
 |---|---|---|
-| P0 | 기반 정비 — 스크린샷 시험 · 토큰 채택 · 탭 단일화 · 햅틱/모션 인프라(시각 변화 없음) | **진행 중**(2026-10-27 승인 · 착수) |
+| P0 | 기반 정비 — 스크린샷 시험 · 토큰 채택 · 탭 단일화 · 햅틱/모션 인프라(시각 변화 없음) | **완료**(2026-10-27) — 실행 기록 P0 |
 | P1 | 테마 시스템 — 토큰 확장 · AMOLED · (선택) 벽지 톤 · 테마 모드 3상태 | 계획 |
 | P2 | 셸 · 내비게이션 — 넓은 화면 레일 · 접히는 상단 바 · 스크롤 시 하단 바 숨김 | 계획 |
 | P3 | **보드 화면 재구성** — 고정 판 + 스냅 시트 · 떠 있는 이동 툴바 · 판 햅틱 | 계획 |
@@ -238,7 +238,7 @@
 | | |
 |---|---|
 | 대상 | `core/designsystem/**`, 테스트 소스, 빌드 스크립트 |
-| 작업 | ① **스크린샷 시험 하네스**(Roborazzi + Robolectric — JVM 단위 시험이라 CI 에서 돈다). P0 의 대상은 **상태 없이 그릴 수 있는 것**: 판(분석 값 · 금수 · 최선수), 평가 막대, 이동 바, 단계 바, 카드 · 접힘 · 칩 · 엔진 칩 · 상단 바 · 빈 상태, 보드의 분석/국면/대국 카드 × 라이트/다크 × 글꼴 1.0/1.3. 화면 전체(보드 · 연구 · 정석 · DB · 엔진 · 설정)는 ViewModel 을 받으므로, 각 화면을 «상태 없는 본문 + ViewModel 연결»로 나누는 P2 ~ P4 에서 그 화면의 골든을 함께 추가한다 ② BOM `2026.09.00` 이 해석하는 material3 버전 확인 — **결과는 아래 «P0 확인: material3 1.4.0»** ③ `RapfiTokens` 도입(기존 `Spacing`/`Shapes` 값 그대로 이관 — 값 불변) ④ 공용 `RapfiSegmented` 추출 — P0 에서는 보드의 `ModeTabs` 만 옮긴다(외형 동일). 정석 · 도구 `TabRow`, 연구 `ScrollableTabRow`, 랭킹 `SegmentedButton` 을 바꾸면 **보이는 변화**라 P2(연구 · 정석) · P4(도구 · 랭킹)에서 옮긴다 ⑤ `RapfiMotion`(spatial/effects × fast/default/slow, **감속 모드면 호출부 대체값**) · `RapfiHaptics`(설정 게이트) API 만 추가, 아직 호출 안 함 ⑥ `ConnectionScreen` 의 원본 `Card` → `FlatCard`(콘솔 카드가 페이지와 같은 색이라 경계가 안 보이던 것 — 이 Phase 의 유일한 의도된 시각 변화) |
+| 작업 | ① **스크린샷 시험 하네스**(Roborazzi + Robolectric — JVM 단위 시험이라 CI 에서 돈다). P0 의 대상은 **상태 없이 그릴 수 있는 것**: 판(분석 값 · 금수 · 최선수), 평가 막대, 이동 바, 단계 바, 카드 · 접힘 · 칩 · 엔진 칩 · 상단 바 · 빈 상태, 보드의 분석/국면/대국 카드 × 라이트/다크 × 글꼴 1.0/1.3. 화면 전체(보드 · 연구 · 정석 · DB · 엔진 · 설정)는 ViewModel 을 받으므로, 각 화면을 «상태 없는 본문 + ViewModel 연결»로 나누는 P2 ~ P4 에서 그 화면의 골든을 함께 추가한다 ② BOM `2026.09.00` 이 해석하는 material3 버전 확인 — **결과는 아래 «P0 확인: material3 1.4.0»** ③ `RapfiTokens` 도입(기존 `Spacing`/`Shapes` 값 그대로 이관 — 값 불변) ④ 공용 `RapfiSegmented` 추출 — P0 에서는 보드의 `ModeTabs` 만 옮긴다(외형 동일). 정석 · 도구 `TabRow`, 연구 `ScrollableTabRow`, 랭킹 `SegmentedButton` 을 바꾸면 **보이는 변화**라 P2(연구 · 정석) · P4(도구 · 랭킹)에서 옮긴다 ⑤ `ChromeMotion`(구현 이름 — 판에는 쓰지 않는다는 뜻을 이름에 담음. spatial/effects × fast/default/slow, **감속 모드면 호출부 대체값**) · `RapfiHaptics`(설정 게이트) API 만 추가, 아직 호출 안 함 ⑥ `ConnectionScreen` 의 원본 `Card` → `FlatCard`(콘솔 카드가 페이지와 같은 색이라 경계가 안 보이던 것 — 이 Phase 의 유일한 의도된 시각 변화) |
 | 시각 변화 | 없음(④⑥ 은 미세 정렬 차이만) |
 | 검증 | 스크린샷 골든 최초 기록, 이후 P0 커밋들의 diff ≈ 0. `ThemeContrastTest` 녹색. 의존성 추가는 F-Droid 빌드 조건(`fdroid/`) 확인 후 |
 
@@ -336,4 +336,21 @@
 
 # 실행 기록
 
-(승인 후 Phase 별로 결과를 쌓는다.)
+## P0 — 2026-10-27 완료
+
+| 항목 | 결과 | 커밋 |
+|---|---|---|
+| ① 스크린샷 하네스 | Roborazzi 1.76.0 + Robolectric 4.17(native graphics, SDK 35, `ko-rKR`, 420dp xhdpi). Gradle 플러그인 없이 `-Pscreenshots=record\|verify\|compare` → 시험 시스템 속성. `screenshots.yml`: push 마다 verify, 수동 실행으로 record | `9aa6b26` · `99340c4` · `7007bcb` |
+| 골든 | 26장 = 7 대상 × 라이트/다크 × 글꼴 1.0/1.3(판은 1.0 만 — 판 글자는 `Paint` 라 글꼴 배율을 안 탄다). 리팩터 **전** 코드(`99340c4`)에서 CI 러너가 기록(run 40520019661) | `1cd38e3` |
+| ② material3 확인 | 1.4.0. `MotionScheme` 는 **internal**, `ShortNavigationBar` · `WideNavigationRail` 은 public, 버튼 그룹 · 플로팅 툴바 · 로딩은 1.5 전용(위 «P0 확인» 표) | `8eea2a3` · `172be4b` |
+| ③ `RapfiTokens` | 모서리 · 간격 · 화면 패딩 · 터치 크기를 한 값으로. `Shapes` · `Spacing` · `ScreenPadding` 은 거기서 만든다. 값 불변(`TokensTest`) | `3f17f19` |
+| ④ `RapfiSegmented` | 보드 `ModeTabs` 를 그대로 옮김. 나머지 탭 3종은 P2 · P4 | `3f17f19` |
+| ⑤ `ChromeMotion` · `RapfiHaptics` | 스프링 6종(1.4.0 `ExpressiveMotionTokens` 값) + 시트용 임계 감쇠, 감속 모드면 호출부 대체값. 햅틱 6어휘(`HapticsTest`). 아직 호출처 없음 | `3f17f19` · `172be4b` |
+| ⑥ 콘솔 카드 | Material `Card`(페이지색) → `FlatCard`. 이 Phase 의 유일한 의도된 시각 변화(골든 대상 밖) | `e83e3d8` |
+| **판정** | P0 리팩터 뒤 verify 가 시험을 **실제로 실행**해 26장 전부 통과(run 40522216391). 음성 대조 — 골든 한 장을 바꾼 임시 브랜치 — 는 정확히 `evalBar[light_100]` 하나로 실패(run 40522230502). 임시 브랜치는 지움 | — |
+
+배운 것:
+
+- **실험 표식이 없다고 public 은 아니다.** Kotlin `internal` 은 클래스 파일 접근 플래그에 안 나온다. API 판정은 `-sources.jar` 로 한다.
+- **골든은 Gradle 입력이 아니다.** 처음 만든 음성 대조는 `testDebugUnitTest FROM-CACHE` 로 «통과»했다 — 아무것도 비교하지 않은 것. 스크린샷 모드에서는 캐시 · up-to-date 를 끈다(`7007bcb`). verify 가 녹색이면 로그에서 `Task :app:testDebugUnitTest` 뒤에 `FROM-CACHE` 가 없는지 본다.
+- **아티팩트 다운로드가 계정 전송량 한도(HTTP 503)에 걸릴 수 있다.** 재시도로 받았다. 반복되면 record 워크플로가 골든을 브랜치로 커밋하는 방식으로 바꾼다.
