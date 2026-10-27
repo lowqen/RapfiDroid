@@ -1,0 +1,132 @@
+diff --git a/Rapfi/CMakeLists.txt b/Rapfi/CMakeLists.txt
+index f51c5e5..e6955b2 100644
+--- a/Rapfi/CMakeLists.txt
++++ b/Rapfi/CMakeLists.txt
+@@ -139,6 +139,12 @@ option(USE_BMI2 "Enable BMI2 instruction" ${DEFAULT_USE_BMI2})
+ option(USE_VNNI "Enable AVX512_VNNI/AVX_VNNI instruction" ${DEFAULT_USE_VNNI})
+ option(USE_NEON "Enable NEON instruction" ${DEFAULT_USE_NEON})
+ option(USE_NEON_DOTPROD "Enable NEON DotProd instruction" ${DEFAULT_USE_NEON_DOTPROD})
++# ARMv8.6 I8MM (smmla) for the batched value head. Not auto-detected: the binary would only run on
++# cores that have it, so a build opts in explicitly. Implies DotProd.
++option(USE_NEON_I8MM "Enable NEON I8MM instruction (implies DotProd)" OFF)
++if(USE_NEON_I8MM)
++    set(USE_NEON_DOTPROD ON)
++endif()
+ option(USE_WASM_SIMD "Enable WebAssembly SIMD instruction" ${DEFAULT_USE_WASM_SIMD})
+ option(USE_WASM_SIMD_RELAXED "Enable WebAssembly Relaxed SIMD instruction" ${DEFAULT_USE_WASM_SIMD_RELAXED})
+ 
+@@ -480,6 +486,9 @@ endif()
+ if(USE_NEON_DOTPROD)
+ 	target_compile_definitions(rapfi PRIVATE USE_NEON_DOTPROD)
+ endif()
++if(USE_NEON_I8MM)
++	target_compile_definitions(rapfi PRIVATE USE_NEON_I8MM)
++endif()
+ 
+ if(ENABLE_LTO)
+     include(CheckIPOSupported)
+@@ -587,7 +596,9 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "C
+         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2")
+     endif()
+ 
+-    if(USE_NEON_DOTPROD)
++    if(USE_NEON_I8MM)
++        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8.2-a+dotprod+i8mm")
++    elseif(USE_NEON_DOTPROD)
+         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8.2-a+dotprod")
+ 	elseif(USE_NEON)
+         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+simd")
+diff --git a/Rapfi/eval/simd/linear.h b/Rapfi/eval/simd/linear.h
+index 936f064..8790e31 100644
+--- a/Rapfi/eval/simd/linear.h
++++ b/Rapfi/eval/simd/linear.h
+@@ -119,6 +119,13 @@ namespace detail {
+             typedef detail::VecOp<int32_t, I>                   I32Op;
+             typedef VecBatch<OutSize, int32_t, I>               OutB;
+ 
++#ifdef USE_NEON_I8MM
++            if constexpr (N % 2 == 0 && NumChunks % 2 == 0 && OutB::RegWidth == 4) {
++                forwardMultiMmla<N, Bias, PreReLU, PostReLU>(output, input, weight, bias);
++                return;
++            }
++#endif
++
+             // Output registers per tile. AArch64 has 32 vector registers, so N = 4 inputs x 4
+             // outputs + 4 weights fit without spilling; 16-register ISAs keep the tile at 2.
+ #ifndef RAPFI_MULTI_TILE_REGS
+@@ -177,6 +184,75 @@ namespace detail {
+                     }
+             }
+         }
++
++#ifdef USE_NEON_I8MM
++        /// forwardMulti with ARMv8.6 I8MM. smmla multiplies a 2x8 int8 block (two inputs, eight input
++        /// lanes) by a 2x8 block (two outputs' weights over the same lanes) into a 2x2 int32 block:
++        /// 32 MACs per instruction against sdot's 16. The weight layout is unchanged — two consecutive
++        /// chunks of four outputs, zipped by 32-bit lane, are the 2x8 rows of two output pairs.
++        /// Unsigned 7-bit inputs are valid int8, so one signed path serves both input kinds. Int32 sums
++        /// are exact, so adding the bias last and the different order give the bits of forward().
++        template <int N, bool Bias, bool PreReLU, bool PostReLU>
++        static void forwardMultiMmla(int32_t *const      output[N],
++                                     const int8_t *const input[N],
++                                     const int8_t       *weight,
++                                     const int32_t      *bias)
++        {
++            typedef VecBatch<OutSize, int32_t, I> OutB;
++            constexpr int Pairs = N / 2;
++            // Groups of four outputs per tile: Pairs x Groups x 2 accumulators + Groups x 2 weight
++            // blocks + one input block stay within the 32 vector registers for N = 4.
++            constexpr int Groups = OutB::NumBatch % 4 == 0 ? 4 : OutB::NumBatch % 2 == 0 ? 2 : 1;
++            constexpr int ChunkBytes = OutSize * ChunkSize;
++
++            for (int t = 0; t < OutB::NumBatch; t += Groups) {
++                // acc[p][g][h] lanes: (in 2p, out 2h), (in 2p, out 2h+1), (in 2p+1, out 2h), (in 2p+1, out 2h+1)
++                // of the four outputs in group t + g.
++                int32x4_t acc[Pairs][Groups][2];
++                for (int p = 0; p < Pairs; p++)
++                    for (int g = 0; g < Groups; g++)
++                        acc[p][g][0] = acc[p][g][1] = vdupq_n_s32(0);
++
++                for (int i = 0; i < NumChunks; i += 2) {
++                    const int8_t *c0 = weight + i * ChunkBytes;
++                    const int8_t *c1 = c0 + ChunkBytes;
++                    int8x16_t     w[Groups][2];
++                    for (int g = 0; g < Groups; g++) {
++                        int32x4_t w0 = vreinterpretq_s32_s8(vld1q_s8(c0 + (t + g) * 16));
++                        int32x4_t w1 = vreinterpretq_s32_s8(vld1q_s8(c1 + (t + g) * 16));
++                        w[g][0] = vreinterpretq_s8_s32(vzip1q_s32(w0, w1));  // outputs 0, 1
++                        w[g][1] = vreinterpretq_s8_s32(vzip2q_s32(w0, w1));  // outputs 2, 3
++                    }
++
++                    for (int p = 0; p < Pairs; p++) {
++                        int8x16_t a = vcombine_s8(vld1_s8(input[2 * p] + i * ChunkSize),
++                                                  vld1_s8(input[2 * p + 1] + i * ChunkSize));
++                        if constexpr (PreReLU)
++                            a = vmaxq_s8(a, vdupq_n_s8(0));
++                        for (int g = 0; g < Groups; g++) {
++                            acc[p][g][0] = vmmlaq_s32(acc[p][g][0], a, w[g][0]);
++                            acc[p][g][1] = vmmlaq_s32(acc[p][g][1], a, w[g][1]);
++                        }
++                    }
++                }
++
++                for (int p = 0; p < Pairs; p++)
++                    for (int g = 0; g < Groups; g++) {
++                        int64x2_t lo = vreinterpretq_s64_s32(acc[p][g][0]);
++                        int64x2_t hi = vreinterpretq_s64_s32(acc[p][g][1]);
++                        int32x4_t v[2] = {vreinterpretq_s32_s64(vzip1q_s64(lo, hi)),   // input 2p
++                                          vreinterpretq_s32_s64(vzip2q_s64(lo, hi))};  // input 2p+1
++                        for (int h = 0; h < 2; h++) {
++                            if constexpr (Bias)
++                                v[h] = vaddq_s32(v[h], vld1q_s32(bias + (t + g) * 4));
++                            if constexpr (PostReLU)
++                                v[h] = vmaxq_s32(v[h], vdupq_n_s32(0));
++                            vst1q_s32(output[2 * p + h] + (t + g) * 4, v[h]);
++                        }
++                    }
++            }
++        }
++#endif
+     };
+ 
+     template <int OutSize, int InSize, int Alignment, InstructionType I>

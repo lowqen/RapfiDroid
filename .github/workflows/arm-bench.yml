@@ -24,10 +24,10 @@ on:
         type: choice
         options: ["bench", "speed", "sprt"]
       variant:
-        description: "dotprod (libengine_dotprod.so) or neon (libengine.so)"
+        description: "dotprod (libengine_dotprod.so), neon (libengine.so) or i8mm (dotprod + USE_NEON_I8MM — K5; only patched builds use smmla)"
         default: "dotprod"
         type: choice
-        options: ["dotprod", "neon"]
+        options: ["dotprod", "neon", "i8mm"]
       base_patches:
         description: "Patch file names under tools/patches for the base engine (space separated) — default = shipped"
         default: "k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch k3-a4-policy-cache.patch"
@@ -169,6 +169,9 @@ jobs:
           case "$VARIANT" in
             dotprod) isa="-DUSE_NEON=ON -DUSE_NEON_DOTPROD=ON" ;;
             neon)    isa="-DUSE_NEON=ON -DUSE_NEON_DOTPROD=OFF" ;;
+            # The option exists only once k5-neon-i8mm-smmla.patch is applied; an unpatched base ignores it and
+            # stays the plain dotprod build — exactly the comparison K5 needs.
+            i8mm)    isa="-DUSE_NEON=ON -DUSE_NEON_DOTPROD=ON -DUSE_NEON_I8MM=ON" ;;
           esac
           export HOST_CMAKE_FLAGS="$isa -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld"
           E=bench/sprt/engines
@@ -180,8 +183,12 @@ jobs:
           # Gates: the variant really uses its ISA, and the base build is the expected tree.
           for d in $E/*/; do
             n=$(objdump -d "$d/pbrain-rapfi" | grep -c $'\tsdot' || true)
-            echo "$(basename "$d"): sdot $n · $(grep -oE 'Hash: [0-9a-f]+' "$d/bench.txt" | tail -1) · $(grep -oE 'Nodes: [0-9]+' "$d/bench.txt" | tail -1)"
-            if [ "$VARIANT" = dotprod ] && [ "$n" -eq 0 ]; then echo "::error::$(basename "$d") has no sdot"; exit 1; fi
+            m=$(objdump -d "$d/pbrain-rapfi" | grep -c $'\tsmmla' || true)
+            echo "$(basename "$d"): sdot $n · smmla $m · $(grep -oE 'Hash: [0-9a-f]+' "$d/bench.txt" | tail -1) · $(grep -oE 'Nodes: [0-9]+' "$d/bench.txt" | tail -1)"
+            if [ "$VARIANT" != neon ] && [ "$n" -eq 0 ]; then echo "::error::$(basename "$d") has no sdot"; exit 1; fi
+            if [ "$VARIANT" = i8mm ] && [ "$(basename "$d")" = test ] && [ "$m" -eq 0 ]; then
+              echo "::error::i8mm test build has no smmla — is k5-neon-i8mm-smmla.patch in test_patches?"; exit 1
+            fi
             if [ "$VARIANT" = neon ] && [ "$n" -ne 0 ]; then echo "::error::$(basename "$d") has sdot in a NEON build"; exit 1; fi
           done
           hash () { grep -oE 'Hash: [0-9a-f]+' "$E/$1/bench.txt" | tail -1 | cut -d' ' -f2; }
