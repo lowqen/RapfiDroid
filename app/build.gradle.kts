@@ -101,12 +101,23 @@ android {
     }
 
     testOptions {
+        // The screenshot tests draw real Compose UI under Robolectric, which needs
+        // the merged resources: the RapfiSans font, the strings, the theme.
+        unitTests.isIncludeAndroidResources = true
         unitTests.all {
             // A good many tests assert user-facing text, and that text is now
             // whichever side of `tr()` the JVM's default locale selects. Pin it,
             // or the suite passes on a Korean machine and fails on any other.
             it.systemProperty("user.language", "ko")
             it.systemProperty("user.country", "KR")
+            // Screenshot mode, without the Roborazzi Gradle plugin (one plugin fewer
+            // for AGP 9 and for the F-Droid build): `-Pscreenshots=record` writes
+            // the goldens in src/test/screenshots, `verify` fails on any pixel
+            // that moved, `compare` only reports. Unset, the tests just compose.
+            (project.findProperty("screenshots") as String?)?.let { mode ->
+                require(mode in setOf("record", "verify", "compare")) { "screenshots=$mode" }
+                it.systemProperty("roborazzi.test.$mode", "true")
+            }
         }
     }
 }
@@ -138,4 +149,13 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.truth)
+
+    // Screenshot tests (docs/UI-개편-마스터플랜.md P0). Test classpath only; the
+    // manifest artifact adds the empty test activity to debug builds alone.
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

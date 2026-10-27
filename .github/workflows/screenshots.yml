@@ -1,0 +1,80 @@
+name: Screenshots
+
+# The design-system goldens (docs/UI-개편-마스터플랜.md, P0).
+#
+#  - push: verify against app/src/test/screenshots — any pixel that moved fails
+#    the run, and the diff images are uploaded so the change can be looked at.
+#  - workflow_dispatch with mode=record: write fresh goldens and upload them.
+#    Download the artifact into app/src/test/screenshots/ and commit it; that is
+#    how an intended visual change is accepted.
+#
+# Goldens are made here and only here: a font rasterised on another machine is
+# a different picture, and a golden is only as good as the machine checking it.
+
+on:
+  push:
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - '.github/workflows/screenshots.yml'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'record (write goldens) or verify'
+        required: true
+        default: verify
+        type: choice
+        options: [verify, record]
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      - name: Choose mode
+        id: mode
+        run: |
+          mode="${{ github.event.inputs.mode || 'verify' }}"
+          # Nothing to verify against before the first record.
+          if [ "$mode" = verify ] && ! ls app/src/test/screenshots/*.png >/dev/null 2>&1; then
+            mode=none
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Screenshot tests (${{ steps.mode.outputs.mode }})
+        if: steps.mode.outputs.mode != 'none'
+        run: >
+          ./gradlew testDebugUnitTest --tests '*ScreenshotTest*'
+          -Pscreenshots=${{ steps.mode.outputs.mode }} --stacktrace
+
+      - name: Upload goldens
+        if: steps.mode.outputs.mode == 'record'
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: app/src/test/screenshots/*.png
+          if-no-files-found: error
+
+      - name: Upload diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshot-diffs
+          path: |
+            app/build/outputs/roborazzi/
+            app/build/reports/tests/testDebugUnitTest/
