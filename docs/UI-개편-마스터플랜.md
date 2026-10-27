@@ -247,8 +247,8 @@
 
 | API | 1.4.0 | 비고 |
 |---|---|---|
-| `MotionScheme`(`standard()` · `expressive()`, spatial/effects × fast/default/slow) · `MaterialTheme(motionScheme=)` | **있음 · 안정** | `ExperimentalMaterial3ExpressiveApi` 표식 없음 |
-| `ShortNavigationBar` · `WideNavigationRail` | **있음 · 안정** | P2 의 하단 바 · 레일 후보 |
+| `MotionScheme`(`standard()` · `expressive()`, spatial/effects × fast/default/slow) · `MaterialTheme(motionScheme=)` | **있지만 `internal`** | 처음엔 클래스 파일에 실험 표식이 없어 «안정»으로 잘못 적었다. Kotlin `internal` 은 바이트코드 접근 플래그에 안 드러난다 — CI 컴파일(`Cannot access 'interface MotionScheme': it is internal`)과 `-sources.jar` 로 바로잡음. `ChromeMotion` 은 그 소스의 `ExpressiveMotionTokens` 값으로 `spring()` 을 직접 만든다 |
+| `ShortNavigationBar` · `WideNavigationRail` | **있음 · public**(`-sources.jar` 로 확인) | P2 의 하단 바 · 레일 후보 |
 | `ButtonGroup` · `ToggleButton` · `HorizontalFloatingToolbar` · `LoadingIndicator` · `MaterialExpressiveTheme` | **없음** | material3 1.5.0 에만(지금 beta02). P3 · P4 는 이 앱의 컴포넌트(`RapfiSegmented` 등)로 만들고, 1.5 가 안정되면 래퍼 안쪽만 바꾼다 |
 | `HapticFeedbackType` `Confirm` · `Reject` · `SegmentTick` · `SegmentFrequentTick` · `ToggleOn/Off` · `LongPress` | 있음(ui 1.8+) | `RapfiHaptics` 가 쓴다 |
 
@@ -328,7 +328,7 @@
 | 리스크 | 대응 |
 |---|---|
 | 시트가 판을 가림 / 피크 높이가 기기마다 다름 | 피크 = `화면 높이 − 판 − 툴바` 로 계산, 최소 높이 미만이면 요약 띠만 |
-| M3 Expressive 컴포넌트가 1.4.0 에 없음(P0 확인) | `MotionScheme` · 내비 · 레일은 1.4.0 안정 API 로. 버튼 그룹 · 플로팅 툴바 · 로딩은 이 앱 컴포넌트로 만들고, 1.5 안정 후 래퍼 안쪽만 교체 |
+| M3 Expressive 컴포넌트가 1.4.0 에 없음(P0 확인) | 내비 · 레일은 1.4.0 public API 로, 모션은 `ChromeMotion`(토큰 값 직접). 버튼 그룹 · 플로팅 툴바 · 로딩은 이 앱 컴포넌트로 만들고, 1.5 안정 후 래퍼 안쪽만 교체 |
 | UI 재구성 범위 확대로 분석 중 재구성 비용 증가 → NPS · 발열 | 요약 띠 · 툴바를 `BoardUiState` 의 필요한 필드만 읽는 작은 컴포저블로 분리, P3 · P6 에서 NPS 측정 |
 | 로컬 Gradle 없음 | 모든 판정은 CI(단위 시험 + 스크린샷) + 실기. 메모리 «성능 판정은 CI» 원칙 준용 |
 | 다이얼로그 → 시트 전환 시 키보드 · 뒤로가기 순서 | 공용 `RapfiSheet` 한 곳에서 IME 인셋 · predictive back 처리 |

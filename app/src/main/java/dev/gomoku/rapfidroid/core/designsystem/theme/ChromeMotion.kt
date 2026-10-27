@@ -5,7 +5,6 @@ import android.provider.Settings
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
-import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -28,44 +27,53 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * Every call names the spec it falls back to. When the system asks for reduced
  * motion (animator duration scale 0, [LocalReducedMotion]) the call site's own
  * fallback is used, so turning animations off never leaves half the app on
- * springs. The springs are Material's own (`MotionScheme.expressive()`), not
- * numbers copied into this file.
+ * springs.
+ *
+ * The springs are Material's expressive scheme. Material 3 1.4.0 keeps
+ * `MotionScheme` internal, so its six springs are restated here with the values
+ * of its `ExpressiveMotionTokens` (damping ratio, stiffness); when 1.5 makes the
+ * scheme public, these become `MotionScheme.expressive()` and nothing else moves.
  */
 object ChromeMotion {
-    private val scheme = MotionScheme.expressive()
+    private fun <T> spatialFastSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.6f, stiffness = 800f)
+    private fun <T> spatialSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.8f, stiffness = 380f)
+    private fun <T> spatialSlowSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.8f, stiffness = 200f)
+    private fun <T> effectsFastSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 3800f)
+    private fun <T> effectsSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 1600f)
+    private fun <T> effectsSlowSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 800f)
 
     /** Small components: a chip, a check, a button. */
     @Composable
     @ReadOnlyComposable
     fun <T> spatialFast(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else scheme.fastSpatialSpec()
+        if (LocalReducedMotion.current) fallback else spatialFastSpec()
 
     /** List items, panels, content changing size. */
     @Composable
     @ReadOnlyComposable
     fun <T> spatial(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else scheme.defaultSpatialSpec()
+        if (LocalReducedMotion.current) fallback else spatialSpec()
 
     /** Large surfaces travelling far. */
     @Composable
     @ReadOnlyComposable
     fun <T> spatialSlow(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else scheme.slowSpatialSpec()
+        if (LocalReducedMotion.current) fallback else spatialSlowSpec()
 
     @Composable
     @ReadOnlyComposable
     fun <T> effectsFast(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else scheme.fastEffectsSpec()
+        if (LocalReducedMotion.current) fallback else effectsFastSpec()
 
     @Composable
     @ReadOnlyComposable
     fun <T> effects(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else scheme.defaultEffectsSpec()
+        if (LocalReducedMotion.current) fallback else effectsSpec()
 
     @Composable
     @ReadOnlyComposable
     fun <T> effectsSlow(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else scheme.slowEffectsSpec()
+        if (LocalReducedMotion.current) fallback else effectsSlowSpec()
 
     /**
      * A sheet or menu arriving. Critically damped: a surface that overshoots its
