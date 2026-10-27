@@ -126,21 +126,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     }
 
     @Test
-    fun calmParts() = shot("calm_parts") {
-        CalmCard {
-            CardTitle("카드 제목") { StatusDot(RapfiTheme.colors.positive) }
-            Hint("한 줄 안내")
-            ChoiceChips(
-                options = listOf(1 to "1초", 3 to "3초", 10 to "10초", 0 to "무제한"),
-                selected = 3,
-                onSelect = {},
-            )
-        }
-        DisclosureCard(id = "screenshot-closed", title = "분석 설정", summary = "3초 · 후보 1") {}
-        DisclosureCard(id = "screenshot-open", title = "도구", defaultOpen = true) {
-            Hint("펼친 내용")
-        }
-    }
+    fun calmParts() = shot("calm_parts") { calmPartsContent() }
 
     @OptIn(ExperimentalLayoutApi::class)
     @Test
@@ -187,10 +173,61 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         )
     }
 
+    /**
+     * The theme choices of P1 — AMOLED and the wallpaper tone at a blue and a
+     * warm wallpaper — on the parts where they show: page, cards, chips, the
+     * segmented control, the buttons, the top bar. Once, not per variant: each
+     * choice fixes its own brightness.
+     */
+    @Test
+    fun themeChoices() {
+        assumeTrue(variant == Variant(dark = false, fontScale = 1f))
+        listOf(
+            Triple("amoled", true, null),
+            Triple("tone250_light", false, 250f),
+            Triple("tone250_dark", true, 250f),
+            Triple("tone30_light", false, 30f),
+        ).forEach { (tag, dark, hue) ->
+            shot("theme_$tag", dark = dark, amoled = tag == "amoled", chromeHue = hue, fileTag = null) {
+                CompositionLocalProvider(
+                    LocalShellChrome provides ShellChrome(ConnectionState.Ready, dark, onStartEngine = {}, onToggleTheme = {}),
+                ) { RapfiTopBar(title = "보드") }
+                StageBar(analysing, onMode = {}, onNewBoard = {}, onSwapSides = {})
+                AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+                calmPartsContent()
+            }
+        }
+    }
+
+    @Composable
+    private fun calmPartsContent() {
+        CalmCard {
+            CardTitle("카드 제목") { StatusDot(RapfiTheme.colors.positive) }
+            Hint("한 줄 안내")
+            ChoiceChips(
+                options = listOf(1 to "1초", 3 to "3초", 10 to "10초", 0 to "무제한"),
+                selected = 3,
+                onSelect = {},
+            )
+        }
+        DisclosureCard(id = "screenshot-closed", title = "분석 설정", summary = "3초 · 후보 1") {}
+        DisclosureCard(id = "screenshot-open", title = "도구", defaultOpen = true) {
+            Hint("펼친 내용")
+        }
+    }
+
     @OptIn(ExperimentalRoborazziApi::class)
-    private fun shot(name: String, content: @Composable () -> Unit) {
-        captureRoboImage("src/test/screenshots/${name}_${variant.tag}.png") {
-            RapfiDroidTheme(darkTheme = variant.dark) {
+    private fun shot(
+        name: String,
+        dark: Boolean = variant.dark,
+        amoled: Boolean = false,
+        chromeHue: Float? = null,
+        fileTag: String? = variant.tag,
+        content: @Composable () -> Unit,
+    ) {
+        val file = if (fileTag == null) name else "${name}_$fileTag"
+        captureRoboImage("src/test/screenshots/$file.png") {
+            RapfiDroidTheme(darkTheme = dark, amoled = amoled, chromeHue = chromeHue) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, variant.fontScale)) {
                     Surface(color = MaterialTheme.colorScheme.background) {

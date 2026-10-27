@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -33,9 +35,11 @@ import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalShellChrome
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellChrome
 import dev.gomoku.rapfidroid.core.designsystem.component.engineWord
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.EngineTarget
 import dev.gomoku.rapfidroid.data.prefs.EndpointStore
@@ -123,11 +127,19 @@ fun RapfiApp() {
             }
         }
     }
+    // What is on screen, which is not settings.txt line 27 when the theme
+    // follows the phone. The switch picks the opposite of it, and picking is a
+    // choice: it leaves «기기 설정».
+    val shownDark = MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    val prefs = LocalUiPrefs.current
     val chrome = ShellChrome(
         connection = connection,
-        dark = dark,
+        dark = shownDark,
         onStartEngine = shell::start,
-        onToggleTheme = shell::toggleTheme,
+        onToggleTheme = {
+            prefs?.themeFollowsSystem?.set(false)
+            if (dark == shownDark) shell.toggleTheme()
+        },
         thermalThreads = thermalThreads,
     )
 

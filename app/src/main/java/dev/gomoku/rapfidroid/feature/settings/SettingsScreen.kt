@@ -61,6 +61,11 @@ import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
 import dev.gomoku.rapfidroid.core.designsystem.component.FieldRow
 import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeAmoled
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeWallpaperTone
+import dev.gomoku.rapfidroid.core.designsystem.theme.wallpaperToneAvailable
+import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 import dev.gomoku.rapfidroid.core.model.AppSettings
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 import dev.gomoku.rapfidroid.core.model.SettingCategory
@@ -85,9 +90,15 @@ fun SettingsScreen(
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain"),
     ) { uri -> viewModel.onExport(uri) }
+    val prefs = LocalUiPrefs.current
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument(),
-    ) { uri -> viewModel.onImport(uri) }
+    ) { uri ->
+        // A PC settings file is imported so the app looks like the PC: its
+        // line 27 decides light or dark again, not the phone (decision D4).
+        if (uri != null) prefs?.themeFollowsSystem?.set(false)
+        viewModel.onImport(uri)
+    }
     val folderLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree(),
     ) { uri -> if (uri != null) viewModel.onImportAppearance(uri) }
@@ -551,9 +562,13 @@ private fun CommonCard(
                 onSelect = onThreads,
             )
         }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(tr("다크 모드", "Dark mode", "深色模式"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-            Switch(checked = ui.settings.darkMode, onCheckedChange = onDark)
+        if (prefs != null) {
+            ThemeRows(prefs, darkSetting = ui.settings.darkMode, onDark = onDark)
+        } else {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(tr("다크 모드", "Dark mode", "深色模式"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Switch(checked = ui.settings.darkMode, onCheckedChange = onDark)
+            }
         }
         prefs?.let { p ->
             val auto by p.autoStartEngine.state.collectAsStateWithLifecycle()
@@ -577,5 +592,64 @@ private fun CommonCard(
         OutlinedButton(onClick = onRifBuild, modifier = Modifier.fillMaxWidth()) {
             Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)", "添加对局数据 (RenjuNet)"))
         }
+    }
+}
+
+/**
+ * Light or dark, and the two looks the desktop has no line for.
+ *
+ * «라이트» and «다크» write settings.txt line 27, as the old switch did, so an
+ * exported file still carries the choice; «기기 설정» hands it to the phone
+ * (decision D4). AMOLED only changes the dark theme, and says so rather than
+ * being greyed out — someone on a light phone who turns it on gets it the
+ * moment the phone goes dark.
+ */
+@Composable
+private fun ThemeRows(prefs: UiPrefs, darkSetting: Boolean, onDark: (Boolean) -> Unit) {
+    val follow by prefs.themeFollowsSystem.state.collectAsStateWithLifecycle()
+    FieldRow(tr("테마", "Theme", "主题")) {
+        ChoiceChips(
+            options = listOf(
+                0 to tr("기기 설정", "System", "跟随系统"),
+                1 to tr("라이트", "Light", "浅色"),
+                2 to tr("다크", "Dark", "深色"),
+            ),
+            selected = when {
+                follow -> 0
+                darkSetting -> 2
+                else -> 1
+            },
+            onSelect = { choice ->
+                prefs.themeFollowsSystem.set(choice == 0)
+                if (choice != 0) onDark(choice == 2)
+            },
+        )
+    }
+    val amoled by prefs.themeAmoled.state.collectAsStateWithLifecycle()
+    SwitchRow(
+        title = tr("검은 배경", "Black background", "纯黑背景"),
+        note = tr("다크 테마에서 OLED 화면용", "Dark theme, for OLED screens", "深色主题下，适合 OLED 屏幕"),
+        checked = amoled,
+        onChange = { prefs.themeAmoled.set(it) },
+    )
+    if (wallpaperToneAvailable) {
+        val tone by prefs.themeWallpaperTone.state.collectAsStateWithLifecycle()
+        SwitchRow(
+            title = tr("배경화면 색조", "Wallpaper tone", "壁纸色调"),
+            note = tr("회색 바탕만 배경화면 쪽으로. 판과 값의 색은 그대로", "Only the greys lean toward it. Board and value colours stay", "仅灰色底色偏向壁纸，棋盘与数值颜色不变"),
+            checked = tone,
+            onChange = { prefs.themeWallpaperTone.set(it) },
+        )
+    }
+}
+
+@Composable
+private fun SwitchRow(title: String, note: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium)
+            Text(note, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = checked, onCheckedChange = onChange)
     }
 }

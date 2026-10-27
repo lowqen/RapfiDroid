@@ -28,10 +28,10 @@ data class RapfiTokens(
     val radiusBar: Dp,
     /** Chips, inputs, list rows — `shapes.small`. */
     val radiusChip: Dp,
-    /** Cards and inset panels — `shapes.medium`. */
+    /** Panels inset in a card, menus — `shapes.medium`. */
+    val radiusInset: Dp,
+    /** Cards (RapfiWeb's `.panel`, `--radius-l`), the board frame, dialogs — `shapes.large`. */
     val radiusCard: Dp,
-    /** The board frame, dialogs — `shapes.large`. */
-    val radiusPanel: Dp,
     /** Sheets, the biggest containers — `shapes.extraLarge`. */
     val radiusSheet: Dp,
 
@@ -57,8 +57,8 @@ data class RapfiTokens(
         val Standard = RapfiTokens(
             radiusBar = 4.dp,
             radiusChip = 8.dp,
-            radiusCard = 12.dp,
-            radiusPanel = 16.dp,
+            radiusInset = 12.dp,
+            radiusCard = 16.dp,
             radiusSheet = 28.dp,
             spaceXs = 2.dp,
             spaceS = 4.dp,

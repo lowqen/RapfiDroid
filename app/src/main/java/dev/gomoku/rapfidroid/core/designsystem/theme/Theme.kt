@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.core.designsystem.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -26,12 +27,12 @@ import androidx.compose.ui.platform.LocalContext
  * dark surface family sits a little higher than Material's default because the
  * near-black the desktop has always used is a shade lighter than Material's.
  */
-private val DarkColors = darkColorScheme(
-    primary = Ink.tone(90),
-    onPrimary = Ink.tone(18),
-    primaryContainer = Ink.tone(30),
-    onPrimaryContainer = Ink.tone(93),
-    inversePrimary = Ink.tone(35),
+private fun darkColors(c: ChromeRamps) = darkColorScheme(
+    primary = c.ink.tone(90),
+    onPrimary = c.ink.tone(18),
+    primaryContainer = c.ink.tone(30),
+    onPrimaryContainer = c.ink.tone(93),
+    inversePrimary = c.ink.tone(35),
 
     secondary = Sage.tone(80),
     onSecondary = Sage.tone(18),
@@ -48,73 +49,129 @@ private val DarkColors = darkColorScheme(
     errorContainer = Signal.tone(28),
     onErrorContainer = Signal.tone(92),
 
-    background = Neutral.tone(12),
-    onBackground = Neutral.tone(92),
-    surface = Neutral.tone(12),
-    onSurface = Neutral.tone(92),
-    surfaceVariant = NeutralVariant.tone(26),
-    onSurfaceVariant = NeutralVariant.tone(78),
-    surfaceTint = Ink.tone(90),
-    inverseSurface = Neutral.tone(90),
-    inverseOnSurface = Neutral.tone(18),
+    background = c.neutral.tone(12),
+    onBackground = c.neutral.tone(92),
+    surface = c.neutral.tone(12),
+    onSurface = c.neutral.tone(92),
+    surfaceVariant = c.neutralVariant.tone(26),
+    onSurfaceVariant = c.neutralVariant.tone(78),
+    surfaceTint = c.ink.tone(90),
+    inverseSurface = c.neutral.tone(90),
+    inverseOnSurface = c.neutral.tone(18),
 
-    outline = NeutralVariant.tone(52),
-    outlineVariant = NeutralVariant.tone(28),
+    outline = c.neutralVariant.tone(52),
+    outlineVariant = c.neutralVariant.tone(28),
     scrim = Color.Black,
 
-    surfaceBright = Neutral.tone(30),
-    surfaceDim = Neutral.tone(9),
-    surfaceContainerLowest = Neutral.tone(8),
-    surfaceContainerLow = Neutral.tone(14),
-    surfaceContainer = Neutral.tone(17),
-    surfaceContainerHigh = Neutral.tone(21),
-    surfaceContainerHighest = Neutral.tone(25),
+    surfaceBright = c.neutral.tone(30),
+    surfaceDim = c.neutral.tone(9),
+    surfaceContainerLowest = c.neutral.tone(8),
+    surfaceContainerLow = c.neutral.tone(14),
+    surfaceContainer = c.neutral.tone(17),
+    surfaceContainerHigh = c.neutral.tone(21),
+    surfaceContainerHighest = c.neutral.tone(25),
 )
 
-private val LightColors = lightColorScheme(
-    primary = Ink.tone(24),
-    onPrimary = Neutral.tone(99),
-    primaryContainer = Ink.tone(90),
-    onPrimaryContainer = Ink.tone(18),
-    inversePrimary = Ink.tone(80),
+private fun lightColors(c: ChromeRamps) = lightColorScheme(
+    primary = c.ink.tone(24),
+    onPrimary = c.neutral.tone(99),
+    primaryContainer = c.ink.tone(90),
+    onPrimaryContainer = c.ink.tone(18),
+    inversePrimary = c.ink.tone(80),
 
     secondary = Sage.tone(36),
-    onSecondary = Neutral.tone(100),
+    onSecondary = c.neutral.tone(100),
     secondaryContainer = Sage.tone(90),
     onSecondaryContainer = Sage.tone(20),
 
     tertiary = Clay.tone(38),
-    onTertiary = Neutral.tone(100),
+    onTertiary = c.neutral.tone(100),
     tertiaryContainer = Clay.tone(90),
     onTertiaryContainer = Clay.tone(20),
 
     error = Signal.tone(42),
-    onError = Neutral.tone(100),
+    onError = c.neutral.tone(100),
     errorContainer = Signal.tone(92),
     onErrorContainer = Signal.tone(20),
 
-    background = Neutral.tone(98),
-    onBackground = Neutral.tone(14),
-    surface = Neutral.tone(98),
-    onSurface = Neutral.tone(14),
-    surfaceVariant = NeutralVariant.tone(92),
-    onSurfaceVariant = NeutralVariant.tone(38),
-    surfaceTint = Ink.tone(24),
-    inverseSurface = Neutral.tone(20),
-    inverseOnSurface = Neutral.tone(96),
+    background = c.neutral.tone(98),
+    onBackground = c.neutral.tone(14),
+    surface = c.neutral.tone(98),
+    onSurface = c.neutral.tone(14),
+    surfaceVariant = c.neutralVariant.tone(92),
+    onSurfaceVariant = c.neutralVariant.tone(38),
+    surfaceTint = c.ink.tone(24),
+    inverseSurface = c.neutral.tone(20),
+    inverseOnSurface = c.neutral.tone(96),
 
-    outline = NeutralVariant.tone(52),
-    outlineVariant = NeutralVariant.tone(84),
+    outline = c.neutralVariant.tone(52),
+    outlineVariant = c.neutralVariant.tone(84),
     scrim = Color.Black,
 
-    surfaceBright = Neutral.tone(99),
-    surfaceDim = Neutral.tone(88),
-    surfaceContainerLowest = Neutral.tone(100),
-    surfaceContainerLow = Neutral.tone(96),
-    surfaceContainer = Neutral.tone(94),
-    surfaceContainerHigh = Neutral.tone(92),
-    surfaceContainerHighest = Neutral.tone(90),
+    surfaceBright = c.neutral.tone(99),
+    surfaceDim = c.neutral.tone(88),
+    surfaceContainerLowest = c.neutral.tone(100),
+    surfaceContainerLow = c.neutral.tone(96),
+    surfaceContainer = c.neutral.tone(94),
+    surfaceContainerHigh = c.neutral.tone(92),
+    surfaceContainerHighest = c.neutral.tone(90),
 )
+
+private val DarkColors = darkColors(ChromeRamps.Standard)
+private val LightColors = lightColors(ChromeRamps.Standard)
+
+/**
+ * The three ramps the chrome is drawn from — paper, ink and the outlines.
+ *
+ * They are the only colour anything outside the app may move (decision D1 of
+ * docs/UI-개편-마스터플랜.md). The wallpaper tone swaps their **hue** and keeps
+ * their chroma, which is a few thousandths: the paper leans toward the
+ * wallpaper, and nothing on screen starts to mean something. Sage, Clay, Signal,
+ * the result colours and the board are not chrome and never move.
+ */
+internal class ChromeRamps(val ink: TonalRamp, val neutral: TonalRamp, val neutralVariant: TonalRamp) {
+    companion object {
+        val Standard = ChromeRamps(Ink, Neutral, NeutralVariant)
+
+        fun ofHue(hue: Float) = ChromeRamps(
+            TonalRamp(hue, Ink.chroma),
+            TonalRamp(hue, Neutral.chroma),
+            TonalRamp(hue, NeutralVariant.chroma),
+        )
+    }
+}
+
+/**
+ * Black instead of near-black, for OLED screens — Mornye's AMOLED pass, on this
+ * app's warm paper.
+ *
+ * Only the page goes to tone 0. The containers keep Material's dark spacing
+ * between them (tones 5 · 7 · 12 · 17, the steps Mornye measured out for the
+ * same job) so a card still stands off the page where no shadow can show, and
+ * the navigation bar keeps its container tier instead of dissolving into the
+ * black. The board keeps its dark wood: it is drawn on the page, not by it.
+ */
+internal fun ColorScheme.amoled(neutral: TonalRamp): ColorScheme = copy(
+    background = neutral.tone(0),
+    surface = neutral.tone(0),
+    surfaceDim = neutral.tone(0),
+    surfaceContainerLowest = neutral.tone(0),
+    surfaceContainerLow = neutral.tone(5),
+    surfaceContainer = neutral.tone(7),
+    surfaceContainerHigh = neutral.tone(12),
+    surfaceContainerHighest = neutral.tone(17),
+    surfaceBright = neutral.tone(22),
+)
+
+/** The scheme for one theme choice; [chromeHue] null is the app's own warm paper. */
+internal fun colorSchemeFor(dark: Boolean, amoled: Boolean, chromeHue: Float?): ColorScheme {
+    val chrome = chromeHue?.let(ChromeRamps::ofHue) ?: ChromeRamps.Standard
+    return when {
+        !dark -> if (chromeHue == null) LightColors else lightColors(chrome)
+        amoled -> (if (chromeHue == null) DarkColors else darkColors(chrome)).amoled(chrome.neutral)
+        else -> if (chromeHue == null) DarkColors else darkColors(chrome)
+    }
+}
 
 /** The app's own colours, alongside Material's. See [RapfiColors]. */
 val LocalYixinColors = staticCompositionLocalOf { RapfiColors.Light }
@@ -143,20 +200,27 @@ object RapfiTheme {
 }
 
 /**
- * @param darkTheme follows settings.txt line 27, not the system — the desktop
- *   setting is the oracle, and a user who imported their PC settings expects the
- *   app to look like their PC. [isSystemInDarkTheme] is only the default.
+ * @param darkTheme settings.txt line 27 by default — the desktop setting is the
+ *   oracle, and a user who imported their PC settings expects the app to look
+ *   like their PC — or the phone's own setting when the user chose «기기 설정»
+ *   ([themeFollowsSystem]). The activity decides; this only paints.
+ * @param amoled black page and containers in the dark theme ([amoled]).
+ * @param chromeHue the wallpaper's hue for the chrome ramps, or null.
  *
- * **Dynamic colour is deliberately not offered.** Material You would repaint the
- * chrome from the user's wallpaper, and this app already spends colour on
- * meaning: a wallpaper-green button next to a board where green means "even" is
- * a collision the user cannot switch off.
+ * **Full dynamic colour is deliberately not offered.** Material You would
+ * repaint the chrome from the user's wallpaper, and this app already spends
+ * colour on meaning: a wallpaper-green button next to a board where green means
+ * "even" is a collision the user cannot switch off. What is offered instead is
+ * the wallpaper's *hue* on the near-colourless chrome ramps ([ChromeRamps]).
  */
 @Composable
 fun RapfiDroidTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    amoled: Boolean = false,
+    chromeHue: Float? = null,
     content: @Composable () -> Unit,
 ) {
+    val scheme = remember(darkTheme, amoled, chromeHue) { colorSchemeFor(darkTheme, amoled, chromeHue) }
     val context = LocalContext.current
     val reduced = remember(context) { reducedMotion(context) }
     CompositionLocalProvider(
@@ -165,7 +229,7 @@ fun RapfiDroidTheme(
         LocalReducedMotion provides reduced,
     ) {
         MaterialTheme(
-            colorScheme = if (darkTheme) DarkColors else LightColors,
+            colorScheme = scheme,
             typography = Typography,
             shapes = Shapes,
             content = content,

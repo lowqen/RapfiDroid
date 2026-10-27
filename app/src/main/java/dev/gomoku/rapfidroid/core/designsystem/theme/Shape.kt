@@ -14,8 +14,10 @@ import androidx.compose.material3.Shapes
  *
  * - extraSmall 4dp — bars, meters, the small filled things
  * - small 8dp — chips, inputs, list rows
- * - medium 12dp — cards and inset panels
- * - large 16dp — the board frame, dialogs
+ * - medium 12dp — panels inset in a card, menus
+ * - large 16dp — cards, the board frame, dialogs. Cards are 16, not 12: that
+ *   is RapfiWeb's `.panel` (`--radius-l`), and the two stay one scale (D5).
+ *   This line used to say cards were medium, which no card ever was.
  * - extraLarge 28dp — sheets, the biggest containers
  *
  * The numbers live in [RapfiTokens]; this maps them onto the Material slots.
@@ -24,8 +26,8 @@ val Shapes = RapfiTokens.Standard.let { t ->
     Shapes(
         extraSmall = RoundedCornerShape(t.radiusBar),
         small = RoundedCornerShape(t.radiusChip),
-        medium = RoundedCornerShape(t.radiusCard),
-        large = RoundedCornerShape(t.radiusPanel),
+        medium = RoundedCornerShape(t.radiusInset),
+        large = RoundedCornerShape(t.radiusCard),
         extraLarge = RoundedCornerShape(t.radiusSheet),
     )
 }

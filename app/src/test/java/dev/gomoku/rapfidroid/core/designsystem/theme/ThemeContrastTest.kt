@@ -139,6 +139,113 @@ class ThemeContrastTest {
         assertThat(luminanceOf(greedy)).isWithin(0.02f).of(luminanceOf(sane))
     }
 
+    // ---- theme choices (UI overhaul P1: AMOLED, wallpaper tone) --------------
+
+    /** No tone, then every 15° of the wheel — any wallpaper a phone can have. */
+    private val hues: List<Float?> = listOf<Float?>(null) + (0 until 360 step 15).map { it.toFloat() }
+
+    private fun variants(): List<Pair<String, ColorScheme>> = hues.flatMap { hue ->
+        listOf(
+            "light@$hue" to colorSchemeFor(dark = false, amoled = false, chromeHue = hue),
+            "dark@$hue" to colorSchemeFor(dark = true, amoled = false, chromeHue = hue),
+            "amoled@$hue" to colorSchemeFor(dark = true, amoled = true, chromeHue = hue),
+        )
+    }
+
+    @Test
+    fun `every theme choice keeps every text pair at AA`() {
+        variants().forEach { (name, s) ->
+            textPairs(s).forEach { (label, pair) ->
+                assertWithMessage("$name — $label")
+                    .that(contrastRatio(pair.first, pair.second)).isAtLeast(aa)
+            }
+            assertWithMessage("$name — outline").that(contrastRatio(s.outline, s.surface)).isAtLeast(aaLarge)
+            assertWithMessage("$name — outlineVariant").that(contrastRatio(s.outlineVariant, s.surface)).isAtLeast(1.15f)
+        }
+    }
+
+    @Test
+    fun `the app's own colours stay readable whatever the theme choice`() {
+        variants().forEach { (name, s) ->
+            val colors = if (name.startsWith("light")) RapfiColors.Light else RapfiColors.Dark
+            listOf(colors.resultBlack, colors.resultWhite, colors.resultDraw, colors.positive, colors.caution).forEach { c ->
+                assertWithMessage("$name — ${c.toHex()} on surface").that(contrastRatio(c, s.surface)).isAtLeast(aa)
+                assertWithMessage("$name — ${c.toHex()} on card").that(contrastRatio(c, s.surfaceContainer)).isAtLeast(aa)
+            }
+        }
+    }
+
+    @Test
+    fun `the wallpaper tone leaves the chrome nearly colourless`() {
+        // D1: the wallpaper moves the hue of the paper and the ink, never enough
+        // for either to read as a colour. Ink's own chroma is 0.020.
+        variants().forEach { (name, s) ->
+            listOf(
+                "surface" to s.surface, "surfaceContainer" to s.surfaceContainer,
+                "surfaceContainerHighest" to s.surfaceContainerHighest, "onSurface" to s.onSurface,
+                "outline" to s.outline, "primary" to s.primary, "primaryContainer" to s.primaryContainer,
+            ).forEach { (role, c) ->
+                assertWithMessage("$name — $role chroma").that(oklchOf(c)[1]).isAtMost(0.025f)
+            }
+        }
+    }
+
+    @Test
+    fun `a tinted button never passes for a colour that means something`() {
+        // The primary button against every colour that carries a meaning, in
+        // OKLab. 0.08 is a plain "different colour"; the worst case measured
+        // is 0.11 (dark, a green wallpaper, against «positive»).
+        variants().forEach { (name, s) ->
+            val colors = if (name.startsWith("light")) RapfiColors.Light else RapfiColors.Dark
+            listOf(colors.resultBlack, colors.resultWhite, colors.resultDraw, colors.positive, colors.caution).forEach { c ->
+                assertWithMessage("$name — primary ${s.primary.toHex()} vs ${c.toHex()}")
+                    .that(oklabDistance(s.primary, c)).isAtLeast(0.08f)
+            }
+        }
+    }
+
+    @Test
+    fun `amoled is black and its cards still stand off it`() {
+        val s = colorSchemeFor(dark = true, amoled = true, chromeHue = null)
+        assertThat(luminanceOf(s.surface)).isWithin(0.0005f).of(0f)
+        assertThat(luminanceOf(s.background)).isWithin(0.0005f).of(0f)
+        // Cards, the navigation bar and dialogs climb in Material's dark steps.
+        val ladder = listOf(s.surfaceContainerLow, s.surfaceContainer, s.surfaceContainerHigh, s.surfaceContainerHighest)
+            .map { luminanceOf(it) }
+        assertThat(ladder).isInStrictOrder()
+        // Tone 7 on black is 1.155:1 — faint on purpose (Mornye's #161616 does
+        // the same job); the card's hairline border carries the edge.
+        assertThat(contrastRatio(s.surfaceContainer, s.surface)).isAtLeast(1.12f)
+        assertThat(contrastRatio(s.outlineVariant, s.surfaceContainer)).isAtLeast(1.15f)
+        // The board keeps its dark wood, which still sits above the page.
+        assertThat(luminanceOf(BoardSkin.Dark.wood)).isGreaterThan(luminanceOf(s.surface))
+    }
+
+    @Test
+    fun `no wallpaper tone is the app's own palette exactly`() {
+        assertThat(colorSchemeFor(dark = false, amoled = false, chromeHue = null)).isSameInstanceAs(LightColorsForTest)
+        assertThat(colorSchemeFor(dark = true, amoled = false, chromeHue = null)).isSameInstanceAs(DarkColorsForTest)
+    }
+
+    @Test
+    fun `reading a colour back gives the hue it was made with`() {
+        val c = oklch(0.6f, 0.08f, 148f)
+        val (_, chroma, hue) = oklchOf(c)
+        assertThat(hue).isWithin(1.5f).of(148f)
+        assertThat(chroma).isWithin(0.005f).of(0.08f)
+    }
+
+    private fun oklabDistance(a: Color, b: Color): Float {
+        fun lab(c: Color): Triple<Float, Float, Float> {
+            val (l, ch, h) = oklchOf(c)
+            val rad = Math.toRadians(h.toDouble())
+            return Triple(l, ch * kotlin.math.cos(rad).toFloat(), ch * kotlin.math.sin(rad).toFloat())
+        }
+        val (l1, a1, b1) = lab(a)
+        val (l2, a2, b2) = lab(b)
+        return kotlin.math.sqrt((l1 - l2) * (l1 - l2) + (a1 - a2) * (a1 - a2) + (b1 - b2) * (b1 - b2))
+    }
+
     /** Every pair in the schemes where one colour is text on the other. */
     private fun textPairs(s: ColorScheme): List<Pair<String, Pair<Color, Color>>> = listOf(
         "onBackground / background" to (s.onBackground to s.background),

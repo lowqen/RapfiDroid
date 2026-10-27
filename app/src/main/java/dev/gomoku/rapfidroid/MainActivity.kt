@@ -12,9 +12,12 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +25,10 @@ import dagger.hilt.android.AndroidEntryPoint
 import dev.gomoku.rapfidroid.core.common.IncomingLinks
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiDroidTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeAmoled
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
+import dev.gomoku.rapfidroid.core.designsystem.theme.themeWallpaperTone
+import dev.gomoku.rapfidroid.core.designsystem.theme.wallpaperHue
 import dev.gomoku.rapfidroid.core.joseki.LessonLink
 import dev.gomoku.rapfidroid.core.model.HotkeyMap
 import dev.gomoku.rapfidroid.data.engine.DebugLogWriter
@@ -72,17 +79,27 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) takeLink(intent)
         setContent {
             val current by settings.settings.collectAsStateWithLifecycle()
-            // The system bars follow *this app's* dark mode (settings.txt line
-            // 27), not the phone's. Without this, a user running the app dark on
-            // a light phone got dark status-bar icons on a dark bar — invisible.
-            LaunchedEffect(current.darkMode) {
+            val followSystem by uiPrefs.themeFollowsSystem.state.collectAsStateWithLifecycle()
+            val amoled by uiPrefs.themeAmoled.state.collectAsStateWithLifecycle()
+            val wallpaperTone by uiPrefs.themeWallpaperTone.state.collectAsStateWithLifecycle()
+            // settings.txt line 27, unless the user chose «기기 설정».
+            val dark = if (followSystem) isSystemInDarkTheme() else current.darkMode
+            // Re-read when the wallpaper changes: Android recreates the activity.
+            val context = LocalContext.current
+            val chromeHue = remember(wallpaperTone, context) {
+                if (wallpaperTone) wallpaperHue(context) else null
+            }
+            // The system bars follow *this app's* theme, not the phone's.
+            // Without this, a user running the app dark on a light phone got
+            // dark status-bar icons on a dark bar — invisible.
+            LaunchedEffect(dark) {
                 val style = SystemBarStyle.auto(
                     Color.TRANSPARENT,
                     Color.TRANSPARENT,
-                ) { current.darkMode }
+                ) { dark }
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
-            RapfiDroidTheme(darkTheme = current.darkMode) {
+            RapfiDroidTheme(darkTheme = dark, amoled = amoled, chromeHue = chromeHue) {
                 CompositionLocalProvider(LocalUiPrefs provides uiPrefs) {
                     RapfiApp()
                 }

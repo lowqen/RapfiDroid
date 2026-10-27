@@ -2,11 +2,13 @@ package dev.gomoku.rapfidroid.core.designsystem.theme
 
 import androidx.compose.ui.graphics.Color
 import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.cbrt
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * The colour maths the theme is built from.
@@ -137,6 +139,25 @@ internal fun srgbToLinear(c: Float): Float {
 internal fun linearToSrgb(c: Float): Float {
     val v = c.coerceIn(0f, 1f)
     return if (v <= 0.0031308f) v * 12.92f else 1.055f * v.pow(1f / 2.4f) - 0.055f
+}
+
+/**
+ * A colour read back into OKLCH: `(lightness, chroma, hue°)`. The other
+ * direction of [oklch], Ottosson's forward matrices — used to take the hue off
+ * a colour the app did not make (the wallpaper's), never to build the palette.
+ */
+fun oklchOf(color: Color): FloatArray {
+    val r = srgbToLinear(color.red)
+    val g = srgbToLinear(color.green)
+    val b = srgbToLinear(color.blue)
+    val l = cbrt(0.4122214708f * r + 0.5363325363f * g + 0.0514459929f * b)
+    val m = cbrt(0.2119034982f * r + 0.6806995451f * g + 0.1073969566f * b)
+    val s = cbrt(0.0883024619f * r + 0.2817188376f * g + 0.6299787005f * b)
+    val lightness = 0.2104542553f * l + 0.7936177850f * m - 0.0040720468f * s
+    val aa = 1.9779984951f * l - 2.4285922050f * m + 0.4505937099f * s
+    val bb = 0.0259040371f * l + 0.7827717662f * m - 0.8086757660f * s
+    val hue = Math.toDegrees(atan2(bb, aa).toDouble()).toFloat().let { if (it < 0f) it + 360f else it }
+    return floatArrayOf(lightness, sqrt(aa * aa + bb * bb), hue)
 }
 
 /** Debug helper: `#RRGGBB` of a colour, used by the palette's own test output. */
