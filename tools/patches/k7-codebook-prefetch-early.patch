@@ -1,0 +1,31 @@
+diff --git a/Rapfi/eval/mix9svqnnue.cpp b/Rapfi/eval/mix9svqnnue.cpp
+index 1e043a9..58d6b98 100644
+--- a/Rapfi/eval/mix9svqnnue.cpp
++++ b/Rapfi/eval/mix9svqnnue.cpp
+@@ -488,6 +488,12 @@ void Accumulator::move(const Weight &w, Color pieceColor, int x, int y)
+             c.oldCodebookIdx = w.mapping_index[c.mappingIdx][oldShape];
+             c.newCodebookIdx = w.mapping_index[c.mappingIdx][newShape];
+ 
++            // Prefetch both codebook rows as soon as their index is known: the codebook is 16MB and
++            // read at random, so on small-cache phones the rows come from DRAM. Prefetching only the
++            // next change from the update loop below left too little lead time (D2 on Galaxy A16).
++            multiPrefetch<sizeof(int16_t) * FeatureDim>(w.codebook[c.mappingIdx][c.oldCodebookIdx]);
++            multiPrefetch<sizeof(int16_t) * FeatureDim>(w.codebook[c.mappingIdx][c.newCodebookIdx]);
++
+             versionInnerIndexTable[innerVersionIdxBase + innerIdx] = newMapIdx++;
+         }
+     }
+@@ -503,13 +509,6 @@ void Accumulator::move(const Weight &w, Color pieceColor, int x, int y)
+     // Incremental update feature sum
+     for (int i = 0; i < changeCount; i++) {
+         const OnePointChange &c = changeTable[i];
+-        if (i + 1 < changeCount) {
+-            const OnePointChange &cnext = changeTable[i + 1];
+-            multiPrefetch<sizeof(int16_t) * FeatureDim>(
+-                w.codebook[cnext.mappingIdx][cnext.oldCodebookIdx]);
+-            multiPrefetch<sizeof(int16_t) * FeatureDim>(
+-                w.codebook[cnext.mappingIdx][cnext.newCodebookIdx]);
+-        }
+ 
+         // Update mapSum
+         I16Op::R oldFeats[FeatB::NumBatch];

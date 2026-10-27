@@ -1,0 +1,42 @@
+diff --git a/Rapfi/search/searchengine.cpp b/Rapfi/search/searchengine.cpp
+index 3afe0f2..36ffd23 100644
+--- a/Rapfi/search/searchengine.cpp
++++ b/Rapfi/search/searchengine.cpp
+@@ -241,6 +241,24 @@ void SearchEngine::waitForIdle()
+ 
+ void SearchEngine::setNumThreads(size_t numThreads)
+ {
++    // Keep the evaluators of the old threads alive across the rebuild and hand them over to the
++    // new threads. Destroying them would drop the last references to their weights, so that
++    // WeightRegistry frees the weights and the next search loads them from file again. A
++    // handed-over evaluator is the same as a newly made one for the search, since it is re-synced
++    // with the board at every search (setBoardAndEvaluator), and one of a different board size or
++    // rule is replaced there as usual. With NUMA binding the weights may sit on another node than
++    // the new thread, so evaluators are only kept when neither thread set binds groups. Releasing
++    // all threads (numThreads == 0) still frees the evaluators together with their weights.
++    std::vector<std::unique_ptr<Evaluation::Evaluator>> evaluators;
++    if (numThreads > 0 && threads_.size() <= Numa::BindGroupThreshold
++        && numThreads <= Numa::BindGroupThreshold) {
++        waitForIdle();
++        for (auto &th : threads_) {
++            th->board.reset();
++            evaluators.push_back(std::move(th->evaluator));
++        }
++    }
++
+     // Destroy all threads first (which will also wait for them to be idle)
+     while (!threads_.empty())
+         threads_.pop_back();  // std::unique_ptr will automatically destroy thread
+@@ -258,6 +276,12 @@ void SearchEngine::setNumThreads(size_t numThreads)
+         }
+ #endif
+ 
++        // Hand over the kept evaluators before the threads start. The ones left over (when
++        // the thread count shrinks) are destroyed at the end of this function, while the
++        // evaluators handed over still hold their (shared) weights.
++        for (size_t i = 0; i < evaluators.size() && i < threads_.size(); i++)
++            threads_[i]->evaluator = std::move(evaluators[i]);
++
+         // Init the threads
+         for (auto &th : threads_)
+             th->init(bindGroup);

@@ -1,0 +1,84 @@
+diff --git a/Rapfi/search/searchengine.cpp b/Rapfi/search/searchengine.cpp
+index 36ffd23..0aad5a4 100644
+--- a/Rapfi/search/searchengine.cpp
++++ b/Rapfi/search/searchengine.cpp
+@@ -40,6 +40,9 @@ namespace Search {
+ 
+ namespace {
+ 
++/// Interval (ms) of the periodic node-count print in SearchContext::checkExit().
++constexpr Time StatsPrintInterval = 500;
++
+ /// Generate the root move list for the main thread from the current board
+ /// position and options: applies block-move filtering, balance2 move pair
+ /// expansion, and root symmetry filtering.
+@@ -173,6 +176,7 @@ void SearchContext::reset(const SearchOptions &opts, bool ponder)
+     options                  = opts;
+     inPonder                 = ponder;
+     callsCnt                 = 0;
++    lastStatsPrint           = 0;
+     startPonderAfterThinking = false;
+     resultAction             = ActionType::Move;
+     bestMove                 = Pos::NONE;
+@@ -198,6 +202,17 @@ void SearchContext::checkExit(uint32_t elapsedCalls)
+     if (inPonder.load(std::memory_order_relaxed))
+         return;
+ 
++    // Periodically report node counters. Otherwise they are only printed when a Pv completes,
++    // and a deep iteration of a long multi-threaded search can go seconds without any count.
++    // Output only: the search itself is unaffected.
++    if (options.infoMode & SearchOptions::INFO_DETAIL) {
++        Time elapsed = timectl.elapsed();
++        if (elapsed - lastStatsPrint >= StatsPrintInterval) {
++            lastStatsPrint = elapsed;
++            printer.printSearchStats(engine->nodesSearched(), elapsed);
++        }
++    }
++
+     // Check if we have reached node/time limits
+     if (options.maxNodes && engine->nodesSearched() >= options.maxNodes
+         || options.timeLimit && engine->searcher()->checkTimeupCondition(timectl)) {
+diff --git a/Rapfi/search/searchengine.h b/Rapfi/search/searchengine.h
+index a21f589..24890ac 100644
+--- a/Rapfi/search/searchengine.h
++++ b/Rapfi/search/searchengine.h
+@@ -94,6 +94,8 @@ struct SearchContext
+     SearchPrinter printer;
+     /// Calls count before exit condition check (main search thread only)
+     uint32_t callsCnt;
++    /// Elapsed time of the last periodic node-count print (main search thread only)
++    Time lastStatsPrint;
+     /// Should we start pondering after finishing this move?
+     /// (set during search, read by the protocol thread)
+     std::atomic_bool startPonderAfterThinking;
+diff --git a/Rapfi/search/searchoutput.cpp b/Rapfi/search/searchoutput.cpp
+index 7b3c211..108747f 100644
+--- a/Rapfi/search/searchoutput.cpp
++++ b/Rapfi/search/searchoutput.cpp
+@@ -147,6 +147,13 @@ void SearchPrinter::printPvCompletes(SearchThread      &th,
+     }
+ }
+ 
++void SearchPrinter::printSearchStats(uint64_t nodes, int64_t elapsed)
++{
++    INFO("TOTALNODES", nodes);
++    INFO("TOTALTIME", elapsed);
++    INFO("SPEED", nodes * 1000 / std::max<int64_t>(elapsed, 1));
++}
++
+ void SearchPrinter::printDepthCompletes(SearchThread &th, const TimeControl &tc, int rootDepth)
+ {
+     if (Config::GeneralCfg.messageMode == MsgMode::NORMAL) {
+diff --git a/Rapfi/search/searchoutput.h b/Rapfi/search/searchoutput.h
+index a11d802..1cbfe1a 100644
+--- a/Rapfi/search/searchoutput.h
++++ b/Rapfi/search/searchoutput.h
+@@ -60,6 +60,8 @@ struct SearchPrinter
+     printPvCompletes(SearchThread &th, const TimeControl &tc, int rootDepth, int pvIdx, int numPv);
+     /// Print when one iterative depth completes.
+     void printDepthCompletes(SearchThread &th, const TimeControl &tc, int rootDepth);
++    /// Print running node counters (periodically, from the exit-condition check).
++    void printSearchStats(uint64_t nodes, int64_t elapsed);
+     /// Print root moves after some visits completed. (MCTS)
+     void printRootMoves(SearchThread &th, const TimeControl &tc, size_t numRootMovesToDisplay);
+     /// Print when search finishes.
