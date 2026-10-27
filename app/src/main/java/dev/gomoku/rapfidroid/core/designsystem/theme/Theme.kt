@@ -7,8 +7,10 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Both schemes, **every role filled**.
@@ -123,6 +125,7 @@ val LocalYixinColors = staticCompositionLocalOf { RapfiColors.Light }
  *     Text(label, color = RapfiTheme.colors.resultBlack)
  *     GomokuBoard(render, skin = RapfiTheme.board)
  *     Spacer(Modifier.height(RapfiTheme.spacing.l))
+ *     Modifier.padding(RapfiTheme.tokens.screenPadding)
  */
 object RapfiTheme {
     val colors: RapfiColors
@@ -133,6 +136,10 @@ object RapfiTheme {
         @Composable @ReadOnlyComposable get() = LocalYixinColors.current.board
 
     val spacing: Spacing get() = Spacing
+
+    /** Corners, spacing and touch size; see [RapfiTokens]. */
+    val tokens: RapfiTokens
+        @Composable @ReadOnlyComposable get() = LocalRapfiTokens.current
 }
 
 /**
@@ -150,8 +157,12 @@ fun RapfiDroidTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
+    val context = LocalContext.current
+    val reduced = remember(context) { reducedMotion(context) }
     CompositionLocalProvider(
         LocalYixinColors provides if (darkTheme) RapfiColors.Dark else RapfiColors.Light,
+        LocalRapfiTokens provides RapfiTokens.Standard,
+        LocalReducedMotion provides reduced,
     ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,

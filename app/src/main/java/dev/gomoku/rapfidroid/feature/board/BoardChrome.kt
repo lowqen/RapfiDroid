@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LastPage
@@ -32,18 +31,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -51,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_VALUE
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
@@ -78,7 +73,15 @@ internal fun StageBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ModeTabs(ui.mode, onMode)
+        // Analysis first — it is what a first visit opens on.
+        RapfiSegmented(
+            options = listOf(
+                BoardMode.ANALYSIS to tr("분석", "Analysis", "分析"),
+                BoardMode.GAME to tr("대국", "Play", "对局"),
+            ),
+            selection = ui.mode,
+            onSelect = onMode,
+        )
         OutlinedButton(
             onClick = onNewBoard,
             contentPadding = PaddingValues(horizontal = 12.dp),
@@ -93,42 +96,6 @@ internal fun StageBar(
                 !ui.game.thinking && ui.game.prompt == null
             IconButton(onClick = onSwapSides, enabled = canSwap) {
                 Icon(Icons.Filled.SwapHoriz, contentDescription = tr("진영 전환", "Swap sides", "交换执子"))
-            }
-        }
-    }
-}
-
-/** Analysis first — it is what a first visit opens on. */
-@Composable
-private fun ModeTabs(mode: BoardMode, onMode: (BoardMode) -> Unit) {
-    Surface(
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.height(40.dp),
-    ) {
-        Row(Modifier.padding(3.dp), verticalAlignment = Alignment.CenterVertically) {
-            listOf(
-                BoardMode.ANALYSIS to tr("분석", "Analysis", "分析"),
-                BoardMode.GAME to tr("대국", "Play", "对局"),
-            ).forEach { (m, label) ->
-                val on = m == mode
-                Surface(
-                    onClick = { onMode(m) },
-                    shape = CircleShape,
-                    color = if (on) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent,
-                    contentColor = if (on) MaterialTheme.colorScheme.onSecondaryContainer
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .semantics {
-                            role = Role.Tab
-                            selected = on
-                        },
-                ) {
-                    Box(Modifier.padding(horizontal = 16.dp), contentAlignment = Alignment.Center) {
-                        Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                    }
-                }
             }
         }
     }

@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTokens
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.Duration
 import dev.gomoku.rapfidroid.data.prefs.UiPrefs
@@ -347,7 +348,7 @@ fun TimePicker(
 }
 
 /** Padding every scrolling screen uses around its cards. */
-val ScreenPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp)
+val ScreenPadding = PaddingValues(RapfiTokens.Standard.screenPadding)
 
 /**
  * A drop-in for Material's `Card` with the calm face (white, hairline, no

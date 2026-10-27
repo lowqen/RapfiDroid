@@ -2,7 +2,6 @@ package dev.gomoku.rapfidroid.core.designsystem.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
-import androidx.compose.ui.unit.dp
 
 /**
  * One corner scale, five steps.
@@ -18,11 +17,15 @@ import androidx.compose.ui.unit.dp
  * - medium 12dp — cards and inset panels
  * - large 16dp — the board frame, dialogs
  * - extraLarge 28dp — sheets, the biggest containers
+ *
+ * The numbers live in [RapfiTokens]; this maps them onto the Material slots.
  */
-val Shapes = Shapes(
-    extraSmall = RoundedCornerShape(4.dp),
-    small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
-    large = RoundedCornerShape(16.dp),
-    extraLarge = RoundedCornerShape(28.dp),
-)
+val Shapes = RapfiTokens.Standard.let { t ->
+    Shapes(
+        extraSmall = RoundedCornerShape(t.radiusBar),
+        small = RoundedCornerShape(t.radiusChip),
+        medium = RoundedCornerShape(t.radiusCard),
+        large = RoundedCornerShape(t.radiusPanel),
+        extraLarge = RoundedCornerShape(t.radiusSheet),
+    )
+}
