@@ -7,6 +7,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
@@ -38,10 +39,18 @@
             </intent-filter>
         </activity>
 
+        <!-- specialUse on Android 14+ (T2): an engine session — an open-ended analysis
+             the user is watching, or a link to the server — has no fixed end, and
+             dataSync gets six hours a day and an onTimeout on Android 15. Below 14
+             the service starts as dataSync, which has no such limit there. -->
         <service
             android:name=".data.engine.EngineService"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync|specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps a user-started game engine session (on-device Rapfi search or the link to the user's own engine server) running while its result is shown in an ongoing notification." />
+        </service>
 
         <!-- Building the opening packs from a .rif takes minutes and must
              survive the screen going off; nothing here touches the network. -->

@@ -14,6 +14,7 @@ import dev.gomoku.rapfidroid.core.model.LinkHealth
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.Position
+import dev.gomoku.rapfidroid.core.model.capThreads
 import dev.gomoku.rapfidroid.data.prefs.LocalEngineStore
 import dev.gomoku.rapfidroid.domain.engine.CoordMapper
 import dev.gomoku.rapfidroid.domain.engine.EngineCommand
@@ -42,6 +43,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -56,6 +58,7 @@ class EngineRepositoryImpl @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val localEngine: LocalEngineInstaller,
     private val localEngineStore: LocalEngineStore,
+    private val thermal: ThermalMonitor,
     @ApplicationContext private val context: Context,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : EngineRepository {
@@ -87,7 +90,8 @@ class EngineRepositoryImpl @Inject constructor(
      * Resource limits for the on-device engine, mirrored from [LocalEngineStore]
      * by the collector below. Its default has to be usable before that first
      * emission arrives: see [LocalEngineProfile] for what the desktop's own
-     * numbers would do to a phone.
+     * numbers would do to a phone. The thread count is the stored one under the
+     * [ThermalMonitor]'s cap (T1) — only here, never written back to the store.
      */
     @Volatile
     private var localProfile = localEngineStore.defaults
@@ -174,7 +178,9 @@ class EngineRepositoryImpl @Inject constructor(
         }
         scope.launch { livenessLoop() }
         scope.launch {
-            localEngineStore.profile.collect { profile ->
+            combine(localEngineStore.profile, thermal.state) { stored, heat ->
+                stored.capThreads(heat.threadCap(stored.threads))
+            }.collect { profile ->
                 // Computed against the old profile before it is replaced — the
                 // whole point of `effective` is that it reads this field.
                 val before = effective(engineParams)

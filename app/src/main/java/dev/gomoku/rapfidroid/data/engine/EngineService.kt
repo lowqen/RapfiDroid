@@ -65,10 +65,12 @@ class EngineService : LifecycleService() {
             this,
             NOTIF_ID,
             buildNotification(state, health),
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
-            } else {
-                0
+            when {
+                // No daily limit and no onTimeout — see the manifest comment (T2).
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                else -> 0
             },
         )
     }

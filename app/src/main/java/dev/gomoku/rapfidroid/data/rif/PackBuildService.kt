@@ -50,6 +50,17 @@ class PackBuildService : LifecycleService() {
         return START_NOT_STICKY
     }
 
+    /**
+     * Android 15 gives dataSync six hours a day and then calls this; a service that
+     * does not stop within seconds crashes the app (T2). A build takes minutes, so
+     * reaching this means the budget was spent elsewhere today — give up the build
+     * cleanly (the screen offers it again) rather than lose the process mid-write.
+     */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        manager.cancel()
+        stopSelf()
+    }
+
     private fun startAsForeground(state: PackBuildState) {
         ServiceCompat.startForeground(
             this,
