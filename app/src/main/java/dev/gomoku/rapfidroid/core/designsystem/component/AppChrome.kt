@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -154,7 +155,12 @@ fun RapfiCollapsingTopBar(
     Column(modifier.fillMaxWidth()) {
         LargeTopAppBar(
             title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-            actions = { ShellActions() },
+            actions = {
+                ShellActions()
+                // Material's bar ends its actions 4dp from the edge, the app's
+                // header 8dp: without this the chip jumps 4dp between tabs.
+                Spacer(Modifier.width(4.dp))
+            },
             collapsedHeight = 52.dp,
             expandedHeight = 112.dp,
             windowInsets = WindowInsets(0),
