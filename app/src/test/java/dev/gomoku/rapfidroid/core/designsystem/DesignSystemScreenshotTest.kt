@@ -14,7 +14,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -150,14 +149,14 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
      */
     @Test
     fun boardPortrait() = screen("screen_board_portrait", 411.dp, 771.dp) {
-        portrait(SheetValue.PartiallyExpanded)
+        portrait(sheetUp = false)
     }
 
     /** The same, the sheet pulled up over the board. */
     @Test
     fun boardPortraitSheet() {
         assumeTrue(variant.fontScale == 1f)
-        screen("screen_board_sheet", 411.dp, 771.dp) { portrait(SheetValue.Expanded) }
+        screen("screen_board_sheet", 411.dp, 771.dp) { portrait(sheetUp = true) }
     }
 
     /** On its side, beside the rail: board at full height, cards on the right. */
@@ -180,7 +179,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     }
 
     @Composable
-    private fun portrait(sheet: SheetValue) {
+    private fun portrait(sheetUp: Boolean) {
         BoardPortrait(
             ui = analysing,
             board = { mod -> GomokuBoard(render = sampleRender, modifier = mod) },
@@ -192,7 +191,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
                 AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
                 PositionCard(analysing, noFiles, onResign = {}, onDraw = {})
             },
-            initialSheet = sheet,
+            sheetUp = sheetUp,
         )
     }
 

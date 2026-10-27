@@ -87,7 +87,7 @@ internal fun BoardPortrait(
     summary: @Composable () -> Unit,
     cards: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
-    initialSheet: SheetValue = SheetValue.PartiallyExpanded,
+    sheetUp: Boolean = false,
 ) {
     Column(modifier.fillMaxSize()) {
         RapfiTopBar(title = null, height = 48.dp, leading = { modeSwitch() })
@@ -97,7 +97,9 @@ internal fun BoardPortrait(
             val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
             val metrics = portraitMetrics(maxWidth, maxHeight, bar, ToolbarHeight, MinPeek)
             val scaffold = rememberBottomSheetScaffoldState(
-                bottomSheetState = rememberStandardBottomSheetState(initialValue = initialSheet),
+                bottomSheetState = rememberStandardBottomSheetState(
+                    initialValue = if (sheetUp) SheetValue.Expanded else SheetValue.PartiallyExpanded,
+                ),
             )
             BottomSheetScaffold(
                 scaffoldState = scaffold,
