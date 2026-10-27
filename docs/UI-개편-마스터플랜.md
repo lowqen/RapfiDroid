@@ -3,7 +3,7 @@
 > **읽는 법.** 2026-10-27 에 세운 계획서다. 엔진 최적화(`엔진-고도화-마스터플랜.md`)와 백그라운드
 > 안정화를 마친 뒤, 앱의 UI/UX 를 전면 개편하기 위한 조사 · 갭 분석 · 단계 계획을 담는다.
 > **승인 전에는 앱 코드를 고치지 않는다.** 4부의 각 Phase 는 승인된 뒤 하나씩 진행하고, 맨 끝
-> 「실행 기록」에 결과를 쌓는다. 5부의 「결정 필요」 여섯 개는 Phase 1 전에 답이 있어야 한다.
+> 「실행 기록」에 결과를 쌓는다. 5부의 결정 여섯 개는 2026-10-27 에 확정됐다(전부 권장안대로).
 >
 > **출처.** Mornye `mornyeapp/Mornye@c90ec64`(2026-10-25) 의 `lib/theme/*`(README · `app_theme.dart` ·
 > `app_tokens.dart` · `dynamic_color_wrapper.dart` · `app_motion.dart` · `material_expressive.dart` ·
@@ -31,7 +31,7 @@
 
 | ID | 내용 | 상태 |
 |---|---|---|
-| P0 | 기반 정비 — 스크린샷 시험 · 토큰 채택 · 탭 단일화 · 햅틱/모션 인프라(시각 변화 없음) | 계획 |
+| P0 | 기반 정비 — 스크린샷 시험 · 토큰 채택 · 탭 단일화 · 햅틱/모션 인프라(시각 변화 없음) | **진행 중**(2026-10-27 승인 · 착수) |
 | P1 | 테마 시스템 — 토큰 확장 · AMOLED · (선택) 벽지 톤 · 테마 모드 3상태 | 계획 |
 | P2 | 셸 · 내비게이션 — 넓은 화면 레일 · 접히는 상단 바 · 스크롤 시 하단 바 숨김 | 계획 |
 | P3 | **보드 화면 재구성** — 고정 판 + 스냅 시트 · 떠 있는 이동 툴바 · 판 햅틱 | 계획 |
@@ -238,9 +238,19 @@
 | | |
 |---|---|
 | 대상 | `core/designsystem/**`, 테스트 소스, 빌드 스크립트 |
-| 작업 | ① **스크린샷 시험 하네스**(Roborazzi + Robolectric — JVM 단위 시험이라 CI `testDebugUnitTest` 안에서 돈다): 보드(세로/가로) · 연구 · 정석 · DB · 엔진 · 설정 × 라이트/다크 × 글꼴 1.0/1.3 ② BOM `2026.09.00` 이 실제로 해석하는 material3 버전 확인 — M3 Expressive(`MotionScheme` · `ButtonGroup` · `HorizontalFloatingToolbar` · `LoadingIndicator` · `ShortNavigationBar`)가 안정 API 인지 실험 API 인지 표로 남김 ③ `RapfiTokens` 도입(기존 `Spacing`/`Shapes` 값 그대로 이관 — 값 불변) ④ 공용 `RapfiSegmented` 로 탭 4종 단일화(외형은 현 ModeTabs 그대로) ⑤ `RapfiMotion`(spatial/effects × fast/default/slow, **감속 모드면 호출부 대체값**) · `RapfiHaptics`(설정 게이트) API 만 추가, 아직 호출 안 함 ⑥ `ConnectionScreen` 의 원본 `Card` → `FlatCard` |
+| 작업 | ① **스크린샷 시험 하네스**(Roborazzi + Robolectric — JVM 단위 시험이라 CI 에서 돈다). P0 의 대상은 **상태 없이 그릴 수 있는 것**: 판(분석 값 · 금수 · 최선수), 평가 막대, 이동 바, 단계 바, 카드 · 접힘 · 칩 · 엔진 칩 · 상단 바 · 빈 상태, 보드의 분석/국면/대국 카드 × 라이트/다크 × 글꼴 1.0/1.3. 화면 전체(보드 · 연구 · 정석 · DB · 엔진 · 설정)는 ViewModel 을 받으므로, 각 화면을 «상태 없는 본문 + ViewModel 연결»로 나누는 P2 ~ P4 에서 그 화면의 골든을 함께 추가한다 ② BOM `2026.09.00` 이 해석하는 material3 버전 확인 — **결과는 아래 «P0 확인: material3 1.4.0»** ③ `RapfiTokens` 도입(기존 `Spacing`/`Shapes` 값 그대로 이관 — 값 불변) ④ 공용 `RapfiSegmented` 추출 — P0 에서는 보드의 `ModeTabs` 만 옮긴다(외형 동일). 정석 · 도구 `TabRow`, 연구 `ScrollableTabRow`, 랭킹 `SegmentedButton` 을 바꾸면 **보이는 변화**라 P2(연구 · 정석) · P4(도구 · 랭킹)에서 옮긴다 ⑤ `RapfiMotion`(spatial/effects × fast/default/slow, **감속 모드면 호출부 대체값**) · `RapfiHaptics`(설정 게이트) API 만 추가, 아직 호출 안 함 ⑥ `ConnectionScreen` 의 원본 `Card` → `FlatCard`(콘솔 카드가 페이지와 같은 색이라 경계가 안 보이던 것 — 이 Phase 의 유일한 의도된 시각 변화) |
 | 시각 변화 | 없음(④⑥ 은 미세 정렬 차이만) |
 | 검증 | 스크린샷 골든 최초 기록, 이후 P0 커밋들의 diff ≈ 0. `ThemeContrastTest` 녹색. 의존성 추가는 F-Droid 빌드 조건(`fdroid/`) 확인 후 |
+
+**P0 확인: material3 1.4.0** — `compose-bom-2026.09.00.pom` 은 `material3 1.4.0` · `ui 1.12.1` 을 고른다.
+`material3-android-1.4.0.aar` 의 클래스를 직접 확인한 결과:
+
+| API | 1.4.0 | 비고 |
+|---|---|---|
+| `MotionScheme`(`standard()` · `expressive()`, spatial/effects × fast/default/slow) · `MaterialTheme(motionScheme=)` | **있음 · 안정** | `ExperimentalMaterial3ExpressiveApi` 표식 없음 |
+| `ShortNavigationBar` · `WideNavigationRail` | **있음 · 안정** | P2 의 하단 바 · 레일 후보 |
+| `ButtonGroup` · `ToggleButton` · `HorizontalFloatingToolbar` · `LoadingIndicator` · `MaterialExpressiveTheme` | **없음** | material3 1.5.0 에만(지금 beta02). P3 · P4 는 이 앱의 컴포넌트(`RapfiSegmented` 등)로 만들고, 1.5 가 안정되면 래퍼 안쪽만 바꾼다 |
+| `HapticFeedbackType` `Confirm` · `Reject` · `SegmentTick` · `SegmentFrequentTick` · `ToggleOn/Off` · `LongPress` | 있음(ui 1.8+) | `RapfiHaptics` 가 쓴다 |
 
 ## P1. 테마 시스템
 
@@ -299,24 +309,26 @@
 
 ---
 
-# 5부. 결정 필요 (Phase 1 전)
+# 5부. 결정 — 2026-10-27 확정
 
-| ID | 질문 | 권장 |
+모두 아래 «권장» 열대로 확정됐다. D4 는 AMOLED 를 다크의 선택 사항으로 포함한다.
+
+| ID | 질문 | 확정 |
 |---|---|---|
 | D1 | 다이내믹 컬러 | **크롬 톤만, 기본 꺼짐**. 벽지 hue 를 `Ink`/`Neutral` 저채도 램프에만 — 의미 색 · 판은 불변. 전면 Monet 은 비권장(`Theme.kt` 의 기존 판단 유지) |
 | D2 | 블러 · 반투명 유리 | **1차 출시엔 없음**. 불투명 틴트만. 블러는 P5 에서 실측 후 시트 스크림 한 곳만 |
-| D3 | 하단 탭 6개 | **6 유지**(RapfiWeb 보존 계약 «레일 6»), 가로/넓은 화면은 레일. 5로 줄이려면 «엔진» 탭을 상단 칩 → 시트로 흡수하는 안이 있음 |
-| D4 | 테마 모드 | **시스템 · 라이트 · 다크 3상태**. 데스크톱 `settings.txt` 를 들여온 경우는 그 값을 그대로(현 동작) |
+| D3 | 하단 탭 6개 | **6 유지**(RapfiWeb 보존 계약 «레일 6»), 가로/넓은 화면은 `NavigationRail` 로 판 높이 회수 |
+| D4 | 테마 모드 | **시스템 · 라이트 · 다크 3상태 + AMOLED 옵션**. 데스크톱 `settings.txt` 를 들여온 경우는 그 값을 그대로(현 동작) |
 | D5 | RapfiWeb 동기화 | 시트 · 레일 · 햅틱은 **안드로이드 고유로 갈라짐을 허용**하고, 색 램프 · 토큰 값만 계속 일치. 차이는 문서로 기록 |
 | D6 | 모션 규칙 개정 | `Motion.kt` «미끄러지지 않는다 · 200ms 이하»를 **판 영역 규칙**으로 좁히고, 크롬(시트 · 툴바 · 내비)은 스프링 허용. 감속 모드면 전부 현행 값 |
-| (부) | 스크린샷 시험 의존성 | Roborazzi(Apache-2.0) 추가 — 시험 전용(`testImplementation`)이라 APK · F-Droid 빌드 영향 없음 확인 후 |
+| (부) | 스크린샷 시험 의존성 | **승인.** Roborazzi(Apache-2.0) · Robolectric(MIT) — `testImplementation`, 그리고 `ui-test-manifest` 는 `debugImplementation`(디버그 APK 에 시험용 액티비티 하나). 릴리스 APK · F-Droid 빌드에는 들어가지 않는다 |
 
 # 6부. 리스크
 
 | 리스크 | 대응 |
 |---|---|
 | 시트가 판을 가림 / 피크 높이가 기기마다 다름 | 피크 = `화면 높이 − 판 − 툴바` 로 계산, 최소 높이 미만이면 요약 띠만 |
-| M3 Expressive API 가 실험 API | P0 에서 버전 표 작성. 실험 API 는 얇은 래퍼 한 곳에서만 호출해 교체 비용을 가둔다 |
+| M3 Expressive 컴포넌트가 1.4.0 에 없음(P0 확인) | `MotionScheme` · 내비 · 레일은 1.4.0 안정 API 로. 버튼 그룹 · 플로팅 툴바 · 로딩은 이 앱 컴포넌트로 만들고, 1.5 안정 후 래퍼 안쪽만 교체 |
 | UI 재구성 범위 확대로 분석 중 재구성 비용 증가 → NPS · 발열 | 요약 띠 · 툴바를 `BoardUiState` 의 필요한 필드만 읽는 작은 컴포저블로 분리, P3 · P6 에서 NPS 측정 |
 | 로컬 Gradle 없음 | 모든 판정은 CI(단위 시험 + 스크린샷) + 실기. 메모리 «성능 판정은 CI» 원칙 준용 |
 | 다이얼로그 → 시트 전환 시 키보드 · 뒤로가기 순서 | 공용 `RapfiSheet` 한 곳에서 IME 인셋 · predictive back 처리 |
