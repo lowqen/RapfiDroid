@@ -178,15 +178,15 @@ fun RapfiApp() {
     ) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val rail = maxWidth >= RailLayoutMin
+            // Six labelled items need ~480dp; a phone on its side has less.
+            val railLabels = maxHeight >= 480.dp
             Row(Modifier.fillMaxSize()) {
                 if (rail) {
                     RapfiRail(
                         selected = selected,
                         connection = connection,
                         onSelect = onSelect,
-                        // Under ~480dp of height (a phone on its side) six
-                        // labelled items do not fit; the selected one keeps its.
-                        showLabels = maxHeight >= 480.dp,
+                        showLabels = railLabels,
                     )
                 }
                 Scaffold(

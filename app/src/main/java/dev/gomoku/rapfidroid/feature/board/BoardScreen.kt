@@ -214,12 +214,16 @@ fun BoardScreen(
     // Upright, a header without the title — the selected tab already says
     // «보드» (UI overhaul P2).
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val landscape = maxWidth > maxHeight && maxWidth >= 560.dp
+        // Read here: the layouts below are scopes of their own and cannot reach
+        // this one's constraints.
+        val width = maxWidth
+        val height = maxHeight
+        val landscape = width > height && width >= 560.dp
         Column(Modifier.fillMaxSize()) {
             if (!landscape) RapfiTopBar(title = null, height = 48.dp)
             if (landscape) {
                 // Board on the left at full height, the cards on the right.
-                val side = min(maxHeight - 16.dp, maxWidth * 0.62f)
+                val side = min(height - 16.dp, width * 0.62f)
                 val showBar = ui.showEvalBar && ui.analysisTab
                 Row(Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     BoardWithBar(ui, showBar, compact = false, side = side, board = board)
@@ -237,8 +241,8 @@ fun BoardScreen(
                 val showBar = ui.showEvalBar && ui.analysisTab
                 // A 4dp gutter left of the bar, so it does not touch the screen edge.
                 val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
-                val side = maxWidth - bar
-                val wideCards = maxWidth >= 600.dp
+                val side = width - bar
+                val wideCards = width >= 600.dp
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                     BoardWithBar(ui, showBar, compact = true, side = side, board = board, modifier = Modifier.padding(start = if (showBar) 4.dp else 0.dp))
                     transport()
