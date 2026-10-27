@@ -117,6 +117,12 @@ android {
             (project.findProperty("screenshots") as String?)?.let { mode ->
                 require(mode in setOf("record", "verify", "compare")) { "screenshots=$mode" }
                 it.systemProperty("roborazzi.test.$mode", "true")
+                // The goldens are not an input Gradle knows about, so a verify
+                // after a golden changed came back FROM-CACHE and checked
+                // nothing, and a cached record would write nothing. In
+                // screenshot mode the tests always run.
+                it.outputs.cacheIf { false }
+                it.outputs.upToDateWhen { false }
             }
         }
     }
