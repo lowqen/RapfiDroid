@@ -11,7 +11,7 @@ GPL 앱의 본래 서식지 둘로 간다. **누구의 허락도 필요 없다**
 `https://github.com/lowqen/rapfi` 가 **공개**이고, `android` 브랜치에 탑재 엔진의
 소스가 커밋돼 있다 — upstream `3c94c2a9`(`ENGINE_VERSION.txt` 의 `upstream`) 위에
 안드로이드 빌드 커밋, 그리고 `tools/patches/` 의 패치를 하나씩 커밋, `android/` 에
-빌드 옵션과 PGO 프로필. 릴리스마다 태그 `rapfidroid-v<버전>`(0.15.0 = `8d16fc2c`,
+빌드 옵션과 PGO 프로필. 릴리스마다 태그 `zenyth-v<버전>`(0.15.0 = `8d16fc2c`,
 0.16.0 = `e1c363e`). 이 저장소가 비공개이거나 커밋이 어긋나면 APK 배포는 **GPL
 위반**이다. 패치나 프로필을 바꿀 때마다 그 브랜치와 `ENGINE_VERSION.txt` 의
 `source` 를 같이 맞출 것.
@@ -29,17 +29,17 @@ GPL 앱의 본래 서식지 둘로 간다. **누구의 허락도 필요 없다**
 > 에서 한 번 한다.
 
 ```bash
-keytool -genkeypair -v -keystore rapfidroid.jks -alias rapfidroid \
+keytool -genkeypair -v -keystore zenyth.jks -alias zenyth \
         -keyalg RSA -keysize 2048 -validity 10000
 ```
 
 만든 키를 **Actions 시크릿 4개**로 넣는다(로컬 저장소에는 두지 않는다):
 
 ```bash
-gh secret set SIGNING_KEYSTORE          --repo lowqen/RapfiDroid < <(base64 -w0 rapfidroid.jks)
-gh secret set SIGNING_STORE_PASSWORD    --repo lowqen/RapfiDroid
-gh secret set SIGNING_KEY_ALIAS         --repo lowqen/RapfiDroid   # rapfidroid
-gh secret set SIGNING_KEY_PASSWORD      --repo lowqen/RapfiDroid
+gh secret set SIGNING_KEYSTORE          --repo lowqen/Zenyth < <(base64 -w0 zenyth.jks)
+gh secret set SIGNING_STORE_PASSWORD    --repo lowqen/Zenyth
+gh secret set SIGNING_KEY_ALIAS         --repo lowqen/Zenyth   # zenyth
+gh secret set SIGNING_KEY_PASSWORD      --repo lowqen/Zenyth
 ```
 
 > **백업**: `.jks` 와 비밀번호를 오프라인 두 곳에. 저장소에는 절대 넣지 않는다
@@ -77,7 +77,7 @@ git push origin v0.14.0
 ### 2-3. 자동 업데이트 — Obtainium
 
 사용자에게 안내할 한 줄: **Obtainium** 을 설치하고 저장소 URL
-`https://github.com/lowqen/RapfiDroid` 를 추가하면, 새 릴리스가 올라올 때마다
+`https://github.com/lowqen/Zenyth` 를 추가하면, 새 릴리스가 올라올 때마다
 알림이 오고 한 번 눌러 갱신된다. 스토어 없이 스토어 경험을 얻는 표준적인 방법이다.
 
 ---

@@ -1,7 +1,7 @@
 engine     : Rapfi on-device (arm64-v8a)
 upstream   : 3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7  (dhbloo/rapfi, 패치 전)
 patches    : 안드로이드 빌드 패치 2개(스크립트 [4/7]) + k1-neon-vqdmulh + k2-neon-starblock-multi + k3-a4-policy-cache + r4-p2-2-keep-evaluators-on-rebuild + r4-p4-1-periodic-node-stats + k7-codebook-prefetch-early (tools/patches/*.patch)
-source     : https://github.com/lowqen/rapfi 브랜치 android = e1c363e (태그 rapfidroid-v0.16.0) — 위 커밋 + 같은 패치를 커밋 하나씩, android/ 에 PGO 프로필 · 빌드 옵션. GPL 대응 소스
+source     : https://github.com/lowqen/rapfi 브랜치 android = e1c363e (태그 zenyth-v0.16.0) — 위 커밋 + 같은 패치를 커밋 하나씩, android/ 에 PGO 프로필 · 빌드 옵션. GPL 대응 소스
 pgo        : dotprod 만 — tools/pgo/rapfi-dotprod.profdata (-fprofile-use, 위 패치 사슬 전부가 든 소스로 갤럭시 A16 에서 tools/pgo/train.sh 로 다시 학습, 2026-10-27). NEON 은 PGO 없음
 networks   : e32ad77a5364363b3e3a02b3f9e8610ade19ea98
 ndk        : r27c (windows-x86_64 프리빌트 — 스크립트 [3/7]~[6/7] 과 같은 커밋 · 같은 옵션)
@@ -13,4 +13,4 @@ built_at   : 2026-10-27
 bench(host): Hash: e240ab16  <- 폰의 BENCH Hash 가 이 값과 같아야 한다 (K1 · K2 · K3 · R4 · K7 · K6 PGO 는 결과 불변)
 bench(phone): Galaxy A16 (MT6789) cpu7 A76, 1 스레드 BENCH(번갈음, 모두 e240ab16) — 이 빌드 dotprod 65,063 · 66,462 · 66,297 ↔ 직전 탑재본(K3 + PGO) 65,596 · 66,472 · 66,838 (−0.5%, 잡음), NEON 45,418 · 45,211 ↔ 45,721 · 42,939
              R4 P2-2: 스레드 4 → 2 → 6 으로 세 번 탐색할 때 가중치 적재 2회(직전 6회). ARM CI(N2, PGO 없음) 같은 트리 +2.14 · +4.52% — docs/엔진-고도화-마스터플랜.md R4 절
-build_by   : RapfiDroid/tools/build_engine_android.sh
+build_by   : Zenyth/tools/build_engine_android.sh

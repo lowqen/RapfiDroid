@@ -1,0 +1,32 @@
+package dev.gomoku.zenyth.domain.repository
+
+import android.net.Uri
+import dev.gomoku.zenyth.core.model.OpeningRanking
+import dev.gomoku.zenyth.core.model.PlayerRef
+import dev.gomoku.zenyth.core.model.RankingFilter
+import dev.gomoku.zenyth.core.model.ShapeFreqRow
+import dev.gomoku.zenyth.domain.rankings.FreqBundle
+import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * Backs the Rankings dashboard.
+ *
+ * One data source: **freq**, the empirical play frequency built from the user's
+ * own RenjuNet download. It is user-imported, so every query here returns
+ * null/empty until a device build has produced it — the 26 openings themselves are
+ * static and come from [dev.gomoku.zenyth.core.model.Opening26].
+ */
+interface RankingsRepository {
+
+    /** Imported empirical dataset, or null when nothing is loaded. */
+    val freq: StateFlow<FreqBundle?>
+
+    suspend fun restoreFreq()
+    suspend fun clearFreq()
+
+    suspend fun matchPlayers(query: String): List<PlayerRef>
+    suspend fun matchRules(query: String): List<Int>
+    fun ruleName(index: Int): String?
+    suspend fun openingRanking(filter: RankingFilter): OpeningRanking?
+    suspend fun fiveMoveRanking(filter: RankingFilter, top: Int = 40): List<ShapeFreqRow>
+}

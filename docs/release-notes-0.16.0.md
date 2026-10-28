@@ -1,4 +1,4 @@
-## RapfiDroid 0.16.0
+## Zenyth 0.16.0
 
 **A faster on-device engine that looks after the phone.** The engine now uses
 the fast instructions modern phones have, three speed patches carried over from
@@ -73,7 +73,7 @@ leave it idle in the background.
 
 The engine is **Rapfi, GPL-3.0-or-later**. The corresponding source for the
 engine in this APK is **https://github.com/lowqen/rapfi**, tag
-`rapfidroid-v0.16.0` (branch `android`): upstream `3c94c2a9`, two blocks in
+`zenyth-v0.16.0` (branch `android`): upstream `3c94c2a9`, two blocks in
 `Rapfi/CMakeLists.txt` for the Android build, and the result-invariant patches
 (speed, no weight reload on a thread change, periodic node counters) as one
 commit each; `android/` holds the build options and the profile the
@@ -82,5 +82,5 @@ dot-product build was optimised with.
 The app itself is BSD-2-Clause and its interface is a port of Yixin-Board
 (BSD-2-Clause, copyright 2009 to 2017 Kai Sun). The network weights and the
 opening evaluation grades are CC0 1.0. Full notices:
-[LICENSES.md](https://github.com/lowqen/RapfiDroid/blob/main/LICENSES.md), and
+[LICENSES.md](https://github.com/lowqen/Zenyth/blob/main/LICENSES.md), and
 inside the app under Settings ▸ About ▸ Licences.

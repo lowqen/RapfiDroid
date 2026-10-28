@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "RapfiDroid"
+rootProject.name = "Zenyth"
 include(":app")

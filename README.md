@@ -5,12 +5,12 @@
 **A gomoku and renju board with a real engine running on your phone.**
 **No server. No account. Works offline. Powered by [Rapfi](https://github.com/dhbloo/rapfi).**
 
-<sub>Formerly RapfiDroid. The repository keeps its old name, so links and clones still work.</sub>
+<sub>Formerly RapfiDroid.</sub>
 
-[![Build](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml)
-[![Release](https://img.shields.io/github/v/release/lowqen/RapfiDroid?include_prereleases&sort=semver)](https://github.com/lowqen/RapfiDroid/releases/latest)
+[![Build](https://github.com/lowqen/Zenyth/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/Zenyth/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/lowqen/Zenyth?include_prereleases&sort=semver)](https://github.com/lowqen/Zenyth/releases/latest)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSES.md)
-[![Android](https://img.shields.io/badge/Android-8.0%2B%20arm64-3DDC84)](https://github.com/lowqen/RapfiDroid/releases/latest)
+[![Android](https://img.shields.io/badge/Android-8.0%2B%20arm64-3DDC84)](https://github.com/lowqen/Zenyth/releases/latest)
 
 [Download](#download) · [Features](#features) · [How it works](#how-the-engine-runs-on-your-phone) · [Build](#building-from-source) · [한국어](README.ko.md)
 
@@ -32,7 +32,7 @@ same way they do on a PC.
 
 ## Download
 
-Get the APK from the [latest release](https://github.com/lowqen/RapfiDroid/releases/latest).
+Get the APK from the [latest release](https://github.com/lowqen/Zenyth/releases/latest).
 Android will ask once for permission to install from an unknown source.
 
 For update notifications without a store, install
@@ -180,8 +180,8 @@ airplane mode.
 ## Building from source
 
 ```bash
-git clone https://github.com/lowqen/RapfiDroid.git
-cd RapfiDroid
+git clone https://github.com/lowqen/Zenyth.git
+cd Zenyth
 ./gradlew testDebugUnitTest assembleDebug
 ```
 
@@ -199,7 +199,7 @@ are the reason a refactor of the canonical key is safe to make at all.
 ### Layout
 
 ```
-app/src/main/java/dev/gomoku/rapfidroid/
+app/src/main/java/dev/gomoku/zenyth/
   core/         board model, position keys, settings table, design system
   data/         engine transports, stores, pack and database IO
   domain/       engine session, RIF parsing, aggregation, pack writing
@@ -224,7 +224,7 @@ conveyed under GPL-3.0-or-later.
 
 The corresponding source for the engine in the released APK is
 **https://github.com/lowqen/rapfi**, branch `android` — for each release the
-tag `rapfidroid-v<version>` (0.16.0: upstream `3c94c2a9`, two blocks in
+tag `zenyth-v<version>` (0.16.0: upstream `3c94c2a9`, two blocks in
 `Rapfi/CMakeLists.txt` for the Android build, and result-invariant patches (speed,
 no weight reload on a thread change), one commit each; `android/` holds the build options and the PGO
 profile of the dotprod build).

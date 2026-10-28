@@ -59,9 +59,9 @@ APK 가 `libengine.so` 를 담고 있으므로, APK 를 남에게 주는 순간 
    고쳤고(안드로이드 링크·출력 이름) 0.16.0 부터 결과 불변 속도 패치 셋(K1 ~ K3)과
    dotprod 판의 PGO 프로필을 더했으므로, 그 수정본이 소스다:
    - 저장소: `https://github.com/lowqen/rapfi` 브랜치 `android`, 릴리스마다 태그
-     `rapfidroid-v<버전>`(0.15.0 = `8d16fc2c`, 0.16.0 = `e1c363e`)
+     `zenyth-v<버전>`(0.15.0 = `8d16fc2c`, 0.16.0 = `e1c363e`)
    - **이 저장소는 반드시 공개여야 한다.** 비공개면 GPL 위반이다.
-   - 빌드 재현 절차: `RapfiDroid/tools/build_engine_android.sh`
+   - 빌드 재현 절차: `Zenyth/tools/build_engine_android.sh`
    - 정확한 커밋은 `app/src/main/jniLibs/ENGINE_VERSION.txt` 에 적혀 있다.
 3. **저작권 고지를 지운 채 배포하지 않는다.** 소스는 손대지 않았다.
 
@@ -120,8 +120,11 @@ renju.net 에서 직접 받아 자기 기기로 반입한다. 데이터가 없�
 
 앱 이름은 2026-10-29 `RapfiDroid` 에서 **Zenyth** 로 바뀌었다. 엔진 이름(Rapfi)을 앱
 이름으로 쓰지 않고, 대신 어디서나 «powered by Rapfi» 로 엔진을 밝힌다 — 정보 창, README,
-스토어 설명. 패키지 ID `dev.gomoku.rapfidroid` 와 저장소 이름은 업데이트가 끊기지 않도록
-그대로 둔다.
+스토어 설명. 저장소는 `lowqen/Zenyth`, 코드 패키지는 `dev.gomoku.zenyth` 로 옮겼고, 앱 ID
+(`applicationId`) 만 `dev.gomoku.rapfidroid` 로 남긴다 — 바꾸면 이미 설치한 사람의 업데이트와 저장된
+자료가 끊긴다. 엔진 저장소 `lowqen/rapfi` 의 옛 태그 `rapfidroid-v0.15.0` · `rapfidroid-v0.16.0` 도
+지우지 않는다: 이미 배포된 APK 가 GPL 대응 소스로 그 이름을 가리킨다. 같은 커밋에 `zenyth-v*` 태그를
+새로 달았고, 앞으로는 그 이름을 쓴다.
 
 "Yixin" 은 Kai Sun 의 엔진 이름이다. 옛 이름 `RapfiDroid` 는 그 GUI 의 이식이라는
 사실에서 왔지만, **앱에 Yixin 엔진은 들어 있지 않다.** 혼동을 피하려면 스토어
@@ -135,7 +138,7 @@ renju.net 에서 직접 받아 자기 기기로 반입한다. 데이터가 없�
 
 - [ ] `https://github.com/lowqen/rapfi` (브랜치 `android`) **공개** — GPL 대응 소스
 - [ ] `ENGINE_VERSION.txt` 의 upstream 커밋이 그 브랜치에 실제로 있는지 확인
-- [ ] 패치 · PGO 프로필이 바뀌었으면 그 브랜치에 커밋으로 올리고 태그 `rapfidroid-v<버전>` 을 붙였다
+- [ ] 패치 · PGO 프로필이 바뀌었으면 그 브랜치에 커밋으로 올리고 태그 `zenyth-v<버전>` 을 붙였다
 - [ ] 릴리스 노트에 GPL 소스 링크와 이 파일 링크
 - [ ] APK 에 RenjuNet 파생 파일이 없는지 확인:
       `unzip -l app-release.apk | grep -iE "renju_(stats|games)|freq_data"` → **0건**

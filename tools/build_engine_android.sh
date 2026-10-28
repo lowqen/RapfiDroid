@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Rapfi -> arm64-v8a 온디바이스 엔진 빌드 (RapfiDroid E0).
+# Rapfi -> arm64-v8a 온디바이스 엔진 빌드 (Zenyth E0).
 #
 # 이 스크립트가 만드는 것:
 #   app/src/main/jniLibs/arm64-v8a/libengine.so          (탑재본, 기본 NEON — 모든 arm64)
@@ -209,7 +209,7 @@ printf 'BENCH\nEND\n' | "$HOME/rapfi/Rapfi/build-host/pbrain-rapfi" > bench-host
 grep -E "Total Time|Nodes|Nodes/s|Hash:" bench-host.txt | sed 's/^/  host | /'
 HOST_HASH=$(grep -oE "Hash: [0-9a-f]+" bench-host.txt | tail -1 || echo "Hash: ?")
 
-OUT="$HOME/rapfidroid-engine"
+OUT="$HOME/zenyth-engine"
 rm -rf "$OUT"; mkdir -p "$OUT/jniLibs/arm64-v8a" "$OUT/assets/engine" "$OUT/bench"
 
 cp "$HOME/rapfi/Rapfi/build-neon/libengine.so"    "$OUT/jniLibs/arm64-v8a/libengine.so"
@@ -241,11 +241,11 @@ built_at   : $(date -u +%Y-%m-%dT%H:%M:%SZ)
 bench(host): $HOST_HASH  <- 폰의 BENCH Hash 가 이 값과 같아야 한다
 patches    : ${RAPFI_PATCHES:-없음}  (tools/patches/)
 pgo        : ${PGO_MODE} · ${PGO_TARGETS}  (tools/pgo/rapfi-<변형>.profdata)
-build_by   : RapfiDroid/tools/build_engine_android.sh
+build_by   : Zenyth/tools/build_engine_android.sh
 EOF
 cat "$OUT/jniLibs/ENGINE_VERSION.txt"
 
-cd "$HOME" && tar czf rapfidroid-engine.tar.gz -C "$HOME" rapfidroid-engine
+cd "$HOME" && tar czf zenyth-engine.tar.gz -C "$HOME" zenyth-engine
 echo "=========================================================="
-echo "완료: $HOME/rapfidroid-engine.tar.gz  ($(du -h rapfidroid-engine.tar.gz | cut -f1))"
+echo "완료: $HOME/zenyth-engine.tar.gz  ($(du -h zenyth-engine.tar.gz | cut -f1))"
 echo "=========================================================="

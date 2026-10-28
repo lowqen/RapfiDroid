@@ -1,40 +1,69 @@
 # What changed in this version, shown once after an update (WhatsNew.kt).
-# One file per versionCode: whatsnew/<versionCode>.txt. Each "- " line under a
-# [ko] / [en] / [zh] heading is one item; other lines are ignored.
+# One file per versionCode: whatsnew/<versionCode>.txt. Under each [ko] / [en] /
+# [zh] heading: "> " is the welcome sentence, "## " starts a group, "- " is an
+# item. Other lines are ignored. Every language must have the same groups and
+# the same number of items in each (WhatsNewTest).
 # versionCode 21 = 0.16.0, compared with the last public release (0.15.0).
 
 [ko]
-- 앱 이름이 Zenyth 로, 아이콘이 흑돌이 백돌을 가리는 «일식»으로 바뀌었습니다. 분석 엔진은 그대로 Rapfi 입니다.
-- 새 디자인: 차분한 면과 큰 제목, 설정은 페이지로 나뉜 목록, 하단 탭은 고르면 채워진 아이콘으로 바뀝니다.
-- 판이 맑은 메이플 색이 되었고, 보드 화면 전체가 판과 같은 색으로 맞춰졌습니다. 판 위 값 글자색도 차분해졌습니다.
+> 새 이름과 새 얼굴로 찾아왔습니다. 엔진은 더 빨라졌고, 화면은 더 차분해졌습니다. 분석 엔진은 그대로 Rapfi 입니다.
+
+## 새 이름, 새 얼굴
+- 앱 이름이 Zenyth 가 되었고, 아이콘은 흑돌이 백돌을 가리는 «일식»입니다.
+- 차분한 면과 큰 제목의 새 디자인. 설정은 페이지로 나뉜 목록이 되었고, 하단 탭은 고르면 아이콘이 채워집니다.
+- 판이 맑은 메이플 색이 되었고, 보드 화면 전체가 판과 같은 색으로 맞춰졌습니다. 판 위 값 글자는 색이 차분해지고 크기가 고르게 맞춰졌습니다.
+
+## 분석
 - 재생 툴바가 크기가 다른 버튼 묶음이 되었습니다. 가운데 ▶ 로 분석을 켜고 끕니다.
 - 시간 제한이 있는 분석 · 대국 · 리뷰에서 진행 상황이 흐르는 물결로 보입니다.
 - 분석이나 엔진의 수 읽기가 진행 중이면 다른 탭에서도 하단에 미니 분석 바가 뜹니다. 누르면 보드로 돌아갑니다.
-- 엔진이 같은 수 · 같은 평가 그대로 약 1/3 빨라졌고, 기본으로 모든 코어를 씁니다.
+
+## 엔진
+- 같은 수 · 같은 평가 그대로 약 1/3 빨라졌고, 기본으로 모든 코어를 씁니다.
 - 기기가 뜨겁거나 절전 모드이면 스레드를 줄였다가 식으면 돌려줍니다. 엔진 칩에 🌡 와 쓰는 스레드 수가 보입니다.
 - 앱이 백그라운드에서 3분 동안 쉬면 엔진이 스스로 꺼지고, 돌아오면 다시 켜집니다.
+
+## 고친 점
 - 라이선스 전문이 끝까지 보이지 않던 문제를 고쳤습니다.
 
 [en]
-- The app is now called Zenyth, with a new eclipse icon: an ink stone passing in front of a pearl one. The engine is still Rapfi.
-- A new design: calm surfaces and large titles, Settings as a list of pages, and the bottom tabs fill in when chosen.
-- The board is now a clean maple, and the whole board screen takes its colour. The values written on the board are calmer too.
+> A new name and a new look. The engine is faster and the screens are calmer. The engine underneath is still Rapfi.
+
+## A new name, a new look
+- The app is now called Zenyth, and its icon is an eclipse: an ink stone passing in front of a pearl one.
+- A calmer design with large titles. Settings is now a list of pages, and the bottom tabs fill in when chosen.
+- The board is a clean maple and the whole board screen takes its colour. The values written on the board are calmer and all the same size.
+
+## Analysis
 - The playback toolbar is a group of keys in different sizes; the ▶ in the middle starts and stops the analysis.
 - A timed analysis, an engine move in a timed game and a game review show their progress as a flowing wave.
 - While an analysis or an engine move is running, a mini analysis bar sits above the tabs on the other screens; tap it to go back to the board.
-- The engine is about a third faster with the same moves and the same evaluations, and uses every core by default.
+
+## Engine
+- About a third faster with the same moves and the same evaluations, and every core is used by default.
 - When the phone gets hot or is in battery saver, the engine gives threads back and takes them again once it cools; the engine chip shows 🌡 and the threads in use.
 - With the app in the background and idle for three minutes, the engine turns itself off and starts again when you come back.
+
+## Fixes
 - The licence texts now show in full.
 
 [zh]
-- 应用改名为 Zenyth，图标换成黑子遮住白子的“日食”。分析引擎仍是 Rapfi。
-- 全新设计：沉静的界面与大标题，设置改为分页列表，底部标签选中时图标会填满。
-- 棋盘改为清爽的枫木色，整个棋盘界面也随之配色。棋盘上的数值文字也更柔和。
+> 全新的名字与面貌。引擎更快，界面更沉静。分析引擎依然是 Rapfi。
+
+## 新名字，新面貌
+- 应用改名为 Zenyth，图标是黑子遮住白子的“日食”。
+- 沉静的界面与大标题的全新设计。设置改为分页列表，底部标签选中时图标会填满。
+- 棋盘改为清爽的枫木色，整个棋盘界面也随之配色。棋盘上的数值文字颜色更柔和，大小也统一了。
+
+## 分析
 - 播放工具栏改为大小不一的按键组，中间的 ▶ 用来开始和停止分析。
 - 限时分析、限时对局中的引擎落子以及对局复盘，都会以流动的波浪显示进度。
 - 分析或引擎思考进行中时，其他页面的底部标签上方会出现迷你分析栏，点按即可回到棋盘。
-- 引擎在着法与评估完全不变的前提下快了约三分之一，并默认使用全部核心。
+
+## 引擎
+- 在着法与评估完全不变的前提下快了约三分之一，并默认使用全部核心。
 - 手机发热或处于省电模式时，引擎会减少线程，降温后再恢复；引擎标签会显示 🌡 和当前线程数。
 - 应用在后台闲置三分钟后，引擎会自动关闭，回到应用时再自动启动。
+
+## 修复
 - 修复了许可证全文无法完整显示的问题。

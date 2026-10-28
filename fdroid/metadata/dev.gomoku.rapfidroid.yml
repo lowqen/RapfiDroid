@@ -4,9 +4,9 @@ Categories:
 # 함께 들어간다. 배포를 구속하는 쪽을 적는다 — 받는 사람에게 정직한 값이다.
 License: GPL-3.0-or-later
 AuthorName: lowqen
-SourceCode: https://github.com/lowqen/RapfiDroid
-IssueTracker: https://github.com/lowqen/RapfiDroid/issues
-Changelog: https://github.com/lowqen/RapfiDroid/releases
+SourceCode: https://github.com/lowqen/Zenyth
+IssueTracker: https://github.com/lowqen/Zenyth/issues
+Changelog: https://github.com/lowqen/Zenyth/releases
 
 AutoName: Zenyth
 Summary: Gomoku and renju analysis, powered by the Rapfi engine on your device
@@ -44,7 +44,7 @@ Description: |-
     and the opening evaluations are CC0 1.0.
 
 RepoType: git
-Repo: https://github.com/lowqen/RapfiDroid.git
+Repo: https://github.com/lowqen/Zenyth.git
 
 Builds:
   - versionName: 0.14.0

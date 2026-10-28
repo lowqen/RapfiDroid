@@ -5,12 +5,12 @@
 **진짜 엔진이 폰 안에서 도는 오목·렌주 보드.**
 **서버도, 계정도 필요 없고, 오프라인에서 동작합니다. 엔진은 [Rapfi](https://github.com/dhbloo/rapfi) 입니다.**
 
-<sub>예전 이름은 RapfiDroid 입니다. 저장소는 옛 이름을 그대로 써서 링크와 클론은 그대로 됩니다.</sub>
+<sub>예전 이름은 RapfiDroid 입니다.</sub>
 
-[![Build](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml)
-[![Release](https://img.shields.io/github/v/release/lowqen/RapfiDroid?include_prereleases&sort=semver)](https://github.com/lowqen/RapfiDroid/releases/latest)
+[![Build](https://github.com/lowqen/Zenyth/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/Zenyth/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/lowqen/Zenyth?include_prereleases&sort=semver)](https://github.com/lowqen/Zenyth/releases/latest)
 [![License](https://img.shields.io/badge/license-GPL--3.0--or--later-blue)](LICENSES.md)
-[![Android](https://img.shields.io/badge/Android-8.0%2B%20arm64-3DDC84)](https://github.com/lowqen/RapfiDroid/releases/latest)
+[![Android](https://img.shields.io/badge/Android-8.0%2B%20arm64-3DDC84)](https://github.com/lowqen/Zenyth/releases/latest)
 
 [내려받기](#내려받기) · [기능](#기능) · [원리](#엔진이-폰에서-도는-방법) · [빌드](#소스에서-빌드하기) · [English](README.md)
 
@@ -32,7 +32,7 @@
 
 ## 내려받기
 
-[최신 릴리스](https://github.com/lowqen/RapfiDroid/releases/latest)에서 APK 를
+[최신 릴리스](https://github.com/lowqen/Zenyth/releases/latest)에서 APK 를
 받으세요. 안드로이드가 「출처를 알 수 없는 앱」 설치를 한 번 물어봅니다.
 
 스토어 없이 업데이트 알림을 받으려면
@@ -162,8 +162,8 @@ aarch64 가 아니거나, `libc++_shared` 에 의존하거나, 저 플래그를 
 ## 소스에서 빌드하기
 
 ```bash
-git clone https://github.com/lowqen/RapfiDroid.git
-cd RapfiDroid
+git clone https://github.com/lowqen/Zenyth.git
+cd Zenyth
 ./gradlew testDebugUnitTest assembleDebug
 ```
 
@@ -180,7 +180,7 @@ Android Studio Ladybug 이상, JDK 17, compileSdk 35. 저장소에 `libengine.so
 ### 구조
 
 ```
-app/src/main/java/dev/gomoku/rapfidroid/
+app/src/main/java/dev/gomoku/zenyth/
   core/         보드 모델, 국면 키, 설정 표, 디자인 시스템
   data/         엔진 전송 계층, 스토어, 팩·DB 입출력
   domain/       엔진 세션, RIF 파싱, 집계, 팩 쓰기
@@ -204,7 +204,7 @@ Zenyth 자체 소스는 **BSD-2-Clause** 입니다. 배포되는 APK 에는 Rapf
 GPL-3.0-or-later 로 배포됩니다.
 
 릴리스 APK 에 들어간 엔진의 대응 소스는 **https://github.com/lowqen/rapfi** 의
-`android` 브랜치이고, 릴리스마다 태그 `rapfidroid-v<버전>` 이 있습니다(0.16.0:
+`android` 브랜치이고, 릴리스마다 태그 `zenyth-v<버전>` 이 있습니다(0.16.0:
 upstream `3c94c2a9` + 안드로이드 빌드를 위한 `Rapfi/CMakeLists.txt` 블록 두 개 +
 결과를 바꾸지 않는 패치(속도 · 스레드 변경 때 가중치 재적재 없음)를 커밋 하나씩, `android/` 에 빌드 옵션과 dotprod
 판의 PGO 프로필).

@@ -1,4 +1,4 @@
-## RapfiDroid 0.15.0
+## Zenyth 0.15.0
 
 **The RapfiWeb design, back on the phone.** RapfiWeb started as a port of this
 app; while it was built the interface was reworked around one idea — the board

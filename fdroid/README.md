@@ -7,7 +7,7 @@
 
 | 여기 | fdroiddata 안의 자리 |
 |---|---|
-| `metadata/dev.gomoku.rapfidroid.yml` | `metadata/dev.gomoku.rapfidroid.yml` |
+| `metadata/dev.gomoku.zenyth.yml` | `metadata/dev.gomoku.zenyth.yml` |
 | `srclibs/Rapfi.yml` | `srclibs/Rapfi.yml` |
 
 ## 왜 srclib 이 필요한가
@@ -25,10 +25,10 @@ F-Droid 는 **사전 빌드된 바이너리를 신뢰하지 않는다.** 그것�
 
 ```bash
 git clone https://gitlab.com/<나>/fdroiddata.git && cd fdroiddata
-cp <이 폴더>/metadata/dev.gomoku.rapfidroid.yml metadata/
+cp <이 폴더>/metadata/dev.gomoku.zenyth.yml metadata/
 cp <이 폴더>/srclibs/Rapfi.yml srclibs/
-fdroid lint dev.gomoku.rapfidroid
-fdroid build -v -l dev.gomoku.rapfidroid
+fdroid lint dev.gomoku.zenyth
+fdroid build -v -l dev.gomoku.zenyth
 ```
 
 `fdroid build -l` 이 실제로 통과해야 한다. 여기가 이 등재의 **유일하게 까다로운

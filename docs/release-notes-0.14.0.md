@@ -1,4 +1,4 @@
-## RapfiDroid 0.14.0
+## Zenyth 0.14.0
 
 **The first public release.** A gomoku and renju board with the
 [Rapfi](https://github.com/dhbloo/rapfi) engine compiled for arm64 Android and
@@ -31,7 +31,7 @@ on a port.
 
 ### Install
 
-Download `RapfiDroid-0.14.0.apk` below. Android will ask once for permission to
+Download `Zenyth-0.14.0.apk` below. Android will ask once for permission to
 install from an unknown source.
 
 * Android 8.0 (API 26) or newer
@@ -41,7 +41,7 @@ install from an unknown source.
 
 For update notifications without a store, install
 [Obtainium](https://github.com/ImranR98/Obtainium) and add
-`https://github.com/lowqen/RapfiDroid`.
+`https://github.com/lowqen/Zenyth`.
 
 ### Optional: real game statistics
 
@@ -76,7 +76,7 @@ upstream `8d16fc2c`. The only change from upstream is two blocks in
 The app itself is BSD-2-Clause and its interface is a port of Yixin-Board
 (BSD-2-Clause, copyright 2009 to 2017 Kai Sun). The network weights and the
 opening evaluation grades are CC0 1.0. Full notices:
-[LICENSES.md](https://github.com/lowqen/RapfiDroid/blob/main/LICENSES.md), and
+[LICENSES.md](https://github.com/lowqen/Zenyth/blob/main/LICENSES.md), and
 inside the app under Settings ▸ About ▸ Licences.
 
 
@@ -107,7 +107,7 @@ inside the app under Settings ▸ About ▸ Licences.
 
 ### 설치
 
-아래 `RapfiDroid-0.14.0.apk` 를 받으세요. 「출처를 알 수 없는 앱」 설치를 한 번
+아래 `Zenyth-0.14.0.apk` 를 받으세요. 「출처를 알 수 없는 앱」 설치를 한 번
 허용해야 합니다.
 
 * 안드로이드 8.0 (API 26) 이상
@@ -117,7 +117,7 @@ inside the app under Settings ▸ About ▸ Licences.
 
 스토어 없이 업데이트 알림을 받으려면
 [Obtainium](https://github.com/ImranR98/Obtainium) 에
-`https://github.com/lowqen/RapfiDroid` 을 추가하세요.
+`https://github.com/lowqen/Zenyth` 을 추가하세요.
 
 ### 선택: 실전 통계
 
@@ -149,5 +149,5 @@ inside the app under Settings ▸ About ▸ Licences.
 앱 본체는 BSD-2-Clause 이고 인터페이스는 Yixin-Board(BSD-2-Clause, 저작권
 2009 ~ 2017 Kai Sun) 이식본입니다. 신경망 가중치와 오프닝 유불리 등급은 CC0 1.0
 입니다. 전체 고지는
-[LICENSES.md](https://github.com/lowqen/RapfiDroid/blob/main/LICENSES.md) 와
+[LICENSES.md](https://github.com/lowqen/Zenyth/blob/main/LICENSES.md) 와
 앱 안 설정 ▸ 정보 ▸ 라이선스 에 있습니다.

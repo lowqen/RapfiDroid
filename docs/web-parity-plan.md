@@ -1,6 +1,6 @@
-# RapfiWeb → RapfiDroid 역이식 계획
+# RapfiWeb → Zenyth 역이식 계획
 
-> 작성 2026-10-11 · 기준: RapfiWeb `fd529b4`(ui: max board, text-only labels) · 대상: RapfiDroid `main`
+> 작성 2026-10-11 · 기준: RapfiWeb `fd529b4`(ui: max board, text-only labels) · 대상: Zenyth `main`
 
 RapfiWeb 은 이 앱을 웹으로 옮긴 것이다. 옮기는 동안 웹에서 디자인을 다시 다듬었고(`.calm-design/DESIGN.md`),
 기능도 몇 가지 늘었다. 이 문서는 그 차이를 앱으로 되돌리는 계획이다. **앱만 가진 기능(원격 엔진 · 도구 ·
