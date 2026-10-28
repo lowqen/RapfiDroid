@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.RowNoteStyle
+import dev.gomoku.rapfidroid.core.designsystem.theme.RowTitleStyle
 import dev.gomoku.rapfidroid.core.designsystem.theme.proMode
 import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
@@ -182,7 +184,7 @@ fun SettingsScreen(
                         row {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(tr("고급 사용자 모드", "Expert mode", "高级用户模式"), style = MaterialTheme.typography.titleMedium)
+                                    Text(tr("고급 사용자 모드", "Expert mode", "高级用户模式"), style = RowTitleStyle)
                                     Hint(tr("DB 탭 · 엔진 콘솔 · 도구 · PC 설정 ${ui.hidden}개", "DB tab, engine console, tools, ${ui.hidden} PC settings", "数据库页 · 引擎控制台 · 工具 · ${ui.hidden} 项 PC 设置"))
                                 }
                                 Switch(
@@ -239,7 +241,7 @@ fun SettingsScreen(
                                 ) {
                                     Text(
                                         file.fileName,
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = RowTitleStyle,
                                         modifier = Modifier.weight(1f),
                                     )
                                     OutlinedButton(onClick = {
@@ -260,7 +262,7 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(tr("툴바 · 핫키 · 언어 폴더", "Toolbar, hotkeys, language folder", "工具栏 · 快捷键 · 语言文件夹"), style = MaterialTheme.typography.bodyMedium)
+                                    Text(tr("툴바 · 핫키 · 언어 폴더", "Toolbar, hotkeys, language folder", "工具栏 · 快捷键 · 语言文件夹"), style = RowTitleStyle)
                                     Hint(ui.appearanceSource ?: tr("기본값", "Defaults", "默认值"))
                                 }
                                 OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더", "Folder", "文件夹")) }
@@ -278,7 +280,7 @@ fun SettingsScreen(
                                 ) {
                                     Text(
                                         tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log ${ui.debugLogBytes / 1024}KB", "调试日志 ${ui.debugLogBytes / 1024}KB"),
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = RowTitleStyle,
                                         modifier = Modifier.weight(1f),
                                     )
                                     OutlinedButton(onClick = { debugLogLauncher.launch("rapfidroid-debug.log") }, enabled = ui.debugLogBytes > 0) {
@@ -298,7 +300,7 @@ fun SettingsScreen(
                         row {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(tr("정보", "About", "关于"), style = MaterialTheme.typography.titleMedium)
+                                    Text(tr("정보", "About", "关于"), style = RowTitleStyle)
                                     Hint("RapfiDroid ${dev.gomoku.rapfidroid.BuildConfig.VERSION_NAME}")
                                 }
                                 TextButton(onClick = { showAbout = true }) { Text(tr("자세히", "Details", "详情")) }
@@ -346,7 +348,7 @@ internal fun LocalEngineCard(
         row {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("해시 크기 (MB)", "Hash size (MB)", "哈希表大小 (MB)"), style = MaterialTheme.typography.bodyMedium)
+                    Text(tr("해시 크기 (MB)", "Hash size (MB)", "哈希表大小 (MB)"), style = RowTitleStyle)
                     Hint(tr("길게 읽을수록 도움 · 그만큼 메모리", "Helps long searches · costs that much memory", "长时间搜索更有利 · 占用同等内存"))
                 }
                 CommitField(
@@ -373,7 +375,7 @@ internal fun LocalEngineCard(
         }
         row {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("기기 데이터베이스 사용", "Use the device database", "使用本机数据库"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Text(tr("기기 데이터베이스 사용", "Use the device database", "使用本机数据库"), style = RowTitleStyle, modifier = Modifier.weight(1f))
                 Switch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
             }
             // yixindb is read whole into the engine's memory, on top of the table (T3).
@@ -397,7 +399,7 @@ internal fun LocalEngineCard(
         row {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("서버 엔진 사용", "Use a server engine", "使用服务器引擎"), style = MaterialTheme.typography.bodyMedium)
+                    Text(tr("서버 엔진 사용", "Use a server engine", "使用服务器引擎"), style = RowTitleStyle)
                     Hint(tr("직접 운영하는 Rapfi 서버 (Tailscale)", "A Rapfi server you run (Tailscale)", "你自己运行的 Rapfi 服务器 (Tailscale)"))
                 }
                 Switch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
@@ -417,7 +419,7 @@ internal fun SettingRow(
     val editor = state.editorFor(spec)
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(spec.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f).padding(end = 8.dp))
+            Text(spec.label, style = RowTitleStyle, modifier = Modifier.weight(1f).padding(end = 8.dp))
             Box(contentAlignment = Alignment.CenterEnd) {
                 when (editor) {
                     is SettingEditor.Toggle -> Switch(
@@ -664,14 +666,14 @@ internal fun CommonSettings(
             row {
                 val haptics by prefs.hapticsEnabled.state.collectAsStateWithLifecycle()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("진동", "Vibration", "振动"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(tr("진동", "Vibration", "振动"), style = RowTitleStyle, modifier = Modifier.weight(1f))
                     Switch(checked = haptics, onCheckedChange = { prefs.hapticsEnabled.set(it) })
                 }
             }
             row {
                 val auto by prefs.autoStartEngine.state.collectAsStateWithLifecycle()
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("앱을 열면 엔진 시작", "Start the engine with the app", "打开应用时启动引擎"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(tr("앱을 열면 엔진 시작", "Start the engine with the app", "打开应用时启动引擎"), style = RowTitleStyle, modifier = Modifier.weight(1f))
                     Switch(checked = auto, onCheckedChange = { prefs.autoStartEngine.set(it) })
                 }
             }
@@ -687,7 +689,7 @@ internal fun CommonSettings(
         } else {
             row {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("다크 모드", "Dark mode", "深色模式"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Text(tr("다크 모드", "Dark mode", "深色模式"), style = RowTitleStyle, modifier = Modifier.weight(1f))
                     Switch(checked = ui.settings.darkMode, onCheckedChange = onDark)
                 }
             }
@@ -704,8 +706,8 @@ internal fun CommonSettings(
 private fun SwitchRow(title: String, note: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyMedium)
-            Text(note, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(title, style = RowTitleStyle)
+            Text(note, style = RowNoteStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Switch(checked = checked, onCheckedChange = onChange)
     }

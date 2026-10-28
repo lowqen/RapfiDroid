@@ -94,8 +94,9 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: 
         flingBehavior = rememberCalmFling(),
     ) {
         item {
+            // The page title says «정석» and the segment above says «공식
+            // 커리큘럼»; the list itself opens on what it is for.
             Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
-                Text(tr("공식 커리큘럼", "Official curriculum", "官方课程"), style = MaterialTheme.typography.headlineSmall)
                 Hint(tr("오프닝 정석을 따라 두며 배웁니다", "Learn the opening joseki by playing them", "通过跟着下来学习开局定式"))
                 SyncLine(ui, onRefresh)
             }

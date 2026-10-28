@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.core.designsystem.component
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.RowTitleStyle
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -227,12 +228,12 @@ fun FieldRow(
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = MaterialTheme.typography.labelLarge)
+            Text(label, style = RowTitleStyle)
             note?.let {
                 Text(
                     it,
                     modifier = Modifier.padding(start = 8.dp),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -413,11 +414,13 @@ fun ConnectedGroup(
     val inner = androidx.compose.foundation.shape.CornerSize(4.dp)
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
         if (title != null) {
+            // Mornye's section headers: the accent, a little weight, set on the
+            // rows' own text line rather than the card's edge (M2).
             Text(
                 title,
-                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 5.dp),
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = RapfiTheme.tokens.rowPaddingH, top = 8.dp, bottom = 6.dp),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.primary,
             )
         }
         rows.forEachIndexed { i, row ->
@@ -431,8 +434,10 @@ fun ConnectedGroup(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    Modifier.padding(horizontal = RapfiTheme.tokens.rowPaddingH, vertical = RapfiTheme.tokens.rowPaddingV),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    Modifier
+                        .heightIn(min = 64.dp)
+                        .padding(horizontal = RapfiTheme.tokens.rowPaddingH, vertical = RapfiTheme.tokens.rowPaddingV),
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                     content = row,
                 )
             }

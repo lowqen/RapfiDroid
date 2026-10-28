@@ -46,7 +46,10 @@ val Typography = Typography(
     displaySmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 28.sp, lineHeight = 36.sp, letterSpacing = (-0.3).sp),
 
     headlineLarge = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 28.sp, lineHeight = 36.sp, letterSpacing = (-0.4).sp),
-    headlineMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 32.sp, letterSpacing = (-0.3).sp),
+    // The page title (UI overhaul 2, M2): what a list screen's tall header shows
+    // before it folds — Mornye's «설정» / «디자인», measured at ~34sp and very
+    // heavy. Material's large top bar reads this slot for its expanded title.
+    headlineMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.ExtraBold, fontSize = 34.sp, lineHeight = 42.sp, letterSpacing = (-0.6).sp),
     headlineSmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 21.sp, lineHeight = 28.sp, letterSpacing = (-0.2).sp),
 
     // Titles and body one step up from the first cut (user request,
@@ -78,6 +81,17 @@ val Typography = Typography(
  *     Text(nodes, style = MaterialTheme.typography.labelLarge.tabular())
  */
 fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
+
+/**
+ * The title of one row in a settings group or list (UI overhaul 2, M2):
+ * Mornye's rows read at ~18sp, regular weight — the size carries the row, the
+ * page title carries the weight. Its own style rather than `bodyLarge`, which
+ * every text field also reads.
+ */
+val RowTitleStyle = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 18.sp, lineHeight = 26.sp, letterSpacing = (-0.2).sp)
+
+/** The line under a row's title: one step down, in the variant colour at the call site. */
+val RowNoteStyle = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 21.sp)
 
 /** Monospace style for the piskvork console and coordinate lines. */
 val MonoStyle = TextStyle(

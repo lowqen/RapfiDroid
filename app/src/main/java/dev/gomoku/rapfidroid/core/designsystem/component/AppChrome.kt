@@ -130,8 +130,9 @@ fun RapfiTopBar(
 }
 
 /**
- * The header of a screen that is one long list — settings, the database. Tall
- * while the list is at its top, so the screen has a name worth reading; folded
+ * The header of a screen that is one long list — settings, the database, the
+ * joseki courses. Tall while the list is at its top — a 34sp ExtraBold title
+ * under a lot of air, as Mornye's pages open (M2) — and folded
  * to the ordinary 52dp bar as soon as the list moves (Mornye's collapsing
  * header, decision P2 ③).
  *
@@ -163,7 +164,8 @@ fun RapfiCollapsingTopBar(
                 Spacer(Modifier.width(4.dp))
             },
             collapsedHeight = 52.dp,
-            expandedHeight = 112.dp,
+            // M2: Mornye's page titles sit low under a lot of air (~150dp).
+            expandedHeight = 152.dp,
             windowInsets = WindowInsets(0),
             // No surface of its own, folded or not: the page runs on under it,
             // as Mornye's headers sit on the page.

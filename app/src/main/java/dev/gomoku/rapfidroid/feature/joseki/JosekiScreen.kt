@@ -1,5 +1,9 @@
 package dev.gomoku.rapfidroid.feature.joseki
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiCollapsingTopBar
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +29,7 @@ import dev.gomoku.rapfidroid.core.i18n.tr
  * joseki** (an editor for one's own trees, found again from the board's
  * position). Back goes up one level: lesson → course → list, editor → list.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JosekiScreen(
     modifier: Modifier = Modifier,
@@ -52,11 +57,23 @@ fun JosekiScreen(
         if (uri != null) viewModel.onExportPsq(uri)
     }
 
-    Column(modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("정석", "Joseki", "定式"))
-        val lesson = ui.lesson
-        val course = ui.course
-        val editing = ui.editing
+    val lesson = ui.lesson
+    val course = ui.course
+    val editing = ui.editing
+    // The two lists get the tall, folding page title (M2); a course, a lesson
+    // and the editor keep the one-line header — they have a board to fit.
+    val onList = lesson == null && course == null && editing == null
+    val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Column(
+        modifier
+            .fillMaxSize()
+            .then(if (onList) Modifier.nestedScroll(header.nestedScrollConnection) else Modifier),
+    ) {
+        if (onList) {
+            RapfiCollapsingTopBar(title = tr("정석", "Joseki", "定式"), scrollBehavior = header)
+        } else {
+            RapfiTopBar(title = tr("정석", "Joseki", "定式"))
+        }
         when {
             lesson != null && course != null -> LessonPage(ui, course, lesson, viewModel)
             course != null -> CoursePage(
