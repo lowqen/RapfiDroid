@@ -1,7 +1,7 @@
 package dev.gomoku.rapfidroid.feature.board
 
 import dev.gomoku.rapfidroid.core.designsystem.theme.TonalRamp
-import dev.gomoku.rapfidroid.core.designsystem.theme.Clay
+import dev.gomoku.rapfidroid.core.designsystem.theme.Maple
 import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -111,7 +111,7 @@ internal fun BoardPortrait(
         val skin = RapfiTheme.board
         val scheme = MaterialTheme.colorScheme
         val dark = scheme.surface.luminance() < 0.5f
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().drawBehind { stage(skin.wood, scheme.primary, dark) }) {
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().drawBehind { stage(skin.wood, skin.woodEdge, dark) }) {
             val showBar = ui.showEvalBar && ui.analysisTab
             // A 4dp gutter left of the bar, so it does not touch the screen edge.
             val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
@@ -249,7 +249,12 @@ private fun SheetRule(ui: BoardUiState) {
  * play button, the sheet, the page. Here the album is the board: the warm wood
  * under a cool violet page and a violet ▶ cut the screen in two. So the whole
  * board screen — page, sheet, cards, ▶ and its keys — is drawn from the wood's
- * own ramp ([Clay], 82°), and the violet stays on the other tabs.
+ * own hue ([Maple], 70°), and the violet stays on the other tabs.
+ *
+ * The keys are the board's other material, the stones (2026-10-29): ▶ is a
+ * black stone by day and a white one at night, ‹ › pale maple. The first cut
+ * took ▶ from the wood ramp itself, and a dark wood tone is a mustard brown
+ * («똥색»).
  *
  * Only chrome roles change. The board's skin, the value ladder on it, the eval
  * bar and the graph are untouched: the colour there is the value. Black
@@ -266,25 +271,25 @@ internal fun WoodTheme(content: @Composable () -> Unit) {
 internal fun woodScheme(scheme: ColorScheme): ColorScheme {
     val dark = scheme.surface.luminance() < 0.5f
     val black = scheme.surface.luminance() < 0.001f
-    val paper = TonalRamp(hue = Clay.hue, chroma = if (dark) 0.012f else 0.016f)
-    val ink = TonalRamp(hue = Clay.hue, chroma = 0.03f)
-    // The pale keys and selections: quiet wood, not the board's full colour —
-    // Clay's own tone 90 came out a loud pastel yellow (Mornye's pale tones
-    // sit at chroma ~0.03 ~ 0.04).
-    val pale = TonalRamp(hue = Clay.hue, chroma = 0.04f)
+    val paper = TonalRamp(hue = Maple.hue, chroma = if (dark) 0.012f else 0.014f)
+    // Stone ink: near-neutral, only warm enough to sit on the maple.
+    val ink = TonalRamp(hue = Maple.hue, chroma = 0.018f)
+    // The pale keys and selections: quiet wood, not the board's full colour
+    // (Mornye's pale tones sit at chroma ~0.03 ~ 0.04).
+    val pale = TonalRamp(hue = Maple.hue, chroma = 0.035f)
     val accents = if (dark) {
         scheme.copy(
-            primary = Clay.tone(78), onPrimary = Clay.tone(18),
-            primaryContainer = Clay.tone(32), onPrimaryContainer = Clay.tone(90),
-            secondaryContainer = paper.tone(30), onSecondaryContainer = Clay.tone(90),
+            primary = paper.tone(92), onPrimary = ink.tone(12),
+            primaryContainer = pale.tone(30), onPrimaryContainer = paper.tone(92),
+            secondaryContainer = pale.tone(28), onSecondaryContainer = paper.tone(92),
             onSurfaceVariant = ink.tone(78), outlineVariant = paper.tone(32),
         )
     } else {
         scheme.copy(
-            primary = Clay.tone(42), onPrimary = Clay.tone(100),
-            primaryContainer = pale.tone(88), onPrimaryContainer = Clay.tone(20),
-            secondaryContainer = pale.tone(89), onSecondaryContainer = Clay.tone(24),
-            onSurfaceVariant = ink.tone(34), outlineVariant = paper.tone(82),
+            primary = ink.tone(22), onPrimary = paper.tone(99),
+            primaryContainer = pale.tone(88), onPrimaryContainer = ink.tone(20),
+            secondaryContainer = pale.tone(89), onSecondaryContainer = ink.tone(24),
+            onSurfaceVariant = ink.tone(38), outlineVariant = paper.tone(84),
         )
     }
     if (black) return accents
@@ -306,18 +311,18 @@ internal fun woodScheme(scheme: ColorScheme): ColorScheme {
 }
 
 /**
- * The board's stage: two faint rounds on the page behind it, one of wood and
- * one of the accent, as the design page's preview is lit (M5). The board is
- * drawn over them unchanged.
+ * The board's stage: two faint rounds of wood on the page behind it, as the
+ * design page's preview is lit (M5). The board is drawn over them unchanged.
+ * Both are wood since ▶ took the stones' colours — a charcoal haze is not light.
  */
-private fun DrawScope.stage(wood: Color, accent: Color, dark: Boolean) {
+private fun DrawScope.stage(wood: Color, edge: Color, dark: Boolean) {
     fun round(color: Color, x: Float, y: Float, r: Float) {
         val center = Offset(size.width * x, size.height * y)
         val radius = size.width * r
         drawCircle(Brush.radialGradient(listOf(color, color.copy(alpha = 0f)), center, radius), radius, center)
     }
     round(wood.copy(alpha = if (dark) 0.16f else 0.24f), 0.08f, 0.12f, 0.7f)
-    round(accent.copy(alpha = if (dark) 0.10f else 0.07f), 0.95f, 0.6f, 0.6f)
+    round(edge.copy(alpha = if (dark) 0.12f else 0.14f), 0.95f, 0.6f, 0.6f)
 }
 
 /** A grip, not Material's 48dp handle: the peek is height the board gave up. */

@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
  * wrong at night, where it made the board the brightest object on the screen —
  * brighter than the text, and far brighter than the value chips it is supposed
  * to be a background for. The dark skin is the same wood in shadow: same hue
- * family ([Clay]), a third of the lightness.
+ * family ([Maple]), a third of the lightness.
  */
 data class BoardSkin(
     /** The plate itself, and the slightly darker edge it fades to. */
@@ -66,14 +66,15 @@ data class BoardSkin(
 ) {
     companion object {
         /**
-         * Paper daylight: the desktop's gold kept, because a user who has looked
-         * at that board for years should recognise it.
+         * Paper daylight: maple at the desktop gold's lightness. The gold itself
+         * (`Clay`) was kept until 2026-10-29, when it read as a murky olive on a
+         * phone; the hue moved, the lightness the chips are measured on did not.
          */
         val Light = BoardSkin(
-            wood = Clay.tone(76),
-            woodEdge = Clay.tone(68),
-            line = Clay.tone(42),
-            label = Clay.tone(32),
+            wood = Maple.tone(76),
+            woodEdge = Maple.tone(70),
+            line = Maple.tone(40),
+            label = Maple.tone(30),
             blackHigh = Ink.tone(28),
             blackLow = Ink.tone(6),
             blackRim = Ink.tone(2),

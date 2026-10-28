@@ -117,7 +117,7 @@ class ThemeContrastTest {
 
     @Test
     fun `every ramp climbs from black to white`() {
-        listOf(Ink, Neutral, NeutralVariant, Sage, Clay, Signal, ResultBlue, ResultGreen, Violet, Lilac, Mist, MistVariant)
+        listOf(Ink, Neutral, NeutralVariant, Sage, Clay, Maple, WoodNight, Signal, ResultBlue, ResultGreen, Violet, Lilac, Mist, MistVariant)
             .forEach { assertThat(rampIsMonotone(it)).isTrue() }
     }
 

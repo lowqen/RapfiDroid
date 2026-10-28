@@ -19,8 +19,9 @@ import androidx.compose.ui.graphics.Color
  * | [Ink] | 74° | the near-neutral warm charcoal that buttons and emphasis use |
  * | [Neutral] / [NeutralVariant] | 74° | backgrounds, cards, outlines — the paper |
  * | [Sage] | 148° | the desktop's board green, quietened; "good/alive" |
- * | [Clay] | 82° | the desktop's gold; the wood, and "attention, not error" |
- * | [WoodNight] | 82° | the same wood in shadow, for the dark board |
+ * | [Clay] | 82° | the desktop's gold; "attention, not error" (the wood until 2026-10-29) |
+ * | [Maple] | 70° | the board's wood |
+ * | [WoodNight] | 70° | the same wood in shadow, for the dark board |
  * | [Signal] | 27° | errors and forbidden points |
  *
  * The two result ramps ([ResultBlue], [ResultGreen]) are separate on purpose:
@@ -66,11 +67,22 @@ val Sage = TonalRamp(hue = 148f, chroma = 0.060f)
 val Clay = TonalRamp(hue = 82f, chroma = 0.095f)
 
 /**
+ * The board's wood since 2026-10-29: maple, a step from [Clay]'s gold toward
+ * apricot. At 82° the desktop's gold, at the mid lightness a board has to keep,
+ * read as a murky olive on a phone («탁한 올리브판»); 70° and a little less
+ * chroma is clean wood. Only the hue moved — tone 76 stays the board's
+ * lightness, because the value chips and the white stones are measured against
+ * it (`TagPaletteTest`, `ThemeContrastTest`). [Clay] keeps its gold for
+ * «attention» and stays the RapfiWeb board.
+ */
+val Maple = TonalRamp(hue = 70f, chroma = 0.075f)
+
+/**
  * The same wood by lamplight — its own ramp because it is a *material* change,
  * not a tone change: at the dark board's lightness the daylight chroma reads as
- * orange plastic rather than as wood in shadow.
+ * orange plastic rather than as wood in shadow. Follows [Maple]'s hue.
  */
-val WoodNight = TonalRamp(hue = 82f, chroma = 0.050f)
+val WoodNight = TonalRamp(hue = 70f, chroma = 0.050f)
 
 /**
  * The accent: filled buttons, the active tab and chip, switches, the toolbar's

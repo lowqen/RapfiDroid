@@ -43,6 +43,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -187,7 +188,7 @@ internal fun MoveToolbar(
     }
 }
 
-/** The round keys at the toolbar's ends. */
+/** The bare icons at the toolbar's ends (touch target, not a face). */
 private val BareSize = 44.dp
 
 /** The `<` `>` keys, and the height of ▶. */
@@ -196,7 +197,11 @@ private val KeySize = 56.dp
 /** ▶ is wider than its neighbours, as Mornye's play button is (~100 × 72 against 68). */
 private val PlayWidth = 84.dp
 
-/** A key at the toolbar's ends: round, smaller, on the quietest face. */
+/**
+ * A key at the toolbar's ends: a bare icon, no face (user request, 2026-10-29 —
+ * the round faces made six boxes of one row). The faces stay on the three keys
+ * in the middle, so ‹ ▶ › read as the controls and the ends as tools.
+ */
 @Composable
 private fun EndKey(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -211,8 +216,9 @@ private enum class KeyTone { Strong, Accent, Quiet }
 
 /**
  * One key of the group: a rounded square, [strong] in the accent (▶) or the
- * pale accent (`<` `>`). A press squares the corners and springs them back
- * (M5's shape morph); [round] holds them round (▶ while the engine reads).
+ * pale accent (`<` `>`), or no face at all ([KeyTone.Quiet], the ends). A
+ * press squares the corners and springs them back (M5's shape morph); [round]
+ * holds them round (▶ while the engine reads).
  */
 @Composable
 private fun ToolKey(
@@ -231,18 +237,18 @@ private fun ToolKey(
     val pressed by interaction.collectIsPressedAsState()
     val corner by animateDpAsState(
         targetValue = when {
-            pressed -> height * 0.18f
+            pressed -> height * 0.24f
             round -> height / 2
-            else -> height * 0.32f
+            else -> height * 0.42f
         },
         animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
         label = "keyCorner",
     )
     val container = when {
+        tone == KeyTone.Quiet -> Color.Transparent
         !enabled -> scheme.onSurface.copy(alpha = 0.08f)
         tone == KeyTone.Strong -> scheme.primary
-        tone == KeyTone.Accent -> scheme.secondaryContainer
-        else -> scheme.surfaceContainerHigh
+        else -> scheme.secondaryContainer
     }
     val content = when {
         !enabled -> scheme.onSurface.copy(alpha = 0.38f)
