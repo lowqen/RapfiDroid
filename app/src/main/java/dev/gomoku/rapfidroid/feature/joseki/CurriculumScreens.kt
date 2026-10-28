@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.feature.joseki
 
+import androidx.compose.foundation.lazy.itemsIndexed
+import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberStagger
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
+import dev.gomoku.rapfidroid.core.designsystem.component.SmoothProgressBar
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardMark
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardMarkColors
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
@@ -80,6 +84,8 @@ import dev.gomoku.rapfidroid.data.joseki.CurriculumSource
 @Composable
 internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: () -> Unit) {
     val curriculum = ui.curriculum
+    // The courses rise in one after another the first time the list is seen (P5).
+    val stagger = rememberStagger()
     LazyColumn(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
         contentPadding = PaddingValues(12.dp),
@@ -95,8 +101,10 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: 
         if (curriculum == null) {
             item { Hint(tr("불러오는 중", "Loading", "载入中")) }
         } else {
-            items(curriculum.courses, key = { it.id }) { course ->
-                CourseCard(course, ui.progress.keys) { onOpen(course.id) }
+            itemsIndexed(curriculum.courses, key = { _, it -> it.id }) { i, course ->
+                Box(Modifier.staggerIn(stagger, i + 1)) {
+                    CourseCard(course, ui.progress.keys) { onOpen(course.id) }
+                }
             }
         }
     }
@@ -313,7 +321,7 @@ internal fun LessonPage(
         // Foot: progress, tools, moves.
         if (learn) {
             Text(tr("${quiz.answered} / ${quiz.total}수", "${quiz.answered} / ${quiz.total} moves", "${quiz.answered} / ${quiz.total} 手"), style = MaterialTheme.typography.labelMedium.tabular())
-            LinearProgressIndicator(progress = { if (quiz.total > 0) quiz.answered.toFloat() / quiz.total else 0f }, modifier = Modifier.fillMaxWidth())
+            SmoothProgressBar(fraction = if (quiz.total > 0) quiz.answered.toFloat() / quiz.total else 0f, modifier = Modifier.fillMaxWidth())
             if (!quiz.done) {
                 val learnerTurn = (quiz.path.size % 2 == 0) == lesson.blackLearner
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

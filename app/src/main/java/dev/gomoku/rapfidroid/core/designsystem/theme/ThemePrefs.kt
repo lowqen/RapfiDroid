@@ -29,6 +29,13 @@ val UiPrefs.themeAmoled: UiPrefs.BoolPref get() = bool("theme.amoled", false)
 /** The wallpaper's hue on the chrome ramps (Android 12+). Off by default (D1). */
 val UiPrefs.themeWallpaperTone: UiPrefs.BoolPref get() = bool("theme.wallpaperTone", false)
 
+/**
+ * «진동» — the board's and the toolbar's haptics (P3) on or off. On by default:
+ * they only answer the user's own hand, at a threshold. Read by the activity
+ * into `LocalHapticsEnabled`.
+ */
+val UiPrefs.hapticsEnabled: UiPrefs.BoolPref get() = bool("haptics.enabled", true)
+
 /** Whether this phone has wallpaper colours to offer at all. */
 val wallpaperToneAvailable: Boolean get() = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
 

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.rapfidroid.core.designsystem.component.SmoothProgressBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.PackBuildState
 
@@ -210,10 +211,7 @@ private fun Progress(state: PackBuildState.Running) {
         Text(state.phase.label, style = MaterialTheme.typography.bodyMedium)
         val fraction = state.fraction
         if (fraction != null) {
-            LinearProgressIndicator(
-                progress = { fraction },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            SmoothProgressBar(fraction = fraction, modifier = Modifier.fillMaxWidth())
             Text(
                 "${(fraction * 100).toInt()}%",
                 style = MaterialTheme.typography.labelSmall,

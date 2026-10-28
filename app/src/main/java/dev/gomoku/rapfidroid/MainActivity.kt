@@ -23,8 +23,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import dev.gomoku.rapfidroid.core.common.IncomingLinks
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalHapticsEnabled
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiDroidTheme
+import dev.gomoku.rapfidroid.core.designsystem.theme.hapticsEnabled
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeAmoled
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeWallpaperTone
@@ -99,8 +101,12 @@ class MainActivity : ComponentActivity() {
                 ) { dark }
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
+            val haptics by uiPrefs.hapticsEnabled.state.collectAsStateWithLifecycle()
             RapfiDroidTheme(darkTheme = dark, amoled = amoled, chromeHue = chromeHue) {
-                CompositionLocalProvider(LocalUiPrefs provides uiPrefs) {
+                CompositionLocalProvider(
+                    LocalUiPrefs provides uiPrefs,
+                    LocalHapticsEnabled provides haptics,
+                ) {
                     RapfiApp()
                 }
             }

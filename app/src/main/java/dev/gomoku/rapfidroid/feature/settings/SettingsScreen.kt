@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberStagger
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -62,6 +64,7 @@ import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
 import dev.gomoku.rapfidroid.core.designsystem.component.FieldRow
 import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
+import dev.gomoku.rapfidroid.core.designsystem.theme.hapticsEnabled
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeAmoled
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeWallpaperTone
@@ -132,12 +135,20 @@ fun SettingsScreen(
         // RapfiWeb's settings: a search, the common card, one advanced switch,
         // then the desktop's entries grouped by what they are for. A row is its
         // name and its control; the why is not spelled out on the screen.
+        // The groups rise in one after another the first time the screen opens (P5).
+        val stagger = rememberStagger()
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            item(key = "search") {
+            var order = 0
+            // An item of the list, numbered in the order the list adds them.
+            fun entering(key: String, content: @Composable () -> Unit) {
+                val at = order++
+                item(key = key) { Box(Modifier.staggerIn(stagger, at)) { content() } }
+            }
+            entering("search") {
                 OutlinedTextField(
                     value = ui.query,
                     onValueChange = viewModel::onQuery,
@@ -149,7 +160,7 @@ fun SettingsScreen(
                 )
             }
             if (!searching) {
-                item(key = "common") {
+                entering("common") {
                     CommonSettings(
                         ui = ui,
                         onDark = { viewModel.onValue("darkMode", if (it) "1" else "0") },
@@ -157,7 +168,7 @@ fun SettingsScreen(
                         onRifBuild = { showRifBuild = true },
                     )
                 }
-                item(key = "advanced") {
+                entering("advanced") {
                     ConnectedGroup {
                         row {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -175,7 +186,7 @@ fun SettingsScreen(
                 }
             }
             if (ui.advanced && !searching) {
-                item(key = "local") {
+                entering("local") {
                     LocalEngineCard(
                         ui = ui,
                         onHash = viewModel::onLocalHash,
@@ -185,12 +196,12 @@ fun SettingsScreen(
                 }
             }
             if (searching && ui.visible.isEmpty()) {
-                item(key = "none") { Hint(tr("«${ui.query}» 에 맞는 설정이 없습니다", "No setting matches «${ui.query}»", "没有与 «${ui.query}» 匹配的设置")) }
+                entering("none") { Hint(tr("«${ui.query}» 에 맞는 설정이 없습니다", "No setting matches «${ui.query}»", "没有与 «${ui.query}» 匹配的设置")) }
             }
             val groups = ui.visible.groupBy { it.category }
             SettingCategory.entries.forEach { category ->
                 val rows = groups[category] ?: return@forEach
-                item(key = "group-" + category.name) {
+                entering("group-" + category.name) {
                     ConnectedGroup(title = category.label) {
                         rows.forEach { spec ->
                             row {
@@ -205,7 +216,7 @@ fun SettingsScreen(
                 }
             }
             if (ui.advanced && !searching) {
-                item(key = "system") {
+                entering("system") {
                     ConnectedGroup(title = tr("데스크톱 설정 파일", "Desktop settings files", "桌面版设置文件")) {
                         SettingsFile.entries.forEach { file ->
                             row {
@@ -270,7 +281,7 @@ fun SettingsScreen(
                 }
             }
             if (!searching) {
-                item(key = "about") {
+                entering("about") {
                     ConnectedGroup {
                         row {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -634,6 +645,15 @@ internal fun CommonSettings(
                         onChange = { prefs.themeWallpaperTone.set(it) },
                     )
                 }
+            }
+            row {
+                val haptics by prefs.hapticsEnabled.state.collectAsStateWithLifecycle()
+                SwitchRow(
+                    title = tr("진동", "Vibration", "振动"),
+                    note = tr("돌을 놓을 때 · 둘 수 없을 때 · 승부가 났을 때", "When a stone lands, a move is refused, a game ends", "落子 · 无法落子 · 分出胜负时"),
+                    checked = haptics,
+                    onChange = { prefs.hapticsEnabled.set(it) },
+                )
             }
             row {
                 val auto by prefs.autoStartEngine.state.collectAsStateWithLifecycle()

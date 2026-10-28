@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.rapfidroid.core.designsystem.component.SmoothProgressBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.PackBuildState
 
@@ -50,7 +51,7 @@ fun DataSetupCard(
                 Text(running.phase.label, style = MaterialTheme.typography.labelMedium)
                 val fraction = running.fraction
                 if (fraction != null) {
-                    LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+                    SmoothProgressBar(fraction = fraction, modifier = Modifier.fillMaxWidth())
                 } else {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }

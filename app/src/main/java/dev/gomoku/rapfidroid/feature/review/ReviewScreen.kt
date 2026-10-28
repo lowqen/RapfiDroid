@@ -24,7 +24,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.gomoku.rapfidroid.core.designsystem.component.SmoothProgressBar
 import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
 import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
 import dev.gomoku.rapfidroid.core.designsystem.component.Disclosure
@@ -178,10 +178,7 @@ private fun RunCard(
         val budget = ui.budget
         if (ui.running) {
             val progress = ui.progress
-            LinearProgressIndicator(
-                progress = { progress.fraction },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            SmoothProgressBar(fraction = progress.fraction, modifier = Modifier.fillMaxWidth())
             Text(
                 buildString {
                     progress.queue?.let { append(tr("큐 ${it.index}/${it.total} · ${it.name} · ", "Queue ${it.index}/${it.total} · ${it.name} · ", "队列 ${it.index}/${it.total} · ${it.name} ·")) }

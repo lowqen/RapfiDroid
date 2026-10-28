@@ -57,6 +57,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.gomoku.rapfidroid.core.designsystem.theme.ChromeMotion
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTokens
 import dev.gomoku.rapfidroid.core.i18n.tr
@@ -157,7 +158,9 @@ fun Disclosure(
 ) {
     val prefs = LocalUiPrefs.current
     var open by rememberSaveable(id) { mutableStateOf(prefs?.isOpen(id, defaultOpen) ?: defaultOpen) }
-    val turn by animateFloatAsState(if (open) 90f else 0f, tween(MOTION_QUICK), label = "chevron")
+    // Chrome motion (P5): the chevron and the fold move on springs, and fall
+    // back to the old 150ms tweens when the system removes animations.
+    val turn by animateFloatAsState(if (open) 90f else 0f, ChromeMotion.spatialFast(tween(MOTION_QUICK)), label = "chevron")
     Column(modifier.fillMaxWidth()) {
         Row(
             Modifier
@@ -189,8 +192,8 @@ fun Disclosure(
         }
         AnimatedVisibility(
             open,
-            enter = fadeIn(tween(MOTION_QUICK)) + expandVertically(tween(MOTION_QUICK)),
-            exit = fadeOut(tween(MOTION_QUICK)) + shrinkVertically(tween(MOTION_QUICK)),
+            enter = fadeIn(ChromeMotion.effects(tween(MOTION_QUICK))) + expandVertically(ChromeMotion.spatial(tween(MOTION_QUICK))),
+            exit = fadeOut(ChromeMotion.effectsFast(tween(MOTION_QUICK))) + shrinkVertically(ChromeMotion.spatialFast(tween(MOTION_QUICK))),
         ) {
             Column(
                 Modifier.padding(top = 4.dp, bottom = 8.dp),

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -31,6 +30,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.gomoku.rapfidroid.core.designsystem.component.SmoothProgressBar
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSheet
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.DbCellKind
@@ -361,8 +361,8 @@ internal fun ResearchBadge(
                 )
             }
             banner.progress?.let {
-                LinearProgressIndicator(
-                    progress = { it },
+                SmoothProgressBar(
+                    fraction = it,
                     color = Color.White,
                     trackColor = Color.White.copy(alpha = 0.3f),
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 6.dp),
