@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.theme.BoardSkin
 import dev.gomoku.rapfidroid.core.designsystem.theme.linearToSrgb
 import dev.gomoku.rapfidroid.core.designsystem.theme.mixColors
+import dev.gomoku.rapfidroid.core.designsystem.theme.oklch
 import dev.gomoku.rapfidroid.core.designsystem.theme.srgbToLinear
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.model.CandidateState
@@ -79,17 +80,17 @@ data class BoardMark(val text: String, val color: Color)
  * «wrong» and «just a label».
  *
  * One set for both woods: a mark is drawn with the dark [TextOutline] round it,
- * like every value on the board, so it reads on gold and on dark wood alike and
- * does not follow the theme. These were written out as hex at each place that
- * drew one (the joseki tree, the quiz, the openings explorer); the values are
- * unchanged, only named (UI overhaul P4).
+ * like every value on the board, so it reads on maple and on dark wood alike and
+ * does not follow the theme. Named in UI overhaul P4; since 2026-10-29 the
+ * same green and red as the value text ([TagPalette.textFor]) instead of the
+ * neon `#6BE38A` / `#FF6B5E`.
  */
 object BoardMarkColors {
     /** The book move, a right answer, a hint. */
-    val Good = Color(0xFF6BE38A)
+    val Good = textInkAt(120f)
 
     /** A trap, a wrong answer, the refutation. */
-    val Bad = Color(0xFFFF6B5E)
+    val Bad = textInkAt(0f)
 
     /** A branch letter, a game count. */
     val Plain = Color(0xFFF2E7D3)
@@ -175,6 +176,7 @@ data class TagPalette(
      * yellow and orange, winning red, the desktop's `winrate2colorstr` poles. The
      * order still comes from [ratePosition], so the five colour settings still
      * bend it. A dark outline (`TextOutline`) lifts it off wood, stone and ghost.
+     * The colours themselves are [textInkAt]'s.
      */
     fun textFor(tag: CellTag): Color = when (tag.kind) {
         TagKind.WIN -> textInk(0f)
@@ -194,8 +196,7 @@ data class TagPalette(
     /** Ladder position (0 lost, 1 won) to hue, 240 degrees blue down to 0 red. */
     internal fun textHue(position: Float): Float = (1f - position.coerceIn(0f, 1f)) * 240f
 
-    private fun textInk(hue: Float): Color =
-        hsl(hue, 0.95f, 0.62f * (value / 100f).coerceIn(0.6f, 1f))
+    private fun textInk(hue: Float): Color = textInkAt(hue, (value / 100f).coerceIn(0.6f, 1f))
 
     /** Exposed for the tests: where a win rate sits on the ladder. */
     internal fun positionOf(percent: Int): Float = ratePosition(percent)
@@ -279,6 +280,41 @@ data class TagPalette(
 
 /** The outline under every value written on the board. */
 internal val TextOutline = Color(0xFF140F0A)
+
+/**
+ * The ink of a value written on the board, for a hue on the desktop's HSL scale
+ * (240 blue = lost … 120 green = even … 0 red = won) — [TagPalette.textHue].
+ *
+ * It was `hsl(hue, 95 %, 62 %)`, RapfiWeb's formula, and on the maple board that
+ * read as neon («쨍함», 2026-10-29): HSL at full saturation is as loud as sRGB
+ * goes, and its yellow and green are far lighter than its blue and red, so the
+ * middle of the scale glared. Now each hue is the same named colour placed in
+ * [oklch] at chroma 0.14, and the lightness follows the hue the way a printed
+ * palette does — red and blue deeper (0.66 / 0.70), yellow lightest (0.84) —
+ * so all of them carry about the same weight and none outshines the wood. The
+ * order (blue → teal → green → yellow → orange → red) is the desktop's, kept.
+ *
+ * [dim] is the desktop's colour value setting (settings.txt line 43).
+ */
+internal fun textInkAt(hue: Float, dim: Float = 1f): Color {
+    val h = hue.coerceIn(0f, 240f)
+    val i = InkAnchors.indexOfLast { it[0] <= h }.coerceIn(0, InkAnchors.size - 2)
+    val (a, b) = InkAnchors[i] to InkAnchors[i + 1]
+    val t = (h - a[0]) / (b[0] - a[0])
+    return oklch((a[2] + (b[2] - a[2]) * t) * dim, InkChroma, a[1] + (b[1] - a[1]) * t)
+}
+
+/** HSL hue → (the same named colour's Oklch hue, its lightness). */
+private val InkAnchors = listOf(
+    floatArrayOf(0f, 29f, 0.66f), //    red — a win
+    floatArrayOf(30f, 52f, 0.74f), //   orange
+    floatArrayOf(60f, 98f, 0.84f), //   yellow
+    floatArrayOf(120f, 142f, 0.80f), // green — even
+    floatArrayOf(180f, 200f, 0.80f), // cyan
+    floatArrayOf(240f, 262f, 0.70f), // blue — a loss
+)
+
+private const val InkChroma = 0.14f
 
 /** HSL to colour, the CSS formula (RapfiWeb `ladder.ts hslHex`). */
 internal fun hsl(h: Float, s: Float, l: Float): Color {
