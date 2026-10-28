@@ -23,9 +23,11 @@ import androidx.compose.ui.platform.LocalContext
  * button). Filling the table is not thoroughness for its own sake; it is what
  * makes the app one colour system.
  *
- * The tones below are Material's own recipe, moved onto this app's ramps: the
- * dark surface family sits a little higher than Material's default because the
- * near-black the desktop has always used is a shade lighter than Material's.
+ * The tones below are Material's own recipe, moved onto this app's ramps, and
+ * since UI overhaul 2 (M1) set to the relations measured off Mornye's screens:
+ * a near-white page (L* 99) with the faces one step **darker** (L* 95), no
+ * borders; dark the same the other way (page 10, faces 18). `surfaceContainer`
+ * is the face of every card and group row, and of the navigation bar.
  */
 private fun darkColors(c: ChromeRamps) = darkColorScheme(
     primary = Violet.tone(80),
@@ -49,27 +51,27 @@ private fun darkColors(c: ChromeRamps) = darkColorScheme(
     errorContainer = Signal.tone(28),
     onErrorContainer = Signal.tone(92),
 
-    background = c.neutral.tone(12),
+    background = c.neutral.tone(10),
     onBackground = c.neutral.tone(92),
-    surface = c.neutral.tone(12),
+    surface = c.neutral.tone(10),
     onSurface = c.neutral.tone(92),
     surfaceVariant = c.neutralVariant.tone(26),
-    onSurfaceVariant = c.neutralVariant.tone(78),
+    onSurfaceVariant = c.neutralVariant.tone(80),
     surfaceTint = Violet.tone(80),
     inverseSurface = c.neutral.tone(90),
-    inverseOnSurface = c.neutral.tone(18),
+    inverseOnSurface = c.neutral.tone(20),
 
-    outline = c.neutralVariant.tone(52),
-    outlineVariant = c.neutralVariant.tone(28),
+    outline = c.neutralVariant.tone(60),
+    outlineVariant = c.neutralVariant.tone(30),
     scrim = Color.Black,
 
-    surfaceBright = c.neutral.tone(30),
-    surfaceDim = c.neutral.tone(9),
-    surfaceContainerLowest = c.neutral.tone(8),
+    surfaceBright = c.neutral.tone(26),
+    surfaceDim = c.neutral.tone(8),
+    surfaceContainerLowest = c.neutral.tone(7),
     surfaceContainerLow = c.neutral.tone(14),
-    surfaceContainer = c.neutral.tone(17),
-    surfaceContainerHigh = c.neutral.tone(21),
-    surfaceContainerHighest = c.neutral.tone(25),
+    surfaceContainer = c.neutral.tone(18),
+    surfaceContainerHigh = c.neutral.tone(22),
+    surfaceContainerHighest = c.neutral.tone(26),
 )
 
 private fun lightColors(c: ChromeRamps) = lightColorScheme(
@@ -94,25 +96,25 @@ private fun lightColors(c: ChromeRamps) = lightColorScheme(
     errorContainer = Signal.tone(92),
     onErrorContainer = Signal.tone(20),
 
-    background = c.neutral.tone(98),
-    onBackground = c.neutral.tone(14),
-    surface = c.neutral.tone(98),
-    onSurface = c.neutral.tone(14),
-    surfaceVariant = c.neutralVariant.tone(92),
-    onSurfaceVariant = c.neutralVariant.tone(38),
+    background = c.neutral.tone(99),
+    onBackground = c.neutral.tone(10),
+    surface = c.neutral.tone(99),
+    onSurface = c.neutral.tone(10),
+    surfaceVariant = c.neutralVariant.tone(90),
+    onSurfaceVariant = c.neutralVariant.tone(30),
     surfaceTint = Violet.tone(40),
     inverseSurface = c.neutral.tone(20),
-    inverseOnSurface = c.neutral.tone(96),
+    inverseOnSurface = c.neutral.tone(95),
 
-    outline = c.neutralVariant.tone(52),
-    outlineVariant = c.neutralVariant.tone(84),
+    outline = c.neutralVariant.tone(50),
+    outlineVariant = c.neutralVariant.tone(82),
     scrim = Color.Black,
 
     surfaceBright = c.neutral.tone(99),
     surfaceDim = c.neutral.tone(88),
     surfaceContainerLowest = c.neutral.tone(100),
     surfaceContainerLow = c.neutral.tone(96),
-    surfaceContainer = c.neutral.tone(94),
+    surfaceContainer = c.neutral.tone(95),
     surfaceContainerHigh = c.neutral.tone(92),
     surfaceContainerHighest = c.neutral.tone(90),
 )
@@ -133,11 +135,11 @@ private val LightColors = lightColors(ChromeRamps.Standard)
  */
 internal class ChromeRamps(val neutral: TonalRamp, val neutralVariant: TonalRamp) {
     companion object {
-        val Standard = ChromeRamps(Neutral, NeutralVariant)
+        val Standard = ChromeRamps(Mist, MistVariant)
 
         fun ofHue(hue: Float) = ChromeRamps(
-            TonalRamp(hue, Neutral.chroma),
-            TonalRamp(hue, NeutralVariant.chroma),
+            TonalRamp(hue, Mist.chroma),
+            TonalRamp(hue, MistVariant.chroma),
         )
     }
 }
@@ -147,8 +149,9 @@ internal class ChromeRamps(val neutral: TonalRamp, val neutralVariant: TonalRamp
  * app's warm paper.
  *
  * Only the page goes to tone 0. The containers keep Material's dark spacing
- * between them (tones 5 · 7 · 12 · 17, the steps Mornye measured out for the
- * same job) so a card still stands off the page where no shadow can show, and
+ * between them (tones 6 · 10 · 14 · 19 — one step above Mornye's 5 · 7 since the
+ * faces lost their borders and carry the edge alone) so a card still stands off
+ * the page where no shadow can show, and
  * the navigation bar keeps its container tier instead of dissolving into the
  * black. The board keeps its dark wood: it is drawn on the page, not by it.
  */
@@ -157,11 +160,11 @@ internal fun ColorScheme.amoled(neutral: TonalRamp): ColorScheme = copy(
     surface = neutral.tone(0),
     surfaceDim = neutral.tone(0),
     surfaceContainerLowest = neutral.tone(0),
-    surfaceContainerLow = neutral.tone(5),
-    surfaceContainer = neutral.tone(7),
-    surfaceContainerHigh = neutral.tone(12),
-    surfaceContainerHighest = neutral.tone(17),
-    surfaceBright = neutral.tone(22),
+    surfaceContainerLow = neutral.tone(6),
+    surfaceContainer = neutral.tone(10),
+    surfaceContainerHigh = neutral.tone(14),
+    surfaceContainerHighest = neutral.tone(19),
+    surfaceBright = neutral.tone(24),
 )
 
 /** The scheme for one theme choice; [chromeHue] null is the app's own warm paper. */
@@ -195,10 +198,6 @@ object RapfiTheme {
 
     val spacing: Spacing get() = Spacing
 
-    /** The page's and the cards' gradients; see [SurfaceStops]. */
-    val surfaces: SurfaceStops
-        @Composable @ReadOnlyComposable get() = LocalSurfaces.current
-
     /** Corners, spacing and touch size; see [RapfiTokens]. */
     val tokens: RapfiTokens
         @Composable @ReadOnlyComposable get() = LocalRapfiTokens.current
@@ -226,14 +225,12 @@ fun RapfiDroidTheme(
     content: @Composable () -> Unit,
 ) {
     val scheme = remember(darkTheme, amoled, chromeHue) { colorSchemeFor(darkTheme, amoled, chromeHue) }
-    val surfaces = remember(scheme) { surfaceStops(scheme) }
     val context = LocalContext.current
     val reduced = remember(context) { reducedMotion(context) }
     CompositionLocalProvider(
         LocalYixinColors provides if (darkTheme) RapfiColors.Dark else RapfiColors.Light,
         LocalRapfiTokens provides RapfiTokens.Standard,
         LocalReducedMotion provides reduced,
-        LocalSurfaces provides surfaces,
     ) {
         MaterialTheme(
             colorScheme = scheme,

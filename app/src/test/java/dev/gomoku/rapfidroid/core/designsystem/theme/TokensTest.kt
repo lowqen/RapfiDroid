@@ -17,7 +17,7 @@ class TokensTest {
         assertThat(Shapes.extraSmall).isEqualTo(RoundedCornerShape(4.dp))
         assertThat(Shapes.small).isEqualTo(RoundedCornerShape(8.dp))
         assertThat(Shapes.medium).isEqualTo(RoundedCornerShape(12.dp))
-        assertThat(Shapes.large).isEqualTo(RoundedCornerShape(16.dp))
+        assertThat(Shapes.large).isEqualTo(RoundedCornerShape(20.dp))
         assertThat(Shapes.extraLarge).isEqualTo(RoundedCornerShape(28.dp))
     }
 

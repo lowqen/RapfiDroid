@@ -15,9 +15,9 @@ import androidx.compose.material3.Shapes
  * - extraSmall 4dp — bars, meters, the small filled things
  * - small 8dp — chips, inputs, list rows
  * - medium 12dp — panels inset in a card, menus
- * - large 16dp — cards, the board frame, dialogs. Cards are 16, not 12: that
- *   is RapfiWeb's `.panel` (`--radius-l`), and the two stay one scale (D5).
- *   This line used to say cards were medium, which no card ever was.
+ * - large 20dp — cards, group rows, dialogs. 16 until UI overhaul 2, which took
+ *   Mornye's card corner (measured off its screens, and its own token says 20);
+ *   RapfiWeb's `.panel` stays 16 — the two now differ (D5).
  * - extraLarge 28dp — sheets, the biggest containers
  *
  * The numbers live in [RapfiTokens]; this maps them onto the Material slots.

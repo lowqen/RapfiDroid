@@ -117,7 +117,7 @@ class ThemeContrastTest {
 
     @Test
     fun `every ramp climbs from black to white`() {
-        listOf(Ink, Neutral, NeutralVariant, Sage, Clay, Signal, ResultBlue, ResultGreen, Violet, Lilac)
+        listOf(Ink, Neutral, NeutralVariant, Sage, Clay, Signal, ResultBlue, ResultGreen, Violet, Lilac, Mist, MistVariant)
             .forEach { assertThat(rampIsMonotone(it)).isTrue() }
     }
 
@@ -217,25 +217,19 @@ class ThemeContrastTest {
     }
 
     @Test
-    fun `the page and card gradients keep every reading at AA`() {
-        // The light falls a couple of tones across a page or a card; text must
-        // read at both ends, and the light must stay a hint, not a band.
+    fun `borderless faces still stand off the page`() {
+        // UI overhaul 2 (M1, E2): cards and group rows lost their hairline and
+        // are told from the page by tone alone, as Mornye's are (its measured
+        // light pair is 1.07:1). Text must read on them, and the step must show.
         variants().forEach { (name, s) ->
-            val g = surfaceStops(s)
-            listOf("pageTop" to g.pageTop, "pageBottom" to g.pageBottom, "cardTop" to g.cardTop, "cardBottom" to g.cardBottom)
-                .forEach { (stop, bg) ->
-                    assertWithMessage("$name — onSurface on $stop").that(contrastRatio(s.onSurface, bg)).isAtLeast(aa)
-                    assertWithMessage("$name — onSurfaceVariant on $stop").that(contrastRatio(s.onSurfaceVariant, bg)).isAtLeast(aa)
-                    assertWithMessage("$name — primary on $stop").that(contrastRatio(s.primary, bg)).isAtLeast(aa)
-                }
-            assertWithMessage("$name — page gradient").that(contrastRatio(g.pageTop, g.pageBottom)).isAtMost(1.12f)
-            assertWithMessage("$name — card gradient").that(contrastRatio(g.cardTop, g.cardBottom)).isAtMost(1.12f)
-            assertWithMessage("$name — rim stands off the card").that(contrastRatio(g.rimBottom, g.cardBottom)).isAtLeast(1.15f)
+            assertWithMessage("$name — face on page").that(contrastRatio(s.surfaceContainer, s.surface)).isAtLeast(1.06f)
+            assertWithMessage("$name — onSurface on face").that(contrastRatio(s.onSurface, s.surfaceContainer)).isAtLeast(aa)
+            assertWithMessage("$name — onSurfaceVariant on face").that(contrastRatio(s.onSurfaceVariant, s.surfaceContainer)).isAtLeast(aa)
+            assertWithMessage("$name — primary on face").that(contrastRatio(s.primary, s.surfaceContainer)).isAtLeast(aa)
         }
-        // AMOLED keeps every page pixel off.
-        val black = surfaceStops(colorSchemeFor(dark = true, amoled = true, chromeHue = null))
-        assertThat(luminanceOf(black.pageTop)).isWithin(0.0005f).of(0f)
-        assertThat(luminanceOf(black.pageBottom)).isWithin(0.0005f).of(0f)
+        // The light theme's face is darker than its page, the dark theme's lighter.
+        assertThat(luminanceOf(LightColorsForTest.surfaceContainer)).isLessThan(luminanceOf(LightColorsForTest.surface))
+        assertThat(luminanceOf(DarkColorsForTest.surfaceContainer)).isGreaterThan(luminanceOf(DarkColorsForTest.surface))
     }
 
     @Test
@@ -247,9 +241,9 @@ class ThemeContrastTest {
         val ladder = listOf(s.surfaceContainerLow, s.surfaceContainer, s.surfaceContainerHigh, s.surfaceContainerHighest)
             .map { luminanceOf(it) }
         assertThat(ladder).isInStrictOrder()
-        // Tone 7 on black is 1.155:1 — faint on purpose (Mornye's #161616 does
-        // the same job); the card's hairline border carries the edge.
-        assertThat(contrastRatio(s.surfaceContainer, s.surface)).isAtLeast(1.12f)
+        // Tone 10 on black, 1.23:1: the faces have no border since UI overhaul 2,
+        // so the step alone carries the edge.
+        assertThat(contrastRatio(s.surfaceContainer, s.surface)).isAtLeast(1.2f)
         assertThat(contrastRatio(s.outlineVariant, s.surfaceContainer)).isAtLeast(1.15f)
         // The board keeps its dark wood, which still sits above the page.
         assertThat(luminanceOf(BoardSkin.Dark.wood)).isGreaterThan(luminanceOf(s.surface))

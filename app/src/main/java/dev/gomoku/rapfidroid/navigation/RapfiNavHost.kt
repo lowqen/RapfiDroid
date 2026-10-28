@@ -1,7 +1,6 @@
 package dev.gomoku.rapfidroid.navigation
 
 import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
-import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
@@ -188,8 +187,8 @@ fun RapfiApp() {
         LocalSnackbarHostState provides snackbarHostState,
         LocalShellChrome provides chrome,
     ) {
-        // The page's light (RapfiTheme.surfaces): one gradient behind every screen.
-        BoxWithConstraints(Modifier.fillMaxSize().background(RapfiTheme.surfaces.page)) {
+        // One flat page behind every screen (M1: Mornye's pages are flat).
+        BoxWithConstraints(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val rail = maxWidth >= RailLayoutMin
             // Six labelled items need ~480dp; a phone on its side has less.
             val railLabels = maxHeight >= 480.dp

@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -49,7 +48,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -78,12 +76,13 @@ import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 /** Where the folds remember being open; provided once by the activity. */
 val LocalUiPrefs = staticCompositionLocalOf<UiPrefs?> { null }
 
-/** The card face: lightest container on paper, one step up in the dark. */
+/**
+ * The card face — one step **darker** than the page in light, one lighter in
+ * dark, never bordered (UI overhaul 2, M1: Mornye's faces). The same
+ * `surfaceContainer` in both themes; the scheme carries the difference.
+ */
 @Composable
-fun cardColor(): Color {
-    val scheme = MaterialTheme.colorScheme
-    return if (scheme.surface.luminance() < 0.5f) scheme.surfaceContainer else scheme.surfaceContainerLowest
-}
+fun cardColor(): Color = MaterialTheme.colorScheme.surfaceContainer
 
 @Composable
 fun CalmCard(
@@ -364,10 +363,11 @@ fun FlatCard(
 }
 
 /**
- * The card's material: a face a touch lighter at the top and a rim that
- * catches the light along its top edge ([RapfiTheme.surfaces]). Every card in
+ * The card's material: one flat face, no border, no light (UI overhaul 2, M1,
+ * decision E2 — Mornye's faces are told from the page by tone alone; the
+ * hairline was the biggest reason the screens read as cramped). Every card in
  * the app is drawn with it — [CalmCard], [FlatCard], the rows of a
- * [ConnectedGroup] — so the light falls the same way on all of them.
+ * [ConnectedGroup].
  */
 @Composable
 internal fun CardFace(
@@ -375,13 +375,11 @@ internal fun CardFace(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val light = RapfiTheme.surfaces
     Surface(
-        modifier = modifier.background(light.card, shape),
+        modifier = modifier,
         shape = shape,
-        color = Color.Transparent,
+        color = cardColor(),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, light.rim),
         content = content,
     )
 }

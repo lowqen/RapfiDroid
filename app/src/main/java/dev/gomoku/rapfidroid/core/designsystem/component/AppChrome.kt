@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Thermostat
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -127,7 +126,6 @@ fun RapfiTopBar(
             actions()
             ShellActions()
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -167,15 +165,14 @@ fun RapfiCollapsingTopBar(
             collapsedHeight = 52.dp,
             expandedHeight = 112.dp,
             windowInsets = WindowInsets(0),
-            // No surface of its own, folded or not: the page's gradient runs on
-            // under it, and the calm page has no second tone to change into.
+            // No surface of its own, folded or not: the page runs on under it,
+            // as Mornye's headers sit on the page.
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
                 scrolledContainerColor = Color.Transparent,
             ),
             scrollBehavior = scrollBehavior,
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

@@ -91,8 +91,26 @@ val WoodNight = TonalRamp(hue = 82f, chroma = 0.050f)
  */
 val Violet = TonalRamp(hue = 298f, chroma = 0.09f)
 
-/** The accent's quiet companion: selected chips and segments, the navigation pill. */
-val Lilac = TonalRamp(hue = 298f, chroma = 0.06f)
+/**
+ * The accent's quiet companion: selected chips and segments, the navigation pill.
+ * Chroma 0.035 — Mornye's pale selection tones measure 0.03 ~ 0.04.
+ */
+val Lilac = TonalRamp(hue = 298f, chroma = 0.035f)
+
+/**
+ * The page and its faces since UI overhaul 2 (M1, decision E1): a white leaning
+ * very slightly toward the accent, as Mornye's does — measured off its screens,
+ * its page is L* 99 and its faces L* 95 at chroma ~0.004, hue ~300°. One hue for
+ * the paper and the accent, so they read as one palette; the warm board wood
+ * stands out against it.
+ *
+ * [Neutral] and [NeutralVariant] stay as they were: RapfiWeb's golden test pins
+ * every one of their tones, and the result colours still use them.
+ */
+val Mist = TonalRamp(hue = 298f, chroma = 0.005f)
+
+/** The page's text greys and outlines, a little more body than [Mist]. */
+val MistVariant = TonalRamp(hue = 298f, chroma = 0.012f)
 
 /** Errors, forbidden points, losses of material — the one loud family. */
 val Signal = TonalRamp(hue = 27f, chroma = 0.130f)

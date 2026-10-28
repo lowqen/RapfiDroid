@@ -30,7 +30,7 @@ data class RapfiTokens(
     val radiusChip: Dp,
     /** Panels inset in a card, menus — `shapes.medium`. */
     val radiusInset: Dp,
-    /** Cards (RapfiWeb's `.panel`, `--radius-l`), the board frame, dialogs — `shapes.large`. */
+    /** Cards, group rows, dialogs — `shapes.large`. 20 since UI overhaul 2 (Mornye's card corner, measured). */
     val radiusCard: Dp,
     /** Sheets, the biggest containers — `shapes.extraLarge`. */
     val radiusSheet: Dp,
@@ -66,7 +66,7 @@ data class RapfiTokens(
             radiusBar = 4.dp,
             radiusChip = 8.dp,
             radiusInset = 12.dp,
-            radiusCard = 16.dp,
+            radiusCard = 20.dp,
             radiusSheet = 28.dp,
             spaceXs = 2.dp,
             spaceS = 4.dp,
