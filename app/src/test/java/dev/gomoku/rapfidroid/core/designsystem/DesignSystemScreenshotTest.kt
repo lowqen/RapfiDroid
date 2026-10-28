@@ -170,8 +170,9 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
                 board = { mod -> GomokuBoard(render = sampleRender, modifier = mod) },
                 modeSwitch = { BoardModeSwitch(BoardMode.ANALYSIS, onMode = {}) },
                 toolbar = { toolbar(analysing) },
+                summary = { SummaryStrip(analysing) },
                 cards = {
-                    AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+                    AnalysisCard(analysing, onPreview = {})
                     PositionCard(analysing, noFiles, onResign = {}, onDraw = {})
                 },
             )
@@ -188,7 +189,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
             summary = { SummaryStrip(analysing) },
             cards = {
                 PositionStrip(analysing)
-                AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+                AnalysisCard(analysing, onPreview = {})
                 PositionCard(analysing, noFiles, onResign = {}, onDraw = {})
             },
             sheetUp = sheetUp,
@@ -282,8 +283,8 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
 
     @Test
     fun analysisCards() = shot("analysis_cards") {
-        AnalysisCard(BoardUiState(connection = ConnectionState.Ready), onStart = {}, onStop = {}, onPreview = {})
-        AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+        AnalysisCard(BoardUiState(connection = ConnectionState.Ready), onPreview = {})
+        AnalysisCard(analysing, onPreview = {})
         PositionCard(analysing, noFiles, onResign = {}, onDraw = {})
     }
 
@@ -321,7 +322,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
                     LocalShellChrome provides ShellChrome(ConnectionState.Ready, dark, onStartEngine = {}, onToggleTheme = {}),
                 ) { RapfiTopBar(title = "보드") }
                 BoardModeSwitch(BoardMode.ANALYSIS, onMode = {})
-                AnalysisCard(analysing, onStart = {}, onStop = {}, onPreview = {})
+                AnalysisCard(analysing, onPreview = {})
                 calmPartsContent()
             }
         }

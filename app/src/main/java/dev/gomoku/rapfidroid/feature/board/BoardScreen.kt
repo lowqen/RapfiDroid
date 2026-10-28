@@ -202,7 +202,7 @@ fun BoardScreen(
             PositionStrip(ui)
         }
         if (ui.analysisTab) {
-            AnalysisCard(ui, viewModel::onStartAnalyze, viewModel::onStopAnalyze, viewModel::onPreviewPv)
+            AnalysisCard(ui, viewModel::onPreviewPv)
             if (ui.showWrGraph) EvalGraphCard(ui.winRateHistory, ui.moveCount)
             AnalysisOptions(ui, viewModel::onAnalysisSec, viewModel::onMultiPvChange, viewModel::onPlayBestOnStop, viewModel::onNotice)
         } else {
@@ -239,7 +239,7 @@ fun BoardScreen(
         val width = maxWidth
         val landscape = width > maxHeight && width >= 560.dp
         if (landscape) {
-            BoardLandscape(ui, board, modeSwitch, toolbar, cards = { cards(true) })
+            BoardLandscape(ui, board, modeSwitch, toolbar, summary = { SummaryStrip(ui) }, cards = { cards(true) })
         } else {
             BoardPortrait(
                 ui = ui,

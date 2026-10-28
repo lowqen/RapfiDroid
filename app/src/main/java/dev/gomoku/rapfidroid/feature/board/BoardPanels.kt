@@ -285,23 +285,28 @@ internal fun LinkBackupCard(onRestore: () -> Unit, onDrop: () -> Unit) {
 // ---- analysis ---------------------------------------------------------------
 
 /**
- * The engine card of the analysis tab. Best move first, then win rate,
- * evaluation and depth; time, nodes and speed only under «세부 수치». Nothing
- * read yet is one line, not seven «없음» tiles. When the board has moved on,
- * the last result stays — dimmed, and labelled as the position it belongs to.
+ * The engine card of the analysis tab — what the summary line above it has no
+ * room for: what the engine is doing, time · nodes · speed under «세부 수치»,
+ * and the candidate lines.
+ *
+ * The best move, win rate, evaluation and depth are the summary line's
+ * ([SummaryStrip]), and «분석» / «정지» are the toolbar's ▶: the card used to
+ * repeat all of it, one sheet-height under the same numbers. Nothing read yet
+ * says nothing here — the summary line says what ▶ does.
+ *
+ * A result whose position the board has moved on from keeps full strength and
+ * says so in words. Dimmed, it was hard to read on exactly the screens where a
+ * stopped analysis is being read.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun AnalysisCard(
     ui: BoardUiState,
-    onStart: () -> Unit,
-    onStop: () -> Unit,
     onPreview: (Int?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val prefs = LocalUiPrefs.current
     var detail by remember { mutableStateOf(prefs?.isOpen("engine-detail", false) ?: false) }
-    val running = ui.analyzing || ui.balancing
     CalmCard(modifier) {
         val (word, color) = engineWord(ui.connection)
         CardTitle(tr("엔진", "Engine", "引擎")) {
@@ -329,15 +334,6 @@ internal fun AnalysisCard(
                     FilledTonalButton(onClick = { chrome?.onStartEngine?.invoke() }) { Text(tr("엔진 켜기", "Start engine", "启动引擎")) }
                 }
             }
-        } else {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = onStart, enabled = !running && ui.canAnalyze, modifier = Modifier.weight(1f)) {
-                    Text(tr("분석", "Analyse", "分析"))
-                }
-                OutlinedButton(onClick = onStop, enabled = running, modifier = Modifier.weight(1f)) {
-                    Text(tr("정지", "Stop", "停止"))
-                }
-            }
         }
         val snap = ui.shown
         if (ui.stale) {
@@ -347,41 +343,15 @@ internal fun AnalysisCard(
             )
         }
         val blank = snap == null || (snap.pvs.isEmpty() && snap.stats.depth == 0)
-        if (blank) {
-            if (ui.connection.isLive && !running) {
-                Hint(tr("«분석»을 누르면 엔진이 이 국면의 최선수를 찾습니다", "Press Analyse and the engine looks for the best move here", "按«分析»，引擎会寻找此局面的最佳着法"))
-            }
-            return@CalmCard
-        }
+        if (blank) return@CalmCard
         val s = snap!!.stats
-        val alpha = if (ui.stale) 0.55f else 1f
         val size = ui.render.size
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-            val best = snap.best?.head ?: snap.realtimeBest
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("최선수", "Best move", "最佳着法"), style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    best?.label(size) ?: tr("없음", "None", "无"),
-                    style = MaterialTheme.typography.headlineSmall.tabular(),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-                )
-            }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat(tr("승률", "Win rate", "胜率"), s.winRatePct?.let { "$it%" } ?: tr("없음", "None", "无"), alpha, Modifier.weight(1f))
-                Stat(tr("평가", "Eval", "评价"), evalText(s.mate, s.evalCp), alpha, Modifier.weight(1f))
-                Stat(
-                    tr("깊이", "Depth", "深度"),
-                    if (s.depth > 0) (if (s.selDepth > 0) "${s.depth}/${s.selDepth}" else "${s.depth}") else tr("없음", "None", "无"),
-                    alpha,
-                    Modifier.weight(1f),
-                )
-            }
             if (detail) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Stat(tr("시간", "Time", "用时"), s.timeMs?.let { timeText(it) } ?: tr("없음", "None", "无"), alpha, Modifier.weight(1f))
-                    Stat(tr("노드", "Nodes", "结点"), compact(s.nodes), alpha, Modifier.weight(1f))
-                    Stat(tr("속도", "Speed", "速度"), s.speed?.let { compact(it) + "/s" } ?: tr("없음", "None", "无"), alpha, Modifier.weight(1f))
+                    Stat(tr("시간", "Time", "用时"), s.timeMs?.let { timeText(it) } ?: tr("없음", "None", "无"), Modifier.weight(1f))
+                    Stat(tr("노드", "Nodes", "结点"), compact(s.nodes), Modifier.weight(1f))
+                    Stat(tr("속도", "Speed", "速度"), s.speed?.let { compact(it) + "/s" } ?: tr("없음", "None", "无"), Modifier.weight(1f))
                 }
             }
             Text(
@@ -399,7 +369,7 @@ internal fun AnalysisCard(
             if (snap.pvs.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 snap.pvs.sortedBy { it.index }.forEach { pv ->
-                    PvRow(pv, size, selected = pv.index == ui.previewPv, alpha = alpha) {
+                    PvRow(pv, size, selected = pv.index == ui.previewPv) {
                         onPreview(if (pv.index == ui.previewPv) null else pv.index)
                     }
                 }
@@ -409,7 +379,7 @@ internal fun AnalysisCard(
 }
 
 @Composable
-private fun PvRow(pv: PvSnapshot, size: Int, selected: Boolean, alpha: Float, onClick: () -> Unit) {
+private fun PvRow(pv: PvSnapshot, size: Int, selected: Boolean, onClick: () -> Unit) {
     val palette = remember { TagPalette() }
     val tag = when {
         pv.mate != null && pv.mate > 0 -> CellTag("W${pv.mate}", TagKind.WIN, pv.depth)
@@ -427,16 +397,16 @@ private fun PvRow(pv: PvSnapshot, size: Int, selected: Boolean, alpha: Float, on
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
-            Modifier.width(52.dp).clip(MaterialTheme.shapes.small).background(TextOutline.copy(alpha = 0.85f * alpha))
+            Modifier.width(52.dp).clip(MaterialTheme.shapes.small).background(TextOutline.copy(alpha = 0.85f))
                 .padding(vertical = 2.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(tag.label, color = palette.textFor(tag).copy(alpha = alpha), style = MaterialTheme.typography.labelLarge.tabular())
+            Text(tag.label, color = palette.textFor(tag), style = MaterialTheme.typography.labelLarge.tabular())
         }
         Text(
             pv.line.take(8).joinToString(" ") { it.label(size) },
             style = MaterialTheme.typography.bodyMedium.tabular(),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -732,13 +702,13 @@ private fun Tile(label: String, value: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Stat(label: String, value: String, alpha: Float, modifier: Modifier = Modifier) {
+private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             value,
             style = MaterialTheme.typography.titleMedium.tabular(),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
     }
@@ -803,9 +773,10 @@ internal val SummaryHeight = 64.dp
  * The line the sheet rests on, under the board — what the board's reader wants
  * without pulling anything up (UI overhaul P3).
  *
- * Analysis: the best move, then win rate, evaluation and depth, numbers as the
- * engine card shows them (tabular, never interpolated; dimmed when they belong
- * to the position before). Nothing read yet is one line saying what ▶ does.
+ * Analysis: the best move, then win rate, evaluation and depth (`18/27`:
+ * depth / selective depth). Tabular, never interpolated, and at full strength
+ * even when they belong to the position before — the card says so in words.
+ * Nothing read yet is one line saying what ▶ does.
  * Game: the result, or whose move it is and who is playing whom.
  */
 @Composable
@@ -863,16 +834,19 @@ internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
             return@Row
         }
         val s = snap!!.stats
-        val alpha = if (ui.stale) 0.55f else 1f
         val best = snap.best?.head ?: snap.realtimeBest
         Text(
             best?.label(ui.render.size) ?: tr("없음", "None", "无"),
             style = MaterialTheme.typography.headlineSmall.tabular(),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
         )
-        Stat(tr("승률", "Win rate", "胜率"), s.winRatePct?.let { "$it%" } ?: tr("없음", "None", "无"), alpha, Modifier.weight(1f))
-        Stat(tr("평가", "Eval", "评价"), evalText(s.mate, s.evalCp), alpha, Modifier.weight(1f))
-        Stat(tr("깊이", "Depth", "深度"), if (s.depth > 0) "${s.depth}" else tr("없음", "None", "无"), alpha, Modifier.weight(1f))
+        Stat(tr("승률", "Win rate", "胜率"), s.winRatePct?.let { "$it%" } ?: tr("없음", "None", "无"), Modifier.weight(1f))
+        Stat(tr("평가", "Eval", "评价"), evalText(s.mate, s.evalCp), Modifier.weight(1f))
+        Stat(
+            tr("깊이", "Depth", "深度"),
+            if (s.depth > 0) (if (s.selDepth > 0) "${s.depth}/${s.selDepth}" else "${s.depth}") else tr("없음", "None", "无"),
+            Modifier.weight(1f),
+        )
     }
 }

@@ -147,7 +147,8 @@ internal fun BoardPortrait(
 /**
  * On its side: the board on the left at full height, everything else in a
  * column on the right — the engine chip and theme switch at its top (there is
- * no header, P2), then the mode, the cards, and the toolbar at its foot.
+ * no header, P2), then the mode, the summary line, the cards, and the toolbar
+ * at its foot.
  */
 @Composable
 internal fun BoardLandscape(
@@ -155,6 +156,7 @@ internal fun BoardLandscape(
     board: @Composable (Modifier) -> Unit,
     modeSwitch: @Composable () -> Unit,
     toolbar: @Composable () -> Unit,
+    summary: @Composable () -> Unit,
     cards: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -166,6 +168,7 @@ internal fun BoardLandscape(
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ShellActions(Modifier.align(Alignment.End))
                 modeSwitch()
+                summary()
                 Column(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
