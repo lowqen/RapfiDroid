@@ -275,13 +275,14 @@ internal fun woodScheme(scheme: ColorScheme): ColorScheme {
     // Stone ink: near-neutral, only warm enough to sit on the maple.
     val ink = TonalRamp(hue = Maple.hue, chroma = 0.018f)
     // The pale keys and selections: quiet wood, not the board's full colour
-    // (Mornye's pale tones sit at chroma ~0.03 ~ 0.04).
+    // (Mornye's pale tones sit at chroma ~0.03 ~ 0.04). At night the keys are
+    // the paper alone: dark tones of any chroma here read as brown.
     val pale = TonalRamp(hue = Maple.hue, chroma = 0.035f)
     val accents = if (dark) {
         scheme.copy(
             primary = paper.tone(92), onPrimary = ink.tone(12),
-            primaryContainer = pale.tone(30), onPrimaryContainer = paper.tone(92),
-            secondaryContainer = pale.tone(28), onSecondaryContainer = paper.tone(92),
+            primaryContainer = paper.tone(30), onPrimaryContainer = paper.tone(92),
+            secondaryContainer = paper.tone(28), onSecondaryContainer = paper.tone(92),
             onSurfaceVariant = ink.tone(78), outlineVariant = paper.tone(32),
         )
     } else {
