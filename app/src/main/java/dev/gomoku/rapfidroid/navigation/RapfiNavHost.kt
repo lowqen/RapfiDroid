@@ -1,5 +1,9 @@
 package dev.gomoku.rapfidroid.navigation
 
+import dev.gomoku.rapfidroid.feature.board.MiniAnalysisBar
+import dev.gomoku.rapfidroid.feature.board.BoardViewModel
+import androidx.navigation.NavHostController
+import androidx.compose.foundation.layout.Column
 import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
@@ -210,7 +214,13 @@ fun RapfiApp() {
                         // Always there (user request, 2026-10-29: the bar folding away
                         // on scroll was unwanted).
                         if (!rail) {
-                            RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
+                            Column {
+                                // The board's engine at work, seen from the other tabs (M5).
+                                if (selected != Destination.Board) {
+                                    BoardMiniBar(navController, onOpen = { onSelect(Destination.Board) })
+                                }
+                                RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
+                            }
                         }
                     },
                 ) { padding ->
@@ -236,4 +246,19 @@ fun RapfiApp() {
             }
         }
     }
+}
+
+/**
+ * [MiniAnalysisBar] for the board tab's own view model. The board is the start
+ * destination, so its entry — and the view model the board screen made — stays
+ * in the back stack whichever tab is open.
+ */
+@Composable
+private fun BoardMiniBar(navController: NavHostController, onOpen: () -> Unit) {
+    val backStack by navController.currentBackStackEntryAsState()
+    val entry = remember(backStack) {
+        runCatching { navController.getBackStackEntry(Destination.Board.route) }.getOrNull()
+    } ?: return
+    val board: BoardViewModel = hiltViewModel(entry)
+    MiniAnalysisBar(board, onOpen)
 }

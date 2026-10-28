@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid.core.designsystem
 
+import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
+import dev.gomoku.rapfidroid.feature.board.MiniAnalysisContent
 import dev.gomoku.rapfidroid.core.designsystem.component.LabeledProgress
 import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
 import dev.gomoku.rapfidroid.core.designsystem.component.IconTile
@@ -225,6 +227,16 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         onLast = {},
         onSwapSides = {},
     )
+
+    /** The engine seen from another tab, the game tab's toolbar, the wave at a few points (M5). */
+    @Test
+    fun boardMiniBar() = shot("board_mini") {
+        MiniAnalysisContent(analysing, onOpen = {}, onPause = {})
+        toolbar(playing)
+        WavyProgress(0f)
+        WavyProgress(0.4f)
+        WavyProgress(1f)
+    }
 
     /** A whole screen at [width] × [height], the shell's chip and switch provided. */
     @OptIn(ExperimentalRoborazziApi::class)
@@ -473,6 +485,8 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         moveCount = stones.size,
         connection = ConnectionState.Ready,
         analyzing = true,
+        // A timed analysis, 3.2 s of 8 run: the sheet's wave shows it (M5).
+        analysisSec = 8,
         futureCount = 2,
         multiPv = 2,
         eval = EvalView(blackPct = 63.0, evalCp = 85),

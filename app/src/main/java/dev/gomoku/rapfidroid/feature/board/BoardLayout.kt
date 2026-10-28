@@ -1,5 +1,14 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.runtime.remember
+import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.background
@@ -92,7 +101,11 @@ internal fun BoardPortrait(
 ) {
     Column(modifier.fillMaxSize()) {
         RapfiTopBar(title = null, height = 48.dp, leading = { modeSwitch() })
-        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+        val skin = RapfiTheme.board
+        val scheme = MaterialTheme.colorScheme
+        val dark = scheme.surface.luminance() < 0.5f
+        val sheetScheme = remember(scheme, skin.wood, dark) { woodSheetScheme(scheme, skin.wood, dark) }
+        BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().drawBehind { stage(skin.wood, scheme.primary, dark) }) {
             val showBar = ui.showEvalBar && ui.analysisTab
             // A 4dp gutter left of the bar, so it does not touch the screen edge.
             val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
@@ -105,26 +118,31 @@ internal fun BoardPortrait(
             BottomSheetScaffold(
                 scaffoldState = scaffold,
                 sheetPeekHeight = metrics.peek,
-                sheetShape = RoundedCornerShape(topStart = RapfiTheme.tokens.radiusSheet, topEnd = RapfiTheme.tokens.radiusSheet),
-                // The page's tone, so the cards on it stand off it exactly as
-                // they do on the page (M1: cards are a step darker than their
-                // ground, with no border). M5 tints it with the board's wood.
-                sheetContainerColor = MaterialTheme.colorScheme.surface,
+                // Mornye's queue sheet: a big top corner, and the face steeped in
+                // the colour of what is playing — here the board's wood (M5).
+                sheetShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+                sheetContainerColor = sheetScheme.surface,
                 sheetShadowElevation = 3.dp,
                 sheetDragHandle = { SheetHandle() },
-                // The page's gradient shows through behind the board.
+                // The stage (drawn behind) shows through behind the board.
                 containerColor = Color.Transparent,
                 sheetContent = {
-                    summary()
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    Column(
-                        Modifier
-                            .fillMaxWidth()
-                            .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
-                            .padding(RapfiTheme.tokens.screenPadding),
-                        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
-                        content = cards,
-                    )
+                    // The cards on the sheet take its wood too: their faces stay
+                    // one step off the sheet, as they are off the page (M1).
+                    MaterialTheme(colorScheme = sheetScheme) {
+                        Column(Modifier.fillMaxWidth()) {
+                            summary()
+                            SheetRule(ui)
+                            Column(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
+                                    .padding(RapfiTheme.tokens.screenPadding),
+                                verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+                                content = cards,
+                            )
+                        }
+                    }
                 },
             ) {
                 Column(Modifier.fillMaxWidth()) {
@@ -199,6 +217,62 @@ internal fun BoardWithBar(
         }
         board(Modifier.size(side))
     }
+}
+
+/**
+ * The line between the summary and the cards: during an analysis with a time
+ * limit, how much of it has run, as a wave ([WavyProgress], M5); otherwise a
+ * hairline.
+ */
+@Composable
+private fun SheetRule(ui: BoardUiState) {
+    val timed = ui.analysisTab && ui.analyzing && ui.analysisSec > 0 && !ui.stale
+    Box(
+        Modifier.fillMaxWidth().height(10.dp).padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (timed) {
+            val ms = ui.shown?.stats?.timeMs ?: 0L
+            WavyProgress(ms / (ui.analysisSec * 1000f))
+        } else {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+}
+
+/**
+ * The sheet's colours: the page's, steeped in the board's wood — Mornye tints
+ * its queue sheet with the album it plays (M5). Cream on paper, a dark wood
+ * shade at night. A material colour, not a value: the board's own colours and
+ * the value ladder are untouched.
+ */
+internal fun woodSheetScheme(scheme: ColorScheme, wood: Color, dark: Boolean): ColorScheme {
+    val k = if (dark) 0.2f else 0.12f
+    fun steep(c: Color) = lerp(c, wood, k)
+    return scheme.copy(
+        surface = steep(scheme.surface),
+        surfaceVariant = steep(scheme.surfaceVariant),
+        surfaceContainerLowest = steep(scheme.surfaceContainerLowest),
+        surfaceContainerLow = steep(scheme.surfaceContainerLow),
+        surfaceContainer = steep(scheme.surfaceContainer),
+        surfaceContainerHigh = steep(scheme.surfaceContainerHigh),
+        surfaceContainerHighest = steep(scheme.surfaceContainerHighest),
+    )
+}
+
+/**
+ * The board's stage: two faint rounds on the page behind it, one of wood and
+ * one of the accent, as the design page's preview is lit (M5). The board is
+ * drawn over them unchanged.
+ */
+private fun DrawScope.stage(wood: Color, accent: Color, dark: Boolean) {
+    fun round(color: Color, x: Float, y: Float, r: Float) {
+        val center = Offset(size.width * x, size.height * y)
+        val radius = size.width * r
+        drawCircle(Brush.radialGradient(listOf(color, color.copy(alpha = 0f)), center, radius), radius, center)
+    }
+    round(wood.copy(alpha = if (dark) 0.16f else 0.24f), 0.08f, 0.12f, 0.7f)
+    round(accent.copy(alpha = if (dark) 0.10f else 0.07f), 0.95f, 0.6f, 0.6f)
 }
 
 /** A grip, not Material's 48dp handle: the peek is height the board gave up. */

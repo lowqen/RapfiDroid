@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
+import androidx.compose.ui.unit.sp
+import androidx.compose.animation.animateColorAsState
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSwitch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -368,8 +371,13 @@ internal fun AnalysisCard(
             )
             if (snap.pvs.isNotEmpty()) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                snap.pvs.sortedBy { it.index }.forEach { pv ->
-                    PvRow(pv, size, selected = pv.index == ui.previewPv) {
+                val lines = snap.pvs.sortedBy { it.index }
+                lines.forEachIndexed { i, pv ->
+                    // The line being shown on the board reads strong, the rest
+                    // fall back — Mornye's lyrics (M5). With none picked, the
+                    // engine's first line is the one in front.
+                    val strong = if (ui.previewPv != null) pv.index == ui.previewPv else i == 0
+                    PvRow(pv, size, strong = strong) {
                         onPreview(if (pv.index == ui.previewPv) null else pv.index)
                     }
                 }
@@ -379,7 +387,7 @@ internal fun AnalysisCard(
 }
 
 @Composable
-private fun PvRow(pv: PvSnapshot, size: Int, selected: Boolean, onClick: () -> Unit) {
+private fun PvRow(pv: PvSnapshot, size: Int, strong: Boolean, onClick: () -> Unit) {
     val palette = remember { TagPalette() }
     val tag = when {
         pv.mate != null && pv.mate > 0 -> CellTag("W${pv.mate}", TagKind.WIN, pv.depth)
@@ -390,7 +398,6 @@ private fun PvRow(pv: PvSnapshot, size: Int, selected: Boolean, onClick: () -> U
         Modifier
             .fillMaxWidth()
             .clip(MaterialTheme.shapes.small)
-            .background(if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -403,10 +410,15 @@ private fun PvRow(pv: PvSnapshot, size: Int, selected: Boolean, onClick: () -> U
         ) {
             Text(tag.label, color = palette.textFor(tag), style = MaterialTheme.typography.labelLarge.tabular())
         }
+        // Only the words fade; the value chip keeps its colour (the colour is the value).
+        val ink by animateColorAsState(
+            if (strong) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            label = "pvInk",
+        )
         Text(
             pv.line.take(8).joinToString(" ") { it.label(size) },
-            style = MaterialTheme.typography.bodyMedium.tabular(),
-            color = MaterialTheme.colorScheme.onSurface,
+            style = (if (strong) MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold) else MaterialTheme.typography.bodyMedium).tabular(),
+            color = ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -835,18 +847,25 @@ internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
         }
         val s = snap!!.stats
         val best = snap.best?.head ?: snap.realtimeBest
-        Text(
-            best?.label(ui.render.size) ?: tr("없음", "None", "无"),
-            style = MaterialTheme.typography.headlineSmall.tabular(),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-        )
-        Stat(tr("승률", "Win rate", "胜率"), s.winRatePct?.let { "$it%" } ?: tr("없음", "None", "无"), Modifier.weight(1f))
-        Stat(tr("평가", "Eval", "评价"), evalText(s.mate, s.evalCp), Modifier.weight(1f))
-        Stat(
-            tr("깊이", "Depth", "深度"),
-            if (s.depth > 0) (if (s.selDepth > 0) "${s.depth}/${s.selDepth}" else "${s.depth}") else tr("없음", "None", "无"),
-            Modifier.weight(1f),
-        )
+        // Mornye's now-playing: the title large, and the facts about it in one
+        // quiet pill under it (its «FLAC · 16-bit») — M5.
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                best?.label(ui.render.size) ?: tr("없음", "None", "无"),
+                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold).tabular(),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+            PillBadge(
+                listOf(
+                    tr("승률", "Win", "胜率") + " " + (s.winRatePct?.let { "$it%" } ?: "–"),
+                    tr("평가", "Eval", "评价") + " " + evalText(s.mate, s.evalCp),
+                    tr("깊이", "Depth", "深度") + " " + (if (s.depth > 0) (if (s.selDepth > 0) "${s.depth}/${s.selDepth}" else "${s.depth}") else "–"),
+                ).joinToString(" · "),
+            )
+        }
+        if (ui.analyzing) {
+            StatusDot(RapfiTheme.colors.caution)
+        }
     }
 }

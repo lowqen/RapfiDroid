@@ -1,5 +1,13 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
@@ -15,7 +23,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LastPage
@@ -26,10 +33,8 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,21 +82,26 @@ internal fun BoardModeSwitch(mode: BoardMode, onMode: (BoardMode) -> Unit, modif
 private val ScrubStep = 28.dp
 
 /**
- * The move toolbar under the board (UI overhaul P3): «새 판», then
- * `|<` `<` `▶` `>` `>|` — and on the game tab the side swap where ▶ was, because
- * there the engine moves on its own turns.
+ * The move toolbar under the board, as Mornye's player lays out its controls
+ * (UI overhaul 2, M5): a button group with no pill behind it. In the middle
+ * the one primary action, ▶ — a wide rounded square in the strong accent; on
+ * either side `<` `>`, squarer keys in the pale accent; at the ends `|<` `>|`
+ * as bare icons, and further out «새 판» and, on the game tab, the side swap
+ * (where Mornye keeps shuffle and repeat). On the game tab there is no ▶: the
+ * engine moves on its own turns.
  *
- * One pill instead of a loose row of icons plus a separate strip with «새 판»
- * and the swap: two sets of controls made people ask which to press.
+ * The keys answer a press by squaring their corners a little and springing
+ * back; ▶ is rounder while the engine reads, so the state shows in its shape
+ * as well as its icon.
  *
- * **Scrubbing.** A finger drawn along the pill steps through the game, one move
- * per [ScrubStep], with a tick per move — the quick way from move 40 back to
- * move 12. It goes through the same undo and redo as the buttons, and stops
+ * **Scrubbing.** A finger drawn along the toolbar steps through the game, one
+ * move per [ScrubStep], with a tick per move — the quick way from move 40 back
+ * to move 12. It goes through the same undo and redo as the buttons, and stops
  * where they would stop (the start, the end, an engine thinking on its move).
  * A tap is still a tap: the drag only begins past the touch slop.
  *
- * Six buttons always, so the pill keeps its shape between the tabs; on a narrow
- * column (a small phone on its side) they shrink to 36dp rather than overflow.
+ * On a narrow column (a small phone on its side) the whole group scales down
+ * rather than overflow.
  */
 @Composable
 internal fun MoveToolbar(
@@ -115,74 +125,75 @@ internal fun MoveToolbar(
     val redo by rememberUpdatedState(onRedo)
     val step = with(LocalDensity.current) { ScrubStep.toPx() }
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val button = ((maxWidth - 8.dp) / 6).coerceIn(36.dp, 48.dp)
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier
-                .height(button + 8.dp)
-                .pointerInput(step) {
-                    var travel = 0f
-                    detectHorizontalDragGestures(
-                        onDragStart = { travel = 0f },
-                    ) { change, dx ->
-                        change.consume()
-                        travel += dx
-                        while (travel >= step) {
-                            travel -= step
-                            if (forward) {
-                                redo()
-                                haptics.scrubTick()
-                            }
-                        }
-                        while (travel <= -step) {
-                            travel += step
-                            if (back) {
-                                undo()
-                                haptics.scrubTick()
-                            }
+        // The group's width at full size: four bare icons, two keys, ▶, the gaps.
+        val full = BareSize * 4 + KeySize * 2 + PlayWidth + 6.dp * 6
+        val k = ((maxWidth - 16.dp) / full).coerceIn(0.7f, 1f)
+        Row(
+            Modifier.pointerInput(step) {
+                var travel = 0f
+                detectHorizontalDragGestures(
+                    onDragStart = { travel = 0f },
+                ) { change, dx ->
+                    change.consume()
+                    travel += dx
+                    while (travel >= step) {
+                        travel -= step
+                        if (forward) {
+                            redo()
+                            haptics.scrubTick()
                         }
                     }
-                },
+                    while (travel <= -step) {
+                        travel += step
+                        if (back) {
+                            undo()
+                            haptics.scrubTick()
+                        }
+                    }
+                }
+            },
+            horizontalArrangement = Arrangement.spacedBy(6.dp * k),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                BarButton(Icons.Filled.Refresh, tr("새 판", "New board", "新建"), true, onNewBoard, button)
-                BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst, button)
-                BarButton(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), canBack, onUndo, button)
-                if (ui.analysisTab) {
-                    val running = ui.analyzing || ui.balancing
-                    // The toolbar's one primary action: filled ink while the
-                    // engine reads, the quiet container while it does not.
-                    FilledIconButton(
-                        onClick = onToggle,
-                        enabled = running || ui.canAnalyze,
-                        modifier = Modifier.size(button),
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = if (running) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = if (running) MaterialTheme.colorScheme.onPrimary
-                            else MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                    ) {
-                        Icon(
-                            if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            contentDescription = if (running) tr("엔진 멈춤", "Pause engine", "暂停引擎") else tr("엔진 분석", "Analyse", "引擎分析"),
-                            modifier = Modifier.size(button * 0.6f),
-                        )
-                    }
-                }
-                BarButton(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), canForward, onRedo, button)
-                BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast, button)
-                if (!ui.analysisTab) {
-                    val side = ui.game.computerSide
-                    val canSwap = (side == ComputerSide.BLACK || side == ComputerSide.WHITE) &&
-                        !ui.game.thinking && ui.game.prompt == null
-                    BarButton(Icons.Filled.SwapHoriz, tr("진영 전환", "Swap sides", "交换执子"), canSwap, onSwapSides, button)
-                }
+            BarButton(Icons.Filled.Refresh, tr("새 판", "New board", "新建"), true, onNewBoard, BareSize * k)
+            BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst, BareSize * k)
+            ToolKey(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), canBack, onUndo, KeySize * k, KeySize * k)
+            if (ui.analysisTab) {
+                val running = ui.analyzing || ui.balancing
+                ToolKey(
+                    icon = if (running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    label = if (running) tr("엔진 멈춤", "Pause engine", "暂停引擎") else tr("엔진 분석", "Analyse", "引擎分析"),
+                    enabled = running || ui.canAnalyze,
+                    onClick = onToggle,
+                    width = PlayWidth * k,
+                    height = KeySize * k,
+                    strong = true,
+                    round = running,
+                )
+            }
+            ToolKey(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), canForward, onRedo, KeySize * k, KeySize * k)
+            BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast, BareSize * k)
+            if (!ui.analysisTab) {
+                val side = ui.game.computerSide
+                val canSwap = (side == ComputerSide.BLACK || side == ComputerSide.WHITE) &&
+                    !ui.game.thinking && ui.game.prompt == null
+                BarButton(Icons.Filled.SwapHoriz, tr("진영 전환", "Swap sides", "交换执子"), canSwap, onSwapSides, BareSize * k)
+            } else {
+                // The swap's place stays, so the group does not shift between the tabs.
+                Spacer(Modifier.size(BareSize * k))
             }
         }
     }
 }
+
+/** A bare icon at the toolbar's ends. */
+private val BareSize = 44.dp
+
+/** The `<` `>` keys, and the height of ▶. */
+private val KeySize = 56.dp
+
+/** ▶ is wider than its neighbours, as Mornye's play button is (~100 × 72 against 68). */
+private val PlayWidth = 84.dp
 
 @Composable
 private fun BarButton(
@@ -194,6 +205,59 @@ private fun BarButton(
 ) {
     IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(size)) {
         Icon(icon, contentDescription = label, modifier = Modifier.size(size * 0.55f))
+    }
+}
+
+/**
+ * One key of the group: a rounded square, [strong] in the accent (▶) or the
+ * pale accent (`<` `>`). A press squares the corners and springs them back
+ * (M5's shape morph); [round] holds them round (▶ while the engine reads).
+ */
+@Composable
+private fun ToolKey(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    width: Dp,
+    height: Dp,
+    strong: Boolean = false,
+    round: Boolean = false,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val corner by animateDpAsState(
+        targetValue = when {
+            pressed -> height * 0.18f
+            round -> height / 2
+            else -> height * 0.32f
+        },
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
+        label = "keyCorner",
+    )
+    val container = when {
+        !enabled -> scheme.onSurface.copy(alpha = 0.10f)
+        strong -> scheme.primary
+        else -> scheme.secondaryContainer
+    }
+    val content = when {
+        !enabled -> scheme.onSurface.copy(alpha = 0.38f)
+        strong -> scheme.onPrimary
+        else -> scheme.onSecondaryContainer
+    }
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.size(width = width, height = height),
+        shape = RoundedCornerShape(corner),
+        color = container,
+        contentColor = content,
+        interactionSource = interaction,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = label, modifier = Modifier.size(height * if (strong) 0.5f else 0.46f))
+        }
     }
 }
 
