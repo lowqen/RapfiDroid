@@ -5,6 +5,7 @@ import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import dev.gomoku.rapfidroid.R
@@ -15,14 +16,28 @@ import dev.gomoku.rapfidroid.R
  * instead of 6.7. Renamed RapfiSans inside, as the licence's reserved-name rule
  * asks of a modified copy. A syllable outside the subset falls back to the
  * system font for that one glyph, which only user-typed text can reach.
+ *
+ * **Each weight sets the `wght` axis itself.** The file's default is 400, and a
+ * `Font` entry without `variationSettings` is the file at its default: every
+ * weight here was drawn Regular — the 34sp ExtraBold page titles and the
+ * SemiBold section heads included (found on a phone, 2026-10-29) — and since
+ * each weight is declared to exist, nothing synthesised a bold either.
  */
 @OptIn(ExperimentalTextApi::class)
 val RapfiSans = FontFamily(
-    Font(R.font.rapfi_sans, FontWeight.Normal),
-    Font(R.font.rapfi_sans, FontWeight.Medium),
-    Font(R.font.rapfi_sans, FontWeight.SemiBold),
-    Font(R.font.rapfi_sans, FontWeight.Bold),
-    Font(R.font.rapfi_sans, FontWeight.ExtraBold),
+    rapfiSans(FontWeight.Normal),
+    rapfiSans(FontWeight.Medium),
+    rapfiSans(FontWeight.SemiBold),
+    rapfiSans(FontWeight.Bold),
+    rapfiSans(FontWeight.ExtraBold),
+)
+
+/** One weight of the variable file, its `wght` axis set to that weight (45 ~ 930 in the file). */
+@OptIn(ExperimentalTextApi::class)
+private fun rapfiSans(weight: FontWeight) = Font(
+    R.font.rapfi_sans,
+    weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
 )
 
 /**

@@ -119,6 +119,8 @@ fun RapfiTopBar(
                     title,
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleLarge,
+                    // Its own colour: a screen need not sit on a Surface.
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )

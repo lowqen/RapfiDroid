@@ -196,6 +196,11 @@ fun RapfiApp() {
                         Modifier
                     },
                     containerColor = Color.Transparent,
+                    // Said outright: Material reads no content colour off a
+                    // transparent container and hands down the default black,
+                    // which every bare text on a dark page then took (the
+                    // research and engine titles, 2026-10-29).
+                    contentColor = MaterialTheme.colorScheme.onSurface,
                     snackbarHost = {
                         SnackbarHost(snackbarHostState) { data ->
                             Snackbar(data, shape = MaterialTheme.shapes.medium)
