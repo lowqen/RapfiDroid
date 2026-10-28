@@ -121,7 +121,6 @@ private val DarkColors = darkColors(ChromeRamps.Standard)
 private val LightColors = lightColors(ChromeRamps.Standard)
 
 /**
-/**
  * The two ramps the page is drawn from — the paper and the outlines.
  *
  * They are the only colour anything outside the app may move (decision D1 of
