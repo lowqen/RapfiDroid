@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.core.designsystem
 
 import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalWaveFrames
 import dev.gomoku.rapfidroid.feature.board.MiniAnalysisContent
 import dev.gomoku.rapfidroid.core.designsystem.component.LabeledProgress
 import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
@@ -247,6 +248,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
                 CompositionLocalProvider(
                     LocalDensity provides Density(density.density, variant.fontScale),
                     LocalShellChrome provides ShellChrome(ConnectionState.Thinking, variant.dark, onStartEngine = {}, onToggleTheme = {}),
+                    LocalWaveFrames provides false,
                 ) {
                     Surface(Modifier.size(width, height), color = MaterialTheme.colorScheme.background) { content() }
                 }
@@ -448,7 +450,10 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         captureRoboImage("src/test/screenshots/$file.png") {
             RapfiDroidTheme(darkTheme = dark, amoled = amoled, chromeHue = chromeHue) {
                 val density = LocalDensity.current
-                CompositionLocalProvider(LocalDensity provides Density(density.density, variant.fontScale)) {
+                CompositionLocalProvider(
+                    LocalDensity provides Density(density.density, variant.fontScale),
+                    LocalWaveFrames provides false,
+                ) {
                     Surface(color = MaterialTheme.colorScheme.background) {
                         Column(
                             Modifier.width(420.dp).padding(12.dp),

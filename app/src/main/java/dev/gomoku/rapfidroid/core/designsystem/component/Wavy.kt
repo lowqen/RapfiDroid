@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -67,7 +68,8 @@ fun WavyProgress(
     val rate by rememberUpdatedState(perSecond.coerceAtLeast(0f))
     val cap by rememberUpdatedState(ceiling.coerceIn(reported, 1f))
     val reduced by rememberUpdatedState(LocalReducedMotion.current)
-    LaunchedEffect(wave) {
+    val frames = LocalWaveFrames.current
+    if (frames) LaunchedEffect(wave) {
         var last = withFrameNanos { it }
         var anchor = known
         var anchorAt = last
@@ -95,9 +97,10 @@ fun WavyProgress(
             .height(10.dp)
             .semantics { progressBarRangeInfo = ProgressBarRangeInfo(reported, 0f..1f) },
     ) {
-        val f = wave.head
+        val f = if (frames) wave.head else reported
+        val swell = if (frames) wave.swell else if (reported > WaveFrom) 1f else 0f
         val stroke = 3.dp.toPx()
-        val amplitude = 2.5.dp.toPx() * wave.swell
+        val amplitude = 2.5.dp.toPx() * swell
         val wavelength = 22.dp.toPx()
         val mid = size.height / 2
         val end = size.width * f
@@ -124,6 +127,13 @@ fun WavyProgress(
         drawPath(path, color, style = Stroke(width = stroke, cap = StrokeCap.Round))
     }
 }
+
+/**
+ * False draws the wave as a still picture of [fraction]. For the screenshot
+ * tests: Robolectric hands out frames as fast as they are asked for, so a loop
+ * that waits for the next frame never lets the capture see an idle screen.
+ */
+val LocalWaveFrames = staticCompositionLocalOf { true }
 
 /** Where the wave starts: the first tenth of a run is a straight line. */
 const val WaveFrom = 0.10f

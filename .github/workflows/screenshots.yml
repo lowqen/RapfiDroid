@@ -30,6 +30,8 @@ on:
 jobs:
   screenshots:
     runs-on: ubuntu-latest
+    # A normal run takes about five minutes; a hung capture should fail, not run on.
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v7
