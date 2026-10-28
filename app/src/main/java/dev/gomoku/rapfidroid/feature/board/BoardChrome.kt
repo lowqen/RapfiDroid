@@ -34,7 +34,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -85,10 +84,12 @@ private val ScrubStep = 28.dp
  * The move toolbar under the board, as Mornye's player lays out its controls
  * (UI overhaul 2, M5): a button group with no pill behind it. In the middle
  * the one primary action, ▶ — a wide rounded square in the strong accent; on
- * either side `<` `>`, squarer keys in the pale accent; at the ends `|<` `>|`
- * as bare icons, and further out «새 판» and, on the game tab, the side swap
- * (where Mornye keeps shuffle and repeat). On the game tab there is no ▶: the
- * engine moves on its own turns.
+ * either side `<` `>`, keys in the pale accent; at the ends `|<` `>|`, and
+ * further out «새 판» and, on the game tab, the side swap (where Mornye keeps
+ * shuffle and repeat), as smaller round keys on a quiet face. Every button has
+ * a face — bare icons beside boxed keys left the ends floating (device review)
+ * — and the order of importance is told by size and colour. On the game tab
+ * there is no ▶: the engine moves on its own turns.
  *
  * The keys answer a press by squaring their corners a little and springing
  * back; ▶ is rounder while the engine reads, so the state shows in its shape
@@ -155,8 +156,8 @@ internal fun MoveToolbar(
             horizontalArrangement = Arrangement.spacedBy(6.dp * k),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            BarButton(Icons.Filled.Refresh, tr("새 판", "New board", "新建"), true, onNewBoard, BareSize * k)
-            BarButton(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst, BareSize * k)
+            EndKey(Icons.Filled.Refresh, tr("새 판", "New board", "新建"), true, onNewBoard, BareSize * k)
+            EndKey(Icons.Filled.FirstPage, tr("처음으로", "To start", "到开头"), canBack, onFirst, BareSize * k)
             ToolKey(Icons.Filled.ChevronLeft, tr("한 수 뒤로", "Back one", "后退一步"), canBack, onUndo, KeySize * k, KeySize * k)
             if (ui.analysisTab) {
                 val running = ui.analyzing || ui.balancing
@@ -167,17 +168,17 @@ internal fun MoveToolbar(
                     onClick = onToggle,
                     width = PlayWidth * k,
                     height = KeySize * k,
-                    strong = true,
+                    tone = KeyTone.Strong,
                     round = running,
                 )
             }
             ToolKey(Icons.Filled.ChevronRight, tr("한 수 앞으로", "Forward one", "前进一步"), canForward, onRedo, KeySize * k, KeySize * k)
-            BarButton(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast, BareSize * k)
+            EndKey(Icons.AutoMirrored.Filled.LastPage, tr("끝으로", "To end", "到末尾"), canForward, onLast, BareSize * k)
             if (!ui.analysisTab) {
                 val side = ui.game.computerSide
                 val canSwap = (side == ComputerSide.BLACK || side == ComputerSide.WHITE) &&
                     !ui.game.thinking && ui.game.prompt == null
-                BarButton(Icons.Filled.SwapHoriz, tr("진영 전환", "Swap sides", "交换执子"), canSwap, onSwapSides, BareSize * k)
+                EndKey(Icons.Filled.SwapHoriz, tr("진영 전환", "Swap sides", "交换执子"), canSwap, onSwapSides, BareSize * k)
             } else {
                 // The swap's place stays, so the group does not shift between the tabs.
                 Spacer(Modifier.size(BareSize * k))
@@ -186,7 +187,7 @@ internal fun MoveToolbar(
     }
 }
 
-/** A bare icon at the toolbar's ends. */
+/** The round keys at the toolbar's ends. */
 private val BareSize = 44.dp
 
 /** The `<` `>` keys, and the height of ▶. */
@@ -195,18 +196,18 @@ private val KeySize = 56.dp
 /** ▶ is wider than its neighbours, as Mornye's play button is (~100 × 72 against 68). */
 private val PlayWidth = 84.dp
 
+/** A key at the toolbar's ends: round, smaller, on the quietest face. */
 @Composable
-private fun BarButton(
+private fun EndKey(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     enabled: Boolean,
     onClick: () -> Unit,
-    size: Dp = 48.dp,
-) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(size)) {
-        Icon(icon, contentDescription = label, modifier = Modifier.size(size * 0.55f))
-    }
-}
+    size: Dp,
+) = ToolKey(icon, label, enabled, onClick, width = size, height = size, tone = KeyTone.Quiet, round = true)
+
+/** How much a [ToolKey] stands out: ▶, the step keys, the ends. */
+private enum class KeyTone { Strong, Accent, Quiet }
 
 /**
  * One key of the group: a rounded square, [strong] in the accent (▶) or the
@@ -221,9 +222,10 @@ private fun ToolKey(
     onClick: () -> Unit,
     width: Dp,
     height: Dp,
-    strong: Boolean = false,
+    tone: KeyTone = KeyTone.Accent,
     round: Boolean = false,
 ) {
+    val strong = tone == KeyTone.Strong
     val scheme = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -237,14 +239,16 @@ private fun ToolKey(
         label = "keyCorner",
     )
     val container = when {
-        !enabled -> scheme.onSurface.copy(alpha = 0.10f)
-        strong -> scheme.primary
-        else -> scheme.secondaryContainer
+        !enabled -> scheme.onSurface.copy(alpha = 0.08f)
+        tone == KeyTone.Strong -> scheme.primary
+        tone == KeyTone.Accent -> scheme.secondaryContainer
+        else -> scheme.surfaceContainerHigh
     }
     val content = when {
         !enabled -> scheme.onSurface.copy(alpha = 0.38f)
-        strong -> scheme.onPrimary
-        else -> scheme.onSecondaryContainer
+        tone == KeyTone.Strong -> scheme.onPrimary
+        tone == KeyTone.Accent -> scheme.onSecondaryContainer
+        else -> scheme.onSurfaceVariant
     }
     Surface(
         onClick = onClick,

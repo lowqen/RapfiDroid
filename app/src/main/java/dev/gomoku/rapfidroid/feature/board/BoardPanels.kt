@@ -803,25 +803,28 @@ internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
     ) {
         if (!ui.analysisTab) {
             val (word, color) = engineWord(ui.connection)
-            StatusDot(if (ui.game.thinking) RapfiTheme.colors.caution else color)
-            Column(Modifier.weight(1f)) {
-                Text(
-                    ui.game.result?.describe()
-                        ?: (
-                            if (ui.game.thinking) tr("엔진이 생각 중", "Engine thinking", "引擎思考中")
-                            else tr("${ui.sideToMove.label} 차례", "${ui.sideToMove.label} to move", "轮到${ui.sideToMove.label}")
-                            ),
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
+            // Centred like the analysis line: the state large, the match in a pill.
+            Column(
+                Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatusDot(if (ui.game.thinking) RapfiTheme.colors.caution else color)
+                    Text(
+                        ui.game.result?.describe()
+                            ?: (
+                                if (ui.game.thinking) tr("엔진이 생각 중", "Engine thinking", "引擎思考中")
+                                else tr("${ui.sideToMove.label} 차례", "${ui.sideToMove.label} to move", "轮到${ui.sideToMove.label}")
+                                ),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                PillBadge(
                     ui.game.computerSide.label + " · " + tr("${ui.moveCount}수", "move ${ui.moveCount}", "第${ui.moveCount}手") +
                         (if (!ui.connection.isLive) " · $word" else ""),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             return@Row
@@ -848,8 +851,14 @@ internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
         val s = snap!!.stats
         val best = snap.best?.head ?: snap.realtimeBest
         // Mornye's now-playing: the title large, and the facts about it in one
-        // quiet pill under it (its «FLAC · 16-bit») — M5.
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        // quiet pill under it (its «FLAC · 16-bit») — M5. Centred, as the
+        // player sets its title: on the left it left the line's right half
+        // empty (device review, 2026-10-29).
+        Column(
+            Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+        ) {
             Text(
                 best?.label(ui.render.size) ?: tr("없음", "None", "无"),
                 style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold).tabular(),
@@ -864,8 +873,6 @@ internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
                 ).joinToString(" · "),
             )
         }
-        if (ui.analyzing) {
-            StatusDot(RapfiTheme.colors.caution)
-        }
+
     }
 }

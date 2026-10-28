@@ -1,8 +1,9 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.TonalRamp
+import dev.gomoku.rapfidroid.core.designsystem.theme.Clay
 import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
@@ -47,8 +48,13 @@ import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellActions
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 
-/** Height of the move toolbar under the board. */
-internal val ToolbarHeight = 64.dp
+/**
+ * Height of the move toolbar's row under the board: the 56dp keys with 12dp
+ * of air above and below, so the group reads as the board's and not as the
+ * sheet's head (device review, 2026-10-29: at 64 the sheet's grip sat right
+ * under ▶).
+ */
+internal val ToolbarHeight = 80.dp
 
 /** The sheet's handle: a 4dp grip with 10dp above and below it. */
 internal val SheetHandleHeight = 24.dp
@@ -99,12 +105,12 @@ internal fun BoardPortrait(
     modifier: Modifier = Modifier,
     sheetUp: Boolean = false,
 ) {
-    Column(modifier.fillMaxSize()) {
+    WoodTheme {
+    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         RapfiTopBar(title = null, height = 48.dp, leading = { modeSwitch() })
         val skin = RapfiTheme.board
         val scheme = MaterialTheme.colorScheme
         val dark = scheme.surface.luminance() < 0.5f
-        val sheetScheme = remember(scheme, skin.wood, dark) { woodSheetScheme(scheme, skin.wood, dark) }
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().drawBehind { stage(skin.wood, scheme.primary, dark) }) {
             val showBar = ui.showEvalBar && ui.analysisTab
             // A 4dp gutter left of the bar, so it does not touch the screen edge.
@@ -121,28 +127,22 @@ internal fun BoardPortrait(
                 // Mornye's queue sheet: a big top corner, and the face steeped in
                 // the colour of what is playing — here the board's wood (M5).
                 sheetShape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-                sheetContainerColor = sheetScheme.surface,
+                sheetContainerColor = MaterialTheme.colorScheme.surface,
                 sheetShadowElevation = 3.dp,
                 sheetDragHandle = { SheetHandle() },
                 // The stage (drawn behind) shows through behind the board.
                 containerColor = Color.Transparent,
                 sheetContent = {
-                    // The cards on the sheet take its wood too: their faces stay
-                    // one step off the sheet, as they are off the page (M1).
-                    MaterialTheme(colorScheme = sheetScheme) {
-                        Column(Modifier.fillMaxWidth()) {
-                            summary()
-                            SheetRule(ui)
-                            Column(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
-                                    .padding(RapfiTheme.tokens.screenPadding),
-                                verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
-                                content = cards,
-                            )
-                        }
-                    }
+                    summary()
+                    SheetRule(ui)
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
+                            .padding(RapfiTheme.tokens.screenPadding),
+                        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+                        content = cards,
+                    )
                 },
             ) {
                 Column(Modifier.fillMaxWidth()) {
@@ -163,6 +163,7 @@ internal fun BoardPortrait(
             }
         }
     }
+    }
 }
 
 /**
@@ -181,7 +182,8 @@ internal fun BoardLandscape(
     cards: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxSize()) {
+    WoodTheme {
+    BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         val side = min(maxHeight - 16.dp, maxWidth * 0.62f)
         val showBar = ui.showEvalBar && ui.analysisTab
         Row(Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -198,6 +200,7 @@ internal fun BoardLandscape(
                 toolbar()
             }
         }
+    }
     }
 }
 
@@ -241,23 +244,61 @@ private fun SheetRule(ui: BoardUiState) {
 }
 
 /**
- * The sheet's colours: the page's, steeped in the board's wood — Mornye tints
- * its queue sheet with the album it plays (M5). Cream on paper, a dark wood
- * shade at night. A material colour, not a value: the board's own colours and
- * the value ladder are untouched.
+ * The board screen in the board's colours (M5, after the device review of
+ * 2026-10-29). Mornye's player takes its colours from the album it plays — the
+ * play button, the sheet, the page. Here the album is the board: the warm wood
+ * under a cool violet page and a violet ▶ cut the screen in two. So the whole
+ * board screen — page, sheet, cards, ▶ and its keys — is drawn from the wood's
+ * own ramp ([Clay], 82°), and the violet stays on the other tabs.
+ *
+ * Only chrome roles change. The board's skin, the value ladder on it, the eval
+ * bar and the graph are untouched: the colour there is the value. Black
+ * (AMOLED) pages stay black.
  */
-internal fun woodSheetScheme(scheme: ColorScheme, wood: Color, dark: Boolean): ColorScheme {
-    val k = if (dark) 0.2f else 0.12f
-    fun steep(c: Color) = lerp(c, wood, k)
-    return scheme.copy(
-        surface = steep(scheme.surface),
-        surfaceVariant = steep(scheme.surfaceVariant),
-        surfaceContainerLowest = steep(scheme.surfaceContainerLowest),
-        surfaceContainerLow = steep(scheme.surfaceContainerLow),
-        surfaceContainer = steep(scheme.surfaceContainer),
-        surfaceContainerHigh = steep(scheme.surfaceContainerHigh),
-        surfaceContainerHighest = steep(scheme.surfaceContainerHighest),
-    )
+@Composable
+internal fun WoodTheme(content: @Composable () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    val wood = remember(scheme) { woodScheme(scheme) }
+    MaterialTheme(colorScheme = wood, content = content)
+}
+
+/** The palette [WoodTheme] puts on; see there. Tones as the app's own scheme sets them (M1). */
+internal fun woodScheme(scheme: ColorScheme): ColorScheme {
+    val dark = scheme.surface.luminance() < 0.5f
+    val black = scheme.surface.luminance() < 0.001f
+    val paper = TonalRamp(hue = Clay.hue, chroma = if (dark) 0.012f else 0.016f)
+    val ink = TonalRamp(hue = Clay.hue, chroma = 0.03f)
+    val accents = if (dark) {
+        scheme.copy(
+            primary = Clay.tone(78), onPrimary = Clay.tone(18),
+            primaryContainer = Clay.tone(32), onPrimaryContainer = Clay.tone(90),
+            secondaryContainer = paper.tone(30), onSecondaryContainer = Clay.tone(90),
+            onSurfaceVariant = ink.tone(78), outlineVariant = paper.tone(32),
+        )
+    } else {
+        scheme.copy(
+            primary = Clay.tone(42), onPrimary = Clay.tone(100),
+            primaryContainer = Clay.tone(88), onPrimaryContainer = Clay.tone(20),
+            secondaryContainer = Clay.tone(90), onSecondaryContainer = Clay.tone(24),
+            onSurfaceVariant = ink.tone(34), outlineVariant = paper.tone(82),
+        )
+    }
+    if (black) return accents
+    return if (dark) {
+        accents.copy(
+            background = paper.tone(10), surface = paper.tone(10), surfaceVariant = paper.tone(26),
+            surfaceContainerLowest = paper.tone(7), surfaceContainerLow = paper.tone(14),
+            surfaceContainer = paper.tone(18), surfaceContainerHigh = paper.tone(22),
+            surfaceContainerHighest = paper.tone(26),
+        )
+    } else {
+        accents.copy(
+            background = paper.tone(98), surface = paper.tone(98), surfaceVariant = paper.tone(90),
+            surfaceContainerLowest = paper.tone(100), surfaceContainerLow = paper.tone(96),
+            surfaceContainer = paper.tone(94), surfaceContainerHigh = paper.tone(91),
+            surfaceContainerHighest = paper.tone(89),
+        )
+    }
 }
 
 /**
