@@ -29,7 +29,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- RapfiWeb position links (…/board?p=h8i9j10). Not auto-verified:
+            <!-- Zenyth Web position links (…/board?p=h8i9j10). Not auto-verified:
                  the user can choose this app for them in the system settings. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

@@ -83,7 +83,7 @@ class GameRepositoryImpl @Inject constructor(
     @Volatile
     private var analyzing = false
 
-    // ---- the two tabs (RapfiWeb per-tab boards) ------------------------------
+    // ---- the two tabs (Zenyth Web per-tab boards) ------------------------------
 
     /** One tab's board while the other is on screen. */
     private data class Slot(
@@ -810,7 +810,7 @@ class GameRepositoryImpl @Inject constructor(
         )
     }
 
-    /** Back to the boards of the last session (RapfiWeb autosave). */
+    /** Back to the boards of the last session (Zenyth Web autosave). */
     private fun restoreSessions() {
         val saved = sessions.load()
         if (saved != null) {

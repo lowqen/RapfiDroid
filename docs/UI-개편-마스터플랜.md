@@ -11,7 +11,7 @@
 > `settings_group.dart` · `app_content_card.dart` · `animation_utils.dart` · `mornye_bottom_bar.dart` ·
 > `smoothed_progress.dart` · `scroll_edge_fade.dart`), `lib/providers/runtime_profile_provider.dart`.
 > 이 저장소의 `core/designsystem/**`, `feature/**`, `navigation/**`, `MainActivity.kt`,
-> `ThemeContrastTest.kt`, 그리고 RapfiWeb `.calm-design/DESIGN.md` · `docs/design-token-reconciliation.md`.
+> `ThemeContrastTest.kt`, 그리고 Zenyth Web `.calm-design/DESIGN.md` · `docs/design-token-reconciliation.md`.
 >
 > **라이선스.** Mornye 는 GPL-3.0(+LGPL-3.0) 이고 이 앱은 BSD-2 다. **코드를 옮기지 않는다.**
 > 가져오는 것은 기법 · 구조 · 수치 관례뿐이고, 모두 Compose 로 새로 쓴다.
@@ -25,7 +25,7 @@
 | Mornye 에서 가져오지 않을 것 | iOS 흉내 2번째 스타일, 벽지 색을 앱 전체에 칠하는 Monet, 판 위의 블러 · 굴절 유리 |
 | Zenyth 의 현재 수준 | 색 · 타이포 · 모양은 이미 **원칙 있는 시스템**(OKLCH 램프, 15슬롯 타입, 대비 시험)이다. 문제는 시스템이 아니라 **채택률과 구조**: 화면 쪽 `Spacing` 사용 0회 · 날 dp 382개, 탭 구현 4종, 세로 화면에서 판이 카드와 함께 스크롤되어 사라짐, 가로 화면에서 하단 바가 판 높이를 80dp 먹음, 햅틱 0 |
 | 개편의 축 | **판은 고정하고 크롬을 움직인다.** 판 영역은 지금의 4대 모션 규칙을 그대로 지키고, 판 밖(시트 · 툴바 · 내비 · 목록)에만 스프링 · 시트 · 햅틱을 들인다 |
-| 반드시 지킬 경계 | `data/**` · `domain/**` · `core/model/**` · `jniLibs/**`, ViewModel 공개 API, `Color.kt` 램프(RapfiWeb 골든 909값과 묶임), `drawBoard` 픽셀(PNG 내보내기와 공유), 탭 좌표 매핑 · 프루브 500ms 하트비트 |
+| 반드시 지킬 경계 | `data/**` · `domain/**` · `core/model/**` · `jniLibs/**`, ViewModel 공개 API, `Color.kt` 램프(Zenyth Web 골든 909값과 묶임), `drawBoard` 픽셀(PNG 내보내기와 공유), 탭 좌표 매핑 · 프루브 500ms 하트비트 |
 
 ## 상태판
 
@@ -37,7 +37,7 @@
 | P3 | **보드 화면 재구성** — 고정 판 + 스냅 시트 · 떠 있는 이동 툴바 · 판 햅틱 | **완료**(2026-10-28) — 실행 기록 P3. 실기 확인 완료(2026-10-29, 사용자) |
 | P4 | 컴포넌트 갱신 — 연결 그룹 · 시트화 · 목록 행 · 빈/로딩 상태 · 하드코딩 색 정리 | **완료**(2026-10-29) — 실행 기록 P4. ⑥ 은 보류(사유 기재) |
 | P5 | 모션 · 햅틱 마감 — 스프링 프리셋 적용 · 목록 스태거 · 진행률 평활화 | **완료**(2026-10-29) — 실행 기록 P5. 블러 실험(⑥)은 하지 않음(D2) |
-| P6 | 검증 · 릴리스 — 실기(A16) NPS/프레임 · TalkBack · 글꼴 배율 · RapfiWeb 대조 | 계획 |
+| P6 | 검증 · 릴리스 — 실기(A16) NPS/프레임 · TalkBack · 글꼴 배율 · Zenyth Web 대조 | 계획 |
 
 ---
 
@@ -131,7 +131,7 @@
 | 층 | 파일 | 요지 |
 |---|---|---|
 | 테마 | `theme/Theme.kt` | 라이트/다크 스킴 **30역할 전부** 채움. 다이내믹 컬러 **의도적으로 미제공**(주석에 근거). 다크 여부는 `settings.txt` 27행(데스크톱이 기준) |
-| 색 | `Color.kt` · `Oklch.kt` | OKLCH 톤 램프 9개(Ink · Neutral · Sage · Clay · WoodNight · Signal · Result×2 …). hex 는 시드뿐. RapfiWeb 와 909값 골든 일치 |
+| 색 | `Color.kt` · `Oklch.kt` | OKLCH 톤 램프 9개(Ink · Neutral · Sage · Clay · WoodNight · Signal · Result×2 …). hex 는 시드뿐. Zenyth Web 와 909값 골든 일치 |
 | 타이포 | `Type.kt` | RapfiSans(Pretendard 서브셋 가변) 15슬롯, 음수/0 자간, `tabular()`(tnum) |
 | 모양 | `Shape.kt` | 4 · 8 · 12 · 16 · 28 다섯 단계 |
 | 간격 | `Spacing.kt` | 2 · 4 · 8 · 12 · 16 · 24 |
@@ -162,7 +162,7 @@
 | `GomokuBoard` 입력 | `rememberUpdatedState` 로 핸들러를 읽는 구조(분석 스트리밍 중 탭 유실 수정) · `BoardGeometry.cellAt` · 롱프레스는 있을 때만 |
 | `drawBoard` | 화면과 PNG 내보내기(`renderBoardPng`)가 **같은 함수**. 화면 전용 연출은 기본값이 «연출 없음»인 파라미터로만 |
 | 값 칩 사다리 `TagPalette` · `BoardSkin` · 프루브 500ms 하트비트(main.c:9206) | Yixin 사용자가 외운 극(極). 재설계 대상 아님 |
-| `Color.kt` 램프(hue · chroma) | RapfiWeb `tokens.golden.json` 909값과 골든 시험으로 묶임. **역할 배정**만 바꿀 수 있다 |
+| `Color.kt` 램프(hue · chroma) | Zenyth Web `tokens.golden.json` 909값과 골든 시험으로 묶임. **역할 배정**만 바꿀 수 있다 |
 | `ThemeContrastTest` | 새 스킴(AMOLED 등)은 이 시험을 통과해야 들어온다 — 시험을 **늘리지**, 약하게 하지 않는다 |
 | `Destination.route`, `LocalUiPrefs` 의 Disclosure id, `settings.txt` 키 | 저장된 상태 · 링크 · 데스크톱 설정 호환 |
 | `tr(ko, en, zh)` 문자열 · `semantics` 설명 | 3개 국어와 TalkBack |
@@ -260,7 +260,7 @@
 | 기법 | Mornye 1.1 · 1.2 |
 | 작업 | ① 테마 모드 **3상태**(시스템 · 라이트 · 다크, D4) ② **AMOLED** 옵션 — `Neutral` 따뜻한 hue 로 검정 사다리, 내비만 컨테이너 층 유지, 판은 `BoardSkin.Dark` 그대로 ③ (D1 승인 시) **벽지 톤** — 크롬 램프 hue 만 벽지에서 ④ 토큰 확장: 반경 badge · thumb · control · card · sheet, 행 패딩 · 최소 터치 48, CalmCard 반경을 문서와 일치시킴 ⑤ 버튼 모양 규칙(행동=알약, 면=토큰) |
 | 시각 변화 | AMOLED 에서 순검정 페이지 위 따뜻한 회색 카드, 벽지 톤에서 크롬 회색이 미세하게 벽지 쪽으로. 판 · 값 칩 · 결과색은 변화 없음 |
-| 검증 | `ThemeContrastTest` 에 AMOLED 스킴 · 벽지 톤 극단 hue(0° · 120° · 240°) 케이스 추가, 결과색과 크롬 색의 ΔE 하한 시험. RapfiWeb 골든(램프)은 불변이어야 함 |
+| 검증 | `ThemeContrastTest` 에 AMOLED 스킴 · 벽지 톤 극단 hue(0° · 120° · 240°) 케이스 추가, 결과색과 크롬 색의 ΔE 하한 시험. Zenyth Web 골든(램프)은 불변이어야 함 |
 
 ## P2. 셸 · 내비게이션
 
@@ -304,7 +304,7 @@
 
 | | |
 |---|---|
-| 작업 | ① 실기(갤럭시 A16): 분석 5분 NPS · 발열 단계(T1) 전후 비교, 시트 · 스크롤 프레임 통계 ② TalkBack 전 화면 순회(시트 · 툴바 · 세그먼트의 role/selected) ③ 글꼴 배율 1.3 · 2.0 ④ RapfiWeb 대조 — `design-token-reconciliation.md` 에 «역할 배정 차이» 절 추가(D5) ⑤ 릴리스 노트 · 스크린샷 갱신 |
+| 작업 | ① 실기(갤럭시 A16): 분석 5분 NPS · 발열 단계(T1) 전후 비교, 시트 · 스크롤 프레임 통계 ② TalkBack 전 화면 순회(시트 · 툴바 · 세그먼트의 role/selected) ③ 글꼴 배율 1.3 · 2.0 ④ Zenyth Web 대조 — `design-token-reconciliation.md` 에 «역할 배정 차이» 절 추가(D5) ⑤ 릴리스 노트 · 스크린샷 갱신 |
 | 완료 조건 | CI 녹색, 스크린샷 골든 승인, NPS 하락 없음(판정 규칙 내), 접근성 체크리스트 통과 |
 
 ---
@@ -317,9 +317,9 @@
 |---|---|---|
 | D1 | 다이내믹 컬러 | **크롬 톤만, 기본 꺼짐**. 벽지 hue 를 `Ink`/`Neutral` 저채도 램프에만 — 의미 색 · 판은 불변. 전면 Monet 은 비권장(`Theme.kt` 의 기존 판단 유지) |
 | D2 | 블러 · 반투명 유리 | **1차 출시엔 없음**. 불투명 틴트만. 블러는 P5 에서 실측 후 시트 스크림 한 곳만 |
-| D3 | 하단 탭 6개 | **6 유지**(RapfiWeb 보존 계약 «레일 6»), 가로/넓은 화면은 `NavigationRail` 로 판 높이 회수 |
+| D3 | 하단 탭 6개 | **6 유지**(Zenyth Web 보존 계약 «레일 6»), 가로/넓은 화면은 `NavigationRail` 로 판 높이 회수 |
 | D4 | 테마 모드 | **시스템 · 라이트 · 다크 3상태 + AMOLED 옵션**. 데스크톱 `settings.txt` 를 들여온 경우는 그 값을 그대로(현 동작) |
-| D5 | RapfiWeb 동기화 | 시트 · 레일 · 햅틱은 **안드로이드 고유로 갈라짐을 허용**하고, 색 램프 · 토큰 값만 계속 일치. 차이는 문서로 기록 |
+| D5 | Zenyth Web 동기화 | 시트 · 레일 · 햅틱은 **안드로이드 고유로 갈라짐을 허용**하고, 색 램프 · 토큰 값만 계속 일치. 차이는 문서로 기록 |
 | D6 | 모션 규칙 개정 | `Motion.kt` «미끄러지지 않는다 · 200ms 이하»를 **판 영역 규칙**으로 좁히고, 크롬(시트 · 툴바 · 내비)은 스프링 허용. 감속 모드면 전부 현행 값 |
 | (부) | 스크린샷 시험 의존성 | **승인.** Roborazzi(Apache-2.0) · Robolectric(MIT) — `testImplementation`, 그리고 `ui-test-manifest` 는 `debugImplementation`(디버그 APK 에 시험용 액티비티 하나). 릴리스 APK · F-Droid 빌드에는 들어가지 않는다 |
 
@@ -362,7 +362,7 @@
 | ① 테마 모드 3상태(D4) | 설정 «테마»: 기기 설정 · 라이트 · 다크. 라이트/다크는 지금처럼 settings.txt 27행에 쓰고(내보낸 파일에 남음), «기기 설정»만 앱 설정(`theme.followSystem`, 기본 꺼짐 — 업데이트로 누구의 테마도 바뀌지 않게). **PC 설정 파일을 들여오면 꺼진다.** 상단 바 해/달 버튼은 «화면에 보이는 것»의 반대를 고르고 «기기 설정»을 끈다. `ShellViewModel` · `SettingsViewModel` 은 손대지 않음(화면 쪽에서 처리) | `6017ac1` |
 | ② AMOLED | 다크 위에 덧씌움: 페이지 톤 0, 컨테이너 5 · 7 · 12 · 17(Mornye 의 `#111` · `#161616` · `#1F1F1F` · `#2A2A2A` 와 같은 L\*), 내비 바는 컨테이너 층 유지, 판은 어두운 나무 그대로 | `6017ac1` |
 | ③ 벽지 톤(D1) | Android 12+, 기본 꺼짐. 벽지 스킴 primary 의 OKLCH hue 만 `Ink` · `Neutral` · `NeutralVariant` 에(채도 그대로). 회색 벽지(채도 < 0.02)면 적용 안 함. Sage · Clay · Signal · 결과색 · 판은 불변. 색조 없음 = 이전과 **같은 인스턴스**(시험) | `6017ac1` |
-| ④ 토큰 | 카드 반경은 처음부터 16 이었다(RapfiWeb `.panel` = `--radius-l`). 틀린 것은 `Shape.kt` 의 «카드 = 12» 한 줄 → 값은 그대로 두고 이름을 `radiusInset 12` · `radiusCard 16` 으로 | `6017ac1` |
+| ④ 토큰 | 카드 반경은 처음부터 16 이었다(Zenyth Web `.panel` = `--radius-l`). 틀린 것은 `Shape.kt` 의 «카드 = 12» 한 줄 → 값은 그대로 두고 이름을 `radiusInset 12` · `radiusCard 16` 으로 | `6017ac1` |
 | ⑤ 버튼 모양 | 확인만: 버튼 모양을 덮어쓴 곳이 하나도 없다 — 전부 Material 기본 알약. 이미 규칙대로 | — |
 | 시험 | `ThemeContrastTest` +7: 색조 없음 + 15° 간격 24개 × 라이트/다크/AMOLED 에서 글자 쌍 전부 AA · 앱 고유색 AA · 크롬 채도 ≤ 0.025 · primary 와 의미색의 OKLab 거리 ≥ 0.08 · AMOLED 사다리. 수치는 커밋 전에 `Oklch.kt` 를 Python 으로 옮겨 미리 계산(최악 4.57:1 · 0.020 · 0.111) | `6017ac1` |
 | 골든 | `theme_amoled` · `theme_tone250_light/dark` · `theme_tone30_light` 4장(run 40524985009). P1 push 의 verify 는 새 4장만 «골든 없음»으로 실패하고 기존 26장은 통과 — P1 이 기존 화면을 한 픽셀도 바꾸지 않았다는 증거. 같은 record 가 26장을 바이트까지 똑같이 다시 썼다. 30장 verify 통과(run 40525403581, 시험 실제 실행) | `f4dcc26` |
@@ -482,4 +482,4 @@ P4 를 반영한 빌드는 2026-10-29 사용자가 실기에서 «괜찮다»고
 
 검증: `ThemeContrastTest` 에 강조색 · 그라데이션 시험 추가(새 램프 단조, 페이지는 배경화면에도 거의 무채색, 강조색은 배경화면 불변, 모든 정지점 AA) — 녹색. 골든 48장 갱신(판 캔버스 이미지는 불변), 54장 verify 통과(run 40640…, 시험 실제 실행).
 
-이전 결정과 달라진 것(사용자 요청에 따름): **D3** — 하단 탭이 기본 5개(고급 사용자 모드에서 6개). **D5** — 강조색 · 글자 크기 · 간격이 RapfiWeb 과 갈라짐(색 램프 골든 909값은 그대로 — 새 램프가 추가됐을 뿐). 배운 것: 문서 주석 앞에 `/**` 가 두 번 들어가면 Kotlin 주석은 중첩되므로 파일 끝까지 주석이 된다(`0d18a35`).
+이전 결정과 달라진 것(사용자 요청에 따름): **D3** — 하단 탭이 기본 5개(고급 사용자 모드에서 6개). **D5** — 강조색 · 글자 크기 · 간격이 Zenyth Web 과 갈라짐(색 램프 골든 909값은 그대로 — 새 램프가 추가됐을 뿐). 배운 것: 문서 주석 앞에 `/**` 가 두 번 들어가면 Kotlin 주석은 중첩되므로 파일 끝까지 주석이 된다(`0d18a35`).

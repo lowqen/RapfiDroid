@@ -69,7 +69,7 @@ val LocalSnackbarHostState = staticCompositionLocalOf { SnackbarHostState() }
 /**
  * What the top bar shows on its right, on every screen: the engine's state in a
  * word, and the theme switch. Provided once by the app shell, so no screen has
- * to know the engine exists to report on it (RapfiWeb `TopBar`).
+ * to know the engine exists to report on it (Zenyth Web `TopBar`).
  */
 data class ShellChrome(
     val connection: ConnectionState,
@@ -85,7 +85,7 @@ val LocalShellChrome = compositionLocalOf<ShellChrome?> { null }
 /**
  * Every screen's header — one line.
  *
- * The subtitle under the title is gone (RapfiWeb's calm redesign): it repeated
+ * The subtitle under the title is gone (Zenyth Web's calm redesign): it repeated
  * what the tab already said and took a line of height from the board. On the
  * right, the engine chip and the theme switch, whichever screen this is.
  *

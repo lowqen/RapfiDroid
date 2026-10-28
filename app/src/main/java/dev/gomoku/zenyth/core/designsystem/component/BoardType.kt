@@ -10,7 +10,7 @@ import dev.gomoku.zenyth.R
  * The app face for text drawn on the board canvas — coordinates, stone numbers,
  * values. `Paint` knows nothing of Compose's font families, so without this the
  * board fell back to the platform sans while every other line of the app was in
- * Pretendard (RapfiWeb hit the same thing: `ctx.font` could not read the CSS
+ * Pretendard (Zenyth Web hit the same thing: `ctx.font` could not read the CSS
  * variable and drew everything in 10px sans-serif).
  *
  * One variable font, so the weight is a variation setting rather than a file.

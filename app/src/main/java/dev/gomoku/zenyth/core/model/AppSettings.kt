@@ -78,7 +78,7 @@ data class AppSettings(
     val hashSizeMb: Int = 1024,
     /**
      * 20. default multi-PV count (`yxnbest`). **1, not the PC's 3** — the board
-     * opens on the best move alone, as RapfiWeb does; more candidates are a tap
+     * opens on the best move alone, as Zenyth Web does; more candidates are a tap
      * away in the analysis options. Installs that still held the old default are
      * moved once ([dev.gomoku.zenyth.data.settings.SettingsStore]).
      */

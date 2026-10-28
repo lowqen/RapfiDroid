@@ -26,7 +26,7 @@ data class BoardUiState(
     val defending: Boolean = false,
     /**
      * What the engine card shows: this position's analysis, or the last one
-     * read when the board has moved on since ([stale], RapfiWeb's frozen card).
+     * read when the board has moved on since ([stale], Zenyth Web's frozen card).
      */
     val shown: AnalysisSnapshot? = null,
     val stale: Boolean = false,
@@ -136,7 +136,7 @@ data class EvalView(
 )
 
 /**
- * Game strength by nodes, RapfiWeb's five levels. The engine has one level
+ * Game strength by nodes, Zenyth Web's five levels. The engine has one level
  * setting (settings.txt line 6); these sit on its «custom» level, with the node
  * cap in line 10 and the move time in line 7.
  */

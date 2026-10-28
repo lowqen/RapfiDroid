@@ -8,7 +8,7 @@ import dev.gomoku.zenyth.core.model.TagKind
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
-/** The text-only values (RapfiWeb's second board redesign): hue carries the rank. */
+/** The text-only values (Zenyth Web's second board redesign): hue carries the rank. */
 class TextLadderTest {
 
     private val palette = TagPalette()

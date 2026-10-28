@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.sp
 import dev.gomoku.zenyth.R
 
 /**
- * Pretendard, the face RapfiWeb uses (OFL-1.1), shipped as one variable font
+ * Pretendard, the face Zenyth Web uses (OFL-1.1), shipped as one variable font
  * cut down to the 2,350 Hangul of KS X 1001 plus Latin and symbols — 1.3 MB
  * instead of 6.7. Renamed RapfiSans inside, as the licence's reserved-name rule
  * asks of a modified copy. A syllable outside the subset falls back to the

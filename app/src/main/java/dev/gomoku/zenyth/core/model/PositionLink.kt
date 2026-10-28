@@ -1,7 +1,7 @@
 package dev.gomoku.zenyth.core.model
 
 /**
- * The position link RapfiWeb shares: `https://rapfiweb.pages.dev/board?p=h8i9j10`.
+ * The position link Zenyth Web shares: `https://rapfiweb.pages.dev/board?p=h8i9j10`.
  *
  * Coordinates run together with no separator — the column letter is the
  * separator — lower case when written, any case, spaces or commas when read,

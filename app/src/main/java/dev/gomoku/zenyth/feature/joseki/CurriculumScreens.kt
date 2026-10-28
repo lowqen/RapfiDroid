@@ -80,7 +80,7 @@ import dev.gomoku.zenyth.data.joseki.CurriculumSource
 
 /**
  * The curriculum's front page: one line, then a card per course. Under the
- * title, quietly, where the curriculum came from — it is RapfiWeb's published
+ * title, quietly, where the curriculum came from — it is Zenyth Web's published
  * file, so «웹과 같음» is the normal state and the version says which one.
  */
 @Composable
@@ -119,7 +119,7 @@ private fun SyncLine(ui: JosekiUiState, onRefresh: () -> Unit) {
     val version = ui.curriculum?.version?.takeIf { it.isNotBlank() }
     val state = when {
         ui.sync.checking -> tr("웹에서 확인하는 중", "Checking the web", "正在联网检查")
-        ui.sync.source == CurriculumSource.ONLINE -> tr("RapfiWeb 과 같음", "Same as RapfiWeb", "与 RapfiWeb 一致")
+        ui.sync.source == CurriculumSource.ONLINE -> tr("Zenyth Web 과 같음", "Same as Zenyth Web", "与 Zenyth Web 一致")
         ui.sync.offline -> tr("오프라인 · 기기에 있는 것", "Offline · the copy on this phone", "离线 · 本机已有的版本")
         else -> tr("기기에 있는 것", "The copy on this phone", "本机已有的版本")
     }
@@ -342,7 +342,7 @@ internal fun LessonPage(
         val clipboard = LocalClipboardManager.current
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = vm::onLessonToBoard) { Text(tr("보드에 올리기", "Put on the board", "放到棋盘上")) }
-            // The same address RapfiWeb shares: opens this lesson on the web, or in the app.
+            // The same address Zenyth Web shares: opens this lesson on the web, or in the app.
             TextButton(onClick = {
                 vm.lessonLink()?.let {
                     clipboard.setText(AnnotatedString(it))

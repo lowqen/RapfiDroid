@@ -2,7 +2,7 @@
 
 **A faster on-device engine that looks after the phone.** The engine now uses
 the fast instructions modern phones have, three speed patches carried over from
-RapfiWeb, and all of the phone's cores by default. It finds exactly the same
+Zenyth Web, and all of the phone's cores by default. It finds exactly the same
 moves with exactly the same evaluations as before, only sooner. In return it
 gives cores back when the phone gets hot, and it shuts itself down when you
 leave it idle in the background.

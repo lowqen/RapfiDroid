@@ -85,7 +85,7 @@ object ResponseParser {
             "NODE", "NODES", "SPEED", "TIME" ->
                 digits(value)?.let { EngineResponse.InfoStat(key.uppercase(), it, raw) }
                     ?: EngineResponse.Message("INFO $rest", raw)
-            // The engine's running counters (R4 / RapfiWeb P4-1), every 0.5 s of a search.
+            // The engine's running counters (R4 / Zenyth Web P4-1), every 0.5 s of a search.
             // Without them a long multi-threaded iteration shows no node count for seconds.
             "TOTALNODES", "TOTALTIME" ->
                 digits(value)?.let { EngineResponse.InfoStat(if (key.uppercase() == "TOTALNODES") "NODES" else "TIME", it, raw) }

@@ -63,7 +63,7 @@ The interface is available in English, Korean and Simplified Chinese (简体中�
 * Board values written as text only (blue, green, red) and a vertical eval bar.
 * A position card with the opening name chain and fifth-move grade, the move's
   grade, database value and note, and a Game menu (open, save .psq/.sav, copy a
-  RapfiWeb link, image).
+  Zenyth Web link, image).
 * Renju forbidden points marked as you play, with the double three, double four
   and overline rules applied by the engine itself rather than approximated.
 * Freestyle, standard and renju rules, each with its own network.
@@ -89,12 +89,12 @@ The interface is available in English, Korean and Simplified Chinese (简体中�
 
 * **Official curriculum.** Courses of lessons, each with Browse (tree,
   commentary, good and bad moves, traps and refutations) and Learn (play the
-  moves yourself, with hints, a score and progress). It is the file RapfiWeb
+  moves yourself, with hints, a score and progress). It is the file Zenyth Web
   publishes, fetched from the site so new lessons arrive without an app update,
   and lesson links (`rapfiweb.pages.dev/joseki?lesson=…`) open in the app.
 * **My joseki.** Add moves on the board or as `h8 i9 j10`, with branches,
   evaluation symbols and markdown notes, and find them again from the board's
-  position, symmetries included. Same JSON as RapfiWeb.
+  position, symmetries included. Same JSON as Zenyth Web.
 
 ### Keep what it learns
 
@@ -149,7 +149,7 @@ You download the file yourself from the official source, your phone converts it,
 and the result never leaves the device. That is the one path the licence allows,
 and it is why there is no download button that does it for you.
 
-The conversion is RapfiWeb's fast path. The 43 MB XML is streamed as bytes into
+The conversion is Zenyth Web's fast path. The 43 MB XML is streamed as bytes into
 integer columns, every prefix position is counted by a **64-bit incremental
 Zobrist canonical hash** (one XOR per symmetry per move), and one radix sort
 produces the statistics. What used to take minutes with two passes over string
@@ -169,7 +169,7 @@ it on and enter an address yourself.
 ### The one automatic request
 
 The Joseki tab fetches the official curriculum from
-`https://rapfiweb.pages.dev/joseki/curriculum.json`, the same file the RapfiWeb
+`https://rapfiweb.pages.dev/joseki/curriculum.json`, the same file the Zenyth Web
 site serves, so new lessons arrive without an app update. It is a plain request
 for a static file; nothing about you, your games or your device is sent, and an
 unchanged file costs an empty reply. **Settings ▸ Update the joseki curriculum**

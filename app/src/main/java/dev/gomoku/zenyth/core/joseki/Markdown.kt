@@ -6,7 +6,7 @@ import dev.gomoku.zenyth.core.model.Move
  * The markdown a joseki comment may use — only what was asked for: **bold**,
  * *italics*, `code`, [links](https://…), `- ` and `1. ` lists, paragraphs and
  * line breaks, plus **coordinates that link to their move** (`h8`). A tree
- * of blocks, never HTML; links only for http, https and mailto (RapfiWeb
+ * of blocks, never HTML; links only for http, https and mailto (Zenyth Web
  * `core/joseki/markdown.ts`).
  */
 object Markdown {

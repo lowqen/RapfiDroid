@@ -10,7 +10,7 @@ name: ARM engine bench (D3)
 #   speed : same-tree fixed-depth timing, base · control (A/A, same binary) · test — for result-invariant patches
 #   sprt  : paired games on balanced openings with SPRT — for tree-changing patches, configs or thread counts
 #
-# The harness (build_host_engine.sh, fixed-depth.mjs, speed-report.mjs, runner.mjs) is lowqen/RapfiWeb's, checked
+# The harness (build_host_engine.sh, fixed-depth.mjs, speed-report.mjs, runner.mjs) is lowqen/Zenyth-web's, checked
 # out at tools_ref so a result can be re-run with the very same scripts.
 #
 # What does not carry over from here to the phone: no PGO (relative comparisons only), and the server's caches are far
@@ -103,7 +103,7 @@ on:
         default: "330"
         type: string
       tools_ref:
-        description: "lowqen/RapfiWeb commit for the harness"
+        description: "lowqen/Zenyth-web commit for the harness"
         default: "dc16d269832a6fce1e19c49d08e53137b45c48e2"
         type: string
 
@@ -121,10 +121,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Checkout harness (RapfiWeb)
+      - name: Checkout harness (Zenyth Web)
         uses: actions/checkout@v7
         with:
-          repository: lowqen/RapfiWeb
+          repository: lowqen/Zenyth-web
           ref: ${{ inputs.tools_ref }}
           path: web
 
@@ -166,7 +166,7 @@ jobs:
         working-directory: web
         run: |
           set -euo pipefail
-          # build_host_engine.sh resolves patches against the RapfiWeb tree, so stage ours there.
+          # build_host_engine.sh resolves patches against the Zenyth Web tree, so stage ours there.
           mkdir -p tools/patches/droid
           cp ../tools/patches/*.patch tools/patches/droid/
           rel () { for p in $1; do printf 'tools/patches/droid/%s ' "$p"; done; }

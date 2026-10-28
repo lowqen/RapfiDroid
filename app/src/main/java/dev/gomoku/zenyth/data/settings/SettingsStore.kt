@@ -35,7 +35,7 @@ private val Context.settingsDataStore by preferencesDataStore(
  * with; a value still equal to the **old** default is taken as never chosen and
  * moved to the new one, once.
  *
- *  1. multi-PV 3 → 1 (0.15.0): analysis opens on the best move alone, as RapfiWeb.
+ *  1. multi-PV 3 → 1 (0.15.0): analysis opens on the best move alone, as Zenyth Web.
  */
 internal object DefaultsMigration : DataMigration<Preferences> {
     private const val REV = 1

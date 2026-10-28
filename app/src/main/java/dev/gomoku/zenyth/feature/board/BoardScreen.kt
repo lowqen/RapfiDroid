@@ -48,7 +48,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * The board screen — two tabs, [분석] | [대국], over one board each
- * (RapfiWeb's calm board-first layout).
+ * (Zenyth Web's calm board-first layout).
  *
  * **The board takes the room, and keeps it.** Upright, the board and its move
  * toolbar are pinned under a header holding 분석 | 대국, and the cards ride on a
@@ -58,7 +58,7 @@ import kotlinx.coroutines.withContext
  *
  *  - Analysis: engine card (best move first, frozen after a stop), evaluation
  *    graph, analysis settings (folded), position, tools. The database's
- *    per-position actions live in the DB tab (RapfiWeb's layout); the board
+ *    per-position actions live in the DB tab (Zenyth Web's layout); the board
  *    keeps only the long press that writes a cell label.
  *  - Game: the game card (status, «지금 두기», colours, time, level, rules),
  *    then the position with resign and draw. No analysis overlay on the board.

@@ -15,7 +15,7 @@
 set -euo pipefail
 
 # 소스 고정. upstream HEAD 를 받으면 같은 스크립트가 날마다 다른 엔진을 만들고, 탑재본의
-# BENCH 해시(e240ab16)와 RapfiWeb 의 패치 기준(3c94c2a9)이 말없이 어긋난다. 올릴 때는 이 두 줄을
+# BENCH 해시(e240ab16)와 Zenyth Web 의 패치 기준(3c94c2a9)이 말없이 어긋난다. 올릴 때는 이 두 줄을
 # 바꾸고 [6/7] · [7/7] 의 해시를 새로 확인한다(docs/엔진-고도화-마스터플랜.md).
 RAPFI_COMMIT="3c94c2a976f24a0dd1c5517623e9ab6fffe66bd7"     # dhbloo/rapfi
 NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-networks (Networks 서브모듈)
@@ -23,10 +23,10 @@ NETWORKS_COMMIT="e32ad77a5364363b3e3a02b3f9e8610ade19ea98"  # dhbloo/rapfi-netwo
 # 성능 패치 — tools/patches/ 아래, 적는 순서대로 [4/7] 의 안드로이드 패치 뒤에 git apply 한다.
 # 모두 결과 불변(BENCH e240ab16 유지)이어야 하고, 하나라도 안 맞으면 [4/7] 에서 멈춘다.
 #   k1-neon-vqdmulh.patch : 누산기 dwconv 의 mulhi(w, 4f) 를 NEON 에서 sqdmulh(w, 2f) 1명령으로 (비트 동일)
-#   k2-neon-starblock-multi.patch : 값 헤드 starBlock 의 가중치를 입력 4개에 재사용 (RapfiWeb A3 를 NEON DotProd 로, 비트 동일)
-#   k3-a4-policy-cache.patch : 같은 국면의 정책 출력을 스레드별 2^12 표로 재사용 (RapfiWeb A4 그대로, 결과 불변)
-#   r4-p2-2-keep-evaluators-on-rebuild.patch : 스레드 수를 바꿔도 평가기를 넘겨 가중치를 다시 읽지 않는다 (RapfiWeb P2-2, 결과 불변)
-#   r4-p4-1-periodic-node-stats.patch : 탐색 중 0.5초마다 INFO TOTALNODES · TOTALTIME · SPEED (RapfiWeb P4-1, 출력만)
+#   k2-neon-starblock-multi.patch : 값 헤드 starBlock 의 가중치를 입력 4개에 재사용 (Zenyth Web A3 를 NEON DotProd 로, 비트 동일)
+#   k3-a4-policy-cache.patch : 같은 국면의 정책 출력을 스레드별 2^12 표로 재사용 (Zenyth Web A4 그대로, 결과 불변)
+#   r4-p2-2-keep-evaluators-on-rebuild.patch : 스레드 수를 바꿔도 평가기를 넘겨 가중치를 다시 읽지 않는다 (Zenyth Web P2-2, 결과 불변)
+#   r4-p4-1-periodic-node-stats.patch : 탐색 중 0.5초마다 INFO TOTALNODES · TOTALTIME · SPEED (Zenyth Web P4-1, 출력만)
 #   k7-codebook-prefetch-early.patch : 코드북 행을 인덱스가 정해지는 즉시 프리페치 (결과 불변)
 # 같은 사슬이 lowqen/rapfi 의 android 브랜치에 커밋 하나씩 있다(GPL 대응 소스 — docs/publishing.md §0).
 RAPFI_PATCHES="k1-neon-vqdmulh.patch k2-neon-starblock-multi.patch k3-a4-policy-cache.patch r4-p2-2-keep-evaluators-on-rebuild.patch r4-p4-1-periodic-node-stats.patch k7-codebook-prefetch-early.patch"
@@ -66,7 +66,7 @@ cd rapfi
 git checkout -q -b android "$RAPFI_COMMIT"
 # 패치하기 **전** 커밋을 잡아 둔다. 아래에서 로컬 패치 커밋을 만든 뒤 rev-parse HEAD 를
 # 찍으면 그건 dhbloo/rapfi 에 없는 커밋이라, ENGINE_VERSION.txt 의 upstream 필드가
-# 사실과 달라진다(RapfiWeb W0 스파이크에서 이 값으로 클론하려다 발견했다).
+# 사실과 달라진다(Zenyth Web W0 스파이크에서 이 값으로 클론하려다 발견했다).
 UPSTREAM_COMMIT="$(git rev-parse HEAD)"
 [ "$UPSTREAM_COMMIT" = "$RAPFI_COMMIT" ] || { echo "rapfi 가 $RAPFI_COMMIT 이 아니다: $UPSTREAM_COMMIT"; exit 1; }
 git submodule update --init --depth 1 Networks

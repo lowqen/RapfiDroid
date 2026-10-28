@@ -73,7 +73,7 @@ import kotlinx.coroutines.launch
  * The shell's own state: the engine for the top-bar chip and the tab dot, and
  * the theme switch.
  *
- * **The engine starts with the app** (RapfiWeb's auto boot). It used to wait
+ * **The engine starts with the app** (Zenyth Web's auto boot). It used to wait
  * for a tap on the engine tab, so the first thing a new user met was a board
  * that did nothing when asked to analyse. It connects to whatever was used last
  * — the engine inside the app unless the server was chosen — and the switch in

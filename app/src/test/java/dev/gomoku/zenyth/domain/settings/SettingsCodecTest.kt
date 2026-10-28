@@ -63,7 +63,7 @@ class SettingsCodecTest {
         // The app's defaults are the deployed PC file's, with three exceptions
         // chosen for a phone that is someone's first contact with the program:
         // the engine does not open as black, the hash is not sized for a
-        // server, and analysis shows one candidate (RapfiWeb's). Pinning *which* lines differ is the point — it catches both a
+        // server, and analysis shows one candidate (Zenyth Web's). Pinning *which* lines differ is the point — it catches both a
         // silent drift back and a new one nobody meant.
         val rendered = SettingsCodec.render(AppSettings(), SettingsFile.MAIN).lines()
         val deployed = MAIN_TEXT.lines()
@@ -73,7 +73,7 @@ class SettingsCodecTest {
         assertThat(differingLines).containsExactly(4, 19, 20)
         assertThat(rendered[3]).isEqualTo("0\t;computer play black (0: no, 1: yes)")
         assertThat(rendered[18]).isEqualTo("1024\t;hash size (MB)")
-        // One candidate by default, as RapfiWeb — the PC's file asks for three.
+        // One candidate by default, as Zenyth Web — the PC's file asks for three.
         assertThat(rendered[19]).startsWith("1\t;")
 
         // settings_dev.txt is untouched.

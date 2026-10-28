@@ -77,7 +77,7 @@ interface GameRepository {
     fun dismissPrompt()
 
     /**
-     * Which board tab is showing (RapfiWeb). Each tab keeps its own board; the
+     * Which board tab is showing (Zenyth Web). Each tab keeps its own board; the
      * live flows above always describe the one on screen.
      */
     val mode: StateFlow<BoardMode> get() = FIXED_GAME_MODE

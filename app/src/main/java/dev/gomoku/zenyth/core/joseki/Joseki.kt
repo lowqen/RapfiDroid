@@ -8,7 +8,7 @@ import dev.gomoku.zenyth.core.model.OpeningName
 import java.util.UUID
 
 /**
- * One joseki is one document (RapfiWeb W9): a tree of moves with comments,
+ * One joseki is one document (Zenyth Web W9): a tree of moves with comments,
  * evaluation symbols and roles. Nodes are addressed by **path** — child indices
  * from the root — and every edit returns a new root, sharing the untouched
  * branches, so a screen can hold it as a value.

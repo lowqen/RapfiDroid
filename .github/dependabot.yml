@@ -1,4 +1,4 @@
-# Dependency updates, as RapfiWeb does them. PRs open on Monday mornings (KST)
+# Dependency updates, as Zenyth Web does them. PRs open on Monday mornings (KST)
 # and build.yml checks every one of them (unit tests and a debug APK).
 #
 # - Patch and minor updates come as one grouped PR per ecosystem, so a week of

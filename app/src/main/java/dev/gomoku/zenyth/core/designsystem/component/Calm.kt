@@ -63,7 +63,7 @@ import dev.gomoku.zenyth.core.model.Duration
 import dev.gomoku.zenyth.data.prefs.UiPrefs
 
 /**
- * The calm parts — RapfiWeb's `.calm-design/DESIGN.md` brought back to the app.
+ * The calm parts — Zenyth Web's `.calm-design/DESIGN.md` brought back to the app.
  *
  *  - **Card**: one white face on the paper with a hairline border, no shadow and
  *    no grey tile inside it (no surface on a surface).

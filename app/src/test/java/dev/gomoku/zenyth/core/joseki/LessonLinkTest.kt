@@ -5,7 +5,7 @@ import org.junit.Test
 
 class LessonLinkTest {
     @Test
-    fun `writes the addresses RapfiWeb writes`() {
+    fun `writes the addresses Zenyth Web writes`() {
         assertThat(LessonLink.url("first-three-moves", learn = false))
             .isEqualTo("https://rapfiweb.pages.dev/joseki?lesson=first-three-moves")
         assertThat(LessonLink.url("a-b", learn = true))

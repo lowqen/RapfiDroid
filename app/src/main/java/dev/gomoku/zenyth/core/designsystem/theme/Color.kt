@@ -57,7 +57,7 @@ val Sage = TonalRamp(hue = 148f, chroma = 0.060f)
  * `#7E5D14` against the desktop's `#7A5A2B`. This line used to claim `#7B5E22`,
  * which the ramp has never produced — the chroma was tuned for tone 76 and the
  * grid value was not recomputed afterwards. Dumped and confirmed while porting
- * the palette to the web (RapfiWeb `tools/tone-dump/ToneDump.java`,
+ * the palette to the web (Zenyth Web `tools/tone-dump/ToneDump.java`,
  * `docs/design-token-reconciliation.md`).
  *
  * **Only the comment was wrong, so only the comment changed.** Editing the
@@ -73,7 +73,7 @@ val Clay = TonalRamp(hue = 82f, chroma = 0.095f)
  * chroma is clean wood. Only the hue moved — tone 76 stays the board's
  * lightness, because the value chips and the white stones are measured against
  * it (`TagPaletteTest`, `ThemeContrastTest`). [Clay] keeps its gold for
- * «attention» and stays the RapfiWeb board.
+ * «attention» and stays the Zenyth Web board.
  */
 val Maple = TonalRamp(hue = 70f, chroma = 0.075f)
 
@@ -116,7 +116,7 @@ val Lilac = TonalRamp(hue = 298f, chroma = 0.035f)
  * the paper and the accent, so they read as one palette; the warm board wood
  * stands out against it.
  *
- * [Neutral] and [NeutralVariant] stay as they were: RapfiWeb's golden test pins
+ * [Neutral] and [NeutralVariant] stay as they were: Zenyth Web's golden test pins
  * every one of their tones, and the result colours still use them.
  */
 val Mist = TonalRamp(hue = 298f, chroma = 0.005f)

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Refreshes the APK's copy of the official joseki curriculum from RapfiWeb.
+# Refreshes the APK's copy of the official joseki curriculum from Zenyth Web.
 #
 # The app reads the published file at run time
 # (https://rapfiweb.pages.dev/joseki/curriculum.json, JosekiRepository); the
@@ -7,10 +7,10 @@
 # offline. Run this before a release so that copy is the current one:
 #
 #   tools/sync_curriculum.sh            # from the published site
-#   tools/sync_curriculum.sh FILE       # from a local file (RapfiWeb's public/joseki/curriculum.json)
+#   tools/sync_curriculum.sh FILE       # from a local file (Zenyth Web's public/joseki/curriculum.json)
 #
-# The maintainer edits the curriculum in RapfiWeb's curriculum studio and
-# publishes it with `pnpm curriculum:publish` (RapfiWeb docs/공식-정석-관리.md).
+# The maintainer edits the curriculum in Zenyth Web's curriculum studio and
+# publishes it with `pnpm curriculum:publish` (Zenyth Web docs/공식-정석-관리.md).
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"

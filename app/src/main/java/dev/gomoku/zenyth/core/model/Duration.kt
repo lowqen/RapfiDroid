@@ -5,7 +5,7 @@ import kotlin.math.roundToLong
 
 /**
  * Typing a time by hand — the move time, the analysis time and the review and
- * prove budgets all share this reader (RapfiWeb `core/settings/duration.ts`).
+ * prove budgets all share this reader (Zenyth Web `core/settings/duration.ts`).
  *
  * Accepted, case and spaces ignored, `.` or `,` as the decimal point:
  *

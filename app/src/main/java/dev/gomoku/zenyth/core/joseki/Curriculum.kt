@@ -13,7 +13,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
 
 /**
- * The official joseki curriculum (RapfiWeb `core/curriculum/schema.ts`): courses
+ * The official joseki curriculum (Zenyth Web `core/curriculum/schema.ts`): courses
  * of lessons, each lesson a joseki tree read-only, learned by browsing or by
  * guessing the moves. The file is the same `curriculum.json` the web app
  * serves; the app ships a copy in its assets.

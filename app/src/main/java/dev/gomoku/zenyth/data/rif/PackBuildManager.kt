@@ -97,7 +97,7 @@ class PackBuildManager @Inject constructor(
     }
 
     /**
-     * The fast path (RapfiWeb W7): the file is read as bytes into game columns,
+     * The fast path (Zenyth Web W7): the file is read as bytes into game columns,
      * positions are counted by 64-bit Zobrist keys and a radix sort, and the
      * result is one pack file. Seconds where the old two-pass string build took
      * minutes.

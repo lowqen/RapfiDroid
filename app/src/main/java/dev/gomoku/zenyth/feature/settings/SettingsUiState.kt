@@ -56,7 +56,7 @@ data class SettingsUiState(
         DesktopSettings.ALL.filter { spec ->
             // A search looks through everything: hiding a setting the user
             // is explicitly asking for by name would be worse than a long list.
-            // RapfiWeb: the desktop entries are the advanced layer; the common
+            // Zenyth Web: the desktop entries are the advanced layer; the common
             // ones live in their own card above.
             (advanced || q.isNotEmpty()) &&
                 (category == null || spec.category == category) &&

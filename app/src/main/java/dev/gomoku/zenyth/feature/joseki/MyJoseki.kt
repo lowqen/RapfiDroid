@@ -133,7 +133,7 @@ internal fun MyJosekiList(
         }
         item {
             dev.gomoku.zenyth.core.designsystem.component.DisclosureCard(id = "joseki-files", title = tr("파일", "Files", "文件")) {
-                Hint(tr("RapfiWeb 과 같은 JSON · 기보 파일은 초안으로", "Same JSON as RapfiWeb; game files become drafts", "与 RapfiWeb 相同的 JSON；棋谱文件会成为草稿"))
+                Hint(tr("Zenyth Web 과 같은 JSON · 기보 파일은 초안으로", "Same JSON as Zenyth Web; game files become drafts", "与 Zenyth Web 相同的 JSON；棋谱文件会成为草稿"))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = onImport) { Text(tr("가져오기", "Import", "导入")) }
                     OutlinedButton(onClick = onExport, enabled = ui.trees.isNotEmpty()) { Text(tr("내보내기", "Export", "导出")) }

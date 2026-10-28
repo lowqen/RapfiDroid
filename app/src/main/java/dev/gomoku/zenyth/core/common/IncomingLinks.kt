@@ -8,7 +8,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * RapfiWeb links the app was opened with, waiting for the screen that takes
+ * Zenyth Web links the app was opened with, waiting for the screen that takes
  * them. The activity receives the intent; the screen, whenever it next exists,
  * consumes it.
  *

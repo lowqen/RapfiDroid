@@ -8,7 +8,7 @@ import java.net.URLEncoder
 data class LessonTarget(val lessonId: String?, val courseId: String?, val learn: Boolean)
 
 /**
- * RapfiWeb's curriculum links (`core/curriculum/link.ts`):
+ * Zenyth Web's curriculum links (`core/curriculum/link.ts`):
  * `https://rapfiweb.pages.dev/joseki?lesson=<id>` (`&mode=learn` to open in
  * learn mode) and `…/joseki?course=<id>`. The app writes the same addresses,
  * so a lesson shared from the phone opens on the web and the other way round,

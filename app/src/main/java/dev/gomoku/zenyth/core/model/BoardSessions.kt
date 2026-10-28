@@ -3,7 +3,7 @@ package dev.gomoku.zenyth.core.model
 import kotlinx.serialization.Serializable
 
 /**
- * The board's two tabs (RapfiWeb `BoardMode`).
+ * The board's two tabs (Zenyth Web `BoardMode`).
  *
  *  - [ANALYSIS]: the engine reads the position; the user places stones freely.
  *  - [GAME]: human against the engine, which moves on its own turns.

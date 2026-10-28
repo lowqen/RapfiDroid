@@ -6,7 +6,7 @@ import java.io.InputStream
 /**
  * Games as columns — one index per game, moves concatenated as board indices.
  * A few int arrays instead of 150k objects: this is most of why the fast build
- * fits in tens of megabytes (RapfiWeb `GameColumns`).
+ * fits in tens of megabytes (Zenyth Web `GameColumns`).
  */
 class GameColumns(rows: Int = 1024, moveBytes: Int = 1 shl 16) {
     var count = 0
@@ -84,7 +84,7 @@ class RifTables(
 )
 
 /**
- * RenjuNet `.rif` (XML) read **as bytes**, streaming (RapfiWeb `rif-parse.ts`).
+ * RenjuNet `.rif` (XML) read **as bytes**, streaming (Zenyth Web `rif-parse.ts`).
  *
  * The old reader built a String per tag and an object per game: 43 MB of file
  * became hundreds of megabytes of short-lived garbage and minutes of work. Here

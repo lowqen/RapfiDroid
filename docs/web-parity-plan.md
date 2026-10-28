@@ -1,8 +1,8 @@
-# RapfiWeb → Zenyth 역이식 계획
+# Zenyth Web → Zenyth 역이식 계획
 
-> 작성 2026-10-11 · 기준: RapfiWeb `fd529b4`(ui: max board, text-only labels) · 대상: Zenyth `main`
+> 작성 2026-10-11 · 기준: Zenyth Web `fd529b4`(ui: max board, text-only labels) · 대상: Zenyth `main`
 
-RapfiWeb 은 이 앱을 웹으로 옮긴 것이다. 옮기는 동안 웹에서 디자인을 다시 다듬었고(`.calm-design/DESIGN.md`),
+Zenyth Web 은 이 앱을 웹으로 옮긴 것이다. 옮기는 동안 웹에서 디자인을 다시 다듬었고(`.calm-design/DESIGN.md`),
 기능도 몇 가지 늘었다. 이 문서는 그 차이를 앱으로 되돌리는 계획이다. **앱만 가진 기능(원격 엔진 · 도구 ·
 스왑2 · 시계 · 규칙 선택 · 데스크톱 설정 전 항목)은 지우지 않는다** — 접어 두거나 메뉴 뒤로 보낼 뿐이다.
 
@@ -69,6 +69,6 @@ RapfiWeb 은 이 앱을 웹으로 옮긴 것이다. 옮기는 동안 웹에서 �
 | P6 | 완료 — 정석 탭: 공식 커리큘럼(웹 `curriculum.json` 동봉) · 살펴보기/학습 · 진도, 내 정석 편집기 · 국면으로 찾기 · JSON/.psq, `JosekiTest` 8건 |
 | P7 | 완료 — 설정 «자주 쓰는 설정»(언어 · 테마 · 엔진 자동 시작 · 대국 데이터), 파일 · 고급 펼침, 첫 안내 창 삭제, DB 옵션 · 일괄 삭제 · 기록 펼침 |
 | P8 | 완료 — README(한/영), `release-notes-0.15.0.md`, 버전 0.15.0 |
-| 후속 | 2026-10-11 — 빈 판 분석은 H8 을 두고 멈춤, 엔진 명령 직렬화(`awaitIdle`), 평가 바 20/30dp, 설정 웹 구성, 툴체인(AGP 9 · Kotlin 2.4), 멀티 PV 기본 1(이전 기본값 이전), 보드의 DB 카드 → DB 탭, **공식 커리큘럼 RapfiWeb 연동**(`rapfiweb.pages.dev/joseki/curriculum.json` 받기 · ETag · 레슨 링크 열기/복사, 관리자는 RapfiWeb 커리큘럼 스튜디오에서 만들어 `pnpm curriculum:publish`). 0.15.0–0.15.3 시험 릴리스를 거두고 한 번의 0.15.0(versionCode 19)으로 낸다 |
+| 후속 | 2026-10-11 — 빈 판 분석은 H8 을 두고 멈춤, 엔진 명령 직렬화(`awaitIdle`), 평가 바 20/30dp, 설정 웹 구성, 툴체인(AGP 9 · Kotlin 2.4), 멀티 PV 기본 1(이전 기본값 이전), 보드의 DB 카드 → DB 탭, **공식 커리큘럼 Zenyth Web 연동**(`rapfiweb.pages.dev/joseki/curriculum.json` 받기 · ETag · 레슨 링크 열기/복사, 관리자는 Zenyth Web 커리큘럼 스튜디오에서 만들어 `pnpm curriculum:publish`). 0.15.0–0.15.3 시험 릴리스를 거두고 한 번의 0.15.0(versionCode 19)으로 낸다 |
 
 남은 것: 실기기 확인(이 PC 에는 SDK 가 없어 CI 컴파일 · 단위 시험까지만 확인했다), 웹의 `.rif` «끌어다 놓기»에 해당하는 파일 열기 인텐트.

@@ -28,11 +28,11 @@ class UiPrefs @Inject constructor(
     private val prefs: SharedPreferences =
         context.getSharedPreferences("ui", Context.MODE_PRIVATE)
 
-    /** Connect to the last engine when the app opens (RapfiWeb's auto boot). */
+    /** Connect to the last engine when the app opens (Zenyth Web's auto boot). */
     val autoStartEngine: BoolPref get() = bool("engine.autostart", true)
 
     /**
-     * Fetch the official joseki curriculum from RapfiWeb by itself. The app's one
+     * Fetch the official joseki curriculum from Zenyth Web by itself. The app's one
      * automatic network request (a static file, nothing sent); off, the refresh
      * button and lesson links still fetch when asked.
      */

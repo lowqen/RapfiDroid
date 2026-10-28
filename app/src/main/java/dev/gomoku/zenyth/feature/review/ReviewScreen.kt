@@ -158,7 +158,7 @@ fun ReviewScreen(
         }
         item {
             // The proof drives the same engine as the review, so it lives here,
-            // folded at the bottom (RapfiWeb).
+            // folded at the bottom (Zenyth Web).
             ProveCard(onNotice = { viewModel.onExternalNotice(it) })
         }
         if (ui.log.isNotEmpty()) {

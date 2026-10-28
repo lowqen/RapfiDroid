@@ -5,7 +5,7 @@ import dev.gomoku.zenyth.core.model.PosKey
 
 /**
  * A position's **64-bit canonical hash** — what the fast pack build counts
- * positions by (RapfiWeb `core/rif/zobrist.ts`).
+ * positions by (Zenyth Web `core/rif/zobrist.ts`).
  *
  * It names the same equivalence classes as [PosKey]: two move lists hash alike
  * exactly when they have the same canonical key. Only the shape differs: the

@@ -52,7 +52,7 @@ import kotlinx.coroutines.delay
 
 /**
  * The desktop's Database menu plus its `db*` console commands, on one screen.
- * Everything that acts on the board's position is here too (RapfiWeb's layout:
+ * Everything that acts on the board's position is here too (Zenyth Web's layout:
  * the board shows the record, the DB tab edits it); the board keeps only the
  * long press that writes a cell label.
  *

@@ -97,7 +97,7 @@ class BoardViewModel @Inject constructor(
 
     /**
      * The last analysis — kept when the board moves on, so the engine card can
-     * go on showing it as «직전 국면의 분석» (RapfiWeb, freeze after stop). The
+     * go on showing it as «직전 국면의 분석» (Zenyth Web, freeze after stop). The
      * board's overlays only ever use it while it is this position's.
      */
     private val reading = MutableStateFlow<Read?>(null)
@@ -287,7 +287,7 @@ class BoardViewModel @Inject constructor(
             }
         }
 
-        // A RapfiWeb link the app was opened with.
+        // A Zenyth Web link the app was opened with.
         links.pending.filterNotNull().onEach { onOpenLink(it) }.launchIn(viewModelScope)
     }
 
@@ -328,7 +328,7 @@ class BoardViewModel @Inject constructor(
      * A tap goes to the game: depending on the rule and whose turn it is it
      * places a stone, answers an opening step, or starts the engine's turn.
      *
-     * One shortcut from RapfiWeb: when the engine plays Black on an empty board
+     * One shortcut from Zenyth Web: when the engine plays Black on an empty board
      * of a free opening, its first move is the centre — it is placed at once
      * rather than searched for.
      */
@@ -503,11 +503,11 @@ class BoardViewModel @Inject constructor(
 
     // ---- links and files ---------------------------------------------------
 
-    /** The RapfiWeb link of this position. */
+    /** The Zenyth Web link of this position. */
     fun linkText(): String = position.value.let { PositionLink.url(it.moves, it.size) }
 
     /**
-     * Open a RapfiWeb link. If it would replace a board with stones on it, that
+     * Open a Zenyth Web link. If it would replace a board with stones on it, that
      * board is kept aside with «두던 판으로 돌아가기 · 버리기».
      */
     fun onOpenLink(text: String) {

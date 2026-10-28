@@ -17,7 +17,7 @@ import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 
 /**
- * Joseki files — the JSON RapfiWeb writes (`format: rapfiweb-joseki`), so a
+ * Joseki files — the JSON Zenyth Web writes (`format: rapfiweb-joseki`), so a
  * collection moves between the browser and the phone unchanged.
  *
  * Reading **validates**: an off-board, repeated or duplicate move drops its

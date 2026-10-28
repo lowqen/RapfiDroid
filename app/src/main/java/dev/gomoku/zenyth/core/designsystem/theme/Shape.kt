@@ -17,7 +17,7 @@ import androidx.compose.material3.Shapes
  * - medium 12dp — panels inset in a card, menus
  * - large 20dp — cards, group rows, dialogs. 16 until UI overhaul 2, which took
  *   Mornye's card corner (measured off its screens, and its own token says 20);
- *   RapfiWeb's `.panel` stays 16 — the two now differ (D5).
+ *   Zenyth Web's `.panel` stays 16 — the two now differ (D5).
  * - extraLarge 28dp — sheets, the biggest containers
  *
  * The numbers live in [RapfiTokens]; this maps them onto the Material slots.

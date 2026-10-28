@@ -24,7 +24,7 @@ import dev.gomoku.zenyth.core.designsystem.component.RapfiTopBar
 import dev.gomoku.zenyth.core.i18n.tr
 
 /**
- * 정석 — two tabs, as in RapfiWeb: the **official curriculum** (courses ›
+ * 정석 — two tabs, as in Zenyth Web: the **official curriculum** (courses ›
  * lessons, browse or learn by playing, progress kept on the phone) and **my
  * joseki** (an editor for one's own trees, found again from the board's
  * position). Back goes up one level: lesson → course → list, editor → list.

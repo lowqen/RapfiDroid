@@ -32,14 +32,14 @@ data class LessonProgress(val best: Int, val runs: Int, val completedAt: Long)
 
 /**
  * Where the curriculum on screen came from. [ONLINE] means it was checked
- * against RapfiWeb just now (fetched, or unchanged since the last fetch).
+ * against Zenyth Web just now (fetched, or unchanged since the last fetch).
  */
 enum class CurriculumSource { BUNDLED, CACHED, ONLINE }
 
 data class CurriculumSync(
     val source: CurriculumSource = CurriculumSource.BUNDLED,
     val checking: Boolean = false,
-    /** The last check could not reach RapfiWeb. */
+    /** The last check could not reach Zenyth Web. */
     val offline: Boolean = false,
 )
 
@@ -48,11 +48,11 @@ data class JosekiHit(val tree: JosekiTree, val path: List<Int>, val ply: Int)
 
 /**
  * Joseki on the device: the official curriculum, the user's progress through
- * it, and the user's own joseki (`files/joseki.json`, RapfiWeb's export format
+ * it, and the user's own joseki (`files/joseki.json`, Zenyth Web's export format
  * so it moves between the two apps as is).
  *
- * **The curriculum is RapfiWeb's.** The maintainer publishes one file,
- * `https://rapfiweb.pages.dev/joseki/curriculum.json` (RapfiWeb
+ * **The curriculum is Zenyth Web's.** The maintainer publishes one file,
+ * `https://rapfiweb.pages.dev/joseki/curriculum.json` (Zenyth Web
  * `docs/공식-정석-관리.md`), and this app reads that same file: on start it shows
  * the last copy it fetched (`files/curriculum.json`) or, before the first
  * fetch, the one in the APK's assets, then asks the site for a newer one. The
@@ -115,7 +115,7 @@ class JosekiRepository @Inject constructor(
         CurriculumJson.parse(text)?.takeIf { c -> c.courses.any { it.lessons.isNotEmpty() } }
 
     /**
-     * Asks RapfiWeb for the published curriculum. At most once every few
+     * Asks Zenyth Web for the published curriculum. At most once every few
      * minutes unless [force] (the refresh button); a failure keeps whatever is
      * on screen and only marks the state offline.
      */

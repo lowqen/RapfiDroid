@@ -52,7 +52,7 @@ data class JosekiNav(
 data class JosekiUiState(
     val nav: JosekiNav = JosekiNav(),
     val curriculum: Curriculum? = null,
-    /** Where the curriculum came from and whether RapfiWeb was reachable. */
+    /** Where the curriculum came from and whether Zenyth Web was reachable. */
     val sync: CurriculumSync = CurriculumSync(),
     val progress: Map<String, LessonProgress> = emptyMap(),
     // ---- lesson ----
@@ -115,7 +115,7 @@ class JosekiViewModel @Inject constructor(
     /**
      * Opens a lesson or course link. A lesson the copy on the phone does not
      * have yet (published since the last fetch) gets one fresh look at
-     * RapfiWeb before the app says it is missing.
+     * Zenyth Web before the app says it is missing.
      */
     private suspend fun openLink(target: LessonTarget) {
         links.consumeLesson()
@@ -139,10 +139,10 @@ class JosekiViewModel @Inject constructor(
         }
     }
 
-    /** Checks RapfiWeb for a newer curriculum now. */
+    /** Checks Zenyth Web for a newer curriculum now. */
     fun onRefreshCurriculum() = repo.refreshCurriculum(force = true)
 
-    /** The RapfiWeb address of the open lesson, in its mode — the web app opens it too. */
+    /** The Zenyth Web address of the open lesson, in its mode — the web app opens it too. */
     fun lessonLink(): String? = nav.value.lessonId?.let { LessonLink.url(it, nav.value.learn) }
 
     fun onLinkCopied() {

@@ -75,7 +75,7 @@ data class RapfiTokens(
             spaceXl = 16.dp,
             spaceXxl = 24.dp,
             // One step roomier than the first cut (user request, 2026-10-29: the
-            // screens read as cramped). RapfiWeb's spacing is not changed with it.
+            // screens read as cramped). Zenyth Web's spacing is not changed with it.
             screenPadding = 16.dp,
             listGap = 12.dp,
             cardPadding = 20.dp,

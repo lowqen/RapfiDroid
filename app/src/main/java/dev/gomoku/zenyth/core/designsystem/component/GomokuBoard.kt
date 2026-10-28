@@ -169,7 +169,7 @@ data class TagPalette(
     }
 
     /**
-     * The colour of a value written **as text only** on the board. RapfiWeb's
+     * The colour of a value written **as text only** on the board. Zenyth Web's
      * second redesign took the chip away and wrote the number straight onto the
      * wood, the way the desktop Yixin does. With no chip there is no dark fill
      * to carry the rank, so here the **hue** does: losing blue, even green,
@@ -285,7 +285,7 @@ internal val TextOutline = Color(0xFF140F0A)
  * The ink of a value written on the board, for a hue on the desktop's HSL scale
  * (240 blue = lost … 120 green = even … 0 red = won) — [TagPalette.textHue].
  *
- * It was `hsl(hue, 95 %, 62 %)`, RapfiWeb's formula, and on the maple board that
+ * It was `hsl(hue, 95 %, 62 %)`, Zenyth Web's formula, and on the maple board that
  * read as neon («쨍함», 2026-10-29): HSL at full saturation is as loud as sRGB
  * goes, and its yellow and green are far lighter than its blue and red, so the
  * middle of the scale glared. Now each hue is the same named colour placed in
@@ -316,7 +316,7 @@ private val InkAnchors = listOf(
 
 private const val InkChroma = 0.14f
 
-/** HSL to colour, the CSS formula (RapfiWeb `ladder.ts hslHex`). */
+/** HSL to colour, the CSS formula (Zenyth Web `ladder.ts hslHex`). */
 internal fun hsl(h: Float, s: Float, l: Float): Color {
     fun f(n: Float): Float {
         val k = (n + h / 30f) % 12f
@@ -745,7 +745,7 @@ private fun DrawScope.drawBadge(cx: Float, cy: Float, r: Float, quality: MoveQua
 }
 
 /**
- * A value written straight onto a point, no chip (RapfiWeb, second redesign).
+ * A value written straight onto a point, no chip (Zenyth Web, second redesign).
  * Heavy weight, a dark rounded outline under a bright fill, and never wider
  * than 84 % of a cell so neighbouring numbers keep a gap.
  *

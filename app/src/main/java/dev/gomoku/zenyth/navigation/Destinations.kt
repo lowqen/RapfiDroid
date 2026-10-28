@@ -17,7 +17,7 @@ import dev.gomoku.zenyth.R
 
 /**
  * Six bottom-bar entries, not one per screen — the five below plus 정석
- * (RapfiWeb's rail order: play and study first, the three tools after).
+ * (Zenyth Web's rail order: play and study first, the three tools after).
  *
  * Seven was too many to read at a glance, and three of them (리뷰·익스플로러·랭킹)
  * are the same activity — studying a position away from the board. They now live

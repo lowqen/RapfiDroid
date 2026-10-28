@@ -4,7 +4,7 @@ import dev.gomoku.zenyth.core.model.Move
 import kotlin.math.roundToInt
 
 /**
- * Learning a lesson by playing it (RapfiWeb `core/curriculum/quiz.ts`), as pure
+ * Learning a lesson by playing it (Zenyth Web `core/curriculum/quiz.ts`), as pure
  * functions: the screen holds a [QuizState] and gets the next one per tap.
  *
  *  - On the learner's turn, the **recommended** move (`[0]`) or another **good**

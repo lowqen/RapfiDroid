@@ -11,7 +11,7 @@ import java.nio.ByteBuffer
 
 /**
  * The opening statistics built on the device from the user's `.rif` — one file,
- * a few seconds (RapfiWeb `core/rif/pack.ts`).
+ * a few seconds (Zenyth Web `core/rif/pack.ts`).
  *
  * The same positions as the desktop's `renju_stats.pack` (prefixes of at most
  * [maxPlies] moves reached by at least [minGames] games — its defaults 20 and 2),

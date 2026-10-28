@@ -68,7 +68,7 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var uiPrefs: UiPrefs
 
-    /** A RapfiWeb position link this activity was opened with. */
+    /** A Zenyth Web position link this activity was opened with. */
     @Inject
     lateinit var links: IncomingLinks
 
@@ -144,7 +144,7 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * RapfiWeb links: a curriculum lesson or course (`…/joseki?lesson=<id>`)
+     * Zenyth Web links: a curriculum lesson or course (`…/joseki?lesson=<id>`)
      * goes to the joseki tab, a position (`…/board?p=h8i9j10`) to the board.
      */
     private fun takeLink(intent: Intent?) {

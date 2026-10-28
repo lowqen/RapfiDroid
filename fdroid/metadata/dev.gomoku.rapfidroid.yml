@@ -27,7 +27,7 @@ Description: |-
       67 settings of the desktop Yixin-Board interface.
     * In English, Korean and Simplified Chinese (简体中文).
     * An official joseki curriculum to browse and learn by playing. It is
-      fetched from rapfiweb.pages.dev, the RapfiWeb site's static file, so new
+      fetched from rapfiweb.pages.dev, the Zenyth Web site's static file, so new
       lessons arrive without an update; nothing is sent, and a switch in
       Settings turns this off.
     * An optional server mode for a remote Rapfi with a large database. It is

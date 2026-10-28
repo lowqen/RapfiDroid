@@ -9,7 +9,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Where the two boards survive a restart (RapfiWeb's autosave). A game used to
+ * Where the two boards survive a restart (Zenyth Web's autosave). A game used to
  * vanish when the process did; now the game record and the analysis board come
  * back as they were, down to a resignation.
  */
@@ -38,7 +38,7 @@ class PrefsBoardSessionStore @Inject constructor(
     private val prefs = context.getSharedPreferences("boards", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** Analysis first, like RapfiWeb: someone opening the app wants to look at a position. */
+    /** Analysis first, like Zenyth Web: someone opening the app wants to look at a position. */
     override val defaultMode = BoardMode.ANALYSIS
 
     override fun load(): BoardSessions? =

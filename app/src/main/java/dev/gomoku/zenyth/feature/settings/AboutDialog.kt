@@ -68,9 +68,9 @@ fun AboutDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    tr("Rapfi 엔진을 기기 안에서 돌리는 오목 · 렌주 분석반입니다. RapfiWeb 의 안드로이드판이며, 2026년 10월까지의 이름은 RapfiDroid 였습니다.",
-                        "A gomoku and renju analysis board with the Rapfi engine on the device. The Android sibling of RapfiWeb, called RapfiDroid until October 2026.",
-                        "在本设备上运行 Rapfi 引擎的五子棋 · 连珠分析棋盘。RapfiWeb 的安卓版，2026 年 10 月前名为 RapfiDroid。"),
+                    tr("Rapfi 엔진을 기기 안에서 돌리는 오목 · 렌주 분석반입니다. Zenyth Web 의 안드로이드판이며, 2026년 10월까지의 이름은 RapfiDroid 였습니다.",
+                        "A gomoku and renju analysis board with the Rapfi engine on the device. The Android sibling of Zenyth Web, called RapfiDroid until October 2026.",
+                        "在本设备上运行 Rapfi 引擎的五子棋 · 连珠分析棋盘。Zenyth Web 的安卓版，2026 年 10 月前名为 RapfiDroid。"),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Section(
