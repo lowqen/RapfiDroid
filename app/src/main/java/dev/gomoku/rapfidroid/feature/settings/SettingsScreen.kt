@@ -43,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -104,6 +105,7 @@ fun SettingsScreen(
     // dialog is most annoying.
     var showAbout by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
+    var showWhatsNew by rememberSaveable { mutableStateOf(false) }
     var showRifBuild by rememberSaveable { mutableStateOf(false) }
     var pageName by rememberSaveable { mutableStateOf(SettingsPage.Root.name) }
     val page = SettingsPage.valueOf(pageName)
@@ -168,10 +170,19 @@ fun SettingsScreen(
         AboutDialog(
             onDismiss = { showAbout = false },
             onShowLicenses = { showAbout = false; showLicenses = true },
+            onShowWhatsNew = { showAbout = false; showWhatsNew = true },
         )
     }
     if (showLicenses) {
         LicensesDialog(onDismiss = { showLicenses = false })
+    }
+    if (showWhatsNew) {
+        val context = LocalContext.current
+        val notes = remember { WhatsNew.load(context) }
+        WhatsNewDialog(
+            notes.ifEmpty { listOf(tr("이 버전의 안내가 없습니다.", "No notes for this version.", "此版本没有说明。")) },
+            onDismiss = { showWhatsNew = false },
+        )
     }
     if (showRifBuild) {
         RifBuildDialog(onDismiss = { showRifBuild = false })

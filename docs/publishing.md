@@ -100,6 +100,7 @@ git push origin v0.14.0
 - [ ] 서명 키 생성 + Actions 시크릿 4개 (§1)
 - [ ] `versionCode`·`versionName` 을 올렸다
 - [ ] `docs/release-notes-<버전>.md` 를 썼다 (없으면 CI 가 멈춘다)
+- [ ] `app/src/main/assets/whatsnew/<versionCode>.txt` 를 썼다 — 업데이트 후 첫 실행에 한 번 뜨는 «새로워진 점» 창(ko/en/zh 항목 수가 같아야 한다, 없으면 `WhatsNewTest` 가 멈춘다)
 - [ ] 태그 push → 워크플로 초록
 - [ ] 릴리스 페이지에 엔진 소스 링크 + `LICENSES.md` 링크가 보인다
 - [ ] 키스토어·`keystore.properties` 가 커밋에 없다

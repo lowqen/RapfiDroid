@@ -40,6 +40,7 @@ import dev.gomoku.rapfidroid.data.prefs.UiPrefs
 import dev.gomoku.rapfidroid.domain.repository.AppearanceRepository
 import dev.gomoku.rapfidroid.domain.repository.EngineToolsRepository
 import dev.gomoku.rapfidroid.domain.repository.SettingsRepository
+import dev.gomoku.rapfidroid.feature.settings.WhatsNewOnUpdate
 import dev.gomoku.rapfidroid.navigation.RapfiApp
 import javax.inject.Inject
 import kotlinx.coroutines.launch
@@ -112,6 +113,8 @@ class MainActivity : ComponentActivity() {
                     LocalProMode provides pro,
                 ) {
                     RapfiApp()
+                    // Once after an update: what changed, over the first screen.
+                    WhatsNewOnUpdate()
                 }
             }
         }

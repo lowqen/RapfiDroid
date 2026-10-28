@@ -32,6 +32,7 @@ import dev.gomoku.rapfidroid.core.i18n.tr
 fun AboutDialog(
     onDismiss: () -> Unit,
     onShowLicenses: () -> Unit,
+    onShowWhatsNew: (() -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -72,6 +73,12 @@ fun AboutDialog(
                         "Engine Rapfi (dhbloo) GPL-3.0 · GUI ported from Yixin-Board (© 2009-2017 Kai Sun) BSD 2-Clause · weights CC0 · font Pretendard OFL-1.1.",
                         "引擎 Rapfi(dhbloo) GPL-3.0 · 界面移植自 Yixin-Board(© 2009-2017 Kai Sun) BSD 2-Clause · 权重 CC0 · 字体 Pretendard OFL-1.1。"),
                 )
+                // The notes shown once after an update ([WhatsNewOnUpdate]), again on request.
+                if (onShowWhatsNew != null) {
+                    TextButton(onClick = onShowWhatsNew) {
+                        Text(tr("이번 버전에서 바뀐 점", "What's new in this version", "本版本的新功能"))
+                    }
+                }
                 TextButton(onClick = onShowLicenses) {
                     Text(tr("라이선스 전문 보기", "Read the licence texts", "查看许可证全文"))
                 }
