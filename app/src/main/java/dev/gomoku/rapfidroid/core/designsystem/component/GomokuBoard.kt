@@ -748,6 +748,13 @@ private fun DrawScope.drawBadge(cx: Float, cy: Float, r: Float, quality: MoveQua
  * A value written straight onto a point, no chip (RapfiWeb, second redesign).
  * Heavy weight, a dark rounded outline under a bright fill, and never wider
  * than 84 % of a cell so neighbouring numbers keep a gap.
+ *
+ * **One size per length class, not per label** (2026-10-29). The size used to
+ * be fitted to each label's own width, so a two-digit `63` shrank to fit while
+ * a one-digit `5` did not — the losing moves, being single digits, were drawn
+ * the largest, and the eye read size as importance. Now every label of up to
+ * two characters is sized as the widest one could be (`W8`, bold), every
+ * three-character label as `W88`; only longer, rarer labels fit themselves.
  */
 private fun DrawScope.drawValueText(
     cx: Float,
@@ -765,13 +772,17 @@ private fun DrawScope.drawValueText(
         isAntiAlias = true
         textSize = size
     }
-    BoardType.apply(paint, if (bold) 850 else 760)
-    val room = geometry.step * 0.84f
-    val width = paint.measureText(text) * 1.2f
-    if (width > room) {
-        size *= room / width
-        paint.textSize = size
+    val reference = when {
+        text.length <= 2 -> "W8"
+        text.length == 3 -> "W88"
+        else -> text
     }
+    BoardType.apply(paint, 850)
+    val room = geometry.step * 0.84f
+    val width = paint.measureText(reference) * 1.2f
+    if (width > room) size *= room / width
+    paint.textSize = size
+    BoardType.apply(paint, if (bold) 850 else 760)
     val baseline = cy - (paint.descent() + paint.ascent()) / 2
     val canvas = drawContext.canvas.nativeCanvas
     paint.style = android.graphics.Paint.Style.STROKE
