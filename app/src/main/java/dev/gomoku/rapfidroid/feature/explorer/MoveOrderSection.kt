@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.explorer
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -100,6 +101,7 @@ fun MoveOrderSection(
         modifier = modifier.fillMaxHeight().wrapContentWidth().widthIn(max = ReadingWidth),
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
+        flingBehavior = rememberCalmFling(),
     ) {
         item {
             Card(Modifier.fillMaxWidth()) {

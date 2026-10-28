@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberStagger
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -141,6 +142,7 @@ fun SettingsScreen(
             modifier = Modifier.weight(1f).fillMaxWidth(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
+            flingBehavior = rememberCalmFling(),
         ) {
             var order = 0
             // An item of the list, numbered in the order the list adds them.

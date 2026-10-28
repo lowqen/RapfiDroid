@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.joseki
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.lazy.itemsIndexed
 import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberStagger
@@ -90,6 +91,7 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: 
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
+        flingBehavior = rememberCalmFling(),
     ) {
         item {
             Column(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
@@ -183,6 +185,7 @@ internal fun CoursePage(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
+        flingBehavior = rememberCalmFling(),
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -364,13 +367,13 @@ internal fun LessonPage(
             Row(Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 board(Modifier.size(side))
                 Column(
-                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     content = panel,
                 )
             }
         } else {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())) {
                 board(Modifier.fillMaxWidth())
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp), content = panel)
             }

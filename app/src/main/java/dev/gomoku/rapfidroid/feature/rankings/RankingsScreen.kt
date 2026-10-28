@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.rankings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -421,7 +422,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
         Column(
             Modifier
                 .weight(1f, fill = false)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
@@ -450,7 +451,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                     modifier = Modifier.fillMaxWidth())
                 if (ui.playerSuggestions.isNotEmpty()) {
                     Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.small) {
-                        LazyColumn(Modifier.fillMaxWidth().height(180.dp)) {
+                        LazyColumn(Modifier.fillMaxWidth().height(180.dp), flingBehavior = rememberCalmFling()) {
                             items(ui.playerSuggestions, key = { it.index }) { p ->
                                 Text(if (p.country.isBlank()) p.name else "${p.name}  ·  ${p.country}",
                                     modifier = Modifier.fillMaxWidth()

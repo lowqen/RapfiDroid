@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -117,7 +118,7 @@ internal fun BoardPortrait(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
                             .padding(horizontal = 12.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         content = cards,
@@ -170,7 +171,7 @@ internal fun BoardLandscape(
                 modeSwitch()
                 summary()
                 Column(
-                    Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    Modifier.weight(1f).verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     content = cards,
                 )

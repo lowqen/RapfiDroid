@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.data
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -78,7 +79,7 @@ fun RifBuildDialog(
         title = { Text(tr("대국 데이터 추가", "Add game data", "添加对局数据")) },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(

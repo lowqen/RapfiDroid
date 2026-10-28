@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -50,7 +51,7 @@ fun AboutDialog(
         },
         text = {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
+                modifier = Modifier.verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(

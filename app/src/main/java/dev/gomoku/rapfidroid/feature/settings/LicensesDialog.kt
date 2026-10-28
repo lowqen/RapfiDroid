@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -78,7 +79,7 @@ fun LicensesDialog(onDismiss: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 420.dp)
-                            .verticalScroll(rememberScrollState()),
+                            .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
                     )
                 }
             }

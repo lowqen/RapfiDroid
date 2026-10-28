@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.connection
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -346,6 +347,7 @@ private fun Console(lines: List<ConsoleLine>, scale: Float, modifier: Modifier =
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 10.dp, vertical = 6.dp),
+                flingBehavior = rememberCalmFling(),
         ) {
             items(lines) { line -> ConsoleRow(line, scale) }
         }

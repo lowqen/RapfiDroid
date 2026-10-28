@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.explorer
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -213,6 +214,7 @@ fun OpeningExplorerSection(
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     content = info,
+                    flingBehavior = rememberCalmFling(),
                 )
             }
         } else {
@@ -220,6 +222,7 @@ fun OpeningExplorerSection(
                 modifier = Modifier.fillMaxHeight().align(Alignment.TopCenter).widthIn(max = ReadingWidth),
                 contentPadding = PaddingValues(12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
+                flingBehavior = rememberCalmFling(),
             ) {
                 item { ExplorerBoard(ui, viewModel, Modifier.fillMaxWidth()) }
                 info()

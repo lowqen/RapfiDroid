@@ -4,6 +4,9 @@ import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
@@ -110,5 +113,34 @@ fun Modifier.staggerIn(stagger: Stagger, index: Int): Modifier = composed {
     Modifier.graphicsLayer {
         alpha = progress.value.coerceIn(0f, 1f)
         translationY = (1f - progress.value) * rise
+    }
+}
+
+/** How much of the finger's release speed a fling keeps (see [rememberCalmFling]). */
+private const val FlingKeep = 0.6f
+
+/**
+ * A fling that goes less far and settles sooner (user request, 2026-10-29: lists
+ * and the board's sheet slid away too fast to follow).
+ *
+ * It is the platform's own fling — the same spline deceleration Android uses
+ * everywhere — fed 60% of the release velocity. The curve still looks like
+ * Android; it just travels roughly half as far, so a flicked list is something
+ * the eye can follow and a thumb can stop. Dragging is untouched: the content
+ * stays under the finger exactly as before.
+ *
+ *     LazyColumn(flingBehavior = rememberCalmFling()) { … }
+ *     Modifier.verticalScroll(state, flingBehavior = rememberCalmFling())
+ */
+@Composable
+fun rememberCalmFling(): FlingBehavior {
+    val platform = ScrollableDefaults.flingBehavior()
+    return remember(platform) {
+        object : FlingBehavior {
+            override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+                val scope = this
+                return with(platform) { scope.performFling(initialVelocity * FlingKeep) }
+            }
+        }
     }
 }

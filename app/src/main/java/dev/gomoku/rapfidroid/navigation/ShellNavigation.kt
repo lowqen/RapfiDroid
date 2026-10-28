@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.navigation
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -75,7 +76,7 @@ fun RapfiRail(
         Column(
             Modifier
                 .weight(1f)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
                 .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {

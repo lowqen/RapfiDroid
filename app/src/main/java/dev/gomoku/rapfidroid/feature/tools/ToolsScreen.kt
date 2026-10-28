@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.tools
 
+import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -103,6 +104,7 @@ fun ToolsScreen(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
+        flingBehavior = rememberCalmFling(),
     ) {
         item {
             ToolCard(tr("탐색 도구", "Search tools", "搜索工具")) {
@@ -322,7 +324,7 @@ private fun CallbackDialog(
         title = { Text(tr("콜백 스크립트", "Callback scripts", "回调脚本")) },
         text = {
             Column(
-                Modifier.verticalScroll(rememberScrollState()).heightIn(max = 460.dp),
+                Modifier.verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()).heightIn(max = 460.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 FilterChip(
