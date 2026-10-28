@@ -82,8 +82,14 @@ val WoodNight = TonalRamp(hue = 82f, chroma = 0.050f)
  * at 298° the nearest meaning colour is 0.09 away in dark and 0.13 in light,
  * past the 0.08 the theme test holds every button to. Sage stays what it was —
  * the board's green and «connected» — and leaves the chrome.
+ *
+ * Chroma 0.09, not the first cut's 0.16: a filled button at 0.16 read as a
+ * neon violet («너무 쨍함», 2026-10-29). Mornye's accent is quiet because its
+ * chroma is low (~0.08), not because of its hue — its own indigo (269°) would
+ * sit 0.05 from «black won» here. At 0.09 the nearest meaning colour is
+ * 0.085 (dark) / 0.09 (light) away.
  */
-val Violet = TonalRamp(hue = 298f, chroma = 0.16f)
+val Violet = TonalRamp(hue = 298f, chroma = 0.09f)
 
 /** The accent's quiet companion: selected chips and segments, the navigation pill. */
 val Lilac = TonalRamp(hue = 298f, chroma = 0.06f)

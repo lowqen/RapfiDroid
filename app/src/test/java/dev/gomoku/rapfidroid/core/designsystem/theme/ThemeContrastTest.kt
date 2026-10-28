@@ -205,7 +205,7 @@ class ThemeContrastTest {
     fun `a tinted button never passes for a colour that means something`() {
         // The primary button against every colour that carries a meaning, in
         // OKLab. 0.08 is a plain "different colour". The violet accent's worst
-        // case is the dark theme against «black won» blue, ~0.09 — why it is
+        // case is the dark theme against «black won» blue, ~0.085 — why it is
         // violet at 298° and not royal blue (0.05 at 270°).
         variants().forEach { (name, s) ->
             val colors = if (name.startsWith("light")) RapfiColors.Light else RapfiColors.Dark
