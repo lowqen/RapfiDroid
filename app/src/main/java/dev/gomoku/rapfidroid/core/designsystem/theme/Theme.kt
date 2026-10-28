@@ -28,16 +28,16 @@ import androidx.compose.ui.platform.LocalContext
  * near-black the desktop has always used is a shade lighter than Material's.
  */
 private fun darkColors(c: ChromeRamps) = darkColorScheme(
-    primary = c.ink.tone(90),
-    onPrimary = c.ink.tone(18),
-    primaryContainer = c.ink.tone(30),
-    onPrimaryContainer = c.ink.tone(93),
-    inversePrimary = c.ink.tone(35),
+    primary = Violet.tone(80),
+    onPrimary = Violet.tone(20),
+    primaryContainer = Violet.tone(30),
+    onPrimaryContainer = Violet.tone(92),
+    inversePrimary = Violet.tone(40),
 
-    secondary = Sage.tone(80),
-    onSecondary = Sage.tone(18),
-    secondaryContainer = Sage.tone(28),
-    onSecondaryContainer = Sage.tone(92),
+    secondary = Lilac.tone(80),
+    onSecondary = Lilac.tone(20),
+    secondaryContainer = Lilac.tone(30),
+    onSecondaryContainer = Lilac.tone(92),
 
     tertiary = Clay.tone(80),
     onTertiary = Clay.tone(18),
@@ -55,7 +55,7 @@ private fun darkColors(c: ChromeRamps) = darkColorScheme(
     onSurface = c.neutral.tone(92),
     surfaceVariant = c.neutralVariant.tone(26),
     onSurfaceVariant = c.neutralVariant.tone(78),
-    surfaceTint = c.ink.tone(90),
+    surfaceTint = Violet.tone(80),
     inverseSurface = c.neutral.tone(90),
     inverseOnSurface = c.neutral.tone(18),
 
@@ -73,16 +73,16 @@ private fun darkColors(c: ChromeRamps) = darkColorScheme(
 )
 
 private fun lightColors(c: ChromeRamps) = lightColorScheme(
-    primary = c.ink.tone(24),
-    onPrimary = c.neutral.tone(99),
-    primaryContainer = c.ink.tone(90),
-    onPrimaryContainer = c.ink.tone(18),
-    inversePrimary = c.ink.tone(80),
+    primary = Violet.tone(40),
+    onPrimary = c.neutral.tone(100),
+    primaryContainer = Violet.tone(90),
+    onPrimaryContainer = Violet.tone(20),
+    inversePrimary = Violet.tone(80),
 
-    secondary = Sage.tone(36),
+    secondary = Lilac.tone(40),
     onSecondary = c.neutral.tone(100),
-    secondaryContainer = Sage.tone(90),
-    onSecondaryContainer = Sage.tone(20),
+    secondaryContainer = Lilac.tone(90),
+    onSecondaryContainer = Lilac.tone(20),
 
     tertiary = Clay.tone(38),
     onTertiary = c.neutral.tone(100),
@@ -100,7 +100,7 @@ private fun lightColors(c: ChromeRamps) = lightColorScheme(
     onSurface = c.neutral.tone(14),
     surfaceVariant = c.neutralVariant.tone(92),
     onSurfaceVariant = c.neutralVariant.tone(38),
-    surfaceTint = c.ink.tone(24),
+    surfaceTint = Violet.tone(40),
     inverseSurface = c.neutral.tone(20),
     inverseOnSurface = c.neutral.tone(96),
 
@@ -121,20 +121,22 @@ private val DarkColors = darkColors(ChromeRamps.Standard)
 private val LightColors = lightColors(ChromeRamps.Standard)
 
 /**
- * The three ramps the chrome is drawn from — paper, ink and the outlines.
+/**
+ * The two ramps the page is drawn from — the paper and the outlines.
  *
  * They are the only colour anything outside the app may move (decision D1 of
  * docs/UI-개편-마스터플랜.md). The wallpaper tone swaps their **hue** and keeps
  * their chroma, which is a few thousandths: the paper leans toward the
- * wallpaper, and nothing on screen starts to mean something. Sage, Clay, Signal,
- * the result colours and the board are not chrome and never move.
+ * wallpaper, and nothing on screen starts to mean something. The accent
+ * ([Violet], [Lilac]) does not follow the wallpaper — a wallpaper-green button
+ * is exactly the collision D1 rules out — and Sage, Clay, Signal, the result
+ * colours and the board are not chrome and never move.
  */
-internal class ChromeRamps(val ink: TonalRamp, val neutral: TonalRamp, val neutralVariant: TonalRamp) {
+internal class ChromeRamps(val neutral: TonalRamp, val neutralVariant: TonalRamp) {
     companion object {
-        val Standard = ChromeRamps(Ink, Neutral, NeutralVariant)
+        val Standard = ChromeRamps(Neutral, NeutralVariant)
 
         fun ofHue(hue: Float) = ChromeRamps(
-            TonalRamp(hue, Ink.chroma),
             TonalRamp(hue, Neutral.chroma),
             TonalRamp(hue, NeutralVariant.chroma),
         )

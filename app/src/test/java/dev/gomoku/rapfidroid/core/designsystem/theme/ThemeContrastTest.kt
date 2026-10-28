@@ -117,7 +117,7 @@ class ThemeContrastTest {
 
     @Test
     fun `every ramp climbs from black to white`() {
-        listOf(Ink, Neutral, NeutralVariant, Sage, Clay, Signal, ResultBlue, ResultGreen)
+        listOf(Ink, Neutral, NeutralVariant, Sage, Clay, Signal, ResultBlue, ResultGreen, Violet, Lilac)
             .forEach { assertThat(rampIsMonotone(it)).isTrue() }
     }
 
@@ -176,14 +176,14 @@ class ThemeContrastTest {
     }
 
     @Test
-    fun `the wallpaper tone leaves the chrome nearly colourless`() {
-        // D1: the wallpaper moves the hue of the paper and the ink, never enough
-        // for either to read as a colour. Ink's own chroma is 0.020.
+    fun `the wallpaper tone leaves the paper nearly colourless`() {
+        // D1: the wallpaper moves the hue of the paper and the outlines, never
+        // enough for either to read as a colour.
         variants().forEach { (name, s) ->
             listOf(
                 "surface" to s.surface, "surfaceContainer" to s.surfaceContainer,
                 "surfaceContainerHighest" to s.surfaceContainerHighest, "onSurface" to s.onSurface,
-                "outline" to s.outline, "primary" to s.primary, "primaryContainer" to s.primaryContainer,
+                "outline" to s.outline,
             ).forEach { (role, c) ->
                 assertWithMessage("$name — $role chroma").that(oklchOf(c)[1]).isAtMost(0.025f)
             }
@@ -191,10 +191,22 @@ class ThemeContrastTest {
     }
 
     @Test
+    fun `the accent does not follow the wallpaper`() {
+        // A wallpaper-green button is the collision D1 rules out: the violet
+        // accent is the same whatever the wallpaper.
+        hues.forEach { hue ->
+            assertThat(colorSchemeFor(dark = false, amoled = false, chromeHue = hue).primary).isEqualTo(LightColorsForTest.primary)
+            assertThat(colorSchemeFor(dark = true, amoled = false, chromeHue = hue).primary).isEqualTo(DarkColorsForTest.primary)
+            assertThat(colorSchemeFor(dark = true, amoled = false, chromeHue = hue).secondaryContainer).isEqualTo(DarkColorsForTest.secondaryContainer)
+        }
+    }
+
+    @Test
     fun `a tinted button never passes for a colour that means something`() {
         // The primary button against every colour that carries a meaning, in
-        // OKLab. 0.08 is a plain "different colour"; the worst case measured
-        // is 0.11 (dark, a green wallpaper, against «positive»).
+        // OKLab. 0.08 is a plain "different colour". The violet accent's worst
+        // case is the dark theme against «black won» blue, ~0.09 — why it is
+        // violet at 298° and not royal blue (0.05 at 270°).
         variants().forEach { (name, s) ->
             val colors = if (name.startsWith("light")) RapfiColors.Light else RapfiColors.Dark
             listOf(colors.resultBlack, colors.resultWhite, colors.resultDraw, colors.positive, colors.caution).forEach { c ->

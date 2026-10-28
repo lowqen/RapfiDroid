@@ -72,6 +72,22 @@ val Clay = TonalRamp(hue = 82f, chroma = 0.095f)
  */
 val WoodNight = TonalRamp(hue = 82f, chroma = 0.050f)
 
+/**
+ * The accent: filled buttons, the active tab and chip, switches, the toolbar's
+ * play — the controls, and nothing that carries a value (user request,
+ * 2026-10-29: the green chrome read as dull).
+ *
+ * Deep violet, not royal blue, and by measurement: at 270° the dark theme's
+ * button sat 0.050 (OKLab) from the result blue that means «black won» (245°);
+ * at 298° the nearest meaning colour is 0.09 away in dark and 0.13 in light,
+ * past the 0.08 the theme test holds every button to. Sage stays what it was —
+ * the board's green and «connected» — and leaves the chrome.
+ */
+val Violet = TonalRamp(hue = 298f, chroma = 0.16f)
+
+/** The accent's quiet companion: selected chips and segments, the navigation pill. */
+val Lilac = TonalRamp(hue = 298f, chroma = 0.06f)
+
 /** Errors, forbidden points, losses of material — the one loud family. */
 val Signal = TonalRamp(hue = 27f, chroma = 0.130f)
 

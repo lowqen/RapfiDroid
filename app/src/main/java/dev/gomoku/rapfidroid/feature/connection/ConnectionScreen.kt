@@ -312,10 +312,11 @@ private fun LinkHealthRow(health: LinkHealth, onRetryNow: () -> Unit) {
 private fun StatusChip(state: ConnectionState) {
     val (label, color) = when (state) {
         ConnectionState.Disconnected -> tr("연결 안 됨", "Not connected", "未连接") to MaterialTheme.colorScheme.onSurfaceVariant
-        ConnectionState.Connecting -> tr("연결 중", "Connecting", "连接中") to MaterialTheme.colorScheme.secondary
-        ConnectionState.Handshaking -> tr("핸드셰이크", "Handshake", "握手") to MaterialTheme.colorScheme.secondary
-        ConnectionState.Ready -> tr("준비됨", "Ready", "就绪") to MaterialTheme.colorScheme.primary
-        ConnectionState.Thinking -> tr("분석 중", "Searching", "分析中") to MaterialTheme.colorScheme.primary
+        // The engine chip's colours (engineWord): a state, not an accent.
+        ConnectionState.Connecting -> tr("연결 중", "Connecting", "连接中") to RapfiTheme.colors.caution
+        ConnectionState.Handshaking -> tr("핸드셰이크", "Handshake", "握手") to RapfiTheme.colors.caution
+        ConnectionState.Ready -> tr("준비됨", "Ready", "就绪") to RapfiTheme.colors.positive
+        ConnectionState.Thinking -> tr("분석 중", "Searching", "分析中") to RapfiTheme.colors.caution
         is ConnectionState.Error -> tr("오류", "Error", "错误") to MaterialTheme.colorScheme.error
     }
     Surface(
