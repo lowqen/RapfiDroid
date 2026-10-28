@@ -23,6 +23,24 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      # Every runner is a fresh machine, and AGP makes a new debug key on each
+      # one: two CI builds were signed by two different keys, so a phone
+      # refused to update one with the other (INSTALL_FAILED_UPDATE_INCOMPATIBLE)
+      # and only uninstalling first worked. The key is fixed in a secret, not in
+      # the repo (keystores never go into git). Without the secret the build
+      # still runs, on a throwaway key as before.
+      - name: Fixed debug signing key
+        env:
+          DEBUG_KEYSTORE: ${{ secrets.DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE" ]; then
+            mkdir -p ~/.android
+            echo "$DEBUG_KEYSTORE" | base64 -d > ~/.android/debug.keystore
+            echo "debug key: fixed (secret)"
+          else
+            echo "debug key: throwaway (no DEBUG_KEYSTORE secret)"
+          fi
+
       # The repo carries 43 unit-test classes — the engine grammar, the pack
       # readers, the position keys, the settings codec. Building without running
       # them proves only that the code compiles.
