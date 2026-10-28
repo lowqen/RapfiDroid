@@ -1,5 +1,11 @@
 package dev.gomoku.rapfidroid.feature.joseki
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.clip
+import dev.gomoku.rapfidroid.core.designsystem.component.TileShape
+import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
+import dev.gomoku.rapfidroid.core.designsystem.component.ItemCard
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +35,6 @@ import androidx.compose.material.icons.filled.FirstPage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +49,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
@@ -108,20 +112,24 @@ internal fun MyJosekiList(
         }
         items(ui.trees, key = { it.id }) { tree ->
             val cls = JosekiOps.classify(tree)
-            CalmCard(Modifier.clickable { vm.onEdit(tree.id) }) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    MiniBoard(stones = JosekiOps.mainLine(tree.root), modifier = Modifier.size(64.dp), showNumbers = false)
-                    Column(Modifier.weight(1f)) {
-                        Text(tree.title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(cls.category, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            cls.grade?.let { GradeMark(it, withName = false) }
-                        }
-                        Hint(tr("수 ${JosekiOps.countNodes(tree.root)}개", "${JosekiOps.countNodes(tree.root)} moves", "${JosekiOps.countNodes(tree.root)} 手"))
+            // An item card (M4): the line as the tile, the move count as the
+            // badge, the kind under the name; the grade and «삭제» below.
+            ItemCard(
+                title = tree.title,
+                onClick = { vm.onEdit(tree.id) },
+                leading = {
+                    MiniBoard(stones = JosekiOps.mainLine(tree.root), modifier = Modifier.size(64.dp).clip(TileShape), showNumbers = false)
+                },
+                badge = { PillBadge(tr("${JosekiOps.countNodes(tree.root)}수", "${JosekiOps.countNodes(tree.root)} moves", "${JosekiOps.countNodes(tree.root)} 手")) },
+                description = cls.category,
+                footer = {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        cls.grade?.let { GradeMark(it, withName = false) }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = { confirmDelete = tree }) { Text(tr("삭제", "Delete", "删除")) }
                     }
-                    TextButton(onClick = { confirmDelete = tree }) { Text(tr("삭제", "Delete", "删除")) }
-                }
-            }
+                },
+            )
         }
         item {
             dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard(id = "joseki-files", title = tr("파일", "Files", "文件")) {
@@ -213,7 +221,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                 CardTitle(tr("${path.size}수 ${moves.last().label()}", "Move ${path.size} ${moves.last().label()}", "第 ${path.size} 手 ${moves.last().label()}"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     JosekiMark.entries.forEach { mk ->
-                        FilterChip(
+                        RapfiFilterChip(
                             selected = node.mark == mk,
                             onClick = { vm.onMark(if (node.mark == mk) null else mk) },
                             label = { Text(mk.symbol) },
@@ -222,7 +230,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     JosekiRole.entries.forEach { role ->
-                        FilterChip(
+                        RapfiFilterChip(
                             selected = node.role == role,
                             onClick = { vm.onRole(if (node.role == role) null else role) },
                             label = { Text(role.label) },

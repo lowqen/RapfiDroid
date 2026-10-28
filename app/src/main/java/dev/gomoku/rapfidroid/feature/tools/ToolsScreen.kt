@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.tools
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard as Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -145,7 +145,7 @@ fun ToolsScreen(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip({ viewModel.run("hash clear") }, { Text(tr("지우기", "Clear", "清除")) })
                     AssistChip({ viewModel.run("hash usage") }, { Text(tr("사용량", "Usage", "使用量")) })
-                    FilterChip(
+                    RapfiFilterChip(
                         selected = ui.settings.hashAutoClear,
                         onClick = viewModel::onToggleHashAutoClear,
                         label = { Text(tr("탐색 전 자동 지우기", "Clear before every search", "每次搜索前清空")) },
@@ -174,12 +174,12 @@ fun ToolsScreen(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip({ viewModel.run("block reset") }, { Text(tr("차단 해제", "Clear blocks", "清除排除")) })
                     AssistChip({ viewModel.run("blockpath reset") }, { Text(tr("경로 차단 해제", "Clear blocked paths", "清除排除路径")) })
-                    FilterChip(
+                    RapfiFilterChip(
                         selected = ui.settings.blockAutoReset,
                         onClick = viewModel::onToggleBlockAutoReset,
                         label = { Text(tr("착수 후 자동 해제", "Auto-clear after a move", "落子后自动清除")) },
                     )
-                    FilterChip(
+                    RapfiFilterChip(
                         selected = ui.settings.blockPathAutoReset,
                         onClick = viewModel::onToggleBlockPathAutoReset,
                         label = { Text(tr("경로 자동 해제", "Auto-clear paths", "自动清除路径")) },
@@ -251,7 +251,7 @@ fun ToolsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    FilterChip(
+                    RapfiFilterChip(
                         selected = ui.tools.callbacksActive,
                         onClick = {
                             viewModel.run(if (ui.tools.callbacksSuspended) "callback on" else "callback off")
@@ -285,7 +285,7 @@ fun ToolsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip({ viewModel.run("help") }, { Text(tr("도움말", "Help", "帮助")) })
                     AssistChip(viewModel::onClearLog, { Text(tr("지우기", "Clear", "清除")) })
-                    FilterChip(
+                    RapfiFilterChip(
                         selected = ui.tools.commandMode,
                         onClick = {
                             viewModel.run(if (ui.tools.commandMode) "command off" else "command on")
@@ -333,7 +333,7 @@ private fun CallbackDialog(
                 Modifier.verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()).heightIn(max = 460.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                FilterChip(
+                RapfiFilterChip(
                     selected = draft.enabled,
                     onClick = { draft = draft.copy(enabled = !draft.enabled) },
                     label = { Text(if (draft.enabled) tr("사용", "on", "开启") else tr("사용 안 함", "off", "关闭")) },

@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.core.designsystem.component
 
+import androidx.compose.ui.graphics.StrokeCap
 import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -63,6 +64,8 @@ fun SmoothProgressBar(
         modifier = modifier,
         color = color,
         trackColor = trackColor,
+        // Round ends, as Mornye's bars (M4).
+        strokeCap = StrokeCap.Round,
     )
 }
 

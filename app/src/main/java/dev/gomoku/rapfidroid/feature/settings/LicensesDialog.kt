@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -66,7 +66,7 @@ fun LicensesDialog(onDismiss: () -> Unit) {
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         files.forEach { name ->
-                            FilterChip(
+                            RapfiFilterChip(
                                 selected = name == selected,
                                 onClick = { selected = name },
                                 label = { Text(name.removeSuffix(".txt").take(18)) },

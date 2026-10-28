@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.connection
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
@@ -21,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -99,13 +99,13 @@ private fun ConnectionContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                FilterChip(
+                RapfiFilterChip(
                     selected = ui.localMode,
                     onClick = { onLocalModeChange(true) },
                     enabled = ui.canConnect,
                     label = { Text(tr("기기 내 엔진", "On-device", "本机引擎")) },
                 )
-                FilterChip(
+                RapfiFilterChip(
                     selected = !ui.localMode,
                     onClick = { onLocalModeChange(false) },
                     enabled = ui.canConnect,

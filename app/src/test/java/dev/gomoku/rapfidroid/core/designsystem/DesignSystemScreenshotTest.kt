@@ -1,5 +1,15 @@
 package dev.gomoku.rapfidroid.core.designsystem
 
+import dev.gomoku.rapfidroid.core.designsystem.component.LabeledProgress
+import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
+import dev.gomoku.rapfidroid.core.designsystem.component.IconTile
+import dev.gomoku.rapfidroid.core.designsystem.component.ItemCard
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.rapfidroid.core.designsystem.component.ChipRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.outlined.Timer
+import androidx.compose.material.icons.outlined.School
 import android.app.Application
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -278,6 +288,32 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     /** A search finds an app setting a page down, and the desktop's entry of the same name (M3). */
     @Test
     fun settingsSearch() = shot("settings_search") { SettingsPageShot(SettingsPage.Root, SettingsUiState(query = "스레드")) }
+
+    /** M4's list parts: a scrolling chip row, badges, icon tiles, item cards with their progress. */
+    @Test
+    fun listParts() = shot("list_parts") {
+        ChipRow {
+            RapfiFilterChip(selected = true, onClick = {}, label = { Text("전체") })
+            RapfiFilterChip(selected = false, onClick = {}, label = { Text("시간") }, leadingIcon = { Icon(Icons.Outlined.Timer, null, Modifier.size(18.dp)) })
+            RapfiFilterChip(selected = false, onClick = {}, label = { Text("깊이") })
+            RapfiFilterChip(selected = false, onClick = {}, label = { Text("꺼짐") }, enabled = false)
+        }
+        ItemCard(
+            title = "화월 기본",
+            onClick = {},
+            leading = { IconTile(Icons.Outlined.School) },
+            badge = { PillBadge("입문") },
+            description = "흑 3수 화월에서 백의 대표 응수를 따라 두며 익힙니다. 두 줄을 넘는 설명은 말줄임으로 끝납니다.",
+            footer = { LabeledProgress(0.375f, label = "3/8") },
+        )
+        ItemCard(
+            title = "포월 심화",
+            leading = { IconTile(Icons.Outlined.School, active = false) },
+            badge = { PillBadge("완료", accent = true) },
+            description = "짧은 설명",
+            footer = { LabeledProgress(1f) },
+        )
+    }
 
     /** The six tabs: upright along the bottom, and down the side when wide (P2). */
     @Test

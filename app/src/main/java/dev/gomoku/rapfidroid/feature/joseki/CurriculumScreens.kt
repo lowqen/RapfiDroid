@@ -1,11 +1,14 @@
 package dev.gomoku.rapfidroid.feature.joseki
 
+import dev.gomoku.rapfidroid.core.designsystem.component.TileShape
+import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
+import dev.gomoku.rapfidroid.core.designsystem.component.LabeledProgress
+import dev.gomoku.rapfidroid.core.designsystem.component.ItemCard
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.lazy.itemsIndexed
 import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberStagger
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -37,7 +40,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -50,7 +52,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
@@ -135,40 +136,39 @@ private fun SyncLine(ui: JosekiUiState, onRefresh: () -> Unit) {
     }
 }
 
+/**
+ * A course as an item card (M4): the opening as the tile, the level as the
+ * badge — «완료» in the accent once every lesson is done — two lines of what
+ * it teaches, and how far the user is, in lessons.
+ */
 @Composable
 private fun CourseCard(course: Course, done: Set<String>, onClick: () -> Unit) {
     val finished = course.lessons.count { it.id in done }
-    CalmCard(Modifier.clickable(onClick = onClick)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Thumb(course.lessons.firstOrNull(), 88)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(course.title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    tr("${course.level.ko} · 레슨 ${course.lessons.size}개 · 완료 $finished", "${course.level.en} · ${course.lessons.size} lessons · $finished done", "${course.level.zh} · ${course.lessons.size} 课 · 已完成 $finished"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    dev.gomoku.rapfidroid.core.joseki.Markdown.plainText(course.summary),
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (course.lessons.isNotEmpty()) {
-                    LinearProgressIndicator(
-                        progress = { finished.toFloat() / course.lessons.size },
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                    )
-                }
+    val total = course.lessons.size
+    ItemCard(
+        title = course.title,
+        onClick = onClick,
+        leading = { Thumb(course.lessons.firstOrNull(), 72) },
+        badge = {
+            if (total > 0 && finished == total) {
+                PillBadge(tr("완료", "Done", "已完成"), accent = true)
+            } else {
+                PillBadge(tr(course.level.ko, course.level.en, course.level.zh))
             }
-        }
-    }
+        },
+        description = dev.gomoku.rapfidroid.core.joseki.Markdown.plainText(course.summary),
+        footer = if (total > 0) {
+            { LabeledProgress(finished.toFloat() / total, label = "$finished/$total") }
+        } else {
+            null
+        },
+    )
 }
 
 @Composable
 private fun Thumb(lesson: Lesson?, sizeDp: Int) {
     val stones = lesson?.let { JosekiOps.mainLine(it.root) }.orEmpty()
-    MiniBoard(stones = stones, modifier = Modifier.size(sizeDp.dp), showNumbers = false)
+    MiniBoard(stones = stones, modifier = Modifier.size(sizeDp.dp).clip(TileShape), showNumbers = false)
 }
 
 // ---- course -------------------------------------------------------------------
@@ -218,25 +218,15 @@ internal fun CoursePage(
         items(course.lessons.size) { i ->
             val lesson = course.lessons[i]
             val best = ui.progress[lesson.id]?.best
-            CalmCard(Modifier.clickable { onLesson(lesson.id) }) {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${i + 1}", style = MaterialTheme.typography.titleLarge.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Thumb(lesson, 64)
-                    Column(Modifier.weight(1f)) {
-                        Text(lesson.title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold))
-                        Text(
-                            dev.gomoku.rapfidroid.core.joseki.Markdown.plainText(lesson.summary),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    best?.let {
-                        Text(tr("${it}점", "$it pts", "$it 分"), style = MaterialTheme.typography.labelLarge.tabular(), color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
+            // A lesson as an item card (M4): its number on the title, the best
+            // score as the badge once there is one.
+            ItemCard(
+                title = "${i + 1}. ${lesson.title}",
+                onClick = { onLesson(lesson.id) },
+                leading = { Thumb(lesson, 56) },
+                badge = best?.let { { PillBadge(tr("${it}점", "$it pts", "$it 分"), accent = true) } },
+                description = dev.gomoku.rapfidroid.core.joseki.Markdown.plainText(lesson.summary),
+            )
         }
     }
 }

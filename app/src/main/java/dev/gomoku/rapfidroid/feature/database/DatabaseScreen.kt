@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.database
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSwitch
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -17,7 +18,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -354,7 +354,7 @@ private fun BulkDeleteSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DbDeleteFilter.entries.forEach { filter ->
-                FilterChip(
+                RapfiFilterChip(
                     selected = ui.deleteDraft.filter == filter,
                     onClick = { vm.onDeleteFilter(filter) },
                     label = { Text(filter.title) },

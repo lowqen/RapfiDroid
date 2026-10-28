@@ -30,8 +30,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -260,22 +258,11 @@ fun <T> ChoiceChips(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEach { (value, label) ->
-            val on = value == selected
-            FilterChip(
-                selected = on,
+            RapfiFilterChip(
+                selected = value == selected,
                 onClick = { onSelect(value) },
                 enabled = enabled,
                 label = { Text(label) },
-                leadingIcon = if (on) {
-                    { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                } else {
-                    null
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
             )
         }
     }

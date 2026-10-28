@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid.feature.rankings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.ChipRow
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -36,7 +38,6 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.AssistChip
 import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard as Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.InputChip
@@ -190,7 +191,7 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DirectFilter.entries.forEach { df ->
-                FilterChip(selected = ui.directFilter == df, onClick = { vm.onDirectFilter(df) },
+                RapfiFilterChip(selected = ui.directFilter == df, onClick = { vm.onDirectFilter(df) },
                     label = { Text(when (df) {
                         DirectFilter.ALL -> tr("전체", "All", "全部"); DirectFilter.DIRECT -> tr("직접(直)", "Direct", "直接(直)")
                         DirectFilter.INDIRECT -> tr("간접(間)", "Indirect", "间接(间)")
@@ -349,13 +350,9 @@ private fun SortChips(
     onSort: (RankSort) -> Unit,
 ) {
     if (options.size < 2) return
-    FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
+    ChipRow(Modifier.padding(horizontal = 12.dp, vertical = 2.dp)) {
         options.forEach { sort ->
-            FilterChip(
+            RapfiFilterChip(
                 selected = current == sort,
                 onClick = { onSort(sort) },
                 label = { Text(sortLabel(sort, side)) },
@@ -476,9 +473,9 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                 // rule chips
                 if (ui.ruleOptions.isNotEmpty()) {
                     Text(tr("룰", "Rule", "规则"), style = MaterialTheme.typography.labelLarge)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ChipRow {
                         ui.ruleOptions.forEach { (idx, name) ->
-                            FilterChip(selected = idx in ui.filter.ruleIndices,
+                            RapfiFilterChip(selected = idx in ui.filter.ruleIndices,
                                 onClick = { vm.onToggleRule(idx) }, label = { Text(name) })
                         }
                     }
@@ -486,9 +483,9 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
 
                 // side
                 Text(tr("색", "Side", "执色"), style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                ChipRow {
                     RankSide.entries.forEach { s ->
-                        FilterChip(selected = ui.filter.side == s, onClick = { vm.onSide(s) },
+                        RapfiFilterChip(selected = ui.filter.side == s, onClick = { vm.onSide(s) },
                             label = { Text(when (s) {
                                 RankSide.EITHER -> tr("양쪽", "Either", "双方")
                                 RankSide.BLACK -> tr("흑", "Black", "黑")

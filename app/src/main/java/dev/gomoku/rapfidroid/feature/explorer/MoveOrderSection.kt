@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid.feature.explorer
 
+import dev.gomoku.rapfidroid.core.designsystem.component.ChipRow
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -27,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard as Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -189,25 +189,25 @@ fun MoveOrderSection(
 @Composable
 private fun OptionChips(ui: MoveOrderUiState, onChange: (MoveOrderOptions) -> Unit) {
     val o = ui.options
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        FilterChip(
+    ChipRow {
+        RapfiFilterChip(
             selected = o.openingRule,
             onClick = { onChange(o.copy(openingRule = !o.openingRule)) },
             label = { Text(tr("오프닝 규칙", "Opening rule", "开局规则")) },
         )
-        FilterChip(
+        RapfiFilterChip(
             selected = o.move2Fix,
             // H9/I9 is a sub-rule of the opening rule (main.c:6140)
             enabled = o.openingRule,
             onClick = { onChange(o.copy(move2Fix = !o.move2Fix)) },
             label = { Text(tr("2수 H9/I9", "Move 2 at H9/I9", "第2手 H9/I9")) },
         )
-        FilterChip(
+        RapfiFilterChip(
             selected = o.noFive,
             onClick = { onChange(o.copy(noFive = !o.noFive)) },
             label = { Text(tr("중간 오목 금지", "No five before the end", "禁止中途成五")) },
         )
-        FilterChip(
+        RapfiFilterChip(
             selected = o.symmetry,
             onClick = { onChange(o.copy(symmetry = !o.symmetry)) },
             label = { Text(tr("환원(회전·반전)", "Fold rotations and mirrors", "合并旋转·翻转")) },

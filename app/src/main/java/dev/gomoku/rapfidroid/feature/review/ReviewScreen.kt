@@ -1,5 +1,12 @@
 package dev.gomoku.rapfidroid.feature.review
 
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.Timer
+import dev.gomoku.rapfidroid.core.designsystem.component.ChipRow
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -22,7 +29,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -196,15 +202,17 @@ private fun RunCard(
         val summary = (if (budget.byDepth) tr("깊이 ${budget.depth}", "depth ${budget.depth}", "深度 ${budget.depth}") else tr("${budget.seconds}초/수", "${budget.seconds}s per move", "每手 ${budget.seconds} 秒")) +
             if (ui.skipOpening) tr(" · 오프닝 제외", " · opening skipped", " · 跳过开局") else ""
         Disclosure(id = "review-options", title = tr("리뷰 설정", "Review settings", "复盘设置"), summary = summary) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
+            ChipRow {
+                RapfiFilterChip(
                     selected = !budget.byDepth,
+                    leadingIcon = { Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
                     onClick = { onBudget(budget.copy(byDepth = false)) },
                     label = { Text(tr("시간", "Time", "时间")) },
                     enabled = !ui.running,
                 )
-                FilterChip(
+                RapfiFilterChip(
                     selected = budget.byDepth,
+                    leadingIcon = { Icon(Icons.Outlined.Layers, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
                     onClick = { onBudget(budget.copy(byDepth = true)) },
                     label = { Text(tr("깊이", "Depth", "深度")) },
                     enabled = !ui.running,
@@ -215,14 +223,14 @@ private fun RunCard(
             } else {
                 Stepper(tr("초/수", "s per move", "秒/手"), budget.seconds, 1, 120, !ui.running) { onBudget(budget.copy(seconds = it)) }
             }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
+            ChipRow {
+                RapfiFilterChip(
                     selected = ui.skipOpening,
                     onClick = onSkipOpening,
                     label = { Text(tr("오프닝 1-5수 제외", "Skip moves 1-5", "跳过第1-5手")) },
                     enabled = !ui.running,
                 )
-                FilterChip(
+                RapfiFilterChip(
                     selected = ui.showBadges,
                     onClick = onBadges,
                     label = { Text(tr("판에 등급 표시", "Grades on the board", "在棋盘上显示评级")) },
@@ -288,9 +296,9 @@ private fun ReportHeader(
                 )
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ChipRow {
             GradingPreset.entries.forEach { option ->
-                FilterChip(
+                RapfiFilterChip(
                     selected = preset == option,
                     onClick = { onPreset(option) },
                     label = { Text(option.label) },
