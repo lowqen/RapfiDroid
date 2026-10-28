@@ -75,6 +75,27 @@ data class BoardRender(
 data class BoardMark(val text: String, val color: Color)
 
 /**
+ * The colours a [BoardMark] is written in — the board's own words for «good»,
+ * «wrong» and «just a label».
+ *
+ * One set for both woods: a mark is drawn with the dark [TextOutline] round it,
+ * like every value on the board, so it reads on gold and on dark wood alike and
+ * does not follow the theme. These were written out as hex at each place that
+ * drew one (the joseki tree, the quiz, the openings explorer); the values are
+ * unchanged, only named (UI overhaul P4).
+ */
+object BoardMarkColors {
+    /** The book move, a right answer, a hint. */
+    val Good = Color(0xFF6BE38A)
+
+    /** A trap, a wrong answer, the refutation. */
+    val Bad = Color(0xFFFF6B5E)
+
+    /** A branch letter, a game count. */
+    val Plain = Color(0xFFF2E7D3)
+}
+
+/**
  * A database label on one point: the stored value (`W5`, `39%`, `D`) or a
  * free-form board text. Drawn only while the engine is idle, like the desktop
  * (main.c:1913 — analysis tags win during a search).

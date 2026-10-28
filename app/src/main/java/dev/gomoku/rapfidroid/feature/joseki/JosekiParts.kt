@@ -27,6 +27,8 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardMark
+import dev.gomoku.rapfidroid.core.designsystem.component.BoardMarkColors
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
 import dev.gomoku.rapfidroid.core.joseki.JosekiNode
 import dev.gomoku.rapfidroid.core.joseki.JosekiRole
@@ -106,7 +108,7 @@ private fun inline(
 fun branchColor(node: JosekiNode, index: Int): Color = when {
     node.role == JosekiRole.TRAP || node.mark?.isBad == true -> MaterialTheme.colorScheme.error
     node.role == JosekiRole.REFUTE -> MaterialTheme.colorScheme.tertiary
-    index == 0 || node.mark?.isGood == true -> Color(0xFF2E8B57)
+    index == 0 || node.mark?.isGood == true -> RapfiTheme.colors.positive
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
@@ -117,9 +119,9 @@ fun childMarks(node: JosekiNode): Map<Move, BoardMark> =
         val bad = c.role == JosekiRole.TRAP || c.mark?.isBad == true
         val good = i == 0 || c.mark?.isGood == true
         val color = when {
-            bad -> Color(0xFFFF6B5E)
-            good -> Color(0xFF6BE38A)
-            else -> Color(0xFFF2E7D3)
+            bad -> BoardMarkColors.Bad
+            good -> BoardMarkColors.Good
+            else -> BoardMarkColors.Plain
         }
         move to BoardMark(c.mark?.symbol ?: ('A' + i).toString(), color)
     }.toMap()

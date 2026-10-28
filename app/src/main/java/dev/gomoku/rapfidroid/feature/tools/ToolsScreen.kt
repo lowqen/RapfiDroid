@@ -22,8 +22,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -41,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.QuietSwitch
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.CallbackConfig
@@ -60,15 +59,13 @@ fun EngineScreen(modifier: Modifier = Modifier) {
 
     Column(modifier = modifier.fillMaxSize()) {
         RapfiTopBar(title = tr("엔진", "Engine", "引擎"))
-        TabRow(selectedTabIndex = tab) {
-            titles.forEachIndexed { i, title ->
-                Tab(
-                    selected = tab == i,
-                    onClick = { tab = i },
-                    text = { Text(title, style = MaterialTheme.typography.titleSmall) },
-                )
-            }
-        }
+        RapfiSegmented(
+            options = titles.mapIndexed { i, title -> i to title },
+            selection = tab,
+            onSelect = { tab = it },
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            fill = true,
+        )
         QuietSwitch(tab, Modifier.fillMaxSize()) { index ->
             when (index) {
                 0 -> ConnectionScreen()

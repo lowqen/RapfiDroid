@@ -242,7 +242,7 @@ private fun ExplorerBoard(
     val next = ui.position?.next.orEmpty()
     val grades = next.mapNotNull { r -> r.grade?.let { r.move to it } }.toMap()
     val counts = next.filter { it.games > 0 && it.move !in grades }.take(12).associate {
-        it.move to dev.gomoku.rapfidroid.core.designsystem.component.BoardMark("${it.games}", Color(0xFFF2E7D3))
+        it.move to dev.gomoku.rapfidroid.core.designsystem.component.BoardMark("${it.games}", dev.gomoku.rapfidroid.core.designsystem.component.BoardMarkColors.Plain)
     }
     val render = dev.gomoku.rapfidroid.core.designsystem.component.BoardRender(
         stones = ui.stones,

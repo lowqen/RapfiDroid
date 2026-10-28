@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardMark
+import dev.gomoku.rapfidroid.core.designsystem.component.BoardMarkColors
 import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
 import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
 import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
@@ -253,13 +254,13 @@ internal fun LessonPage(
         buildMap {
             when (val fb = quiz.feedback) {
                 is QuizFeedback.Mistake -> {
-                    fb.node.move?.let { put(it, BoardMark(fb.node.mark?.symbol ?: "✕", Color(0xFFFF6B5E))) }
-                    fb.refute?.let { put(it, BoardMark("→", Color(0xFFFF6B5E))) }
+                    fb.node.move?.let { put(it, BoardMark(fb.node.mark?.symbol ?: "✕", BoardMarkColors.Bad)) }
+                    fb.refute?.let { put(it, BoardMark("→", BoardMarkColors.Bad)) }
                 }
-                is QuizFeedback.Outside -> put(fb.move, BoardMark("✕", Color(0xFFFF6B5E)))
+                is QuizFeedback.Outside -> put(fb.move, BoardMark("✕", BoardMarkColors.Bad))
                 else -> Unit
             }
-            if (quiz.hint && !quiz.done) Quiz.expected(lesson.root, quiz)?.let { put(it, BoardMark("?", Color(0xFF6BE38A))) }
+            if (quiz.hint && !quiz.done) Quiz.expected(lesson.root, quiz)?.let { put(it, BoardMark("?", BoardMarkColors.Good)) }
         }
     }
     val render = BoardRender(stones = moves, lastMove = moves.lastOrNull(), marks = marks)
@@ -427,7 +428,7 @@ private fun QuizBox(quiz: QuizState, lesson: Lesson) {
                 (if (fb.alternative) tr("정답 · 다른 좋은 수", "Right · another good move", "正确 · 另一个好着法") else tr("정답", "Right", "正确")) +
                     " " + fb.node.move?.label().orEmpty(),
                 style = MaterialTheme.typography.titleSmall,
-                color = Color(0xFF2E8B57),
+                color = RapfiTheme.colors.positive,
             )
             if (fb.node.comment.isNotEmpty()) MarkdownText(fb.node.comment)
             if (!quiz.done && here !== fb.node && here.comment.isNotEmpty()) MarkdownText(here.comment)
