@@ -128,6 +128,17 @@ android {
     }
 }
 
+// `-PcomposeReports`: the compiler's verdict on every composable — skippable or
+// not, which parameters it takes for stable — written under build/compose_*.
+// The performance work reads these (docs/리팩토링-성능-위생-계획.md); an ordinary
+// build never sets the property and compiles exactly as before.
+composeCompiler {
+    if (project.hasProperty("composeReports")) {
+        reportsDestination = layout.buildDirectory.dir("compose_reports")
+        metricsDestination = layout.buildDirectory.dir("compose_metrics")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
