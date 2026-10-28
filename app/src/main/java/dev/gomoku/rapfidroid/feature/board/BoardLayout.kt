@@ -268,6 +268,10 @@ internal fun woodScheme(scheme: ColorScheme): ColorScheme {
     val black = scheme.surface.luminance() < 0.001f
     val paper = TonalRamp(hue = Clay.hue, chroma = if (dark) 0.012f else 0.016f)
     val ink = TonalRamp(hue = Clay.hue, chroma = 0.03f)
+    // The pale keys and selections: quiet wood, not the board's full colour —
+    // Clay's own tone 90 came out a loud pastel yellow (Mornye's pale tones
+    // sit at chroma ~0.03 ~ 0.04).
+    val pale = TonalRamp(hue = Clay.hue, chroma = 0.04f)
     val accents = if (dark) {
         scheme.copy(
             primary = Clay.tone(78), onPrimary = Clay.tone(18),
@@ -278,8 +282,8 @@ internal fun woodScheme(scheme: ColorScheme): ColorScheme {
     } else {
         scheme.copy(
             primary = Clay.tone(42), onPrimary = Clay.tone(100),
-            primaryContainer = Clay.tone(88), onPrimaryContainer = Clay.tone(20),
-            secondaryContainer = Clay.tone(90), onSecondaryContainer = Clay.tone(24),
+            primaryContainer = pale.tone(88), onPrimaryContainer = Clay.tone(20),
+            secondaryContainer = pale.tone(89), onSecondaryContainer = Clay.tone(24),
             onSurfaceVariant = ink.tone(34), outlineVariant = paper.tone(82),
         )
     }
