@@ -1,13 +1,17 @@
 package dev.gomoku.rapfidroid.core.designsystem.component
 
+import android.app.Application
 import android.os.SystemClock
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** Who rises in, and who simply appears (UI overhaul P5). */
 @RunWith(RobolectricTestRunner::class)
+// A plain Application: the real one is a Hilt app that starts the engine watcher.
+@Config(sdk = [35], application = Application::class)
 class StaggerTest {
 
     @Test
