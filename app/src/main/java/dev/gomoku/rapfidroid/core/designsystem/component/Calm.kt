@@ -368,3 +368,70 @@ fun FlatCard(
         Column(content = content)
     }
 }
+
+/**
+ * Rows that belong together, each its own face — Mornye's connected list, in the
+ * calm card's materials (UI overhaul P4).
+ *
+ * One card with dividers made every settings group a single block where a row's
+ * edge was a hairline across it. Here each row is a face of its own with the
+ * card's hairline, the group's outer corners are the card's, the corners
+ * between rows are tight, and a 3dp gap does the divider's job. A row is one
+ * setting, so it can be read, touched and later highlighted as one thing.
+ *
+ *     ConnectedGroup(title = "자주 쓰는 설정") {
+ *         row { … }
+ *         if (shown) row { … }
+ *     }
+ *
+ * The title sits above the group, not inside its first row: it names the group,
+ * it is not part of a setting.
+ */
+@Composable
+fun ConnectedGroup(
+    title: String? = null,
+    modifier: Modifier = Modifier,
+    content: ConnectedGroupScope.() -> Unit,
+) {
+    val rows = ConnectedGroupScope().apply(content).rows
+    val outer = MaterialTheme.shapes.large.topStart
+    val inner = androidx.compose.foundation.shape.CornerSize(4.dp)
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        if (title != null) {
+            Text(
+                title,
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 5.dp),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        rows.forEachIndexed { i, row ->
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                    topStart = if (i == 0) outer else inner,
+                    topEnd = if (i == 0) outer else inner,
+                    bottomStart = if (i == rows.lastIndex) outer else inner,
+                    bottomEnd = if (i == rows.lastIndex) outer else inner,
+                ),
+                color = cardColor(),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            ) {
+                Column(
+                    Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    content = row,
+                )
+            }
+        }
+    }
+}
+
+/** Collects the rows of a [ConnectedGroup]; see there. */
+class ConnectedGroupScope internal constructor() {
+    internal val rows = mutableListOf<@Composable ColumnScope.() -> Unit>()
+
+    fun row(content: @Composable ColumnScope.() -> Unit) {
+        rows += content
+    }
+}

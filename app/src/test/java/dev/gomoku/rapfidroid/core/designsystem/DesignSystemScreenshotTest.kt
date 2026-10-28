@@ -18,7 +18,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -29,12 +31,14 @@ import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
 import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
 import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
 import dev.gomoku.rapfidroid.core.designsystem.component.ChoiceChips
+import dev.gomoku.rapfidroid.core.designsystem.component.ConnectedGroup
 import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
 import dev.gomoku.rapfidroid.core.designsystem.component.EmptyState
 import dev.gomoku.rapfidroid.core.designsystem.component.EngineChip
 import dev.gomoku.rapfidroid.core.designsystem.component.GomokuBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalShellChrome
+import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiCollapsingTopBar
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSegmented
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
@@ -48,6 +52,7 @@ import dev.gomoku.rapfidroid.core.model.CellTag
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.PvSnapshot
+import dev.gomoku.rapfidroid.core.model.SettingCategory
 import dev.gomoku.rapfidroid.core.model.SearchStats
 import dev.gomoku.rapfidroid.core.model.TagKind
 import dev.gomoku.rapfidroid.feature.board.AnalysisCard
@@ -63,6 +68,11 @@ import dev.gomoku.rapfidroid.feature.board.PositionCard
 import dev.gomoku.rapfidroid.feature.board.PositionStrip
 import dev.gomoku.rapfidroid.feature.board.SummaryStrip
 import dev.gomoku.rapfidroid.feature.board.VerticalEvalBar
+import dev.gomoku.rapfidroid.data.prefs.UiPrefs
+import dev.gomoku.rapfidroid.feature.settings.CommonSettings
+import dev.gomoku.rapfidroid.feature.settings.LocalEngineCard
+import dev.gomoku.rapfidroid.feature.settings.SettingRow
+import dev.gomoku.rapfidroid.feature.settings.SettingsUiState
 import dev.gomoku.rapfidroid.navigation.Destination
 import dev.gomoku.rapfidroid.navigation.RapfiBottomBar
 import dev.gomoku.rapfidroid.navigation.RapfiRail
@@ -249,6 +259,29 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
             EngineChip(ConnectionState.Ready, onStart = {}, thermalThreads = 4)
         }
         EmptyState(Icons.Filled.Storage, "기보가 없습니다", "파일을 열면 여기에 나옵니다")
+    }
+
+    /** 자주 쓰는 설정 as connected rows, the P1 theme rows among them (P4). */
+    @Test
+    fun settingsCommon() = shot("settings_common") {
+        val context = LocalContext.current
+        val prefs = remember { UiPrefs(context.applicationContext) }
+        CompositionLocalProvider(LocalUiPrefs provides prefs) {
+            CommonSettings(SettingsUiState(), onDark = {}, onThreads = {}, onRifBuild = {})
+        }
+    }
+
+    /** The on-device engine and one desktop category, as connected groups (P4). */
+    @Test
+    fun settingsGroups() = shot("settings_groups") {
+        val state = SettingsUiState(advanced = true)
+        LocalEngineCard(state, onHash = {}, onDatabase = {}, onServerEnabled = {})
+        val category = SettingCategory.entries.first { c -> state.visible.any { it.category == c } }
+        ConnectedGroup(title = category.label) {
+            state.visible.filter { it.category == category }.take(4).forEach { spec ->
+                row { SettingRow(spec, state, onValue = {}) }
+            }
+        }
     }
 
     /** The six tabs: upright along the bottom, and down the side when wide (P2). */
