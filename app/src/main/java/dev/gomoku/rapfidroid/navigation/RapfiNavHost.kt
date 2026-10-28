@@ -3,12 +3,9 @@ package dev.gomoku.rapfidroid.navigation
 import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -29,8 +26,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -49,8 +44,6 @@ import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.RailLayoutMin
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellChrome
-import dev.gomoku.rapfidroid.core.designsystem.theme.ChromeMotion
-import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_PANEL
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
 import dev.gomoku.rapfidroid.core.model.ConnectionState
@@ -175,13 +168,6 @@ fun RapfiApp() {
     LaunchedEffect(pro, selected) {
         if (!pro && selected == Destination.Database) onSelect(Destination.Board)
     }
-    val threshold = with(LocalDensity.current) { 28.dp.toPx() }
-    val hider = remember(threshold) { BarHider(threshold) }
-    // The board never folds the bar away, and a new tab starts with it shown.
-    LaunchedEffect(selected) {
-        hider.enabled = selected != null && selected != Destination.Board
-        hider.show()
-    }
 
     CompositionLocalProvider(
         LocalSnackbarHostState provides snackbarHostState,
@@ -216,23 +202,17 @@ fun RapfiApp() {
                         }
                     },
                     bottomBar = {
+                        // Always there (user request, 2026-10-29: the bar folding away
+                        // on scroll was unwanted).
                         if (!rail) {
-                            AnimatedVisibility(
-                                visible = !hider.hidden,
-                                enter = expandVertically(ChromeMotion.spatial(tween(MOTION_PANEL))) +
-                                    fadeIn(ChromeMotion.effects(tween(MOTION_PANEL))),
-                                exit = shrinkVertically(ChromeMotion.spatial(tween(MOTION_QUICK))) +
-                                    fadeOut(ChromeMotion.effects(tween(MOTION_QUICK))),
-                            ) {
-                                RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
-                            }
+                            RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
                         }
                     },
                 ) { padding ->
                     NavHost(
                         navController = navController,
                         startDestination = Destination.Board.route,
-                        modifier = Modifier.padding(padding).nestedScroll(hider),
+                        modifier = Modifier.padding(padding),
                         // QuietSwitch's rule for every screen change: a crossfade, 150 ms.
                         // Navigation's own default is a 700 ms fade.
                         enterTransition = { fadeIn(tween(MOTION_QUICK)) },

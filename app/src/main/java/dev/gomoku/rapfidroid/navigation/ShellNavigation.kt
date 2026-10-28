@@ -15,13 +15,7 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -118,61 +112,4 @@ private fun DestinationIcon(dest: Destination, connection: ConnectionState) {
 @Composable
 private fun DestinationLabel(dest: Destination) {
     Text(stringResource(dest.labelRes), maxLines = 1, overflow = TextOverflow.Clip)
-}
-
-/**
- * Folds the bottom bar away while a list is being read, and brings it back the
- * moment the reader turns round (Mornye's `MornyeChromeController`, P2 ④).
- *
- * Attached once, above every tab; it only watches — it never consumes a pixel,
- * so the lists scroll exactly as before. The rules:
- *
- *  - only a **finger** counts: a fling's tail, a list scrolling itself to its
- *    newest line (the engine console) and a horizontal swipe do nothing;
- *  - only what a list **actually scrolled** counts. A drag on a screen that
- *    does not scroll, or on a list too short to move, moves nothing and hides
- *    nothing — it used to count the finger's travel and fold the bar away
- *    under a screen that had not moved;
- *  - [threshold] pixels of deliberate travel one way, not a twitch;
- *  - down the list hides, up the list shows, and reaching the top shows —
- *    Mornye waits for the top, but here six tabs are the way around the app
- *    and nobody should have to scroll home to change screens;
- *  - the board's tab never hides it ([enabled] false there): the board does not
- *    scroll as a list, and its move bar sits right above the tabs.
- */
-class BarHider(private val threshold: Float) : NestedScrollConnection {
-    var hidden by mutableStateOf(false)
-        private set
-
-    /** Off on the board's tab. Turning it off shows the bar. */
-    var enabled: Boolean = true
-        set(value) {
-            field = value
-            if (!value) show()
-        }
-
-    private var travel = 0f
-
-    fun show() {
-        hidden = false
-        travel = 0f
-    }
-
-    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-        if (!enabled || source != NestedScrollSource.UserInput) return Offset.Zero
-        // Pulling down with nothing left above: the list is at its top.
-        if (available.y > 0f) {
-            show()
-            return Offset.Zero
-        }
-        val moved = consumed.y
-        if (moved == 0f) return Offset.Zero
-        if (travel != 0f && (travel > 0f) != (moved > 0f)) travel = 0f
-        travel += moved
-        when {
-            travel <= -threshold -> { hidden = true; travel = 0f }
-            travel >= threshold -> { hidden = false; travel = 0f }
-        }
-        return Offset.Zero
-    }
 }
