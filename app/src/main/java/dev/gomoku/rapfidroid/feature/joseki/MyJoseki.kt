@@ -3,6 +3,7 @@ package dev.gomoku.rapfidroid.feature.joseki
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.draw.clip
 import dev.gomoku.rapfidroid.core.designsystem.component.TileShape
+import dev.gomoku.rapfidroid.core.designsystem.component.RoundBackButton
 import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
 import dev.gomoku.rapfidroid.core.designsystem.component.ItemCard
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiFilterChip
@@ -27,7 +28,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.LastPage
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -179,7 +179,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
     val board: @Composable (Modifier) -> Unit = { m -> GomokuBoard(render = render, modifier = m, onTap = vm::onEditTap) }
     val panel: @Composable ColumnScope.() -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { vm.onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("목록으로", "Back to the list", "返回列表")) }
+            RoundBackButton({ vm.onBack() }, Modifier.padding(end = 8.dp), label = tr("목록으로", "Back to the list", "返回列表"))
             OutlinedTextField(
                 value = title,
                 onValueChange = {

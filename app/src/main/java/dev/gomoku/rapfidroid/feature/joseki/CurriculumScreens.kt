@@ -1,6 +1,7 @@
 package dev.gomoku.rapfidroid.feature.joseki
 
 import dev.gomoku.rapfidroid.core.designsystem.component.TileShape
+import dev.gomoku.rapfidroid.core.designsystem.component.RoundBackButton
 import dev.gomoku.rapfidroid.core.designsystem.component.PillBadge
 import dev.gomoku.rapfidroid.core.designsystem.component.LabeledProgress
 import dev.gomoku.rapfidroid.core.designsystem.component.ItemCard
@@ -30,7 +31,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.LastPage
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
@@ -190,7 +190,7 @@ internal fun CoursePage(
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("목록으로", "Back to courses", "返回课程列表")) }
+                RoundBackButton(onBack, Modifier.padding(end = 12.dp), label = tr("목록으로", "Back to courses", "返回课程列表"))
                 Text(tr("코스", "Course", "课程"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -274,7 +274,7 @@ internal fun LessonPage(
     }
     val panel: @Composable ColumnScope.() -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { vm.onBack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("코스로 돌아가기", "Back to the course", "返回课程")) }
+            RoundBackButton({ vm.onBack() }, Modifier.padding(end = 12.dp), label = tr("코스로 돌아가기", "Back to the course", "返回课程"))
             Column(Modifier.weight(1f)) {
                 Text(course.title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("${index + 1}. ${lesson.title}", style = MaterialTheme.typography.titleMedium, maxLines = 2)

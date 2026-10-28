@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
@@ -190,10 +189,15 @@ fun RapfiCollapsingTopBar(
 
 /**
  * Back to the page above, as Mornye's sub-pages have it: a filled circle one
- * step off the page (`surfaceContainerHigh`), not a bare arrow (UI overhaul 2, M3).
+ * step off the page (`surfaceContainerHigh`), not a bare arrow (UI overhaul 2, M3;
+ * the joseki course and lesson pages took it in M6). [label] says where back goes.
  */
 @Composable
-fun RoundBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun RoundBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String = tr("뒤로", "Back", "返回"),
+) {
     FilledIconButton(
         onClick = onClick,
         modifier = modifier.padding(start = 4.dp).size(44.dp),
@@ -203,7 +207,7 @@ fun RoundBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("뒤로", "Back", "返回"))
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = label)
     }
 }
 
@@ -235,6 +239,9 @@ fun ShellActions(modifier: Modifier = Modifier) {
  * The engine in one word — 준비 · 탐색 중 · 준비 중 · 꺼짐 · 오류 — with the
  * one action that state calls for (켜기 · 다시 시도). The address and the
  * variant are the engine screen's business, not every screen's.
+ *
+ * A pale pill with no rim (UI overhaul 2, M6) — one step off the page like
+ * every other surface, where it used to be an outline on nothing.
  */
 @Composable
 fun EngineChip(
@@ -255,8 +262,7 @@ fun EngineChip(
     Surface(
         modifier = modifier.semantics { contentDescription = if (heat == null) word else "$word, $heat" },
         shape = CircleShape,
-        color = Color.Transparent,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         onClick = { if (action != null) onStart() },
         enabled = action != null,
     ) {

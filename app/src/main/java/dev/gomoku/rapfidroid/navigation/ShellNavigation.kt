@@ -9,6 +9,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
@@ -19,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.component.engineWord
@@ -29,6 +31,9 @@ import dev.gomoku.rapfidroid.core.model.ConnectionState
  *
  * Stateless: the shell owns the back stack and hands in what is selected, so
  * the bar can be drawn (and photographed) without one.
+ *
+ * Mornye's bar (UI overhaul 2, M6): one step off the page (`surfaceContainer`),
+ * the chosen tab filled and bold on its pale pill, the rest outlined.
  */
 @Composable
 fun RapfiBottomBar(
@@ -38,13 +43,13 @@ fun RapfiBottomBar(
     modifier: Modifier = Modifier,
     destinations: List<Destination> = Destination.entries,
 ) {
-    NavigationBar(modifier) {
+    NavigationBar(modifier, containerColor = MaterialTheme.colorScheme.surfaceContainer) {
         destinations.forEach { dest ->
             NavigationBarItem(
                 selected = dest == selected,
                 onClick = { onSelect(dest) },
-                icon = { DestinationIcon(dest, connection) },
-                label = { DestinationLabel(dest) },
+                icon = { DestinationIcon(dest, connection, dest == selected) },
+                label = { DestinationLabel(dest, dest == selected) },
             )
         }
     }
@@ -58,6 +63,7 @@ fun RapfiBottomBar(
  * Six items with labels need about 380dp; a phone on its side has less than
  * that under the status bar, so the column scrolls rather than clip the last
  * tab, and [showLabels] false (short windows) keeps only the selected label.
+ * Its tabs follow the bar's rule — filled and bold when chosen, outlined when not.
  */
 @Composable
 fun RapfiRail(
@@ -80,8 +86,8 @@ fun RapfiRail(
                 NavigationRailItem(
                     selected = dest == selected,
                     onClick = { onSelect(dest) },
-                    icon = { DestinationIcon(dest, connection) },
-                    label = { DestinationLabel(dest) },
+                    icon = { DestinationIcon(dest, connection, dest == selected) },
+                    label = { DestinationLabel(dest, dest == selected) },
                     alwaysShowLabel = showLabels,
                 )
             }
@@ -91,7 +97,8 @@ fun RapfiRail(
 
 /** The dot rides the tab that leads to the answer: the engine's state on 엔진. */
 @Composable
-private fun DestinationIcon(dest: Destination, connection: ConnectionState) {
+private fun DestinationIcon(dest: Destination, connection: ConnectionState, selected: Boolean) {
+    val icon = if (selected) dest.selectedIcon else dest.icon
     if (dest == Destination.Connect) {
         val (word, color) = engineWord(connection)
         BadgedBox(
@@ -102,14 +109,19 @@ private fun DestinationIcon(dest: Destination, connection: ConnectionState) {
                 )
             },
         ) {
-            Icon(dest.icon, contentDescription = null)
+            Icon(icon, contentDescription = null)
         }
     } else {
-        Icon(dest.icon, contentDescription = null)
+        Icon(icon, contentDescription = null)
     }
 }
 
 @Composable
-private fun DestinationLabel(dest: Destination) {
-    Text(stringResource(dest.labelRes), maxLines = 1, overflow = TextOverflow.Clip)
+private fun DestinationLabel(dest: Destination, selected: Boolean) {
+    Text(
+        stringResource(dest.labelRes),
+        fontWeight = if (selected) FontWeight.Bold else null,
+        maxLines = 1,
+        overflow = TextOverflow.Clip,
+    )
 }
