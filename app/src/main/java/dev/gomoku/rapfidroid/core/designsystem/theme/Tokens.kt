@@ -50,6 +50,14 @@ data class RapfiTokens(
 
     /** Around the cards of every scrolling screen. */
     val screenPadding: Dp,
+    /** Between the cards of a list. */
+    val listGap: Dp,
+    /** Inside a card, and between the things in it. */
+    val cardPadding: Dp,
+    val cardSpacing: Dp,
+    /** Inside one row of a connected group. */
+    val rowPaddingH: Dp,
+    val rowPaddingV: Dp,
     /** Material's minimum interactive size. */
     val minTouchTarget: Dp,
 ) {
@@ -66,7 +74,14 @@ data class RapfiTokens(
             spaceL = 12.dp,
             spaceXl = 16.dp,
             spaceXxl = 24.dp,
-            screenPadding = 12.dp,
+            // One step roomier than the first cut (user request, 2026-10-29: the
+            // screens read as cramped). RapfiWeb's spacing is not changed with it.
+            screenPadding = 16.dp,
+            listGap = 12.dp,
+            cardPadding = 20.dp,
+            cardSpacing = 14.dp,
+            rowPaddingH = 20.dp,
+            rowPaddingV = 16.dp,
             minTouchTarget = 48.dp,
         )
     }

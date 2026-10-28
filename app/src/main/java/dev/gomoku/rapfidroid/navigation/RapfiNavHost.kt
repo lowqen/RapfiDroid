@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.navigation
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -177,7 +180,8 @@ fun RapfiApp() {
         LocalSnackbarHostState provides snackbarHostState,
         LocalShellChrome provides chrome,
     ) {
-        BoxWithConstraints(Modifier.fillMaxSize()) {
+        // The page's light (RapfiTheme.surfaces): one gradient behind every screen.
+        BoxWithConstraints(Modifier.fillMaxSize().background(RapfiTheme.surfaces.page)) {
             val rail = maxWidth >= RailLayoutMin
             // Six labelled items need ~480dp; a phone on its side has less.
             val railLabels = maxHeight >= 480.dp
@@ -197,6 +201,7 @@ fun RapfiApp() {
                     } else {
                         Modifier
                     },
+                    containerColor = Color.Transparent,
                     snackbarHost = {
                         SnackbarHost(snackbarHostState) { data ->
                             Snackbar(data, shape = MaterialTheme.shapes.medium)

@@ -217,6 +217,28 @@ class ThemeContrastTest {
     }
 
     @Test
+    fun `the page and card gradients keep every reading at AA`() {
+        // The light falls a couple of tones across a page or a card; text must
+        // read at both ends, and the light must stay a hint, not a band.
+        variants().forEach { (name, s) ->
+            val g = surfaceStops(s)
+            listOf("pageTop" to g.pageTop, "pageBottom" to g.pageBottom, "cardTop" to g.cardTop, "cardBottom" to g.cardBottom)
+                .forEach { (stop, bg) ->
+                    assertWithMessage("$name — onSurface on $stop").that(contrastRatio(s.onSurface, bg)).isAtLeast(aa)
+                    assertWithMessage("$name — onSurfaceVariant on $stop").that(contrastRatio(s.onSurfaceVariant, bg)).isAtLeast(aa)
+                    assertWithMessage("$name — primary on $stop").that(contrastRatio(s.primary, bg)).isAtLeast(aa)
+                }
+            assertWithMessage("$name — page gradient").that(contrastRatio(g.pageTop, g.pageBottom)).isAtMost(1.12f)
+            assertWithMessage("$name — card gradient").that(contrastRatio(g.cardTop, g.cardBottom)).isAtMost(1.12f)
+            assertWithMessage("$name — rim stands off the card").that(contrastRatio(g.rimBottom, g.cardBottom)).isAtLeast(1.15f)
+        }
+        // AMOLED keeps every page pixel off.
+        val black = surfaceStops(colorSchemeFor(dark = true, amoled = true, chromeHue = null))
+        assertThat(luminanceOf(black.pageTop)).isWithin(0.0005f).of(0f)
+        assertThat(luminanceOf(black.pageBottom)).isWithin(0.0005f).of(0f)
+    }
+
+    @Test
     fun `amoled is black and its cards still stand off it`() {
         val s = colorSchemeFor(dark = true, amoled = true, chromeHue = null)
         assertThat(luminanceOf(s.surface)).isWithin(0.0005f).of(0f)

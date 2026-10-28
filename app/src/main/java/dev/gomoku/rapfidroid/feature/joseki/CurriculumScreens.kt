@@ -89,8 +89,8 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: 
     val stagger = rememberStagger()
     LazyColumn(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
-        contentPadding = PaddingValues(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
         flingBehavior = rememberCalmFling(),
     ) {
         item {
@@ -183,8 +183,8 @@ internal fun CoursePage(
     val finished = course.lessons.count { it.id in ui.progress }
     LazyColumn(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
-        contentPadding = PaddingValues(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
         flingBehavior = rememberCalmFling(),
     ) {
         item {

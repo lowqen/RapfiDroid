@@ -195,6 +195,10 @@ object RapfiTheme {
 
     val spacing: Spacing get() = Spacing
 
+    /** The page's and the cards' gradients; see [SurfaceStops]. */
+    val surfaces: SurfaceStops
+        @Composable @ReadOnlyComposable get() = LocalSurfaces.current
+
     /** Corners, spacing and touch size; see [RapfiTokens]. */
     val tokens: RapfiTokens
         @Composable @ReadOnlyComposable get() = LocalRapfiTokens.current
@@ -222,12 +226,14 @@ fun RapfiDroidTheme(
     content: @Composable () -> Unit,
 ) {
     val scheme = remember(darkTheme, amoled, chromeHue) { colorSchemeFor(darkTheme, amoled, chromeHue) }
+    val surfaces = remember(scheme) { surfaceStops(scheme) }
     val context = LocalContext.current
     val reduced = remember(context) { reducedMotion(context) }
     CompositionLocalProvider(
         LocalYixinColors provides if (darkTheme) RapfiColors.Dark else RapfiColors.Light,
         LocalRapfiTokens provides RapfiTokens.Standard,
         LocalReducedMotion provides reduced,
+        LocalSurfaces provides surfaces,
     ) {
         MaterialTheme(
             colorScheme = scheme,

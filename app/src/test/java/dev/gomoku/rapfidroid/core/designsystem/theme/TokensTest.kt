@@ -29,7 +29,9 @@ class TokensTest {
 
     @Test
     fun `screen padding and touch size`() {
-        assertThat(RapfiTokens.Standard.screenPadding).isEqualTo(12.dp)
+        // 12 in the first cut, one step roomier since 2026-10-29 (user request).
+        assertThat(RapfiTokens.Standard.screenPadding).isEqualTo(16.dp)
+        assertThat(RapfiTokens.Standard.cardPadding).isEqualTo(20.dp)
         assertThat(RapfiTokens.Standard.minTouchTarget).isEqualTo(48.dp)
     }
 }

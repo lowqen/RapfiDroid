@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import androidx.compose.ui.graphics.Color
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -111,7 +112,8 @@ internal fun BoardPortrait(
                 sheetContainerColor = cardColor(),
                 sheetShadowElevation = 3.dp,
                 sheetDragHandle = { SheetHandle() },
-                containerColor = MaterialTheme.colorScheme.surface,
+                // The page's gradient shows through behind the board.
+                containerColor = Color.Transparent,
                 sheetContent = {
                     summary()
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -119,8 +121,8 @@ internal fun BoardPortrait(
                         Modifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
-                            .padding(horizontal = 12.dp, vertical = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                            .padding(RapfiTheme.tokens.screenPadding),
+                        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
                         content = cards,
                     )
                 },
@@ -172,7 +174,7 @@ internal fun BoardLandscape(
                 summary()
                 Column(
                     Modifier.weight(1f).verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
                     content = cards,
                 )
                 toolbar()

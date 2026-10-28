@@ -59,6 +59,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gomoku.rapfidroid.core.designsystem.theme.ChromeMotion
 import dev.gomoku.rapfidroid.core.designsystem.theme.MOTION_QUICK
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTokens
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.Duration
@@ -87,16 +88,11 @@ fun cardColor(): Color {
 @Composable
 fun CalmCard(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
-    spacing: androidx.compose.ui.unit.Dp = 12.dp,
+    contentPadding: PaddingValues = PaddingValues(RapfiTheme.tokens.cardPadding),
+    spacing: androidx.compose.ui.unit.Dp = RapfiTheme.tokens.cardSpacing,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        color = cardColor(),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
+    CardFace(MaterialTheme.shapes.large, modifier.fillMaxWidth()) {
         Column(
             Modifier.padding(contentPadding),
             verticalArrangement = Arrangement.spacedBy(spacing),
@@ -362,14 +358,32 @@ fun FlatCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.large,
-        color = cardColor(),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
+    CardFace(MaterialTheme.shapes.large, modifier) {
         Column(content = content)
     }
+}
+
+/**
+ * The card's material: a face a touch lighter at the top and a rim that
+ * catches the light along its top edge ([RapfiTheme.surfaces]). Every card in
+ * the app is drawn with it — [CalmCard], [FlatCard], the rows of a
+ * [ConnectedGroup] — so the light falls the same way on all of them.
+ */
+@Composable
+internal fun CardFace(
+    shape: androidx.compose.ui.graphics.Shape,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val light = RapfiTheme.surfaces
+    Surface(
+        modifier = modifier.background(light.card, shape),
+        shape = shape,
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, light.rim),
+        content = content,
+    )
 }
 
 /**
@@ -409,20 +423,18 @@ fun ConnectedGroup(
             )
         }
         rows.forEachIndexed { i, row ->
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
+            CardFace(
                 shape = androidx.compose.foundation.shape.RoundedCornerShape(
                     topStart = if (i == 0) outer else inner,
                     topEnd = if (i == 0) outer else inner,
                     bottomStart = if (i == rows.lastIndex) outer else inner,
                     bottomEnd = if (i == rows.lastIndex) outer else inner,
                 ),
-                color = cardColor(),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(
-                    Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    Modifier.padding(horizontal = RapfiTheme.tokens.rowPaddingH, vertical = RapfiTheme.tokens.rowPaddingV),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     content = row,
                 )
             }

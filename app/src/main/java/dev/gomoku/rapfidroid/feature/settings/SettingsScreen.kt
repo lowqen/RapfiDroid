@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberStagger
@@ -140,8 +141,8 @@ fun SettingsScreen(
         val stagger = rememberStagger()
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
             flingBehavior = rememberCalmFling(),
         ) {
             var order = 0

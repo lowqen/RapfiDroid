@@ -167,11 +167,11 @@ fun RapfiCollapsingTopBar(
             collapsedHeight = 52.dp,
             expandedHeight = 112.dp,
             windowInsets = WindowInsets(0),
-            // One surface, folded or not: the calm page has no second tone for
-            // a bar to change into.
+            // No surface of its own, folded or not: the page's gradient runs on
+            // under it, and the calm page has no second tone to change into.
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.surface,
-                scrolledContainerColor = MaterialTheme.colorScheme.surface,
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
             ),
             scrollBehavior = scrollBehavior,
         )

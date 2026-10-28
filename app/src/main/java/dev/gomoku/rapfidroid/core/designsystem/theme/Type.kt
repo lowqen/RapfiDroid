@@ -49,13 +49,16 @@ val Typography = Typography(
     headlineMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 24.sp, lineHeight = 32.sp, letterSpacing = (-0.3).sp),
     headlineSmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 21.sp, lineHeight = 28.sp, letterSpacing = (-0.2).sp),
 
-    titleLarge = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 20.sp, lineHeight = 26.sp, letterSpacing = (-0.2).sp),
-    titleMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 16.sp, lineHeight = 22.sp, letterSpacing = (-0.1).sp),
-    titleSmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
+    // Titles and body one step up from the first cut (user request,
+    // 2026-10-29: too small, too dense). Labels stay — they are the dense
+    // parts: chips, tabs, the numbers under a stat.
+    titleLarge = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 22.sp, lineHeight = 28.sp, letterSpacing = (-0.2).sp),
+    titleMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, lineHeight = 24.sp, letterSpacing = (-0.1).sp),
+    titleSmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Medium, fontSize = 15.sp, lineHeight = 22.sp),
 
-    bodyLarge = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 22.sp),
-    bodyMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
-    bodySmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 18.sp),
+    bodyLarge = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp),
+    bodyMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 22.sp),
+    bodySmall = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp),
 
     labelLarge = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Medium, fontSize = 14.sp, lineHeight = 20.sp),
     labelMedium = TextStyle(fontFamily = RapfiSans, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 16.sp),
