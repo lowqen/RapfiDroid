@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSwitch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -456,7 +456,7 @@ internal fun AnalysisOptions(
                 Text(tr("정지하면 최선수 두기", "Play the best move on stop", "停止时下出最佳着法"), style = MaterialTheme.typography.labelLarge)
                 Hint(tr("빈 판은 H8", "H8 on an empty board", "空棋盘下 H8"))
             }
-            Switch(checked = ui.playBestOnStop, onCheckedChange = onPlayBest)
+            RapfiSwitch(checked = ui.playBestOnStop, onCheckedChange = onPlayBest)
         }
     }
 }

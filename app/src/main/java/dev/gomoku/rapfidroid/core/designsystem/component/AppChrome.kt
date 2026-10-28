@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.core.designsystem.component
 
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
@@ -146,6 +149,9 @@ fun RapfiTopBar(
  *         RapfiCollapsingTopBar(title, behavior)
  *         LazyColumn { … }
  *     }
+ *
+ * A page under another one (a settings page, M3) passes [onBack] and gets the
+ * round back button at the start of the bar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -153,10 +159,12 @@ fun RapfiCollapsingTopBar(
     title: String,
     scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     Column(modifier.fillMaxWidth()) {
         LargeTopAppBar(
             title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            navigationIcon = { if (onBack != null) RoundBackButton(onBack) },
             actions = {
                 ShellActions()
                 // Material's bar ends its actions 4dp from the edge, the app's
@@ -175,6 +183,25 @@ fun RapfiCollapsingTopBar(
             ),
             scrollBehavior = scrollBehavior,
         )
+    }
+}
+
+/**
+ * Back to the page above, as Mornye's sub-pages have it: a filled circle one
+ * step off the page (`surfaceContainerHigh`), not a bare arrow (UI overhaul 2, M3).
+ */
+@Composable
+fun RoundBackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FilledIconButton(
+        onClick = onClick,
+        modifier = modifier.padding(start = 4.dp).size(44.dp),
+        shape = CircleShape,
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+    ) {
+        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = tr("뒤로", "Back", "返回"))
     }
 }
 

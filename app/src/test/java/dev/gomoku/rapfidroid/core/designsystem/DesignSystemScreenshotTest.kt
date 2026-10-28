@@ -31,7 +31,6 @@ import dev.gomoku.rapfidroid.core.designsystem.component.BoardRender
 import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
 import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
 import dev.gomoku.rapfidroid.core.designsystem.component.ChoiceChips
-import dev.gomoku.rapfidroid.core.designsystem.component.ConnectedGroup
 import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
 import dev.gomoku.rapfidroid.core.designsystem.component.EmptyState
 import dev.gomoku.rapfidroid.core.designsystem.component.EngineChip
@@ -52,7 +51,6 @@ import dev.gomoku.rapfidroid.core.model.CellTag
 import dev.gomoku.rapfidroid.core.model.ConnectionState
 import dev.gomoku.rapfidroid.core.model.Move
 import dev.gomoku.rapfidroid.core.model.PvSnapshot
-import dev.gomoku.rapfidroid.core.model.SettingCategory
 import dev.gomoku.rapfidroid.core.model.SearchStats
 import dev.gomoku.rapfidroid.core.model.TagKind
 import dev.gomoku.rapfidroid.feature.board.AnalysisCard
@@ -69,9 +67,9 @@ import dev.gomoku.rapfidroid.feature.board.PositionStrip
 import dev.gomoku.rapfidroid.feature.board.SummaryStrip
 import dev.gomoku.rapfidroid.feature.board.VerticalEvalBar
 import dev.gomoku.rapfidroid.data.prefs.UiPrefs
-import dev.gomoku.rapfidroid.feature.settings.CommonSettings
-import dev.gomoku.rapfidroid.feature.settings.LocalEngineCard
-import dev.gomoku.rapfidroid.feature.settings.SettingRow
+import dev.gomoku.rapfidroid.feature.settings.SettingsActions
+import dev.gomoku.rapfidroid.feature.settings.SettingsPage
+import dev.gomoku.rapfidroid.feature.settings.settingsSections
 import dev.gomoku.rapfidroid.feature.settings.SettingsUiState
 import dev.gomoku.rapfidroid.navigation.Destination
 import dev.gomoku.rapfidroid.navigation.RapfiBottomBar
@@ -261,28 +259,25 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         EmptyState(Icons.Filled.Storage, "기보가 없습니다", "파일을 열면 여기에 나옵니다")
     }
 
-    /** 자주 쓰는 설정 as connected rows, the P1 theme rows among them (P4). */
+    /** The first settings page: the search pill, the pages as icon rows (M3). */
     @Test
-    fun settingsCommon() = shot("settings_common") {
-        val context = LocalContext.current
-        val prefs = remember { UiPrefs(context.applicationContext) }
-        CompositionLocalProvider(LocalUiPrefs provides prefs) {
-            CommonSettings(SettingsUiState(), onDark = {}, onThreads = {}, onRifBuild = {})
-        }
-    }
+    fun settingsRoot() = shot("settings_root") { SettingsPageShot(SettingsPage.Root, SettingsUiState(advanced = true)) }
 
-    /** The on-device engine and one desktop category, as connected groups (P4). */
+    /** 디자인: the round back button, the preview, the theme buttons, check-thumb switches (M3). */
     @Test
-    fun settingsGroups() = shot("settings_groups") {
-        val state = SettingsUiState(advanced = true)
-        LocalEngineCard(state, onHash = {}, onDatabase = {}, onServerEnabled = {})
-        val category = SettingCategory.entries.first { c -> state.visible.any { it.category == c } }
-        ConnectedGroup(title = category.label) {
-            state.visible.filter { it.category == category }.take(4).forEach { spec ->
-                row { SettingRow(spec, state, onValue = {}) }
-            }
-        }
-    }
+    fun settingsDesign() = shot("settings_design") { SettingsPageShot(SettingsPage.Design, SettingsUiState()) }
+
+    /** 일반: the language as rows with a check on the chosen one (M3). */
+    @Test
+    fun settingsGeneral() = shot("settings_general") { SettingsPageShot(SettingsPage.General, SettingsUiState()) }
+
+    /** 엔진: the thread chips and the on-device engine's own group (M3). */
+    @Test
+    fun settingsEngine() = shot("settings_engine") { SettingsPageShot(SettingsPage.Engine, SettingsUiState(advanced = true)) }
+
+    /** A search finds an app setting a page down, and the desktop's entry of the same name (M3). */
+    @Test
+    fun settingsSearch() = shot("settings_search") { SettingsPageShot(SettingsPage.Root, SettingsUiState(query = "스레드")) }
 
     /** The six tabs: upright along the bottom, and down the side when wide (P2). */
     @Test
@@ -375,6 +370,20 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         DisclosureCard(id = "screenshot-closed", title = "분석 설정", summary = "3초 · 후보 1") {}
         DisclosureCard(id = "screenshot-open", title = "도구", defaultOpen = true) {
             Hint("펼친 내용")
+        }
+    }
+
+    /** A settings page as the screen lays it out, minus the list's scrolling. */
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    private fun SettingsPageShot(page: SettingsPage, state: SettingsUiState) {
+        val context = LocalContext.current
+        val prefs = remember { UiPrefs(context.applicationContext) }
+        CompositionLocalProvider(LocalUiPrefs provides prefs) {
+            if (page != SettingsPage.Root) {
+                RapfiCollapsingTopBar(page.title, TopAppBarDefaults.exitUntilCollapsedScrollBehavior(), onBack = {})
+            }
+            settingsSections(page, state, SettingsActions(), pro = true, prefs = prefs).forEach { it.content() }
         }
     }
 

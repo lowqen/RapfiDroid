@@ -1,5 +1,8 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSwitch
+import dev.gomoku.rapfidroid.core.designsystem.component.QuietSwitch
+import androidx.activity.compose.BackHandler
 import dev.gomoku.rapfidroid.core.designsystem.theme.RowNoteStyle
 import dev.gomoku.rapfidroid.core.designsystem.theme.RowTitleStyle
 import dev.gomoku.rapfidroid.core.designsystem.theme.proMode
@@ -13,7 +16,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,23 +26,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import dev.gomoku.rapfidroid.core.designsystem.component.FlatCard as Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -53,7 +48,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -61,41 +55,31 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiCollapsingTopBar
-import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
-import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.designsystem.component.ConnectedGroup
-import dev.gomoku.rapfidroid.core.designsystem.component.ChoiceChips
-import dev.gomoku.rapfidroid.core.designsystem.component.DisclosureCard
-import dev.gomoku.rapfidroid.core.designsystem.component.FieldRow
 import dev.gomoku.rapfidroid.core.designsystem.component.Hint
 import dev.gomoku.rapfidroid.core.designsystem.component.LocalUiPrefs
-import dev.gomoku.rapfidroid.core.designsystem.theme.hapticsEnabled
-import dev.gomoku.rapfidroid.core.designsystem.theme.themeAmoled
 import dev.gomoku.rapfidroid.core.designsystem.theme.themeFollowsSystem
-import dev.gomoku.rapfidroid.core.designsystem.theme.themeWallpaperTone
-import dev.gomoku.rapfidroid.core.designsystem.theme.wallpaperToneAvailable
-import dev.gomoku.rapfidroid.core.model.AppSettings
 import dev.gomoku.rapfidroid.core.model.LocalEngineProfile
-import dev.gomoku.rapfidroid.core.model.SettingCategory
 import dev.gomoku.rapfidroid.core.model.SettingEditor
 import dev.gomoku.rapfidroid.core.model.SettingSpec
-import dev.gomoku.rapfidroid.core.model.SettingsFile
 import dev.gomoku.rapfidroid.feature.data.RifBuildDialog
 
 /**
- * Every persisted desktop setting, generated from [dev.gomoku.rapfidroid.core.model.DesktopSettings]
- * so the screen cannot drift from the file layout: each row shows the file and
- * line it occupies, and the `INFO` key it drives when it is an engine parameter.
+ * Settings, as a list of pages (UI overhaul 2, M3): the first page names the
+ * kinds of setting, each opens one level down with a round back button, and
+ * the desktop's own entries — generated from
+ * [dev.gomoku.rapfidroid.core.model.DesktopSettings], so they cannot drift from
+ * the file layout — are one more page in expert mode. The pages are this
+ * screen's own state, not navigation routes: the tab bar stays where it is and
+ * the system back goes up a page before it leaves the tab.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val defaults = remember { AppSettings() }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain"),
@@ -115,17 +99,18 @@ fun SettingsScreen(
     val debugLogLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain"),
     ) { uri -> if (uri != null) viewModel.onExportDebugLog(uri) }
-    // rememberSaveable, not remember: a rotation is exactly when losing an open
-    // dialog or an expanded file list is most annoying.
+    // rememberSaveable, not remember: a rotation — or the language change,
+    // which recreates the activity — is exactly when losing the open page or
+    // dialog is most annoying.
     var showAbout by rememberSaveable { mutableStateOf(false) }
     var showLicenses by rememberSaveable { mutableStateOf(false) }
     var showRifBuild by rememberSaveable { mutableStateOf(false) }
-    var showFiles by rememberSaveable { mutableStateOf(false) }
+    var pageName by rememberSaveable { mutableStateOf(SettingsPage.Root.name) }
+    val page = SettingsPage.valueOf(pageName)
+    val open: (SettingsPage) -> Unit = { pageName = it.name }
+    BackHandler(enabled = page != SettingsPage.Root) { open(SettingsPage.Root) }
 
-    // One snackbar for the whole app (see [LocalSnackbarHostState]). This screen
-    // was the last holdout with an inline banner of its own, which said the same
-    // thing in a different place from every other screen — and did it from
-    // inside the header, where an extra row costs the list below its height.
+    // One snackbar for the whole app (see [LocalSnackbarHostState]).
     val snackbar = LocalSnackbarHostState.current
     LaunchedEffect(ui.message) {
         ui.message?.let {
@@ -134,183 +119,49 @@ fun SettingsScreen(
         }
     }
 
-    val searching = ui.query.isNotBlank()
-    // «고급 사용자 모드» also shows the PC settings list; the list follows the
-    // saved mode whenever the screen opens.
+    // «고급 사용자 모드» also shows the PC settings; the list follows the saved
+    // mode whenever the screen opens, and its page closes if the mode goes off.
     val pro = LocalProMode.current
     LaunchedEffect(pro) { if (ui.advanced != pro) viewModel.onAdvanced(pro) }
-    val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    Column(modifier = modifier.fillMaxSize().nestedScroll(header.nestedScrollConnection)) {
-        RapfiCollapsingTopBar(title = tr("설정", "Settings", "设置"), scrollBehavior = header)
-        // RapfiWeb's settings: a search, the common card, one advanced switch,
-        // then the desktop's entries grouped by what they are for. A row is its
-        // name and its control; the why is not spelled out on the screen.
-        // The groups rise in one after another the first time the screen opens (P5).
-        val stagger = rememberStagger()
-        LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
-            flingBehavior = rememberCalmFling(),
-        ) {
-            var order = 0
-            // An item of the list, numbered in the order the list adds them.
-            fun entering(key: String, content: @Composable () -> Unit) {
-                val at = order++
-                item(key = key) { Box(Modifier.staggerIn(stagger, at)) { content() } }
-            }
-            entering("search") {
-                OutlinedTextField(
-                    value = ui.query,
-                    onValueChange = viewModel::onQuery,
-                    placeholder = { Text(tr("설정 검색", "Search settings", "搜索设置")) },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    singleLine = true,
-                    shape = MaterialTheme.shapes.extraLarge,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (!searching) {
-                entering("common") {
-                    CommonSettings(
-                        ui = ui,
-                        onDark = { viewModel.onValue("darkMode", if (it) "1" else "0") },
-                        onThreads = viewModel::onLocalThreads,
-                        onRifBuild = { showRifBuild = true },
-                    )
-                }
-                entering("advanced") {
-                    ConnectedGroup {
-                        row {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(tr("고급 사용자 모드", "Expert mode", "高级用户模式"), style = RowTitleStyle)
-                                    Hint(tr("DB 탭 · 엔진 콘솔 · 도구 · PC 설정 ${ui.hidden}개", "DB tab, engine console, tools, ${ui.hidden} PC settings", "数据库页 · 引擎控制台 · 工具 · ${ui.hidden} 项 PC 设置"))
-                                }
-                                Switch(
-                                    checked = pro,
-                                    onCheckedChange = { on ->
-                                        prefs?.proMode?.set(on)
-                                        viewModel.onAdvanced(on)
-                                    },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            if (ui.advanced && !searching) {
-                entering("local") {
-                    LocalEngineCard(
-                        ui = ui,
-                        onHash = viewModel::onLocalHash,
-                        onDatabase = viewModel::onLocalDatabase,
-                        onServerEnabled = viewModel::onServerEnabled,
-                    )
-                }
-            }
-            if (searching && ui.visible.isEmpty()) {
-                entering("none") { Hint(tr("«${ui.query}» 에 맞는 설정이 없습니다", "No setting matches «${ui.query}»", "没有与 «${ui.query}» 匹配的设置")) }
-            }
-            val groups = ui.visible.groupBy { it.category }
-            SettingCategory.entries.forEach { category ->
-                val rows = groups[category] ?: return@forEach
-                entering("group-" + category.name) {
-                    ConnectedGroup(title = category.label) {
-                        rows.forEach { spec ->
-                            row {
-                                SettingRow(
-                                    spec = spec,
-                                    state = ui,
-                                    onValue = { raw -> viewModel.onValue(spec.id, raw) },
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            if (ui.advanced && !searching) {
-                entering("system") {
-                    ConnectedGroup(title = tr("데스크톱 설정 파일", "Desktop settings files", "桌面版设置文件")) {
-                        SettingsFile.entries.forEach { file ->
-                            row {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        file.fileName,
-                                        style = RowTitleStyle,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    OutlinedButton(onClick = {
-                                        viewModel.prepare(file)
-                                        importLauncher.launch(arrayOf("*/*"))
-                                    }) { Text(tr("가져오기", "Import", "导入")) }
-                                    OutlinedButton(onClick = {
-                                        viewModel.prepare(file)
-                                        exportLauncher.launch(file.fileName)
-                                    }) { Text(tr("내보내기", "Export", "导出")) }
-                                }
-                            }
-                        }
-                        row {
-                            Row(
-                                Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(tr("툴바 · 핫키 · 언어 폴더", "Toolbar, hotkeys, language folder", "工具栏 · 快捷键 · 语言文件夹"), style = RowTitleStyle)
-                                    Hint(ui.appearanceSource ?: tr("기본값", "Defaults", "默认值"))
-                                }
-                                OutlinedButton(onClick = { folderLauncher.launch(null) }) { Text(tr("폴더", "Folder", "文件夹")) }
-                                if (ui.appearanceSource != null) {
-                                    TextButton(onClick = viewModel::onResetAppearance) { Text(tr("기본값", "Defaults", "默认值")) }
-                                }
-                            }
-                        }
-                        if (ui.settings.recordDebugLog || ui.debugLogBytes > 0) {
-                            row {
-                                Row(
-                                    Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Text(
-                                        tr("디버그 로그 ${ui.debugLogBytes / 1024}KB", "Debug log ${ui.debugLogBytes / 1024}KB", "调试日志 ${ui.debugLogBytes / 1024}KB"),
-                                        style = RowTitleStyle,
-                                        modifier = Modifier.weight(1f),
-                                    )
-                                    OutlinedButton(onClick = { debugLogLauncher.launch("rapfidroid-debug.log") }, enabled = ui.debugLogBytes > 0) {
-                                        Text(tr("내보내기", "Export", "导出"))
-                                    }
-                                    TextButton(onClick = viewModel::onClearDebugLog, enabled = ui.debugLogBytes > 0) { Text(tr("지우기", "Clear", "清除")) }
-                                }
-                            }
-                        }
-                        row { ResetRow(onReset = viewModel::onReset) }
-                    }
-                }
-            }
-            if (!searching) {
-                entering("about") {
-                    ConnectedGroup {
-                        row {
-                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(tr("정보", "About", "关于"), style = RowTitleStyle)
-                                    Hint("RapfiDroid ${dev.gomoku.rapfidroid.BuildConfig.VERSION_NAME}")
-                                }
-                                TextButton(onClick = { showAbout = true }) { Text(tr("자세히", "Details", "详情")) }
-                                TextButton(onClick = { showLicenses = true }) { Text(tr("라이선스", "Licences", "许可证")) }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    LaunchedEffect(pro, page) { if (!pro && page == SettingsPage.Desktop) open(SettingsPage.Root) }
+
+    val actions = SettingsActions(
+        onOpen = open,
+        onQuery = viewModel::onQuery,
+        onValue = viewModel::onValue,
+        onDark = { viewModel.onValue("darkMode", if (it) "1" else "0") },
+        onPro = { on ->
+            prefs?.proMode?.set(on)
+            viewModel.onAdvanced(on)
+        },
+        onThreads = viewModel::onLocalThreads,
+        onHash = viewModel::onLocalHash,
+        onDatabase = viewModel::onLocalDatabase,
+        onServerEnabled = viewModel::onServerEnabled,
+        onImport = { file ->
+            viewModel.prepare(file)
+            importLauncher.launch(arrayOf("*/*"))
+        },
+        onExport = { file ->
+            viewModel.prepare(file)
+            exportLauncher.launch(file.fileName)
+        },
+        onFolder = { folderLauncher.launch(null) },
+        onResetAppearance = viewModel::onResetAppearance,
+        onExportDebugLog = { debugLogLauncher.launch("rapfidroid-debug.log") },
+        onClearDebugLog = viewModel::onClearDebugLog,
+        onReset = viewModel::onReset,
+        onRifBuild = { showRifBuild = true },
+        onAbout = { showAbout = true },
+        onLicenses = { showLicenses = true },
+    )
+
+    QuietSwitch(page, modifier.fillMaxSize()) { shown ->
+        SettingsPageFrame(
+            title = shown.title,
+            onBack = if (shown == SettingsPage.Root) null else ({ open(SettingsPage.Root) }),
+            sections = settingsSections(shown, ui, actions, pro, prefs),
+        )
     }
 
     if (showAbout) {
@@ -324,6 +175,36 @@ fun SettingsScreen(
     }
     if (showRifBuild) {
         RifBuildDialog(onDismiss = { showRifBuild = false })
+    }
+}
+
+/**
+ * One page: the tall title that folds (M2), with the round back button below
+ * the first page, over its blocks. Each page its own header, so a page opens
+ * with its title tall whatever the last one was scrolled to.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SettingsPageFrame(
+    title: String,
+    onBack: (() -> Unit)?,
+    sections: List<SettingsSection>,
+) {
+    val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Column(Modifier.fillMaxSize().nestedScroll(header.nestedScrollConnection)) {
+        RapfiCollapsingTopBar(title = title, scrollBehavior = header, onBack = onBack)
+        // The blocks rise in one after another as a page opens (P5).
+        val stagger = rememberStagger()
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+            flingBehavior = rememberCalmFling(),
+        ) {
+            sections.forEachIndexed { i, section ->
+                item(key = section.key) { Box(Modifier.staggerIn(stagger, i)) { section.content() } }
+            }
+        }
     }
 }
 
@@ -376,7 +257,7 @@ internal fun LocalEngineCard(
         row {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(tr("기기 데이터베이스 사용", "Use the device database", "使用本机数据库"), style = RowTitleStyle, modifier = Modifier.weight(1f))
-                Switch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
+                RapfiSwitch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
             }
             // yixindb is read whole into the engine's memory, on top of the table (T3).
             val dbBytes = ui.localDbBytes
@@ -402,7 +283,7 @@ internal fun LocalEngineCard(
                     Text(tr("서버 엔진 사용", "Use a server engine", "使用服务器引擎"), style = RowTitleStyle)
                     Hint(tr("직접 운영하는 Rapfi 서버 (Tailscale)", "A Rapfi server you run (Tailscale)", "你自己运行的 Rapfi 服务器 (Tailscale)"))
                 }
-                Switch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
+                RapfiSwitch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
             }
             if (!ui.localMode) Hint(tr("지금은 서버 엔진을 씁니다", "The server engine is in use", "当前正在使用服务器引擎"))
         }
@@ -422,7 +303,7 @@ internal fun SettingRow(
             Text(spec.label, style = RowTitleStyle, modifier = Modifier.weight(1f).padding(end = 8.dp))
             Box(contentAlignment = Alignment.CenterEnd) {
                 when (editor) {
-                    is SettingEditor.Toggle -> Switch(
+                    is SettingEditor.Toggle -> RapfiSwitch(
                         checked = value != "0",
                         onCheckedChange = { onValue(if (it) "1" else "0") },
                     )
@@ -452,7 +333,7 @@ internal fun SettingRow(
 }
 
 @Composable
-private fun ResetRow(onReset: () -> Unit) {
+internal fun ResetRow(onReset: () -> Unit) {
     var asking by remember { mutableStateOf(false) }
     if (!asking) {
         TextButton(onClick = { asking = true }) { Text(tr("PC 기본값으로 되돌리기", "Back to the PC defaults", "恢复 PC 默认值")) }
@@ -564,151 +445,14 @@ private fun ChoiceEditor(
 }
 
 
-/**
- * 자주 쓰는 설정 — language, threads, theme, starting the engine with the app,
- * the curriculum and the RenjuNet game data (RapfiWeb's basic group), one row
- * each in a [ConnectedGroup] (UI overhaul P4).
- *
- * The theme is three rows, not one: «테마» picks light or dark and writes
- * settings.txt line 27 (or hands it to the phone, D4); the black background
- * and the wallpaper tone are the app's own and change only the look (D1).
- */
+/** A setting that is on or off: its name, a line under it if it needs one, the switch. */
 @Composable
-internal fun CommonSettings(
-    ui: SettingsUiState,
-    onDark: (Boolean) -> Unit,
-    onThreads: (Int) -> Unit,
-    onRifBuild: () -> Unit,
-) {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val prefs = LocalUiPrefs.current
-    val locales = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        context.getSystemService(android.app.LocaleManager::class.java)
-    } else {
-        null
-    }
-    ConnectedGroup(title = tr("자주 쓰는 설정", "Common", "常用设置")) {
-        if (locales != null) {
-            row {
-                val current = locales.applicationLocales.toLanguageTags().substringBefore('-').substringBefore(',')
-                FieldRow(tr("언어", "Language", "语言")) {
-                    ChoiceChips(
-                        options = listOf(
-                            "" to tr("기기 설정", "System", "跟随系统"),
-                            "ko" to "한국어",
-                            "en" to "English",
-                            "zh" to "中文",
-                        ),
-                        selected = current,
-                        // Chinese is Simplified, so ask for the mainland locale.
-                        onSelect = { tag ->
-                            locales.applicationLocales =
-                                android.os.LocaleList.forLanguageTags(if (tag == "zh") "zh-CN" else tag)
-                        },
-                    )
-                }
-            }
-        }
-        row {
-            FieldRow(tr("스레드 수", "Threads", "线程数"), note = tr("많을수록 빠르고 · 뜨거워짐", "More is faster · and warmer", "越多越快 · 也越热")) {
-                ChoiceChips(
-                    options = ui.threadChoices.map { it to "$it" },
-                    selected = ui.localProfile.threads,
-                    onSelect = onThreads,
-                )
-            }
-        }
-        if (prefs != null) {
-            row {
-                val follow by prefs.themeFollowsSystem.state.collectAsStateWithLifecycle()
-                FieldRow(tr("테마", "Theme", "主题")) {
-                    ChoiceChips(
-                        options = listOf(
-                            0 to tr("기기 설정", "System", "跟随系统"),
-                            1 to tr("라이트", "Light", "浅色"),
-                            2 to tr("다크", "Dark", "深色"),
-                        ),
-                        selected = when {
-                            follow -> 0
-                            ui.settings.darkMode -> 2
-                            else -> 1
-                        },
-                        onSelect = { choice ->
-                            prefs.themeFollowsSystem.set(choice == 0)
-                            if (choice != 0) onDark(choice == 2)
-                        },
-                    )
-                }
-            }
-            row {
-                // Only the dark theme changes, and the row says so rather than being
-                // greyed out: someone on a light phone who turns it on gets it the
-                // moment the phone goes dark.
-                val amoled by prefs.themeAmoled.state.collectAsStateWithLifecycle()
-                SwitchRow(
-                    title = tr("검은 배경", "Black background", "纯黑背景"),
-                    note = tr("다크 테마에서만", "Dark theme only", "仅深色主题"),
-                    checked = amoled,
-                    onChange = { prefs.themeAmoled.set(it) },
-                )
-            }
-            if (wallpaperToneAvailable) {
-                row {
-                    val tone by prefs.themeWallpaperTone.state.collectAsStateWithLifecycle()
-                    SwitchRow(
-                        title = tr("배경화면 색조", "Wallpaper tone", "壁纸色调"),
-                        note = tr("바탕의 회색만 · 판과 값의 색은 그대로", "The greys only · board colours stay", "仅灰色底色 · 棋盘颜色不变"),
-                        checked = tone,
-                        onChange = { prefs.themeWallpaperTone.set(it) },
-                    )
-                }
-            }
-            row {
-                val haptics by prefs.hapticsEnabled.state.collectAsStateWithLifecycle()
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("진동", "Vibration", "振动"), style = RowTitleStyle, modifier = Modifier.weight(1f))
-                    Switch(checked = haptics, onCheckedChange = { prefs.hapticsEnabled.set(it) })
-                }
-            }
-            row {
-                val auto by prefs.autoStartEngine.state.collectAsStateWithLifecycle()
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("앱을 열면 엔진 시작", "Start the engine with the app", "打开应用时启动引擎"), style = RowTitleStyle, modifier = Modifier.weight(1f))
-                    Switch(checked = auto, onCheckedChange = { prefs.autoStartEngine.set(it) })
-                }
-            }
-            row {
-                val curriculum by prefs.curriculumAutoUpdate.state.collectAsStateWithLifecycle()
-                SwitchRow(
-                    title = tr("정석 커리큘럼 자동 업데이트", "Update the joseki curriculum", "自动更新定式课程"),
-                    note = tr("rapfiweb.pages.dev · 보내는 정보 없음", "rapfiweb.pages.dev · nothing is sent", "rapfiweb.pages.dev · 不发送任何信息"),
-                    checked = curriculum,
-                    onChange = { prefs.curriculumAutoUpdate.set(it) },
-                )
-            }
-        } else {
-            row {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("다크 모드", "Dark mode", "深色模式"), style = RowTitleStyle, modifier = Modifier.weight(1f))
-                    Switch(checked = ui.settings.darkMode, onCheckedChange = onDark)
-                }
-            }
-        }
-        row {
-            OutlinedButton(onClick = onRifBuild, modifier = Modifier.fillMaxWidth()) {
-                Text(tr("대국 데이터 추가 (RenjuNet)", "Add game data (RenjuNet)", "添加对局数据 (RenjuNet)"))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SwitchRow(title: String, note: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun SwitchRow(title: String, note: String?, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).padding(end = 8.dp)) {
             Text(title, style = RowTitleStyle)
-            Text(note, style = RowNoteStyle, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            note?.let { Text(it, style = RowNoteStyle, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        RapfiSwitch(checked = checked, onCheckedChange = onChange)
     }
 }

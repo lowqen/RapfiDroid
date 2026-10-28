@@ -398,6 +398,7 @@ internal fun CardFace(
  *     ConnectedGroup(title = "자주 쓰는 설정") {
  *         row { … }
  *         if (shown) row { … }
+ *         row(onClick = { open(page) }) { … }   // the whole face is the target
  *     }
  *
  * The title sits above the group, not inside its first row: it names the group,
@@ -424,21 +425,25 @@ fun ConnectedGroup(
             )
         }
         rows.forEachIndexed { i, row ->
+            val shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                topStart = if (i == 0) outer else inner,
+                topEnd = if (i == 0) outer else inner,
+                bottomStart = if (i == rows.lastIndex) outer else inner,
+                bottomEnd = if (i == rows.lastIndex) outer else inner,
+            )
+            val onClick = row.onClick
             CardFace(
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                    topStart = if (i == 0) outer else inner,
-                    topEnd = if (i == 0) outer else inner,
-                    bottomStart = if (i == rows.lastIndex) outer else inner,
-                    bottomEnd = if (i == rows.lastIndex) outer else inner,
-                ),
-                modifier = Modifier.fillMaxWidth(),
+                shape = shape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (onClick != null) Modifier.clip(shape).clickable(role = Role.Button, onClick = onClick) else Modifier),
             ) {
                 Column(
                     Modifier
                         .heightIn(min = 64.dp)
                         .padding(horizontal = RapfiTheme.tokens.rowPaddingH, vertical = RapfiTheme.tokens.rowPaddingV),
                     verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                    content = row,
+                    content = row.content,
                 )
             }
         }
@@ -447,9 +452,32 @@ fun ConnectedGroup(
 
 /** Collects the rows of a [ConnectedGroup]; see there. */
 class ConnectedGroupScope internal constructor() {
-    internal val rows = mutableListOf<@Composable ColumnScope.() -> Unit>()
+    internal class Entry(val onClick: (() -> Unit)?, val content: @Composable ColumnScope.() -> Unit)
 
-    fun row(content: @Composable ColumnScope.() -> Unit) {
-        rows += content
+    internal val rows = mutableListOf<Entry>()
+
+    /** One row; with [onClick] the whole face is one target (a link to a page, a choice). */
+    fun row(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
+        rows += Entry(onClick, content)
     }
+}
+
+/**
+ * The app's switch: Material's, with a check on the thumb while it is on, as
+ * Mornye's are (UI overhaul 2, M3) — the state reads from the thumb as well as
+ * from the track's colour.
+ */
+@Composable
+fun RapfiSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    androidx.compose.material3.Switch(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        modifier = modifier,
+        enabled = enabled,
+        thumbContent = if (checked) {
+            { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(androidx.compose.material3.SwitchDefaults.IconSize)) }
+        } else {
+            null
+        },
+    )
 }
