@@ -1,6 +1,9 @@
 package dev.gomoku.zenyth.core.designsystem
 
 import dev.gomoku.zenyth.core.designsystem.component.WavyProgress
+import dev.gomoku.zenyth.core.designsystem.component.OutlinedButton
+import dev.gomoku.zenyth.core.designsystem.component.FilledTonalButton
+import dev.gomoku.zenyth.core.designsystem.component.Button
 import dev.gomoku.zenyth.core.designsystem.component.LocalWaveFrames
 import dev.gomoku.zenyth.feature.board.MiniAnalysisContent
 import dev.gomoku.zenyth.core.designsystem.component.LabeledProgress
@@ -244,13 +247,23 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
 
     /** A whole screen at [width] × [height], the shell's chip and switch provided. */
     @OptIn(ExperimentalRoborazziApi::class)
-    private fun screen(name: String, width: Dp, height: Dp, content: @Composable () -> Unit) {
-        captureRoboImage("src/test/screenshots/${name}_${variant.tag}.png") {
-            ZenythTheme(darkTheme = variant.dark) {
+    private fun screen(
+        name: String,
+        width: Dp,
+        height: Dp,
+        dark: Boolean = variant.dark,
+        amoled: Boolean = false,
+        fontScale: Float = variant.fontScale,
+        fileTag: String? = variant.tag,
+        content: @Composable () -> Unit,
+    ) {
+        val file = if (fileTag == null) name else "${name}_$fileTag"
+        captureRoboImage("src/test/screenshots/$file.png") {
+            ZenythTheme(darkTheme = dark, amoled = amoled) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(
-                    LocalDensity provides Density(density.density, variant.fontScale),
-                    LocalShellChrome provides ShellChrome(ConnectionState.Thinking, variant.dark, onStartEngine = {}, onToggleTheme = {}),
+                    LocalDensity provides Density(density.density, fontScale),
+                    LocalShellChrome provides ShellChrome(ConnectionState.Thinking, dark, onStartEngine = {}, onToggleTheme = {}),
                     LocalWaveFrames provides false,
                 ) {
                     Surface(Modifier.size(width, height), color = MaterialTheme.colorScheme.background) { content() }
@@ -289,6 +302,37 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     /** The first settings page: the search pill, the pages as icon rows (M3). */
     @Test
     fun settingsRoot() = shot("settings_root") { SettingsPageShot(SettingsPage.Root, SettingsUiState(advanced = true)) }
+
+    /**
+     * M7's far ends, once each rather than per variant: the board screen on a
+     * black (AMOLED) page, and the largest font Android offers (2.0) on the
+     * board, a settings page and the welcome window — nothing may clip or
+     * overlap there.
+     */
+    @Test
+    fun extremes() {
+        assumeTrue(variant == Variant(dark = false, fontScale = 1f))
+        screen("m7_board_amoled", 411.dp, 771.dp, dark = true, amoled = true, fileTag = null) { portrait(sheetUp = false) }
+        screen("m7_board_font200", 411.dp, 771.dp, fontScale = 2f, fileTag = null) { portrait(sheetUp = false) }
+        shot("m7_settings_general_font200", dark = true, fontScale = 2f, fileTag = null) {
+            SettingsPageShot(SettingsPage.General, SettingsUiState())
+        }
+        shot("m7_whats_new_font200", fontScale = 2f, fileTag = null) {
+            val notes = WhatsNew.parse(java.io.File("src/main/assets/whatsnew/21.txt").readText())
+            WhatsNewCard(notes.getValue(AppLanguage.KOREAN), onDismiss = {})
+        }
+    }
+
+    /** The three pills (M7): 48dp, the press-morphing shape at rest. */
+    @Test
+    fun pills() = shot("pills") {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = {}) { Text("분석 시작") }
+            FilledTonalButton(onClick = {}) { Text("저장") }
+            OutlinedButton(onClick = {}) { Text("취소") }
+        }
+        Button(onClick = {}, enabled = false) { Text("엔진이 꺼져 있음") }
+    }
 
     /** The window shown once after an update: mark, welcome, grouped notes, the fade, the pill. */
     @Test
@@ -453,6 +497,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         dark: Boolean = variant.dark,
         amoled: Boolean = false,
         chromeHue: Float? = null,
+        fontScale: Float = variant.fontScale,
         fileTag: String? = variant.tag,
         content: @Composable () -> Unit,
     ) {
@@ -461,7 +506,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
             ZenythTheme(darkTheme = dark, amoled = amoled, chromeHue = chromeHue) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(
-                    LocalDensity provides Density(density.density, variant.fontScale),
+                    LocalDensity provides Density(density.density, fontScale),
                     LocalWaveFrames provides false,
                 ) {
                     Surface(color = MaterialTheme.colorScheme.background) {

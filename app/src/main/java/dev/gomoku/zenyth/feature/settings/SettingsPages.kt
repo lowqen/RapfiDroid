@@ -1,5 +1,18 @@
 package dev.gomoku.zenyth.feature.settings
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.snap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import dev.gomoku.zenyth.core.designsystem.theme.LocalReducedMotion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.runtime.remember
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.foundation.Canvas
@@ -40,7 +53,7 @@ import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import dev.gomoku.zenyth.core.designsystem.component.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -369,7 +382,9 @@ private fun ThemePreview() {
             blob(scheme.primaryContainer, 0.12f, 0.18f, 0.75f)
             blob(scheme.secondaryContainer, 0.95f, 0.92f, 0.85f)
             // One hue only, as Mornye's: the warm tertiary went brown in the dark.
-            blob(scheme.primary.copy(alpha = 0.16f), 0.78f, 0.05f, 0.45f)
+            // A lavender step between the container and the accent — the accent
+            // at 16 % over the pale card read as grey in light (M7).
+            blob(lerp(scheme.primaryContainer, scheme.primary, 0.28f), 0.78f, 0.05f, 0.45f)
         }
         Column(
             Modifier.align(Alignment.Center),
@@ -455,13 +470,27 @@ private fun ThemeButtons(selected: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         options.forEach { (value, icon, label) ->
             val on = value == selected
-            val corner by animateIntAsState(if (on) 50 else 26, label = "themeCorner")
+            val interaction = remember { MutableInteractionSource() }
+            val pressed by interaction.collectIsPressedAsState()
+            val reduced = LocalReducedMotion.current
+            // Chosen = round, the rest soft squares, and a press squares a little
+            // further and springs back (M7) — the toolbar keys' motion.
+            val corner by animateIntAsState(
+                when {
+                    pressed && !reduced -> 16
+                    on -> 50
+                    else -> 26
+                },
+                if (reduced) snap() else spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
+                label = "themeCorner",
+            )
             val container by animateColorAsState(if (on) scheme.primary else scheme.surfaceContainerHighest, label = "themeFill")
             val content by animateColorAsState(if (on) scheme.onPrimary else scheme.onSurfaceVariant, label = "themeInk")
             Surface(
                 selected = on,
                 onClick = { onSelect(value) },
-                modifier = Modifier.weight(1f).height(68.dp),
+                modifier = Modifier.weight(1f).height(68.dp).semantics { role = Role.RadioButton },
+                interactionSource = interaction,
                 shape = RoundedCornerShape(corner),
                 color = container,
                 contentColor = content,
@@ -519,9 +548,12 @@ private fun LanguageGroup() {
             "zh" to "中文",
         ).forEach { (tag, label) ->
             // Chinese is Simplified, so ask for the mainland locale.
-            row(onClick = {
-                locales.applicationLocales = android.os.LocaleList.forLanguageTags(if (tag == "zh") "zh-CN" else tag)
-            }) {
+            row(
+                onClick = {
+                    locales.applicationLocales = android.os.LocaleList.forLanguageTags(if (tag == "zh") "zh-CN" else tag)
+                },
+                selected = tag == current,
+            ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(label, style = RowTitleStyle, modifier = Modifier.weight(1f))
                     CheckMark(tag == current)
@@ -531,18 +563,31 @@ private fun LanguageGroup() {
     }
 }
 
-/** The chosen row's mark: a filled accent circle with a check; nothing on the rest. */
+/**
+ * The chosen row's mark: a filled accent circle with a check; nothing on the
+ * rest. Choosing a row grows it in from a soft square to the circle on a spring
+ * (M7, Material 3 Expressive's shape change); reduced motion just shows it.
+ * Silent to TalkBack — the row itself says it is selected.
+ */
 @Composable
 private fun CheckMark(on: Boolean) {
-    if (!on) {
-        Spacer(Modifier.size(24.dp))
-        return
-    }
-    Box(
-        Modifier.size(24.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(Icons.Filled.Check, contentDescription = tr("선택됨", "Selected", "已选择"), tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+    val reduced = LocalReducedMotion.current
+    val bouncy = spring<Float>(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium)
+    val grow by animateFloatAsState(if (on) 1f else 0f, if (reduced) snap() else bouncy, label = "checkGrow")
+    val round by animateIntAsState(if (on) 50 else 22, if (reduced) snap() else spring(dampingRatio = 0.6f), label = "checkRound")
+    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+        if (grow > 0.01f) {
+            Box(
+                Modifier
+                    .size(24.dp)
+                    .graphicsLayer { scaleX = grow; scaleY = grow }
+                    .clip(RoundedCornerShape(round))
+                    .background(MaterialTheme.colorScheme.primary),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(16.dp))
+            }
+        }
     }
 }
 

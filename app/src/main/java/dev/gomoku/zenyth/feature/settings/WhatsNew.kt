@@ -18,7 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
+import dev.gomoku.zenyth.core.designsystem.component.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -240,7 +240,7 @@ fun WhatsNewCard(notes: ReleaseNotes, onDismiss: () -> Unit, modifier: Modifier 
                 TextButton(onClick = { runCatching { uri.openUri(WhatsNew.RELEASES_URL) } }) {
                     Text(tr("전체 변경 기록", "All releases", "全部更新记录"))
                 }
-                Button(onClick = onDismiss, modifier = Modifier.height(48.dp), shape = CircleShape) {
+                Button(onClick = onDismiss) {
                     Text(tr("시작하기", "Get started", "开始使用"), modifier = Modifier.padding(horizontal = 8.dp))
                 }
             }

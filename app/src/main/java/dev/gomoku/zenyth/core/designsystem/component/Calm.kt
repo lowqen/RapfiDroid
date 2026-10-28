@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -419,11 +420,19 @@ fun ConnectedGroup(
                 bottomEnd = if (i == rows.lastIndex) outer else inner,
             )
             val onClick = row.onClick
+            val selected = row.selected
             CardFace(
                 shape = shape,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .then(if (onClick != null) Modifier.clip(shape).clickable(role = Role.Button, onClick = onClick) else Modifier),
+                    .then(
+                        when {
+                            onClick == null -> Modifier
+                            // A choice among rows: TalkBack reads «selected / not selected, radio button».
+                            selected != null -> Modifier.clip(shape).selectable(selected, role = Role.RadioButton, onClick = onClick)
+                            else -> Modifier.clip(shape).clickable(role = Role.Button, onClick = onClick)
+                        },
+                    ),
             ) {
                 Column(
                     Modifier
@@ -439,13 +448,21 @@ fun ConnectedGroup(
 
 /** Collects the rows of a [ConnectedGroup]; see there. */
 class ConnectedGroupScope internal constructor() {
-    internal class Entry(val onClick: (() -> Unit)?, val content: @Composable ColumnScope.() -> Unit)
+    internal class Entry(
+        val onClick: (() -> Unit)?,
+        val selected: Boolean?,
+        val content: @Composable ColumnScope.() -> Unit,
+    )
 
     internal val rows = mutableListOf<Entry>()
 
-    /** One row; with [onClick] the whole face is one target (a link to a page, a choice). */
-    fun row(onClick: (() -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
-        rows += Entry(onClick, content)
+    /**
+     * One row; with [onClick] the whole face is one target (a link to a page, a
+     * choice). [selected] makes it one of a set of choices, so a screen reader
+     * says which is chosen (M7) rather than hearing a list of buttons.
+     */
+    fun row(onClick: (() -> Unit)? = null, selected: Boolean? = null, content: @Composable ColumnScope.() -> Unit) {
+        rows += Entry(onClick, selected, content)
     }
 }
 

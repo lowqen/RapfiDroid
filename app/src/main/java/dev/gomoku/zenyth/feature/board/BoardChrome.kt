@@ -42,6 +42,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -131,7 +132,9 @@ internal fun MoveToolbar(
         val full = BareSize * 4 + KeySize * 2 + PlayWidth + 6.dp * 6
         val k = ((maxWidth - 16.dp) / full).coerceIn(0.7f, 1f)
         Row(
-            Modifier.pointerInput(step) {
+            // One group for TalkBack (M7): its keys are read left to right as a
+            // set, and the drag below is a shortcut for the ‹ › keys it holds.
+            Modifier.semantics { isTraversalGroup = true }.pointerInput(step) {
                 var travel = 0f
                 detectHorizontalDragGestures(
                     onDragStart = { travel = 0f },
