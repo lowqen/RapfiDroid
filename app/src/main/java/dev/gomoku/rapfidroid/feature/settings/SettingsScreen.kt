@@ -150,7 +150,7 @@ fun SettingsScreen(
         },
         onFolder = { folderLauncher.launch(null) },
         onResetAppearance = viewModel::onResetAppearance,
-        onExportDebugLog = { debugLogLauncher.launch("rapfidroid-debug.log") },
+        onExportDebugLog = { debugLogLauncher.launch("zenyth-debug.log") },
         onClearDebugLog = viewModel::onClearDebugLog,
         onReset = viewModel::onReset,
         onRifBuild = { showRifBuild = true },

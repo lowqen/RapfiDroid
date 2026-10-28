@@ -13,7 +13,7 @@
 
 | 구성요소 | 출처 | 라이선스 | 배포 시 의무 |
 |---|---|---|---|
-| **RapfiDroid** (이 저장소의 Kotlin 코드) | 이 저장소 | BSD 2-Clause (`LICENSE`) | — |
+| **Zenyth** (구 RapfiDroid, 이 저장소의 Kotlin 코드) | 이 저장소 | BSD 2-Clause (`LICENSE`) | — |
 | **Yixin-Board 로부터의 이식분** (프로토콜·국면 키·오프닝 프레임 키·설정 표 등) | [accreator/Yixin-Board](https://github.com/accreator/Yixin-Board) → [dhbloo/Yixin-Board](https://github.com/dhbloo/Yixin-Board) | **BSD 2-Clause**, © 2009–2017 Kai Sun | 저작권 고지 + 무보증 조항을 **바이너리에 동반되는 문서에 재현** |
 | **Rapfi 엔진** `jniLibs/arm64-v8a/libengine.so` | [dhbloo/rapfi](https://github.com/dhbloo/rapfi) | **GPL-3.0-or-later** | 라이선스 전문 동봉 + **대응 소스 제공** (§3) |
 | **NNUE 가중치** `assets/engine/*.bin.lz4`, `model220723.bin` | [dhbloo/rapfi-networks](https://github.com/dhbloo/rapfi-networks) | **CC0 1.0** (공유 저작물) | 없음 (출처 표기는 예의) |
@@ -118,7 +118,12 @@ renju.net 에서 직접 받아 자기 기기로 반입한다. 데이터가 없�
 
 ## 5. 상표·이름
 
-"Yixin" 은 Kai Sun 의 엔진 이름이다. 앱 이름 `RapfiDroid` 는 그 GUI 의 이식이라는
+앱 이름은 2026-10-29 `RapfiDroid` 에서 **Zenyth** 로 바뀌었다. 엔진 이름(Rapfi)을 앱
+이름으로 쓰지 않고, 대신 어디서나 «powered by Rapfi» 로 엔진을 밝힌다 — 정보 창, README,
+스토어 설명. 패키지 ID `dev.gomoku.rapfidroid` 와 저장소 이름은 업데이트가 끊기지 않도록
+그대로 둔다.
+
+"Yixin" 은 Kai Sun 의 엔진 이름이다. 옛 이름 `RapfiDroid` 는 그 GUI 의 이식이라는
 사실에서 왔지만, **앱에 Yixin 엔진은 들어 있지 않다.** 혼동을 피하려면 스토어
 설명과 README 에 "Rapfi 엔진 내장, Yixin-Board GUI 를 이식" 이라고 적어 두는 편이
 낫고, 원저작자가 이름 사용에 이의를 제기하면 바꿀 수 있게 준비해 둔다(법적 의무가

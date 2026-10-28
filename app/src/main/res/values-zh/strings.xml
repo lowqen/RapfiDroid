@@ -1,6 +1,6 @@
 <!-- Simplified Chinese. A Traditional-Chinese system gets these too (values-zh). -->
 <resources>
-    <string name="app_name">RapfiDroid</string>
+    <string name="app_name">Zenyth</string>
 
     <string name="tab_board">棋盘</string>
     <string name="tab_research">研究</string>
@@ -11,5 +11,5 @@
 
     <string name="engine_channel_name">引擎连接</string>
     <string name="engine_channel_desc">保持 Rapfi 引擎会话</string>
-    <string name="engine_notif_title">RapfiDroid 引擎</string>
+    <string name="engine_notif_title">Zenyth 引擎</string>
 </resources>

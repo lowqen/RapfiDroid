@@ -8,12 +8,12 @@ SourceCode: https://github.com/lowqen/RapfiDroid
 IssueTracker: https://github.com/lowqen/RapfiDroid/issues
 Changelog: https://github.com/lowqen/RapfiDroid/releases
 
-AutoName: RapfiDroid
-Summary: Gomoku and renju board with the engine running on your device
+AutoName: Zenyth
+Summary: Gomoku and renju analysis, powered by the Rapfi engine on your device
 
 Description: |-
-    A gomoku and renju board with the Rapfi engine running on the device
-    itself — no server, works offline. Play against it, analyse a position,
+    Zenyth (formerly RapfiDroid) is a gomoku and renju board with the Rapfi
+    engine running on the device itself — no server, works offline. Play against it, analyse a position,
     see the principal variation and the evaluation bar, and let it mark renju
     forbidden points, all offline.
 

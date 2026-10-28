@@ -1,9 +1,11 @@
 <div align="center">
 
-# RapfiDroid
+# Zenyth
 
 **진짜 엔진이 폰 안에서 도는 오목·렌주 보드.**
-**서버도, 계정도 필요 없고, 오프라인에서 동작합니다.**
+**서버도, 계정도 필요 없고, 오프라인에서 동작합니다. 엔진은 [Rapfi](https://github.com/dhbloo/rapfi) 입니다.**
+
+<sub>예전 이름은 RapfiDroid 입니다. 저장소는 옛 이름을 그대로 써서 링크와 클론은 그대로 됩니다.</sub>
 
 [![Build](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/lowqen/RapfiDroid?include_prereleases&sort=semver)](https://github.com/lowqen/RapfiDroid/releases/latest)
@@ -17,7 +19,7 @@
 ## 이게 뭔가요
 
 강한 오목 엔진은 전부 데스크톱 프로그램입니다. PC 와 콘솔을 전제하고, 보통은
-말을 걸 상대 기계 한 대를 더 요구합니다. RapfiDroid 는 공개된 것 중 가장 강한
+말을 걸 상대 기계 한 대를 더 요구합니다. Zenyth 는 공개된 것 중 가장 강한
 축에 드는 엔진인 [Rapfi](https://github.com/dhbloo/rapfi) 를 arm64 안드로이드로
 크로스 컴파일해서, 앱 안에서 **진짜 프로세스로** 돌립니다. 보드도, 분석도, 금수
 표시도, 국면 데이터베이스도 비행기 모드에서 그대로 동작합니다. 어디에도 열려
@@ -197,7 +199,7 @@ docs/           배포, 라이선스 정리, 릴리스 노트
 
 ## 라이선스
 
-RapfiDroid 자체 소스는 **BSD-2-Clause** 입니다. 배포되는 APK 에는 Rapfi 엔진이
+Zenyth 자체 소스는 **BSD-2-Clause** 입니다. 배포되는 APK 에는 Rapfi 엔진이
 함께 들어가고 그것이 **GPL-3.0-or-later** 이므로, 패키지 전체는
 GPL-3.0-or-later 로 배포됩니다.
 

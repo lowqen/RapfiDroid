@@ -1,9 +1,11 @@
 <div align="center">
 
-# RapfiDroid
+# Zenyth
 
 **A gomoku and renju board with a real engine running on your phone.**
-**No server. No account. Works offline.**
+**No server. No account. Works offline. Powered by [Rapfi](https://github.com/dhbloo/rapfi).**
+
+<sub>Formerly RapfiDroid. The repository keeps its old name, so links and clones still work.</sub>
 
 [![Build](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml/badge.svg)](https://github.com/lowqen/RapfiDroid/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/lowqen/RapfiDroid?include_prereleases&sort=semver)](https://github.com/lowqen/RapfiDroid/releases/latest)
@@ -17,7 +19,7 @@
 ## What this is
 
 Strong gomoku engines are desktop programs. They expect a PC, a console, and
-usually a second machine to talk to. RapfiDroid is an unofficial Android port that takes one of the strongest open engines available, [Rapfi](https://github.com/dhbloo/rapfi), compiles it for
+usually a second machine to talk to. Zenyth is an unofficial Android port that takes one of the strongest open engines available, [Rapfi](https://github.com/dhbloo/rapfi), compiles it for
 arm64 Android, and runs it as a real process inside the app. The board, the
 analysis, the forbidden point marking and the position database all work in
 airplane mode, on a phone, with nothing listening on a port anywhere.
@@ -216,7 +218,7 @@ actually execute it. See [docs/publishing.md](docs/publishing.md).
 
 ## Licence
 
-RapfiDroid's own source is **BSD-2-Clause**. The distributed APK also contains
+Zenyth's own source is **BSD-2-Clause**. The distributed APK also contains
 the Rapfi engine, which is **GPL-3.0-or-later**, so the package as a whole is
 conveyed under GPL-3.0-or-later.
 

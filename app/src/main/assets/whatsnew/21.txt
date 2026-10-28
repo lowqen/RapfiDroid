@@ -4,6 +4,7 @@
 # versionCode 21 = 0.16.0, compared with the last public release (0.15.0).
 
 [ko]
+- 앱 이름이 Zenyth 로, 아이콘이 흑돌이 백돌을 가리는 «일식»으로 바뀌었습니다. 분석 엔진은 그대로 Rapfi 입니다.
 - 새 디자인: 차분한 면과 큰 제목, 설정은 페이지로 나뉜 목록, 하단 탭은 고르면 채워진 아이콘으로 바뀝니다.
 - 판이 맑은 메이플 색이 되었고, 보드 화면 전체가 판과 같은 색으로 맞춰졌습니다. 판 위 값 글자색도 차분해졌습니다.
 - 재생 툴바가 크기가 다른 버튼 묶음이 되었습니다. 가운데 ▶ 로 분석을 켜고 끕니다.
@@ -15,6 +16,7 @@
 - 라이선스 전문이 끝까지 보이지 않던 문제를 고쳤습니다.
 
 [en]
+- The app is now called Zenyth, with a new eclipse icon: an ink stone passing in front of a pearl one. The engine is still Rapfi.
 - A new design: calm surfaces and large titles, Settings as a list of pages, and the bottom tabs fill in when chosen.
 - The board is now a clean maple, and the whole board screen takes its colour. The values written on the board are calmer too.
 - The playback toolbar is a group of keys in different sizes; the ▶ in the middle starts and stops the analysis.
@@ -26,6 +28,7 @@
 - The licence texts now show in full.
 
 [zh]
+- 应用改名为 Zenyth，图标换成黑子遮住白子的“日食”。分析引擎仍是 Rapfi。
 - 全新设计：沉静的界面与大标题，设置改为分页列表，底部标签选中时图标会填满。
 - 棋盘改为清爽的枫木色，整个棋盘界面也随之配色。棋盘上的数值文字也更柔和。
 - 播放工具栏改为大小不一的按键组，中间的 ▶ 用来开始和停止分析。

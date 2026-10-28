@@ -235,7 +235,7 @@ private fun SectionsBuilder.rootSections(ui: SettingsUiState, actions: SettingsA
     section("about") {
         ConnectedGroup {
             row(onClick = actions.onAbout) {
-                LinkRow(Icons.Outlined.Info, tr("정보", "About", "关于"), "RapfiDroid ${BuildConfig.VERSION_NAME}")
+                LinkRow(Icons.Outlined.Info, tr("정보", "About", "关于"), "Zenyth ${BuildConfig.VERSION_NAME}")
             }
             row(onClick = actions.onLicenses) {
                 LinkRow(Icons.AutoMirrored.Outlined.Article, tr("오픈소스 라이선스", "Open-source licences", "开源许可证"), null)

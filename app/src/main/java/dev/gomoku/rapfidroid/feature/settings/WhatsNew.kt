@@ -125,7 +125,7 @@ fun WhatsNewDialog(items: List<String>, onDismiss: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(tr("새로워진 점", "What's new", "新功能"), style = MaterialTheme.typography.titleLarge)
                 Text(
-                    "RapfiDroid ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    "Zenyth ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
                     style = MaterialTheme.typography.labelMedium.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

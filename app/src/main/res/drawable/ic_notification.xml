@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Status-bar icon. Android masks a notification icon down to its alpha channel
-  and paints it white, so this is a silhouette by design, drawn at 24dp rather
-  than being the launcher icon shrunk — which is what it used to be, and why the
-  board came through as a grey smudge.
+  Status-bar icon: the Zenyth eclipse as a silhouette. Android paints a
+  notification icon white from its alpha, so the two stones part by the cut
+  alone, widened to 1dp so it survives 24dp.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
@@ -12,11 +11,9 @@
     android:viewportHeight="24"
     android:tint="#FFFFFF">
     <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="1.4"
-        android:strokeAlpha="0.75"
-        android:pathData="M4,12 h16 M12,4 v16" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M13.29,4.46 A7.78,7.78 0 1,1 13.29,19.54 A8.78,8.78 0 0,0 13.29,4.46 z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M12,12 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+        android:pathData="M1.2,12 a7.58,7.58 0 1,0 15.17,0 a7.58,7.58 0 1,0 -15.17,0 z" />
 </vector>

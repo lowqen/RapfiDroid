@@ -60,7 +60,7 @@ gh secret set SIGNING_KEY_PASSWORD      --repo lowqen/RapfiDroid
 # 2) 릴리스 노트를 쓴다 — 파일 이름이 태그와 묶여 있다
 #      docs/release-notes-0.14.0.md
 # 3) 태그를 민다
-git tag -a v0.14.0 -m "RapfiDroid v0.14.0"
+git tag -a v0.14.0 -m "Zenyth v0.14.0"
 git push origin v0.14.0
 ```
 

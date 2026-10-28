@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 13+ themed icon: one colour, chosen by the system from the wallpaper.
-  A photograph cannot be themed, so this layer restates the same composition in
-  line art — two stones on the diagonal, black above-left of white, matching
-  where they sit in `drawable-*/ic_launcher_foreground.png`.
-
-  With no colours left to separate them, the two stones part by *shape* — the
-  black one filled, the white one an outline — which is the same trick the board
-  itself falls back on in greyscale. Both sit inside the 66dp safe circle
-  (centre 54,54): the farthest stone edge is 27dp out of the 33dp allowed.
+  Android 13+ themed icon: one colour, chosen by the system. The eclipse needs
+  no second colour: the pearl crescent and the ink disc are two shapes parted
+  by the same cut as on the coloured icon.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -16,22 +10,10 @@
     android:viewportWidth="108"
     android:viewportHeight="108"
     android:tint="#000000">
-
-    <!-- grid: spacing 22, drawn through 22..88 so the stones land on crossings -->
     <path
-        android:strokeColor="#000000"
-        android:strokeWidth="2.6"
-        android:strokeAlpha="0.55"
-        android:pathData="M20,22 h68 M20,44 h68 M20,66 h68 M20,88 h68 M22,20 v68 M44,20 v68 M66,20 v68 M88,20 v68" />
-
-    <!-- black stone, upper left -->
+        android:fillColor="#FFFFFF"
+        android:pathData="M56.42,38.15 A16.56,16.56 0 1,1 56.42,69.85 A18.18,18.18 0 0,0 56.42,38.15 z" />
     <path
-        android:fillColor="#000000"
-        android:pathData="M44,44 m-13,0 a13,13 0 1,0 26,0 a13,13 0 1,0 -26,0" />
-
-    <!-- white stone, lower right -->
-    <path
-        android:strokeColor="#000000"
-        android:strokeWidth="3.2"
-        android:pathData="M66,66 m-11,0 a11,11 0 1,0 22,0 a11,11 0 1,0 -22,0" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M32.58,54 a14.94,14.94 0 1,0 29.88,0 a14.94,14.94 0 1,0 -29.88,0 z" />
 </vector>

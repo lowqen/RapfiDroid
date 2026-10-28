@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">RapfiDroid</string>
+    <string name="app_name">Zenyth</string>
 
     <string name="tab_board">보드</string>
     <string name="tab_research">연구</string>
@@ -10,5 +10,5 @@
 
     <string name="engine_channel_name">엔진 연결</string>
     <string name="engine_channel_desc">Rapfi 엔진 세션을 유지합니다</string>
-    <string name="engine_notif_title">RapfiDroid 엔진</string>
+    <string name="engine_notif_title">Zenyth 엔진</string>
 </resources>

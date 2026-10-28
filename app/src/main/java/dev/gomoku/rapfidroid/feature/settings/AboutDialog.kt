@@ -42,7 +42,12 @@ fun AboutDialog(
         // heading, where it looked like a section of its own.
         title = {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text("RapfiDroid", style = MaterialTheme.typography.titleLarge)
+                Text("Zenyth", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    tr("오목 · 렌주 분석 · Rapfi 엔진 사용", "Gomoku & Renju analysis · powered by Rapfi", "五子棋 · 连珠分析 · 由 Rapfi 引擎驱动"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     tr("버전 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "Version ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", "版本 ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"),
                     style = MaterialTheme.typography.labelMedium.tabular(),
@@ -56,9 +61,9 @@ fun AboutDialog(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(
-                    tr("Rapfi 엔진을 기기 안에서 돌리는 오목 · 렌주 분석반입니다. RapfiWeb 의 안드로이드판입니다.",
-                        "A gomoku and renju analysis board with the Rapfi engine on the device. The Android sibling of RapfiWeb.",
-                        "在本设备上运行 Rapfi 引擎的五子棋 · 连珠分析棋盘。RapfiWeb 的安卓版。"),
+                    tr("Rapfi 엔진을 기기 안에서 돌리는 오목 · 렌주 분석반입니다. RapfiWeb 의 안드로이드판이며, 2026년 10월까지의 이름은 RapfiDroid 였습니다.",
+                        "A gomoku and renju analysis board with the Rapfi engine on the device. The Android sibling of RapfiWeb, called RapfiDroid until October 2026.",
+                        "在本设备上运行 Rapfi 引擎的五子棋 · 连珠分析棋盘。RapfiWeb 的安卓版，2026 年 10 月前名为 RapfiDroid。"),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Section(

@@ -13,11 +13,10 @@
     <color name="launch_background">#FCF9F4</color>
 
     <!--
-      The disc the Android 12+ splash screen paints behind the launcher icon.
-      The icon is an opaque photograph, so this only shows along the disc's
-      antialiased rim — it matches the photograph's own ground (#060504) so the
-      rim reads as part of the icon. Unlike `launch_background` it is a property
-      of the artwork, not of the theme, so there is no `values-night` twin.
+      The disc the Android 12+ splash screen paints behind the launcher icon:
+      the icon's own maple ground (ic_launcher_background), so the splash shows
+      the same eclipse on the same wood as the home screen. A property of the
+      artwork, not of the theme, so there is no `values-night` twin.
     -->
-    <color name="launch_icon_background">#060504</color>
+    <color name="launch_icon_background">#DDB27C</color>
 </resources>
