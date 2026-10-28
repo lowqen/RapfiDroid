@@ -31,6 +31,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.gomoku.rapfidroid.core.designsystem.component.RapfiSheet
 import dev.gomoku.rapfidroid.core.i18n.tr
 import dev.gomoku.rapfidroid.core.model.DbCellKind
 import dev.gomoku.rapfidroid.core.model.FontSpec
@@ -137,34 +138,31 @@ private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
 internal fun BalanceDialog(onDismiss: () -> Unit, onConfirm: (Boolean, Int) -> Unit) {
     var bias by remember { mutableStateOf("0") }
     val value = bias.trim().toIntOrNull() ?: 0
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(tr("균형점 찾기", "Balance", "平衡点")) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    tr("엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. ", "The engine looks for the move that brings the position closest to even (50 %).", "引擎会寻找让局面最接近均势(胜率 50 %)的着法。") +
-                        tr("찾은 수는 바로 판에 놓입니다.", "What it finds is played straight onto the board.", "找到的着法会直接落在棋盘上。"),
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                OutlinedTextField(
-                    value = bias,
-                    onValueChange = { bias = it },
-                    singleLine = true,
-                    label = { Text(tr("치우침 (0 = 완전 균형)", "Bias (0 = dead even)", "偏差 (0 = 完全均势)")) },
-                )
-            }
+    RapfiSheet(
+        title = tr("균형점 찾기", "Balance", "平衡点"),
+        onDismiss = onDismiss,
+        dismiss = {
+            TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) }
+            Button(onClick = { onConfirm(true, value) }) { Text(tr("두 수", "Two moves", "两手")) }
         },
-        confirmButton = {
+        confirm = {
             Button(onClick = { onConfirm(false, value) }) { Text(tr("한 수", "One move", "一手")) }
         },
-        dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) }
-                Button(onClick = { onConfirm(true, value) }) { Text(tr("두 수", "Two moves", "两手")) }
-            }
-        },
-    )
+    ) {
+        Text(
+            tr("엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. ", "The engine looks for the move that brings the position closest to even (50 %).", "引擎会寻找让局面最接近均势(胜率 50 %)的着法。") +
+                tr("찾은 수는 바로 판에 놓입니다.", "What it finds is played straight onto the board.", "找到的着法会直接落在棋盘上。"),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        OutlinedTextField(
+            value = bias,
+            onValueChange = { bias = it },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(tr("치우침 (0 = 완전 균형)", "Bias (0 = dead even)", "偏差 (0 = 完全均势)")) },
+        )
+    }
 }
 
 /**
@@ -181,11 +179,17 @@ internal fun PositionDialog(
 ) {
     val clipboard = LocalClipboardManager.current
     var draft by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(tr("국면 문자열", "Position string", "局面代码")) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    RapfiSheet(
+        title = tr("국면 문자열", "Position string", "局面代码"),
+        onDismiss = onDismiss,
+        dismiss = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) } },
+        confirm = {
+            Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text(tr("불러오기", "Load", "载入")) }
+        },
+    ) {
+        // This board's line, with the button that takes it away beside it.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
                 Text(
                     ui.positionString.ifEmpty { tr("(빈 판)", "(empty board)", "(空棋盘)") },
                     style = MaterialTheme.typography.bodyMedium
@@ -196,31 +200,29 @@ internal fun PositionDialog(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    singleLine = true,
-                    label = { Text(tr("불러올 문자열 (예: h8i9g7)", "String to load (e.g. h8i9g7)", "要载入的代码 (例: h8i9g7)")) },
-                )
             }
-        },
-        confirmButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(
-                    onClick = {
-                        clipboard.setText(AnnotatedString(ui.positionString))
-                        onCopied()
-                    },
-                    enabled = ui.positionString.isNotEmpty(),
-                ) { Text(tr("복사", "Copy", "复制")) }
-                TextButton(onClick = { draft = clipboard.getText()?.text.orEmpty() }) {
-                    Text(tr("붙여넣기", "Paste", "粘贴"))
-                }
-                Button(onClick = { onLoad(draft) }, enabled = draft.isNotBlank()) { Text(tr("불러오기", "Load", "载入")) }
+            TextButton(
+                onClick = {
+                    clipboard.setText(AnnotatedString(ui.positionString))
+                    onCopied()
+                },
+                enabled = ui.positionString.isNotEmpty(),
+            ) { Text(tr("복사", "Copy", "复制")) }
+        }
+        // A line to load, with the button that fills it from the clipboard.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                label = { Text(tr("불러올 문자열 (예: h8i9g7)", "String to load (e.g. h8i9g7)", "要载入的代码 (例: h8i9g7)")) },
+            )
+            TextButton(onClick = { draft = clipboard.getText()?.text.orEmpty() }) {
+                Text(tr("붙여넣기", "Paste", "粘贴"))
             }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) } },
-    )
+        }
+    }
 }
 
 /**
@@ -237,36 +239,34 @@ internal fun BoardTextDialog(
     onConfirm: (String) -> Unit,
 ) {
     var text by remember(cell) { mutableStateOf(initial) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(tr("보드 텍스트  ${cell.label(size)}", "Board text  ${cell.label(size)}", "棋盘文字  ${cell.label(size)}")) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { if (it.length <= 6) text = it },
-                    singleLine = true,
-                    enabled = editable,
-                    label = { Text(tr("최대 6자", "6 characters max", "最多 6 个字")) },
-                )
-                Text(
-                    if (editable) tr("비우고 확인하면 라벨이 삭제됩니다.", "Confirming an empty value deletes the label.", "留空并确认会删除该标签。")
-                    else tr("읽기 전용 상태에서는 편집할 수 없습니다.", "Nothing can be edited while the database is read-only.", "数据库只读时无法编辑。"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                val kinds = mapOf(
-                    "W5" to DbCellKind.WIN, "L7" to DbCellKind.LOSS,
-                    "D" to DbCellKind.DRAW, "63%" to DbCellKind.RATE,
-                )
-                FlowRowChips(kinds.keys.toList(), enabled = editable) { text = it }
-            }
-        },
-        confirmButton = {
+    RapfiSheet(
+        title = tr("보드 텍스트  ${cell.label(size)}", "Board text  ${cell.label(size)}", "棋盘文字  ${cell.label(size)}"),
+        onDismiss = onDismiss,
+        dismiss = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
+        confirm = {
             Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("확인", "OK", "确定")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
-    )
+    ) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { if (it.length <= 6) text = it },
+            singleLine = true,
+            enabled = editable,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(tr("최대 6자", "6 characters max", "最多 6 个字")) },
+        )
+        Text(
+            if (editable) tr("비우고 확인하면 라벨이 삭제됩니다.", "Confirming an empty value deletes the label.", "留空并确认会删除该标签。")
+            else tr("읽기 전용 상태에서는 편집할 수 없습니다.", "Nothing can be edited while the database is read-only.", "数据库只读时无法编辑。"),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        val kinds = mapOf(
+            "W5" to DbCellKind.WIN, "L7" to DbCellKind.LOSS,
+            "D" to DbCellKind.DRAW, "63%" to DbCellKind.RATE,
+        )
+        FlowRowChips(kinds.keys.toList(), enabled = editable) { text = it }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -289,27 +289,27 @@ internal fun CommentDialog(
     onConfirm: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf(initial) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(tr("국면 주석", "Position comment", "局面注释")) },
-        text = {
-            // settings.txt line 47, the desktop's second "Database Comment Font":
-            // the one the editor uses.
-            val base = MaterialTheme.typography.bodyMedium
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                enabled = editable,
-                minLines = 3,
-                maxLines = 8,
-                textStyle = base.copy(fontSize = base.fontSize * editFont.scale),
-            )
-        },
-        confirmButton = {
+    RapfiSheet(
+        title = tr("국면 주석", "Position comment", "局面注释"),
+        onDismiss = onDismiss,
+        dismiss = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
+        confirm = {
             Button(onClick = { onConfirm(text) }, enabled = editable) { Text(tr("저장", "Save", "保存")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
-    )
+    ) {
+        // settings.txt line 47, the desktop's second "Database Comment Font":
+        // the one the editor uses.
+        val base = MaterialTheme.typography.bodyMedium
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            enabled = editable,
+            minLines = 3,
+            maxLines = 8,
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = base.copy(fontSize = base.fontSize * editFont.scale),
+        )
+    }
 }
 
 /** `rgba(0.85, 0.45, 0.15, 0.90)` — the desktop's prove badge (main.c:6892). */
