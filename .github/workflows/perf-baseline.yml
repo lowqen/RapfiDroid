@@ -45,8 +45,10 @@ jobs:
           ./gradlew testDebugUnitTest --rerun --tests '*BaselineTest*'
           --stacktrace
 
+      # The report folders are not inputs of the compile task, so without
+      # --rerun it comes back UP-TO-DATE and writes nothing.
       - name: Compose compiler reports
-        run: ./gradlew assembleDebug -PcomposeReports --stacktrace
+        run: ./gradlew compileDebugKotlin --rerun -PcomposeReports --stacktrace
 
       - name: Summary
         if: always()
