@@ -368,7 +368,8 @@ private fun ThemePreview() {
             }
             blob(scheme.primaryContainer, 0.12f, 0.18f, 0.75f)
             blob(scheme.secondaryContainer, 0.95f, 0.92f, 0.85f)
-            blob(scheme.tertiaryContainer.copy(alpha = 0.7f), 0.78f, 0.05f, 0.45f)
+            // One hue only, as Mornye's: the warm tertiary went brown in the dark.
+            blob(scheme.primary.copy(alpha = 0.16f), 0.78f, 0.05f, 0.45f)
         }
         Column(
             Modifier.align(Alignment.Center),
