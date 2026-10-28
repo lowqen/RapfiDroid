@@ -42,9 +42,10 @@ fun RapfiBottomBar(
     connection: ConnectionState,
     onSelect: (Destination) -> Unit,
     modifier: Modifier = Modifier,
+    destinations: List<Destination> = Destination.entries,
 ) {
     NavigationBar(modifier) {
-        Destination.entries.forEach { dest ->
+        destinations.forEach { dest ->
             NavigationBarItem(
                 selected = dest == selected,
                 onClick = { onSelect(dest) },
@@ -71,6 +72,7 @@ fun RapfiRail(
     onSelect: (Destination) -> Unit,
     modifier: Modifier = Modifier,
     showLabels: Boolean = true,
+    destinations: List<Destination> = Destination.entries,
 ) {
     NavigationRail(modifier) {
         Column(
@@ -80,7 +82,7 @@ fun RapfiRail(
                 .padding(vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Destination.entries.forEach { dest ->
+            destinations.forEach { dest ->
                 NavigationRailItem(
                     selected = dest == selected,
                     onClick = { onSelect(dest) },

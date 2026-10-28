@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.tools
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -60,14 +61,19 @@ fun EngineScreen(modifier: Modifier = Modifier) {
 
     Column(modifier = modifier.fillMaxSize()) {
         RapfiTopBar(title = tr("엔진", "Engine", "引擎"))
-        RapfiSegmented(
-            options = titles.mapIndexed { i, title -> i to title },
-            selection = tab,
-            onSelect = { tab = it },
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            fill = true,
-        )
-        QuietSwitch(tab, Modifier.fillMaxSize()) { index ->
+        // Tools — hash, blocked points, scripts, the command language — is an
+        // expert surface: without «고급 사용자 모드» the tab is the connection.
+        val pro = LocalProMode.current
+        if (pro) {
+            RapfiSegmented(
+                options = titles.mapIndexed { i, title -> i to title },
+                selection = tab,
+                onSelect = { tab = it },
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                fill = true,
+            )
+        }
+        QuietSwitch(if (pro) tab else 0, Modifier.fillMaxSize()) { index ->
             when (index) {
                 0 -> ConnectionScreen()
                 else -> ToolsScreen()

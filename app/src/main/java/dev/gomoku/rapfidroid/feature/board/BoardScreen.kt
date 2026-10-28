@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.board
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import android.os.SystemClock
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -192,6 +193,7 @@ fun BoardScreen(
             onSwapSides = viewModel::onSwapSides,
         )
     }
+    val pro = LocalProMode.current
     val cards: @Composable ColumnScope.(Boolean) -> Unit = { wide ->
         if (ui.linkBackup) LinkBackupCard(viewModel::onRestoreLinkBackup, viewModel::onDropLinkBackup)
         // Wide: the position card leads. Narrow: one line instead, the card after
@@ -218,7 +220,9 @@ fun BoardScreen(
             )
         }
         if (!wide) PositionCard(ui, files, onResign = { confirmResign = true }, onDraw = viewModel::onOfferDraw)
-        if (ui.analysisTab) {
+        // Defences, balance, transforms, the user's scripts: expert tools,
+        // shown in «고급 사용자 모드» only.
+        if (ui.analysisTab && pro) {
             ToolsCard(
                 ui = ui,
                 onDefend = viewModel::onSearchDefend,

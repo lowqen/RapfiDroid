@@ -440,7 +440,7 @@ internal fun AnalysisOptions(
                 onNote = onNote,
             )
         }
-        FieldRow(tr("후보 수", "Candidates", "候选数")) {
+        FieldRow(tr("후보 수", "Candidates", "候选数"), note = tr("늘리면 수마다 얕게 읽음", "More lines, each read shallower", "越多每条越浅")) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { onMultiPv(ui.multiPv - 1) }, enabled = ui.multiPv > 1) {
                     Text("−", style = MaterialTheme.typography.titleLarge)

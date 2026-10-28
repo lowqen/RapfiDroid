@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid.feature.settings
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.proMode
+import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import dev.gomoku.rapfidroid.core.designsystem.component.staggerIn
@@ -131,6 +133,10 @@ fun SettingsScreen(
     }
 
     val searching = ui.query.isNotBlank()
+    // «고급 사용자 모드» also shows the PC settings list; the list follows the
+    // saved mode whenever the screen opens.
+    val pro = LocalProMode.current
+    LaunchedEffect(pro) { if (ui.advanced != pro) viewModel.onAdvanced(pro) }
     val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Column(modifier = modifier.fillMaxSize().nestedScroll(header.nestedScrollConnection)) {
         RapfiCollapsingTopBar(title = tr("설정", "Settings", "设置"), scrollBehavior = header)
@@ -176,13 +182,16 @@ fun SettingsScreen(
                         row {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(tr("고급 설정", "Advanced settings", "高级设置"), style = MaterialTheme.typography.titleMedium)
-                                    Hint(
-                                        if (ui.advanced) tr("엔진 · 대국 · 표시 · DB · 시스템", "Engine, game, display, database, system", "引擎 · 对局 · 显示 · 数据库 · 系统")
-                                        else tr("${ui.hidden}개 숨김", "${ui.hidden} hidden", "已隐藏 ${ui.hidden} 项"),
-                                    )
+                                    Text(tr("고급 사용자 모드", "Expert mode", "高级用户模式"), style = MaterialTheme.typography.titleMedium)
+                                    Hint(tr("DB 탭 · 엔진 콘솔 · 도구 · PC 설정 ${ui.hidden}개", "DB tab, engine console, tools, ${ui.hidden} PC settings", "数据库页 · 引擎控制台 · 工具 · ${ui.hidden} 项 PC 设置"))
                                 }
-                                Switch(checked = ui.advanced, onCheckedChange = viewModel::onAdvanced)
+                                Switch(
+                                    checked = pro,
+                                    onCheckedChange = { on ->
+                                        prefs?.proMode?.set(on)
+                                        viewModel.onAdvanced(on)
+                                    },
+                                )
                             }
                         }
                     }
@@ -336,7 +345,10 @@ internal fun LocalEngineCard(
     ConnectedGroup(title = tr("기기 내 엔진", "On-device engine", "本机引擎")) {
         row {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("해시 크기 (MB)", "Hash size (MB)", "哈希表大小 (MB)"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f)) {
+                    Text(tr("해시 크기 (MB)", "Hash size (MB)", "哈希表大小 (MB)"), style = MaterialTheme.typography.bodyMedium)
+                    Hint(tr("길게 읽을수록 도움 · 그만큼 메모리", "Helps long searches · costs that much memory", "长时间搜索更有利 · 占用同等内存"))
+                }
                 CommitField(
                     value = ui.localProfile.hashMb.toString(),
                     onCommit = { raw -> raw.toIntOrNull()?.let(onHash) },
@@ -351,9 +363,9 @@ internal fun LocalEngineCard(
             if (cap != null && cap < ui.localProfile.hashMb) {
                 Hint(
                     tr(
-                        "메모리가 모자라 엔진이 종료된 적이 있어 ${cap} MB 로 줄여 씁니다 — 해시 크기를 다시 고르면 풀립니다",
-                        "The engine was once killed for lack of memory, so it uses $cap MB — pick a hash size again to lift this",
-                        "引擎曾因内存不足被终止，现使用 $cap MB — 重新选择哈希表大小即可解除",
+                        "메모리 부족으로 ${cap} MB 로 줄여 씀 · 다시 고르면 풀림",
+                        "Cut to $cap MB after running out of memory · pick again to lift",
+                        "因内存不足降为 $cap MB · 重新选择即可解除",
                     ),
                     color = MaterialTheme.colorScheme.error,
                 )
@@ -371,9 +383,9 @@ internal fun LocalEngineCard(
                 if (dbBytes >= ui.localDbWarnBytes) {
                     Hint(
                         tr(
-                            "rapfi.db ${mb} MB — 엔진이 이만큼 메모리를 더 씁니다. 메모리가 모자라면 DB 탭에서 정리하세요",
-                            "rapfi.db $mb MB — the engine holds all of it in memory. If memory runs short, tidy it in the DB tab",
-                            "rapfi.db $mb MB — 引擎会把它全部放进内存。内存不足时请在数据库页整理",
+                            "rapfi.db ${mb} MB · 엔진이 그만큼 메모리를 더 씀",
+                            "rapfi.db $mb MB · the engine holds it all in memory",
+                            "rapfi.db $mb MB · 引擎会多占这么多内存",
                         ),
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -596,7 +608,7 @@ internal fun CommonSettings(
             }
         }
         row {
-            FieldRow(tr("스레드 수", "Threads", "线程数")) {
+            FieldRow(tr("스레드 수", "Threads", "线程数"), note = tr("많을수록 빠르고 · 뜨거워짐", "More is faster · and warmer", "越多越快 · 也越热")) {
                 ChoiceChips(
                     options = ui.threadChoices.map { it to "$it" },
                     selected = ui.localProfile.threads,
@@ -633,7 +645,7 @@ internal fun CommonSettings(
                 val amoled by prefs.themeAmoled.state.collectAsStateWithLifecycle()
                 SwitchRow(
                     title = tr("검은 배경", "Black background", "纯黑背景"),
-                    note = tr("다크 테마에서 OLED 화면용", "Dark theme, for OLED screens", "深色主题下，适合 OLED 屏幕"),
+                    note = tr("다크 테마에서만", "Dark theme only", "仅深色主题"),
                     checked = amoled,
                     onChange = { prefs.themeAmoled.set(it) },
                 )
@@ -643,7 +655,7 @@ internal fun CommonSettings(
                     val tone by prefs.themeWallpaperTone.state.collectAsStateWithLifecycle()
                     SwitchRow(
                         title = tr("배경화면 색조", "Wallpaper tone", "壁纸色调"),
-                        note = tr("회색 바탕만 배경화면 쪽으로. 판과 값의 색은 그대로", "Only the greys lean toward it. Board and value colours stay", "仅灰色底色偏向壁纸，棋盘与数值颜色不变"),
+                        note = tr("바탕의 회색만 · 판과 값의 색은 그대로", "The greys only · board colours stay", "仅灰色底色 · 棋盘颜色不变"),
                         checked = tone,
                         onChange = { prefs.themeWallpaperTone.set(it) },
                     )
@@ -651,12 +663,10 @@ internal fun CommonSettings(
             }
             row {
                 val haptics by prefs.hapticsEnabled.state.collectAsStateWithLifecycle()
-                SwitchRow(
-                    title = tr("진동", "Vibration", "振动"),
-                    note = tr("돌을 놓을 때 · 둘 수 없을 때 · 승부가 났을 때", "When a stone lands, a move is refused, a game ends", "落子 · 无法落子 · 分出胜负时"),
-                    checked = haptics,
-                    onChange = { prefs.hapticsEnabled.set(it) },
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("진동", "Vibration", "振动"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                    Switch(checked = haptics, onCheckedChange = { prefs.hapticsEnabled.set(it) })
+                }
             }
             row {
                 val auto by prefs.autoStartEngine.state.collectAsStateWithLifecycle()
@@ -669,7 +679,7 @@ internal fun CommonSettings(
                 val curriculum by prefs.curriculumAutoUpdate.state.collectAsStateWithLifecycle()
                 SwitchRow(
                     title = tr("정석 커리큘럼 자동 업데이트", "Update the joseki curriculum", "自动更新定式课程"),
-                    note = tr("rapfiweb.pages.dev 에서 받습니다. 보내는 정보는 없습니다", "From rapfiweb.pages.dev. Nothing is sent", "从 rapfiweb.pages.dev 获取，不发送任何信息"),
+                    note = tr("rapfiweb.pages.dev · 보내는 정보 없음", "rapfiweb.pages.dev · nothing is sent", "rapfiweb.pages.dev · 不发送任何信息"),
                     checked = curriculum,
                     onChange = { prefs.curriculumAutoUpdate.set(it) },
                 )

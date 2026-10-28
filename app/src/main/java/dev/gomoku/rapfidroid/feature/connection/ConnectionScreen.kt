@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.feature.connection
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -137,9 +138,9 @@ private fun ConnectionContent(
         } else {
             Text(
                 tr(
-                    "엔진은 이 기기 안에서 돌아갑니다 — 인터넷도 서버도 필요 없습니다.",
-                    "The engine runs inside this device: no server, no internet.",
-                    "引擎在本设备内运行，无需服务器，也无需联网。",
+                    "이 기기 안에서 돌아갑니다 · 인터넷 불필요",
+                    "Runs on this device · no internet needed",
+                    "在本设备运行 · 无需联网",
                 ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -219,8 +220,18 @@ private fun ConnectionContent(
         }
     }
 
+    // The console and its command line are for people who speak the protocol:
+    // shown in «고급 사용자 모드» only. Without it the tab is where the engine is
+    // and whether it answers.
+    val pro = LocalProMode.current
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        if (maxWidth >= WideLayoutMin) {
+        if (!pro) {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                content = endpointPane,
+            )
+        } else if (maxWidth >= WideLayoutMin) {
             // Two columns from a landscape phone up. Stacked, the endpoint rows,
             // the status row, the health row, the console header and the command
             // line come to about 360dp — more than a landscape phone has — and a

@@ -1,5 +1,7 @@
 package dev.gomoku.rapfidroid
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.proMode
+import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -102,10 +104,12 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
             val haptics by uiPrefs.hapticsEnabled.state.collectAsStateWithLifecycle()
+            val pro by uiPrefs.proMode.state.collectAsStateWithLifecycle()
             RapfiDroidTheme(darkTheme = dark, amoled = amoled, chromeHue = chromeHue) {
                 CompositionLocalProvider(
                     LocalUiPrefs provides uiPrefs,
                     LocalHapticsEnabled provides haptics,
+                    LocalProMode provides pro,
                 ) {
                     RapfiApp()
                 }

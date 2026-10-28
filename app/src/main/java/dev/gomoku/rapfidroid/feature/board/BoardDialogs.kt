@@ -150,8 +150,7 @@ internal fun BalanceDialog(onDismiss: () -> Unit, onConfirm: (Boolean, Int) -> U
         },
     ) {
         Text(
-            tr("엔진이 국면을 균형(승률 50 %)에 가장 가깝게 만드는 수를 찾습니다. ", "The engine looks for the move that brings the position closest to even (50 %).", "引擎会寻找让局面最接近均势(胜率 50 %)的着法。") +
-                tr("찾은 수는 바로 판에 놓입니다.", "What it finds is played straight onto the board.", "找到的着法会直接落在棋盘上。"),
+            tr("승률 50 %에 가장 가까운 수를 찾아 바로 둡니다", "Finds the move nearest 50 % and plays it", "寻找最接近 50 % 的着法并直接落子"),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

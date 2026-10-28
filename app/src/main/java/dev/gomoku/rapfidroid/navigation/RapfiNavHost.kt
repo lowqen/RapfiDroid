@@ -1,5 +1,6 @@
 package dev.gomoku.rapfidroid.navigation
 
+import dev.gomoku.rapfidroid.core.designsystem.theme.LocalProMode
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.background
@@ -168,6 +169,13 @@ fun RapfiApp() {
             restoreState = true
         }
     }
+    // The DB tab is an expert surface: shown in «고급 사용자 모드» only, and
+    // left for the board if the mode goes off while it is open.
+    val pro = LocalProMode.current
+    val destinations = Destination.entries.filter { pro || it != Destination.Database }
+    LaunchedEffect(pro, selected) {
+        if (!pro && selected == Destination.Database) onSelect(Destination.Board)
+    }
     val threshold = with(LocalDensity.current) { 28.dp.toPx() }
     val hider = remember(threshold) { BarHider(threshold) }
     // The board never folds the bar away, and a new tab starts with it shown.
@@ -192,6 +200,7 @@ fun RapfiApp() {
                         connection = connection,
                         onSelect = onSelect,
                         showLabels = railLabels,
+                        destinations = destinations,
                     )
                 }
                 Scaffold(
@@ -216,7 +225,7 @@ fun RapfiApp() {
                                 exit = shrinkVertically(ChromeMotion.spatial(tween(MOTION_QUICK))) +
                                     fadeOut(ChromeMotion.effects(tween(MOTION_QUICK))),
                             ) {
-                                RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect)
+                                RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
                             }
                         }
                     },

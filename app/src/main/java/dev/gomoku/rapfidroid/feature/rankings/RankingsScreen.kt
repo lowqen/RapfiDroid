@@ -285,9 +285,9 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
                         icon = Icons.Filled.BarChart,
                         title = tr("표시할 모양이 없습니다", "Nothing to show", "没有可显示的形状"),
                         body = tr(
-                            "5수 탭은 실전 빈도만 보여 줍니다. 설정 탭에서 「대국 데이터 추가」로 채워집니다.",
-                            "This tab is built from real games only. Add a game database in Settings and it fills in.",
-                            "第5手页只显示实战频率。在设置页«添加对局数据»后即可填充。",
+                            "설정 › 대국 데이터 추가 뒤에 실전 빈도가 채워집니다",
+                            "Fills in from real games after Settings › Add game data",
+                            "在 设置 › 添加对局数据 后按实战频率填充",
                         ),
                     )
                 }
