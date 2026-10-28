@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.withInfiniteAnimationFrameNanos
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
@@ -68,11 +68,11 @@ fun WavyProgress(
     val cap by rememberUpdatedState(ceiling.coerceIn(reported, 1f))
     val reduced by rememberUpdatedState(LocalReducedMotion.current)
     LaunchedEffect(wave) {
-        var last = withInfiniteAnimationFrameNanos { it }
+        var last = withFrameNanos { it }
         var anchor = known
         var anchorAt = last
         while (true) {
-            withInfiniteAnimationFrameNanos { now ->
+            withFrameNanos { now ->
                 if (known != anchor) {
                     // Further back than two seconds of the run's own speed is not
                     // jitter but a new run (a new position, a new move).
