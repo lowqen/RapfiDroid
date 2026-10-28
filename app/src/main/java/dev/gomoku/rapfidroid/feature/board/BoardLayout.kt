@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
 import dev.gomoku.rapfidroid.core.designsystem.component.RapfiTopBar
 import dev.gomoku.rapfidroid.core.designsystem.component.ShellActions
-import dev.gomoku.rapfidroid.core.designsystem.component.cardColor
 import dev.gomoku.rapfidroid.core.designsystem.theme.RapfiTheme
 
 /** Height of the move toolbar under the board. */
@@ -107,9 +106,10 @@ internal fun BoardPortrait(
                 scaffoldState = scaffold,
                 sheetPeekHeight = metrics.peek,
                 sheetShape = RoundedCornerShape(topStart = RapfiTheme.tokens.radiusSheet, topEnd = RapfiTheme.tokens.radiusSheet),
-                // The card face, so the sheet reads as the cards' own surface
-                // pulled over the page, not as a third colour.
-                sheetContainerColor = cardColor(),
+                // The page's tone, so the cards on it stand off it exactly as
+                // they do on the page (M1: cards are a step darker than their
+                // ground, with no border). M5 tints it with the board's wood.
+                sheetContainerColor = MaterialTheme.colorScheme.surface,
                 sheetShadowElevation = 3.dp,
                 sheetDragHandle = { SheetHandle() },
                 // The page's gradient shows through behind the board.
