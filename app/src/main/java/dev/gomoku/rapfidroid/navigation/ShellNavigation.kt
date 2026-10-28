@@ -126,6 +126,10 @@ private fun DestinationLabel(dest: Destination) {
  *
  *  - only a **finger** counts: a fling's tail, a list scrolling itself to its
  *    newest line (the engine console) and a horizontal swipe do nothing;
+ *  - only what a list **actually scrolled** counts. A drag on a screen that
+ *    does not scroll, or on a list too short to move, moves nothing and hides
+ *    nothing — it used to count the finger's travel and fold the bar away
+ *    under a screen that had not moved;
  *  - [threshold] pixels of deliberate travel one way, not a twitch;
  *  - down the list hides, up the list shows, and reaching the top shows —
  *    Mornye waits for the top, but here six tabs are the way around the app
@@ -151,20 +155,21 @@ class BarHider(private val threshold: Float) : NestedScrollConnection {
         travel = 0f
     }
 
-    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-        if (!enabled || source != NestedScrollSource.UserInput || available.y == 0f) return Offset.Zero
-        if (travel != 0f && (travel > 0f) != (available.y > 0f)) travel = 0f
-        travel += available.y
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+        if (!enabled || source != NestedScrollSource.UserInput) return Offset.Zero
+        // Pulling down with nothing left above: the list is at its top.
+        if (available.y > 0f) {
+            show()
+            return Offset.Zero
+        }
+        val moved = consumed.y
+        if (moved == 0f) return Offset.Zero
+        if (travel != 0f && (travel > 0f) != (moved > 0f)) travel = 0f
+        travel += moved
         when {
             travel <= -threshold -> { hidden = true; travel = 0f }
             travel >= threshold -> { hidden = false; travel = 0f }
         }
-        return Offset.Zero
-    }
-
-    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
-        // Pulling down with nothing left above: the list is at its top.
-        if (enabled && source == NestedScrollSource.UserInput && available.y > 0f) show()
         return Offset.Zero
     }
 }
