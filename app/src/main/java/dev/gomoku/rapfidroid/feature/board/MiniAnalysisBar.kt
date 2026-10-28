@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.rapfidroid.core.designsystem.component.MiniBoard
 import dev.gomoku.rapfidroid.core.designsystem.component.TileShape
-import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
 import dev.gomoku.rapfidroid.core.designsystem.theme.expandFadeIn
 import dev.gomoku.rapfidroid.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.rapfidroid.core.designsystem.theme.tabular
@@ -65,12 +64,10 @@ internal fun MiniAnalysisContent(ui: BoardUiState, onOpen: () -> Unit, onPause: 
         color = scheme.surfaceContainerHigh,
     ) {
         Column {
-            val timed = ui.analyzing && ui.analysisSec > 0 && !ui.stale
-            if (timed) {
-                WavyProgress(
-                    (stats?.timeMs ?: 0L) / (ui.analysisSec * 1000f),
-                    Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp),
-                )
+            val run = ui.timedRun()
+            val timed = run != null
+            if (run != null) {
+                TimedWave(run, Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp))
             }
             Row(
                 Modifier.padding(start = 10.dp, end = 10.dp, top = if (timed) 4.dp else 10.dp, bottom = 10.dp),

@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.key
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
 import dev.gomoku.rapfidroid.core.designsystem.component.rememberCalmFling
@@ -223,23 +224,50 @@ internal fun BoardWithBar(
 }
 
 /**
- * The line between the summary and the cards: during an analysis with a time
- * limit, how much of it has run, as a wave ([WavyProgress], M5); otherwise a
+ * The line between the summary and the cards: while the engine runs against a
+ * clock, how much of it has gone, as a wave ([WavyProgress], M5); otherwise a
  * hairline.
  */
 @Composable
 private fun SheetRule(ui: BoardUiState) {
-    val timed = ui.analysisTab && ui.analyzing && ui.analysisSec > 0 && !ui.stale
+    val run = ui.timedRun()
     Box(
         Modifier.fillMaxWidth().height(10.dp).padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (timed) {
-            val ms = ui.shown?.stats?.timeMs ?: 0L
-            WavyProgress(ms / (ui.analysisSec * 1000f))
+        if (run != null) {
+            TimedWave(run)
         } else {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
+    }
+}
+
+/**
+ * The engine running against a clock, as the wave sees it: where it is known to
+ * be ([fraction]), how fast it goes on its own ([perSecond]) and what makes one
+ * run differ from the next ([run]).
+ */
+internal data class TimedRun(val fraction: Float, val perSecond: Float, val run: Any)
+
+/**
+ * A timed analysis (the engine's own reported time against the limit) or, in a
+ * game with a time control, the engine thinking on its move. The game has no
+ * reported time to read, so its wave starts when the move does and runs on the
+ * clock — one run per move.
+ */
+internal fun BoardUiState.timedRun(): TimedRun? = when {
+    analyzing && analysisSec > 0 && !stale ->
+        TimedRun((shown?.stats?.timeMs ?: 0L) / (analysisSec * 1000f), 1f / analysisSec, "analysis")
+    game.thinking && moveTimeMs > 0 -> TimedRun(0f, 1000f / moveTimeMs, moveCount)
+    else -> null
+}
+
+/** [WavyProgress] for a [TimedRun]: a new run is a new wave. */
+@Composable
+internal fun TimedWave(run: TimedRun, modifier: Modifier = Modifier) {
+    key(run.run) {
+        WavyProgress(run.fraction, modifier, perSecond = run.perSecond)
     }
 }
 

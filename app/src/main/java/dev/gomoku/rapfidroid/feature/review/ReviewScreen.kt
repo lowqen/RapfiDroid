@@ -49,7 +49,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.gomoku.rapfidroid.core.designsystem.component.SmoothProgressBar
+import dev.gomoku.rapfidroid.core.designsystem.component.WavyProgress
 import dev.gomoku.rapfidroid.core.designsystem.component.CalmCard
 import dev.gomoku.rapfidroid.core.designsystem.component.CardTitle
 import dev.gomoku.rapfidroid.core.designsystem.component.Disclosure
@@ -184,7 +184,16 @@ private fun RunCard(
         val budget = ui.budget
         if (ui.running) {
             val progress = ui.progress
-            SmoothProgressBar(fraction = progress.fraction, modifier = Modifier.fillMaxWidth())
+            // The review's place as a wave (2026-10-29): with a time budget the
+            // head runs on through each position at the budget's pace and waits
+            // at the next one's start; by depth it eases from position to position.
+            val positions = progress.total + 1
+            WavyProgress(
+                fraction = progress.fraction,
+                modifier = Modifier.fillMaxWidth(),
+                perSecond = if (progress.budget.byDepth) 0f else 1f / (progress.budget.seconds * positions),
+                ceiling = ((progress.index + 1f) / positions).coerceAtMost(1f),
+            )
             Text(
                 buildString {
                     progress.queue?.let { append(tr("큐 ${it.index}/${it.total} · ${it.name} · ", "Queue ${it.index}/${it.total} · ${it.name} · ", "队列 ${it.index}/${it.total} · ${it.name} ·")) }
