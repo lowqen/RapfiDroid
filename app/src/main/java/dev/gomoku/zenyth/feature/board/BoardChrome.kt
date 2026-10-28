@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxSize
+import dev.gomoku.zenyth.core.designsystem.component.CappedFontScale
 import dev.gomoku.zenyth.core.designsystem.component.RapfiSegmented
 import dev.gomoku.zenyth.core.designsystem.component.rememberRapfiHaptics
 import dev.gomoku.zenyth.core.designsystem.theme.MOTION_VALUE
@@ -285,6 +286,12 @@ private fun ToolKey(
  */
 @Composable
 internal fun VerticalEvalBar(eval: EvalView?, modifier: Modifier = Modifier, compact: Boolean = false) {
+    // A few dp wide: its number may not grow with the font (M7 — «63» showed as «6» at 2.0).
+    CappedFontScale(1.1f) { VerticalEvalBarBody(eval, modifier, compact) }
+}
+
+@Composable
+private fun VerticalEvalBarBody(eval: EvalView?, modifier: Modifier, compact: Boolean) {
     val skin = RapfiTheme.board
     val black = (eval?.blackPct ?: 50.0).coerceIn(0.0, 100.0).toFloat()
     val frac by animateFloatAsState(black / 100f, tween(MOTION_VALUE), label = "evalBar")

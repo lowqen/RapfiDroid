@@ -123,6 +123,7 @@ fun PillBadge(text: String, modifier: Modifier = Modifier, accent: Boolean = fal
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp).tabular(),
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

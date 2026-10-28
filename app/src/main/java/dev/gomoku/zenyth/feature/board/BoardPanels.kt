@@ -1,5 +1,6 @@
 package dev.gomoku.zenyth.feature.board
 
+import dev.gomoku.zenyth.core.designsystem.component.CappedFontScale
 import dev.gomoku.zenyth.core.designsystem.component.PillBadge
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.animateColorAsState
@@ -793,6 +794,12 @@ internal val SummaryHeight = 64.dp
  */
 @Composable
 internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
+    // The strip is the sheet's 64dp peek: its text grows to 1.3 and no further.
+    CappedFontScale(1.3f) { SummaryStripBody(ui, modifier) }
+}
+
+@Composable
+private fun SummaryStripBody(ui: BoardUiState, modifier: Modifier) {
     Row(
         modifier
             .fillMaxWidth()
