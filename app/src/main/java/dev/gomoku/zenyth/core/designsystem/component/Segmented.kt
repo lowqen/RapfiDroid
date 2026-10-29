@@ -121,9 +121,15 @@ fun <T> ZenythSegmented(
                         modifier = (if (fill) Modifier.weight(1f) else Modifier)
                             .fillMaxHeight()
                             .onPlaced { coords ->
+                                // Written only when it moved: every placement of the
+                                // screen around it lands here, and writing an equal
+                                // value still counts as a change and composes the
+                                // control again.
                                 with(density) {
-                                    starts[i] = coords.positionInParent().x.toDp()
-                                    widths[i] = coords.size.width.toDp()
+                                    val start = coords.positionInParent().x.toDp()
+                                    val width = coords.size.width.toDp()
+                                    if (starts[i] != start) starts[i] = start
+                                    if (widths[i] != width) widths[i] = width
                                 }
                             }
                             .semantics {
