@@ -1,10 +1,8 @@
 package dev.gomoku.zenyth.feature.rankings
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.Opening26
 import dev.gomoku.zenyth.core.model.PlayerRef
 import dev.gomoku.zenyth.core.model.RankSide

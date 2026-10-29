@@ -5,7 +5,6 @@ import dev.gomoku.zenyth.core.model.GameReport
 import dev.gomoku.zenyth.core.model.GradedMove
 import dev.gomoku.zenyth.core.model.MoveGrader
 import dev.gomoku.zenyth.core.model.MoveQuality
-import dev.gomoku.zenyth.core.model.QueueEntry
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -81,18 +80,6 @@ object ReportFormats {
                 .append(" | ").append(gapCell(move))
                 .append(" | ").append(move.comment)
                 .append(" |\n")
-        }
-    }
-
-    /** `queue_finish`'s summary file (main.c:7518). */
-    fun queueSummary(entries: List<QueueEntry>, reviewed: Int, failed: Int): String = buildString {
-        append(tr("# 분석 큐 요약\n\n총 ", "# Analysis queue summary\n\n", "# 分析队列汇总\n\n共")).append(entries.size)
-            .append(tr("개: 리뷰 ", " in all: reviewed ", " 个: 复盘")).append(reviewed)
-            .append(tr(", 실패 ", ", failed ", "，失败")).append(failed)
-            .append(tr(", 미실행 ", ", not run ", "，未运行")).append(entries.size - reviewed - failed).append("\n\n")
-        entries.forEachIndexed { i, entry ->
-            append("- [").append("%02d".format(i + 1)).append("] ").append(entry.name)
-                .append(" — ").append(entry.result.ifEmpty { tr("미실행", "not run", "未运行") }).append('\n')
         }
     }
 

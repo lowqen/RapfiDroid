@@ -4,5 +4,4 @@ package dev.gomoku.zenyth.core.model
 data class ConsoleLine(
     val outbound: Boolean,
     val text: String,
-    val timestampMs: Long = System.currentTimeMillis(),
 )

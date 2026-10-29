@@ -31,7 +31,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import dev.gomoku.zenyth.core.designsystem.component.Button
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import dev.gomoku.zenyth.core.designsystem.component.OutlinedButton
 import androidx.compose.material3.OutlinedTextField

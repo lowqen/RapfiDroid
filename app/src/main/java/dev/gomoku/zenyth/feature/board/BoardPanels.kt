@@ -348,7 +348,7 @@ internal fun AnalysisCard(
         }
         val blank = snap == null || (snap.pvs.isEmpty() && snap.stats.depth == 0)
         if (blank) return@CalmCard
-        val s = snap!!.stats
+        val s = snap.stats
         val size = ui.render.size
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             if (detail) {
@@ -855,7 +855,7 @@ private fun SummaryStripBody(ui: BoardUiState, modifier: Modifier) {
             )
             return@Row
         }
-        val s = snap!!.stats
+        val s = snap.stats
         val best = snap.best?.head ?: snap.realtimeBest
         // Mornye's now-playing: the title large, and the facts about it in one
         // quiet pill under it (its «FLAC · 16-bit») — M5. Centred, as the

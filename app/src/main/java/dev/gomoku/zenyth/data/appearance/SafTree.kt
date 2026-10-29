@@ -84,10 +84,6 @@ class SafTree(private val resolver: ContentResolver, private val tree: Uri) {
         }.getOrNull()
     }
 
-    /** Every file name directly under [folderId] — used to see what is available. */
-    fun fileNames(folderId: String): List<String> =
-        children(folderId).filter { !it.isDirectory }.map { it.name }
-
     /** The picked folder's own name, for telling the user what they chose. */
     fun displayName(): String? = runCatching {
         resolver.query(

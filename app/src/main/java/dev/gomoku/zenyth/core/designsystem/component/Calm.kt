@@ -58,7 +58,6 @@ import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.theme.ChromeMotion
 import dev.gomoku.zenyth.core.designsystem.theme.MOTION_QUICK
 import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTokens
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.Duration
 import dev.gomoku.zenyth.data.prefs.UiPrefs
@@ -333,9 +332,6 @@ fun TimePicker(
         DurationField(valueMs, spec, presetsMs, onChange, enabled = enabled, onNote = onNote)
     }
 }
-
-/** Padding every scrolling screen uses around its cards. */
-val ScreenPadding = PaddingValues(RapfiTokens.Standard.screenPadding)
 
 /**
  * A drop-in for Material's `Card` with the calm face (white, hairline, no

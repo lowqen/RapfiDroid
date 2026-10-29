@@ -169,22 +169,6 @@ class ReviewViewModel @Inject constructor(
         }
     }
 
-    fun onSaveGame(uri: Uri) {
-        viewModelScope.launch {
-            val name = fileIo.displayName(uri)
-            val moves = game.position.value.moves + game.future.value
-            val size = game.position.value.size
-            val bytes = when (GameFileFormat.of(name)) {
-                GameFileFormat.PSQ -> GameFile.writePsq(moves, size)
-                else -> GameFile.writeSav(moves, size)   // the desktop's default
-            }
-            notice.value = runCatching { fileIo.write(uri, bytes) }.fold(
-                onSuccess = { tr("${moves.size}수를 저장했습니다", "Saved ${moves.size} moves", "已保存 ${moves.size} 手") },
-                onFailure = { tr("저장 실패: ${it.message}", "Save failed: ${it.message}", "保存失败: ${it.message}") },
-            )
-        }
-    }
-
     fun onEnqueue(uris: List<Uri>) {
         viewModelScope.launch {
             val entries = uris.map { uri ->

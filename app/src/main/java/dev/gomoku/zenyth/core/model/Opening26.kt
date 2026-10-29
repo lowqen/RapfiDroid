@@ -89,10 +89,6 @@ object Opening26 {
         else -> "${abbr[index]} ${korean[index]} (${romaji[index]})"
     }
 
-    /** "D1".."I13" → 0..25, or [NONSTD] when unknown. */
-    fun indexOfAbbr(a: String): Int =
-        abbr.indexOf(a).let { if (it >= 0) it else NONSTD }
-
     // ---- classifier (port of freq35.opening3 / main.c mo_opening26) ----
 
     /** The 8 D4 transforms in `moveorder.h` order, on internal (y,x). */
@@ -134,7 +130,7 @@ object Opening26 {
             }
             val third = xform(t, moves[2].y, moves[2].x)
             val cand = Triple(type, third.first, third.second)
-            if (best == null || less(cand, best!!)) best = cand
+            if (best == null || less(cand, best)) best = cand
         }
         return best?.let { opMap[it] ?: NONSTD } ?: NONSTD
     }

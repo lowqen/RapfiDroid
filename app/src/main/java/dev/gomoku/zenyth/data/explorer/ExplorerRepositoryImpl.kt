@@ -1,6 +1,5 @@
 package dev.gomoku.zenyth.data.explorer
 
-import android.net.Uri
 import dev.gomoku.zenyth.core.common.IoDispatcher
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.ExplorerGames

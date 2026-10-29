@@ -219,7 +219,7 @@ class BoardViewModel @Inject constructor(
                 defending = p.defending,
                 shown = current ?: read?.snap?.takeIf { stale },
                 stale = stale,
-                staleAt = if (stale) read?.moves?.size ?: 0 else 0,
+                staleAt = if (stale) read.moves.size else 0,
                 eval = if (analysisTab) evalFor(pos, read, p) else null,
                 multiPv = config.multiPv,
                 previewPv = p.preview,
@@ -613,7 +613,6 @@ class BoardViewModel @Inject constructor(
         }
     }
 
-    fun onNewGame() = onNewBoard()
     fun onOfferDraw() = inGame { game.offerDraw() }
     fun onResign() = inGame { game.resign() }
     fun onSwapAnswer(yes: Boolean) = inGame { game.answerSwap(yes) }
@@ -837,7 +836,7 @@ class BoardViewModel @Inject constructor(
             emptyMap()
         }
         val tags = if (overlay && config.showAnalysisWinrate && panel.preview == null) {
-            shown?.tags.orEmpty().filterKeys { it !in dbLabels }
+            shown.tags.filterKeys { it !in dbLabels }
         } else {
             emptyMap()
         }
@@ -849,8 +848,8 @@ class BoardViewModel @Inject constructor(
             ghosts = ghosts,
             bestMark = if (bestMark != null && !pos.moves.contains(bestMark)) bestMark else null,
             tags = tags,
-            candidates = if (overlay && panel.analyzing) shown?.candidates.orEmpty() else emptyMap(),
-            loseCells = if (overlay && panel.analyzing) shown?.loseCells.orEmpty() else emptySet(),
+            candidates = if (overlay && panel.analyzing) shown.candidates else emptyMap(),
+            loseCells = if (overlay && panel.analyzing) shown.loseCells else emptySet(),
             dbLabels = dbLabels,
             badges = if (config.showMoveBadge && quality != null && quality != MoveQuality.NONE && pos.moves.isNotEmpty()) {
                 mapOf(pos.moves.last() to quality)

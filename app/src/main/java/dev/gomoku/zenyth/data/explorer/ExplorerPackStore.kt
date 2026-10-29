@@ -1,7 +1,6 @@
 package dev.gomoku.zenyth.data.explorer
 
 import android.content.Context
-import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.zenyth.core.common.IoDispatcher
 import dev.gomoku.zenyth.core.i18n.tr
@@ -123,25 +122,6 @@ class ExplorerPackStore @Inject constructor(
     // pipeline had produced, which nobody but their author could run.
 
     /**
-     * Names or grades — told apart by the third column, exactly as
-     * `name_sheet.py --check` and the browser input tool do it: a grade is a
-     * signed integer in −5..+5 and a name never looks like that. Whichever
-     * reading yields rows without rejects wins, so a file that is neither is
-     * still refused.
-     */
-    private fun classifyTable(file: File): String? {
-        if (file.length() > MAX_TABLE_BYTES) return null
-        val text = runCatching { file.readText() }.getOrNull() ?: return null
-        val names = OpeningTables.parseNames(text)
-        val evals = OpeningTables.parseEvals(text)
-        return when {
-            evals.rows.isNotEmpty() && evals.bad == 0 -> EVALS
-            names.rows.isNotEmpty() && names.bad == 0 -> NAMES
-            else -> null
-        }
-    }
-
-    /**
      * Put the pack the device just built ([RenjuPack]) into service. The old
      * one is replaced only once the new one is in hand, so a build that dies
      * half way leaves the previous data working.
@@ -196,9 +176,5 @@ class ExplorerPackStore @Inject constructor(
     companion object {
         const val NAMES = "opening_names.txt"
         const val EVALS = "opening_evals.txt"
-
-        /** Both tables are tens of kilobytes; anything far larger is not one,
-         *  and reading it whole to find that out would be the bug. */
-        private const val MAX_TABLE_BYTES = 4L shl 20
     }
 }

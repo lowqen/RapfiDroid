@@ -85,9 +85,6 @@ fun ReviewScreen(
     val loadGame = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::onLoadGame)
     }
-    val saveGame = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/octet-stream"),
-    ) { uri -> uri?.let(viewModel::onSaveGame) }
     val addToQueue = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments(),
     ) { uris -> if (uris.isNotEmpty()) viewModel.onEnqueue(uris) }

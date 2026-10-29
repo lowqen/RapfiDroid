@@ -3,8 +3,6 @@ package dev.gomoku.zenyth.feature.rankings
 import dev.gomoku.zenyth.core.designsystem.component.ChipRow
 import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState

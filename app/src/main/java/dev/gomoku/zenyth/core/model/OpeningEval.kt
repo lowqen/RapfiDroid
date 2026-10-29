@@ -138,7 +138,7 @@ object OpeningTables {
                 return@forEachRow
             }
             // first line wins, so what shows never depends on file order
-            out.getOrPut(key) { Name(f!![2], f[3].ifEmpty { null }) }
+            out.getOrPut(key) { Name(f[2], f[3].ifEmpty { null }) }
         }
         return Load(out, bad)
     }
@@ -158,7 +158,7 @@ object OpeningTables {
             val moves = f?.let { parseMoves(it[1], size) }
             val grade = f?.get(2)?.removePrefix("+")?.toIntOrNull()
             if (moves == null || grade == null || moves.size !in OpeningEval.PLIES ||
-                f!![0].trim().toIntOrNull() != moves.size ||
+                f[0].trim().toIntOrNull() != moves.size ||
                 grade < OpeningEval.MIN_CODE || grade > OpeningEval.MAX_CODE
             ) {
                 bad++

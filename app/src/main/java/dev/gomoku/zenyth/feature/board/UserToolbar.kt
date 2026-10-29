@@ -2,7 +2,6 @@ package dev.gomoku.zenyth.feature.board
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -134,31 +133,3 @@ private fun iconFor(name: String): ImageVector = when (name) {
  */
 private fun fallbackLabel(item: FunctionScripts.ToolbarItem): String =
     item.script.lineSequence().firstOrNull().orEmpty()
-
-/** Vertical variant for the wide layout, where the toolbar sits beside the board. */
-@Composable
-fun UserToolbarColumn(
-    items: List<FunctionScripts.ToolbarItem>,
-    language: LngTable,
-    style: Int,
-    enabled: Boolean,
-    onRun: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (items.isEmpty()) return
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-        horizontalAlignment = Alignment.Start,
-    ) {
-        items.forEach { item ->
-            ToolbarButton(
-                item = item,
-                label = language.label(item.lngId, fallbackLabel(item)),
-                showLabel = style != 0,
-                enabled = enabled,
-                onClick = { onRun(item.script) },
-            )
-        }
-    }
-}

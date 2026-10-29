@@ -153,10 +153,6 @@ sealed interface EngineCommand {
         override fun serialize(coord: CoordMapper) = "yxhashclear"
     }
 
-    data object TakeBack : EngineCommand {
-        override fun serialize(coord: CoordMapper) = "TAKEBACK"
-    }
-
     data object YxStop : EngineCommand {
         override fun serialize(coord: CoordMapper) = "YXSTOP"
     }

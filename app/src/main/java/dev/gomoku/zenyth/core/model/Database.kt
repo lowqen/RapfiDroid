@@ -105,8 +105,6 @@ data class DbSnapshot(
     /** Last `dbval` reply, if one was requested. */
     val entry: DbEntry? = null,
 ) {
-    val hasValues: Boolean get() = cells.values.any { it.valueLabel().isNotEmpty() }
-
     /**
      * Position value derived from the stored child values — a port of main.c
      * `evalbar_update_from_db`: the side to move picks its best stored child, so

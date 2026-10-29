@@ -8,7 +8,6 @@ import dev.gomoku.zenyth.core.model.Move
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
 
@@ -140,7 +139,4 @@ object CurriculumJson {
         }
         return Curriculum(raw["version"].str(40), courses, problems)
     }
-
-    @Suppress("unused")
-    private fun JsonObject?.orEmptyObject(): JsonObject = this ?: JsonObject(emptyMap())
 }

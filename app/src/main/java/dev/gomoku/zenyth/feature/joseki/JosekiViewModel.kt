@@ -224,8 +224,6 @@ class JosekiViewModel @Inject constructor(
         toBoard(JosekiOps.movesTo(lesson.root, path))
     }
 
-    fun onResetProgress() = repo.resetProgress()
-
     // ---- my joseki -----------------------------------------------------------------
 
     fun onNewJoseki(fromBoard: Boolean) {

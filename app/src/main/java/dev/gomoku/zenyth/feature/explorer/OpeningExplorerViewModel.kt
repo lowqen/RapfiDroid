@@ -1,6 +1,5 @@
 package dev.gomoku.zenyth.feature.explorer
 
-import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.gomoku.zenyth.core.i18n.tr
@@ -153,10 +152,6 @@ class OpeningExplorerViewModel @Inject constructor(
                 selectedOpening = g?.let { r -> repository.openingLabel(r.opening) },
             )
         }
-    }
-
-    fun onClearSelection() {
-        _ui.update { it.copy(selected = null, selectedRule = null, selectedOpening = null) }
     }
 
     /** Play a listed next move (desktop: double-click the row). */

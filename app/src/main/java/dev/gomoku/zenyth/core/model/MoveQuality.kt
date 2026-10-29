@@ -175,8 +175,6 @@ data class ReviewData(
             else -> 0.5
         }
     }
-
-    val hasAnyRecord: Boolean get() = records.any { it.recorded }
 }
 
 /**

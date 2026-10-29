@@ -3,7 +3,6 @@ package dev.gomoku.zenyth.data.engine
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.LocalEngineProfile
 import dev.gomoku.zenyth.core.model.MemoryTier
-import dev.gomoku.zenyth.domain.engine.EngineVariant
 import dev.gomoku.zenyth.domain.engine.EngineVariantSelector
 import okio.buffer
 import okio.sink

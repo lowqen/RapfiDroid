@@ -3,7 +3,6 @@ package dev.gomoku.zenyth.core.designsystem.theme
 import android.content.Context
 import android.provider.Settings
 import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -37,10 +36,8 @@ import androidx.compose.runtime.staticCompositionLocalOf
 object ChromeMotion {
     private fun <T> spatialFastSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.6f, stiffness = 800f)
     private fun <T> spatialSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.8f, stiffness = 380f)
-    private fun <T> spatialSlowSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 0.8f, stiffness = 200f)
     private fun <T> effectsFastSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 3800f)
     private fun <T> effectsSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 1600f)
-    private fun <T> effectsSlowSpec(): FiniteAnimationSpec<T> = spring(dampingRatio = 1f, stiffness = 800f)
 
     /** Small components: a chip, a check, a button. */
     @Composable
@@ -54,12 +51,6 @@ object ChromeMotion {
     fun <T> spatial(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
         if (LocalReducedMotion.current) fallback else spatialSpec()
 
-    /** Large surfaces travelling far. */
-    @Composable
-    @ReadOnlyComposable
-    fun <T> spatialSlow(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else spatialSlowSpec()
-
     @Composable
     @ReadOnlyComposable
     fun <T> effectsFast(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
@@ -69,25 +60,6 @@ object ChromeMotion {
     @ReadOnlyComposable
     fun <T> effects(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
         if (LocalReducedMotion.current) fallback else effectsSpec()
-
-    @Composable
-    @ReadOnlyComposable
-    fun <T> effectsSlow(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) fallback else effectsSlowSpec()
-
-    /**
-     * A sheet or menu arriving. Critically damped: a surface that overshoots its
-     * own size shows, for a frame, whatever is behind its edge — on this app,
-     * the board.
-     */
-    @Composable
-    @ReadOnlyComposable
-    fun <T> surfaceEntrance(fallback: FiniteAnimationSpec<T>): FiniteAnimationSpec<T> =
-        if (LocalReducedMotion.current) {
-            fallback
-        } else {
-            spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessLow)
-        }
 }
 
 /** The system's «remove animations»; provided by `ZenythTheme`. */

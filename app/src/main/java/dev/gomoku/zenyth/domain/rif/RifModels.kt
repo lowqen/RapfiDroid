@@ -35,7 +35,3 @@ data class RifPlayer(
             .joinToString(" ")
             .ifEmpty { "?" }
 }
-
-data class RifOpening(val id: Int, val abbr: String, val name: String)
-
-data class RifRule(val id: Int, val name: String)

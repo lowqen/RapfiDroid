@@ -188,11 +188,6 @@ class JosekiRepository @Inject constructor(
         prefs.edit().putString(PROGRESS, o.toString()).apply()
     }
 
-    fun resetProgress() {
-        _progress.value = emptyMap()
-        prefs.edit().remove(PROGRESS).apply()
-    }
-
     private fun readProgress(): Map<String, LessonProgress> = runCatching {
         val o = JSONObject(prefs.getString(PROGRESS, null) ?: return emptyMap())
         o.keys().asSequence().associateWith { k ->
