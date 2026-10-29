@@ -1,6 +1,7 @@
 package dev.gomoku.zenyth.feature.board
 
 import android.app.Application
+import android.os.Looper
 import androidx.lifecycle.viewModelScope
 import dev.gomoku.zenyth.PerfBaseline
 import dev.gomoku.zenyth.core.model.AppSettings
@@ -13,48 +14,38 @@ import dev.gomoku.zenyth.core.model.Move
 import dev.gomoku.zenyth.domain.engine.CoordMapper
 import dev.gomoku.zenyth.domain.engine.EngineStreams
 import dev.gomoku.zenyth.domain.engine.ResponseParser
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.runCurrent
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.test.setMain
-import org.junit.After
+import kotlinx.coroutines.runBlocking
 import org.junit.Assume.assumeTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.time.Duration
 
 /**
  * What one engine line and one clock tick cost the board's view model: how
  * often `uiState` changes and what building it allocates on the main thread.
  * Phase 3's before and after (docs/리팩토링-성능-위생-계획.md). See [PerfBaseline].
  *
- * Each line is let through on its own (`runCurrent` after every one) — the
- * worst case, a main thread that keeps up with the engine.
+ * On the real main dispatcher — Robolectric's main looper, as in the app —
+ * and not `Dispatchers.setMain`: the test main dispatcher builds an exception
+ * with a full stack trace on every dispatch, and that alone was ~85 % of what
+ * the first version of this baseline counted. Each line is let through on
+ * its own (the looper idled after every one): a main thread that keeps up.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], application = Application::class, qualifiers = "ko-rKR")
 class BoardPipelineBaselineTest {
-
-    private val main = StandardTestDispatcher()
-
-    @Before
-    fun setUp() = Dispatchers.setMain(main)
-
-    @After
-    fun tearDown() = Dispatchers.resetMain()
 
     /** A middle game: 30 stones spiralling out from the centre. */
     private val stones: List<Move> = buildList {
@@ -79,48 +70,44 @@ class BoardPipelineBaselineTest {
         }
     }
 
+    private fun idle() = shadowOf(Looper.getMainLooper()).idle()
+
     @Test
-    fun `board view model per engine line and per clock tick`() = runTest(main) {
+    fun `board view model per engine line and per clock tick`() {
         assumeTrue(PerfBaseline.enabled)
-        val rig = boardRig(AppSettings(multiPv = 3), io = StandardTestDispatcher(testScheduler))
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        val rig = boardRig(AppSettings(multiPv = 3), io = Dispatchers.Unconfined)
         var emissions = 0
-        val subscriber = backgroundScope.launch { rig.vm.uiState.collect { emissions++ } }
-        rig.game.replaceLine(stones)
-        runCurrent()
+        val subscriber = scope.launch { rig.vm.uiState.collect { emissions++ } }
+        runBlocking { rig.game.replaceLine(stones) }
+        idle()
 
         // ---- an analysis -------------------------------------------------
         val lines = EngineStreams.search(depths = 16, multiPv = 3).dropLast(1)
         val responses = lines.map { ResponseParser.parse(it, CoordMapper()) }
-        rig.vm.onStartAnalyze()
-        runCurrent()
-        // Warm the path once, then measure a fresh search of the same shape.
-        responses.forEach {
-            rig.engine.responseFlow.emit(it)
-            runCurrent()
+        fun feed() = responses.forEach {
+            rig.engine.responseFlow.tryEmit(it)
+            idle()
         }
+        rig.vm.onStartAnalyze()
+        idle()
+        // Warm the path once, then measure a fresh search of the same shape.
+        feed()
         rig.vm.onMultiPvChange(3)
-        runCurrent()
+        idle()
         emissions = 0
         val bytes0 = PerfBaseline.allocatedBytes()
         val t0 = System.nanoTime()
-        responses.forEach {
-            rig.engine.responseFlow.emit(it)
-            runCurrent()
-        }
+        feed()
         val analysisNanos = System.nanoTime() - t0
         val analysisBytes = PerfBaseline.allocatedBytes() - bytes0
         val analysisEmissions = emissions
         // Once more under the recorder, apart from the counted pass.
         rig.vm.onMultiPvChange(3)
-        runCurrent()
-        PerfBaseline.profiled("pipeline_analysis") {
-            responses.forEach {
-                rig.engine.responseFlow.emit(it)
-                runCurrent()
-            }
-        }
+        idle()
+        PerfBaseline.profiled("pipeline_analysis") { repeat(PROFILED_SEARCHES) { feed() } }
         rig.vm.onStopAnalyze()
-        runCurrent()
+        idle()
 
         // ---- a game on the clock ----------------------------------------
         rig.game.modeFlow.value = BoardMode.GAME
@@ -128,71 +115,48 @@ class BoardPipelineBaselineTest {
             computerSide = ComputerSide.WHITE,
             clock = GameClock(limited = true, turnLimitMs = 60_000, matchLimitMs = 600_000).start(ClockSide.HUMAN),
         )
-        runCurrent()
+        idle()
+        fun tick() {
+            rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
+            idle()
+        }
+        repeat(TICKS) { tick() }
         emissions = 0
         val bytes1 = PerfBaseline.allocatedBytes()
-        repeat(TICKS) {
-            rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
-            runCurrent()
-        }
+        repeat(TICKS) { tick() }
         val clockBytes = PerfBaseline.allocatedBytes() - bytes1
         val clockEmissions = emissions
-        PerfBaseline.profiled("pipeline_clock") {
-            repeat(PROFILED_TICKS) {
-                rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
-                runCurrent()
-            }
-        }
-        // The parts of one emission, alone: building the next state, and the
-        // equality check StateFlow makes against the last one.
-        val last = rig.vm.uiState.value
-        val next = last.copy(game = last.game.copy(clock = last.game.clock.tick(250)))
-        var parts = 0
-        val bytesCopy = PerfBaseline.allocatedBytes()
-        repeat(TICKS) { parts += last.copy(game = next.game).moveCount }
-        val copyBytes = PerfBaseline.allocatedBytes() - bytesCopy
-        val bytesEq = PerfBaseline.allocatedBytes()
-        repeat(TICKS) { if (last == next) parts++ }
-        val equalsBytes = PerfBaseline.allocatedBytes() - bytesEq
-        val bytesHash = PerfBaseline.allocatedBytes()
-        repeat(TICKS) { parts += last.hashCode() }
-        val hashBytes = PerfBaseline.allocatedBytes() - bytesHash
+        PerfBaseline.profiled("pipeline_clock") { repeat(PROFILED_TICKS) { tick() } }
 
         // The same ticks with nobody watching `uiState`: its upstream stops
         // (WhileSubscribed), so this is what a tick costs outside the pipeline.
         subscriber.cancel()
-        advanceTimeBy(6_000)
-        runCurrent()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(6))
         val bytes3 = PerfBaseline.allocatedBytes()
-        repeat(TICKS) {
-            rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
-            runCurrent()
-        }
+        repeat(TICKS) { tick() }
         val unwatchedBytes = PerfBaseline.allocatedBytes() - bytes3
 
         // ---- the floor: the same plumbing with nothing in it -----------------
         // A 22-way combine into a 5-way combine into stateIn, as `panel` and
         // `uiState` are wired, with lambdas that compute nothing: what a tick
         // costs here before the view model does any work of its own.
-        val tick = MutableStateFlow(0)
-        val panelInputs = List(21) { MutableStateFlow(0) } + tick
+        val counter = MutableStateFlow(0)
+        val panelInputs = List(21) { MutableStateFlow(0) } + counter
         val floorPanel = combine(panelInputs) { it.sum() }
         val zero = MutableStateFlow(0)
         val floorUi = combine(zero, zero, floorPanel, zero, zero) { a, b, c, d, e -> a + b + c + d + e }
-            .stateIn(backgroundScope, SharingStarted.WhileSubscribed(5_000), 0)
+            .stateIn(scope, SharingStarted.WhileSubscribed(5_000), 0)
         var floorEmissions = 0
-        backgroundScope.launch { floorUi.collect { floorEmissions++ } }
-        runCurrent()
-        repeat(TICKS) {
-            tick.value++
-            runCurrent()
+        scope.launch { floorUi.collect { floorEmissions++ } }
+        idle()
+        fun floorTick() {
+            counter.value++
+            idle()
         }
+        repeat(TICKS) { floorTick() }
         floorEmissions = 0
         val bytes2 = PerfBaseline.allocatedBytes()
-        repeat(TICKS) {
-            tick.value++
-            runCurrent()
-        }
+        repeat(TICKS) { floorTick() }
         val floorBytes = PerfBaseline.allocatedBytes() - bytes2
 
         PerfBaseline.report(
@@ -206,17 +170,19 @@ class BoardPipelineBaselineTest {
                 "  uiState emissions: $clockEmissions",
                 "  allocated: ${clockBytes / TICKS} B/tick",
                 "  with no uiState subscriber: ${unwatchedBytes / TICKS} B/tick",
-                "  parts: BoardUiState.copy ${copyBytes / TICKS} B, equals ${equalsBytes / TICKS} B, hashCode ${hashBytes / TICKS} B ($parts)",
                 "floor: the same combine/stateIn plumbing computing nothing, $TICKS ticks",
                 "  emissions: $floorEmissions, allocated: ${floorBytes / TICKS} B/tick",
             ),
         )
+        scope.cancel()
         rig.vm.viewModelScope.cancel()
     }
 
     private companion object {
         const val TICKS = 200
+
         /** Enough allocation for a few hundred TLAB refills to sample. */
         const val PROFILED_TICKS = 20_000
+        const val PROFILED_SEARCHES = 5
     }
 }
