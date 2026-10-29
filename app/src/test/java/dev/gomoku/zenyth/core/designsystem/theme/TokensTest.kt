@@ -6,7 +6,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 /**
- * The scale [RapfiTokens] took over, pinned. Moving the numbers into one object
+ * The scale [ZenythTokens] took over, pinned. Moving the numbers into one object
  * was meant to move nothing on screen; if one of these changes it is a visual
  * change and belongs in the screenshot goldens, not in a refactor.
  */
@@ -30,8 +30,8 @@ class TokensTest {
     @Test
     fun `screen padding and touch size`() {
         // 12 in the first cut, one step roomier since 2026-10-29 (user request).
-        assertThat(RapfiTokens.Standard.screenPadding).isEqualTo(16.dp)
-        assertThat(RapfiTokens.Standard.cardPadding).isEqualTo(20.dp)
-        assertThat(RapfiTokens.Standard.minTouchTarget).isEqualTo(48.dp)
+        assertThat(ZenythTokens.Standard.screenPadding).isEqualTo(16.dp)
+        assertThat(ZenythTokens.Standard.cardPadding).isEqualTo(20.dp)
+        assertThat(ZenythTokens.Standard.minTouchTarget).isEqualTo(48.dp)
     }
 }

@@ -41,7 +41,7 @@ import dev.gomoku.zenyth.domain.repository.AppearanceRepository
 import dev.gomoku.zenyth.domain.repository.EngineToolsRepository
 import dev.gomoku.zenyth.domain.repository.SettingsRepository
 import dev.gomoku.zenyth.feature.settings.WhatsNewOnUpdate
-import dev.gomoku.zenyth.navigation.RapfiApp
+import dev.gomoku.zenyth.navigation.ZenythRoot
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
                     LocalHapticsEnabled provides haptics,
                     LocalProMode provides pro,
                 ) {
-                    RapfiApp()
+                    ZenythRoot()
                     // Once after an update: what changed, over the first screen.
                     WhatsNewOnUpdate()
                 }

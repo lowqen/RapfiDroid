@@ -54,7 +54,7 @@ import kotlin.math.roundToInt
  * its own.
  */
 @Composable
-fun RapfiFilterChip(
+fun ZenythFilterChip(
     selected: Boolean,
     onClick: () -> Unit,
     label: @Composable () -> Unit,

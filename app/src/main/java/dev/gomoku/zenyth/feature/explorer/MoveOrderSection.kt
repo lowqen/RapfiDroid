@@ -1,7 +1,7 @@
 package dev.gomoku.zenyth.feature.explorer
 
 import dev.gomoku.zenyth.core.designsystem.component.ChipRow
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -53,7 +53,7 @@ import dev.gomoku.zenyth.core.designsystem.component.BoardGeometry
 import dev.gomoku.zenyth.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.zenyth.core.designsystem.component.ReadingWidth
 import dev.gomoku.zenyth.core.designsystem.theme.BoardSkin
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.MoveOrderFormat
@@ -188,24 +188,24 @@ fun MoveOrderSection(
 private fun OptionChips(ui: MoveOrderUiState, onChange: (MoveOrderOptions) -> Unit) {
     val o = ui.options
     ChipRow {
-        RapfiFilterChip(
+        ZenythFilterChip(
             selected = o.openingRule,
             onClick = { onChange(o.copy(openingRule = !o.openingRule)) },
             label = { Text(tr("오프닝 규칙", "Opening rule", "开局规则")) },
         )
-        RapfiFilterChip(
+        ZenythFilterChip(
             selected = o.move2Fix,
             // H9/I9 is a sub-rule of the opening rule (main.c:6140)
             enabled = o.openingRule,
             onClick = { onChange(o.copy(move2Fix = !o.move2Fix)) },
             label = { Text(tr("2수 H9/I9", "Move 2 at H9/I9", "第2手 H9/I9")) },
         )
-        RapfiFilterChip(
+        ZenythFilterChip(
             selected = o.noFive,
             onClick = { onChange(o.copy(noFive = !o.noFive)) },
             label = { Text(tr("중간 오목 금지", "No five before the end", "禁止中途成五")) },
         )
-        RapfiFilterChip(
+        ZenythFilterChip(
             selected = o.symmetry,
             onClick = { onChange(o.copy(symmetry = !o.symmetry)) },
             label = { Text(tr("환원(회전·반전)", "Fold rotations and mirrors", "合并旋转·翻转")) },
@@ -225,7 +225,7 @@ private fun CandidateRow(
             Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            val skin = RapfiTheme.board
+            val skin = ZenythTheme.board
             Box(
                 Modifier.width(30.dp).height(30.dp)
                     .background(if (row.isBlack) skin.blackLow else skin.whiteHigh, CircleShape),
@@ -266,7 +266,7 @@ private fun MiniBoard(ui: MoveOrderUiState, onTapCell: (Int) -> Unit) {
     val onSurface = MaterialTheme.colorScheme.onSurface
     // The explorer's board is the same wood as the real one: two boards on the
     // same screen in different materials looked like two programs.
-    val skin: BoardSkin = RapfiTheme.board
+    val skin: BoardSkin = ZenythTheme.board
     val plies = MaterialTheme.colorScheme.error
     val selectedRing = MaterialTheme.colorScheme.primary
     Canvas(

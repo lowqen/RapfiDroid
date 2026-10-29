@@ -20,7 +20,7 @@ import dev.gomoku.zenyth.core.designsystem.theme.linearToSrgb
 import dev.gomoku.zenyth.core.designsystem.theme.mixColors
 import dev.gomoku.zenyth.core.designsystem.theme.oklch
 import dev.gomoku.zenyth.core.designsystem.theme.srgbToLinear
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.model.CandidateState
 import dev.gomoku.zenyth.core.model.CellTag
 import dev.gomoku.zenyth.core.model.DbCellKind
@@ -414,7 +414,7 @@ class BoardGeometry(val side: Float, val n: Int) {
 fun GomokuBoard(
     render: BoardRender,
     modifier: Modifier = Modifier,
-    skin: BoardSkin = RapfiTheme.board,
+    skin: BoardSkin = ZenythTheme.board,
     onTap: ((Move) -> Unit)? = null,
     onLongPress: ((Move) -> Unit)? = null,
 ) {

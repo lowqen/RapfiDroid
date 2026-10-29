@@ -141,9 +141,9 @@ val ResultGreen = TonalRamp(hue = 155f, chroma = 0.085f)
  * means and Material does not — the three result colours, two states that are
  * neither "error" nor "primary", and the board's own skin.
  *
- * Reached through `RapfiTheme.colors`, never constructed by a screen.
+ * Reached through `ZenythTheme.colors`, never constructed by a screen.
  */
-data class RapfiColors(
+data class ZenythColors(
     /** Black won — bars, KPI figures, the win-rate curve. */
     val resultBlack: Color,
     /** White won. */
@@ -162,7 +162,7 @@ data class RapfiColors(
     val board: BoardSkin,
 ) {
     companion object {
-        val Light = RapfiColors(
+        val Light = ZenythColors(
             resultBlack = ResultBlue.tone(45),
             resultWhite = ResultGreen.tone(40),
             resultDraw = NeutralVariant.tone(43),
@@ -172,7 +172,7 @@ data class RapfiColors(
             board = BoardSkin.Light,
         )
 
-        val Dark = RapfiColors(
+        val Dark = ZenythColors(
             resultBlack = ResultBlue.tone(76),
             resultWhite = ResultGreen.tone(74),
             resultDraw = NeutralVariant.tone(74),

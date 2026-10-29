@@ -6,7 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material.icons.outlined.Timer
 import dev.gomoku.zenyth.core.designsystem.component.ChipRow
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -209,14 +209,14 @@ private fun RunCard(
             if (ui.skipOpening) tr(" · 오프닝 제외", " · opening skipped", " · 跳过开局") else ""
         Disclosure(id = "review-options", title = tr("리뷰 설정", "Review settings", "复盘设置"), summary = summary) {
             ChipRow {
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = !budget.byDepth,
                     leadingIcon = { Icon(Icons.Outlined.Timer, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
                     onClick = { onBudget(budget.copy(byDepth = false)) },
                     label = { Text(tr("시간", "Time", "时间")) },
                     enabled = !ui.running,
                 )
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = budget.byDepth,
                     leadingIcon = { Icon(Icons.Outlined.Layers, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) },
                     onClick = { onBudget(budget.copy(byDepth = true)) },
@@ -230,13 +230,13 @@ private fun RunCard(
                 Stepper(tr("초/수", "s per move", "秒/手"), budget.seconds, 1, 120, !ui.running) { onBudget(budget.copy(seconds = it)) }
             }
             ChipRow {
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = ui.skipOpening,
                     onClick = onSkipOpening,
                     label = { Text(tr("오프닝 1-5수 제외", "Skip moves 1-5", "跳过第1-5手")) },
                     enabled = !ui.running,
                 )
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = ui.showBadges,
                     onClick = onBadges,
                     label = { Text(tr("판에 등급 표시", "Grades on the board", "在棋盘上显示评级")) },
@@ -304,7 +304,7 @@ private fun ReportHeader(
         }
         ChipRow {
             GradingPreset.entries.forEach { option ->
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = preset == option,
                     onClick = { onPreset(option) },
                     label = { Text(option.label) },

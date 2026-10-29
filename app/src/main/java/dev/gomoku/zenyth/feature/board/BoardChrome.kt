@@ -55,10 +55,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxSize
 import dev.gomoku.zenyth.core.designsystem.component.CappedFontScale
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSegmented
-import dev.gomoku.zenyth.core.designsystem.component.rememberRapfiHaptics
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSegmented
+import dev.gomoku.zenyth.core.designsystem.component.rememberZenythHaptics
 import dev.gomoku.zenyth.core.designsystem.theme.MOTION_VALUE
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.BoardMode
@@ -69,7 +69,7 @@ import kotlin.math.roundToInt
 /** 분석 | 대국 — analysis first, it is what a first visit opens on. */
 @Composable
 internal fun BoardModeSwitch(mode: BoardMode, onMode: (BoardMode) -> Unit, modifier: Modifier = Modifier) {
-    RapfiSegmented(
+    ZenythSegmented(
         options = listOf(
             BoardMode.ANALYSIS to tr("분석", "Analysis", "分析"),
             BoardMode.GAME to tr("대국", "Play", "对局"),
@@ -122,7 +122,7 @@ internal fun MoveToolbar(
     val blocked = ui.game.thinking || ui.game.prompt != null
     val canBack = ui.canUndo
     val canForward = ui.canRedo && !blocked
-    val haptics = rememberRapfiHaptics()
+    val haptics = rememberZenythHaptics()
     val back by rememberUpdatedState(canBack)
     val forward by rememberUpdatedState(canForward)
     val undo by rememberUpdatedState(onUndo)
@@ -292,7 +292,7 @@ internal fun VerticalEvalBar(eval: EvalView?, modifier: Modifier = Modifier, com
 
 @Composable
 private fun VerticalEvalBarBody(eval: EvalView?, modifier: Modifier, compact: Boolean) {
-    val skin = RapfiTheme.board
+    val skin = ZenythTheme.board
     val black = (eval?.blackPct ?: 50.0).coerceIn(0.0, 100.0).toFloat()
     val frac by animateFloatAsState(black / 100f, tween(MOTION_VALUE), label = "evalBar")
     val (main, sub) = labels(eval)

@@ -1,7 +1,7 @@
 package dev.gomoku.zenyth.feature.database
 
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSwitch
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSwitch
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
@@ -36,7 +36,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.gomoku.zenyth.core.designsystem.component.RapfiCollapsingTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythCollapsingTopBar
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.designsystem.component.CalmCard
 import dev.gomoku.zenyth.core.designsystem.component.CardTitle
@@ -69,7 +69,7 @@ fun DatabaseScreen(
 
     val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Column(modifier = modifier.fillMaxWidth().nestedScroll(header.nestedScrollConnection)) {
-        RapfiCollapsingTopBar(title = tr("데이터베이스", "Database", "数据库"), scrollBehavior = header)
+        ZenythCollapsingTopBar(title = tr("데이터베이스", "Database", "数据库"), scrollBehavior = header)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -350,7 +350,7 @@ private fun BulkDeleteSection(ui: DatabaseUiState, vm: DatabaseViewModel) {
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             DbDeleteFilter.entries.forEach { filter ->
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = ui.deleteDraft.filter == filter,
                     onClick = { vm.onDeleteFilter(filter) },
                     label = { Text(filter.title) },
@@ -434,7 +434,7 @@ private fun SwitchRow(
                 )
             }
         }
-        RapfiSwitch(checked = checked, onCheckedChange = onChange)
+        ZenythSwitch(checked = checked, onCheckedChange = onChange)
     }
 }
 

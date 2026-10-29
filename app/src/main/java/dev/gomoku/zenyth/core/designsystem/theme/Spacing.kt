@@ -11,25 +11,25 @@ import androidx.compose.ui.unit.Dp
  * code and every screen being touched uses, so the rhythm converges instead of
  * drifting further apart.
  *
- * The short names for [RapfiTokens.Standard]'s spacing, for code that is not
- * composable; inside a composable `RapfiTheme.tokens` is the same numbers.
+ * The short names for [ZenythTokens.Standard]'s spacing, for code that is not
+ * composable; inside a composable `ZenythTheme.tokens` is the same numbers.
  */
 object Spacing {
     /** 2dp — hairline gaps inside a component. */
-    val xs: Dp = RapfiTokens.Standard.spaceXs
+    val xs: Dp = ZenythTokens.Standard.spaceXs
 
     /** 4dp — between two things that belong together. */
-    val s: Dp = RapfiTokens.Standard.spaceS
+    val s: Dp = ZenythTokens.Standard.spaceS
 
     /** 8dp — the default gap. */
-    val m: Dp = RapfiTokens.Standard.spaceM
+    val m: Dp = ZenythTokens.Standard.spaceM
 
     /** 12dp — inside a card. */
-    val l: Dp = RapfiTokens.Standard.spaceL
+    val l: Dp = ZenythTokens.Standard.spaceL
 
     /** 16dp — screen margin, and between sections. */
-    val xl: Dp = RapfiTokens.Standard.spaceXl
+    val xl: Dp = ZenythTokens.Standard.spaceXl
 
     /** 24dp — between unrelated blocks. */
-    val xxl: Dp = RapfiTokens.Standard.spaceXxl
+    val xxl: Dp = ZenythTokens.Standard.spaceXxl
 }

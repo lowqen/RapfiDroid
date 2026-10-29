@@ -36,9 +36,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.BoardRender
 import dev.gomoku.zenyth.core.designsystem.component.GomokuBoard
 import dev.gomoku.zenyth.core.designsystem.component.LocalSnackbarHostState
-import dev.gomoku.zenyth.core.designsystem.component.rememberRapfiHaptics
+import dev.gomoku.zenyth.core.designsystem.component.rememberZenythHaptics
 import dev.gomoku.zenyth.core.designsystem.component.renderBoardPng
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.GameFileFormat
 import dev.gomoku.zenyth.core.model.Move
@@ -89,7 +89,7 @@ fun BoardScreen(
 
     val scope = rememberCoroutineScope()
     val currentRender by rememberUpdatedState(ui.render)
-    val skin = RapfiTheme.board
+    val skin = ZenythTheme.board
     val currentSkin by rememberUpdatedState(skin)
     val saveImage = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri ->
         if (uri != null) {
@@ -126,7 +126,7 @@ fun BoardScreen(
     // the hand did nothing. The view model is not asked: a tap is matched to
     // what the state does next (a stone on that point, or a notice) within a
     // second and a half, and forgotten after that.
-    val haptics = rememberRapfiHaptics()
+    val haptics = rememberZenythHaptics()
     var pendingTap by remember { mutableStateOf<PendingTap?>(null) }
     fun takeTap(): PendingTap? = pendingTap?.takeIf { SystemClock.uptimeMillis() - it.at < 1_500 }.also { pendingTap = null }
     LaunchedEffect(ui.moveCount, ui.render.lastMove) {

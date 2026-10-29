@@ -1,13 +1,13 @@
 package dev.gomoku.zenyth.feature.settings
 
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSwitch
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSwitch
 import dev.gomoku.zenyth.core.designsystem.component.QuietSwitch
 import androidx.activity.compose.BackHandler
 import dev.gomoku.zenyth.core.designsystem.theme.RowNoteStyle
 import dev.gomoku.zenyth.core.designsystem.theme.RowTitleStyle
 import dev.gomoku.zenyth.core.designsystem.theme.proMode
 import dev.gomoku.zenyth.core.designsystem.theme.LocalProMode
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import dev.gomoku.zenyth.core.designsystem.component.staggerIn
 import dev.gomoku.zenyth.core.designsystem.component.rememberStagger
@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.LocalSnackbarHostState
-import dev.gomoku.zenyth.core.designsystem.component.RapfiCollapsingTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythCollapsingTopBar
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.designsystem.component.ConnectedGroup
 import dev.gomoku.zenyth.core.designsystem.component.Hint
@@ -202,13 +202,13 @@ private fun SettingsPageFrame(
 ) {
     val header = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Column(Modifier.fillMaxSize().nestedScroll(header.nestedScrollConnection)) {
-        RapfiCollapsingTopBar(title = title, scrollBehavior = header, onBack = onBack)
+        ZenythCollapsingTopBar(title = title, scrollBehavior = header, onBack = onBack)
         // The blocks rise in one after another as a page opens (P5).
         val stagger = rememberStagger()
         LazyColumn(
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
-            verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+            contentPadding = PaddingValues(ZenythTheme.tokens.screenPadding),
+            verticalArrangement = Arrangement.spacedBy(ZenythTheme.tokens.listGap),
             flingBehavior = rememberCalmFling(),
         ) {
             sections.forEachIndexed { i, section ->
@@ -267,7 +267,7 @@ internal fun LocalEngineCard(
         row {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(tr("기기 데이터베이스 사용", "Use the device database", "使用本机数据库"), style = RowTitleStyle, modifier = Modifier.weight(1f))
-                RapfiSwitch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
+                ZenythSwitch(checked = ui.localProfile.useDatabase, onCheckedChange = onDatabase)
             }
             // yixindb is read whole into the engine's memory, on top of the table (T3).
             val dbBytes = ui.localDbBytes
@@ -293,7 +293,7 @@ internal fun LocalEngineCard(
                     Text(tr("서버 엔진 사용", "Use a server engine", "使用服务器引擎"), style = RowTitleStyle)
                     Hint(tr("직접 운영하는 Rapfi 서버 (Tailscale)", "A Rapfi server you run (Tailscale)", "你自己运行的 Rapfi 服务器 (Tailscale)"))
                 }
-                RapfiSwitch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
+                ZenythSwitch(checked = ui.serverEnabled, onCheckedChange = onServerEnabled)
             }
             if (!ui.localMode) Hint(tr("지금은 서버 엔진을 씁니다", "The server engine is in use", "当前正在使用服务器引擎"))
         }
@@ -313,7 +313,7 @@ internal fun SettingRow(
             Text(spec.label, style = RowTitleStyle, modifier = Modifier.weight(1f).padding(end = 8.dp))
             Box(contentAlignment = Alignment.CenterEnd) {
                 when (editor) {
-                    is SettingEditor.Toggle -> RapfiSwitch(
+                    is SettingEditor.Toggle -> ZenythSwitch(
                         checked = value != "0",
                         onCheckedChange = { onValue(if (it) "1" else "0") },
                     )
@@ -463,6 +463,6 @@ internal fun SwitchRow(title: String, note: String?, checked: Boolean, onChange:
             Text(title, style = RowTitleStyle)
             note?.let { Text(it, style = RowNoteStyle, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        RapfiSwitch(checked = checked, onCheckedChange = onChange)
+        ZenythSwitch(checked = checked, onCheckedChange = onChange)
     }
 }

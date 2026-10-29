@@ -28,7 +28,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.component.BoardMark
 import dev.gomoku.zenyth.core.designsystem.component.BoardMarkColors
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.joseki.JosekiNode
 import dev.gomoku.zenyth.core.joseki.JosekiRole
@@ -108,7 +108,7 @@ private fun inline(
 fun branchColor(node: JosekiNode, index: Int): Color = when {
     node.role == JosekiRole.TRAP || node.mark?.isBad == true -> MaterialTheme.colorScheme.error
     node.role == JosekiRole.REFUTE -> MaterialTheme.colorScheme.tertiary
-    index == 0 || node.mark?.isGood == true -> RapfiTheme.colors.positive
+    index == 0 || node.mark?.isGood == true -> ZenythTheme.colors.positive
     else -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 

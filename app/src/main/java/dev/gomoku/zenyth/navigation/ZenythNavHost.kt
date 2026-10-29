@@ -118,7 +118,7 @@ class ShellViewModel @Inject constructor(
 }
 
 @Composable
-fun RapfiApp() {
+fun ZenythRoot() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination
@@ -184,7 +184,7 @@ fun RapfiApp() {
             val railLabels = maxHeight >= 480.dp
             Row(Modifier.fillMaxSize()) {
                 if (rail) {
-                    RapfiRail(
+                    ZenythRail(
                         selected = selected,
                         connection = connection,
                         onSelect = onSelect,
@@ -219,7 +219,7 @@ fun RapfiApp() {
                                 if (selected != Destination.Board) {
                                     BoardMiniBar(navController, onOpen = { onSelect(Destination.Board) })
                                 }
-                                RapfiBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
+                                ZenythBottomBar(selected = selected, connection = connection, onSelect = onSelect, destinations = destinations)
                             }
                         }
                     },

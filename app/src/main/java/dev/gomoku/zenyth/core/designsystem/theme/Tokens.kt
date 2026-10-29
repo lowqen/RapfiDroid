@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
  * standard set that a variant overrides only where it differs (a wide layout,
  * a compact one) instead of restating the whole table.
  *
- * Read it as `RapfiTheme.tokens`. [Shapes] and [Spacing] are built from
+ * Read it as `ZenythTheme.tokens`. [Shapes] and [Spacing] are built from
  * [Standard], so a component that already says `MaterialTheme.shapes.medium` or
  * `Spacing.m` is reading these numbers too.
  *
@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
  * (docs/UI-개편-마스터플랜.md, P0; the screenshot goldens check it).
  */
 @Immutable
-data class RapfiTokens(
+data class ZenythTokens(
     /** Bars, meters, the small filled things — `shapes.extraSmall`. */
     val radiusBar: Dp,
     /** Chips, inputs, list rows — `shapes.small`. */
@@ -62,7 +62,7 @@ data class RapfiTokens(
     val minTouchTarget: Dp,
 ) {
     companion object {
-        val Standard = RapfiTokens(
+        val Standard = ZenythTokens(
             radiusBar = 4.dp,
             radiusChip = 8.dp,
             radiusInset = 12.dp,
@@ -88,4 +88,4 @@ data class RapfiTokens(
 }
 
 /** Provided by `ZenythTheme`; outside it (a preview, a test) the standard set. */
-val LocalRapfiTokens = staticCompositionLocalOf { RapfiTokens.Standard }
+val LocalZenythTokens = staticCompositionLocalOf { ZenythTokens.Standard }

@@ -64,7 +64,7 @@ import dev.gomoku.zenyth.core.designsystem.theme.MOTION_QUICK
  * Reduced motion keeps the old 150ms change.
  */
 @Composable
-fun <T> RapfiSegmented(
+fun <T> ZenythSegmented(
     options: List<Pair<T, String>>,
     selection: T,
     onSelect: (T) -> Unit,

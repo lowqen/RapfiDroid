@@ -1,7 +1,7 @@
 package dev.gomoku.zenyth.feature.settings
 
 import dev.gomoku.zenyth.core.designsystem.component.ChipRow
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Arrangement
@@ -76,7 +76,7 @@ fun LicensesDialog(onDismiss: () -> Unit) {
                     // Three names do not fit across a dialog; the row scrolls rather than clip one.
                     ChipRow {
                         files.forEach { name ->
-                            RapfiFilterChip(
+                            ZenythFilterChip(
                                 selected = name == selected,
                                 onClick = { selected = name },
                                 label = { Text(name.removeSuffix(".txt"), maxLines = 1) },

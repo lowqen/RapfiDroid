@@ -45,9 +45,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.min
-import dev.gomoku.zenyth.core.designsystem.component.RapfiTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythTopBar
 import dev.gomoku.zenyth.core.designsystem.component.ShellActions
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 
 /**
  * Height of the move toolbar's row under the board: the 56dp keys with 12dp
@@ -108,8 +108,8 @@ internal fun BoardPortrait(
 ) {
     WoodTheme {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        RapfiTopBar(title = null, height = 48.dp, leading = { modeSwitch() })
-        val skin = RapfiTheme.board
+        ZenythTopBar(title = null, height = 48.dp, leading = { modeSwitch() })
+        val skin = ZenythTheme.board
         val scheme = MaterialTheme.colorScheme
         val dark = scheme.surface.luminance() < 0.5f
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().drawBehind { stage(skin.wood, skin.woodEdge, dark) }) {
@@ -140,8 +140,8 @@ internal fun BoardPortrait(
                         Modifier
                             .fillMaxWidth()
                             .verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling())
-                            .padding(RapfiTheme.tokens.screenPadding),
-                        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+                            .padding(ZenythTheme.tokens.screenPadding),
+                        verticalArrangement = Arrangement.spacedBy(ZenythTheme.tokens.listGap),
                         content = cards,
                     )
                 },
@@ -195,7 +195,7 @@ internal fun BoardLandscape(
                 summary()
                 Column(
                     Modifier.weight(1f).verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
-                    verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+                    verticalArrangement = Arrangement.spacedBy(ZenythTheme.tokens.listGap),
                     content = cards,
                 )
                 toolbar()

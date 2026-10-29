@@ -177,19 +177,19 @@ internal fun colorSchemeFor(dark: Boolean, amoled: Boolean, chromeHue: Float?): 
     }
 }
 
-/** The app's own colours, alongside Material's. See [RapfiColors]. */
-val LocalYixinColors = staticCompositionLocalOf { RapfiColors.Light }
+/** The app's own colours, alongside Material's. See [ZenythColors]. */
+val LocalYixinColors = staticCompositionLocalOf { ZenythColors.Light }
 
 /**
  * Everything the theme offers that MaterialTheme has no name for.
  *
- *     Text(label, color = RapfiTheme.colors.resultBlack)
- *     GomokuBoard(render, skin = RapfiTheme.board)
- *     Spacer(Modifier.height(RapfiTheme.spacing.l))
- *     Modifier.padding(RapfiTheme.tokens.screenPadding)
+ *     Text(label, color = ZenythTheme.colors.resultBlack)
+ *     GomokuBoard(render, skin = ZenythTheme.board)
+ *     Spacer(Modifier.height(ZenythTheme.spacing.l))
+ *     Modifier.padding(ZenythTheme.tokens.screenPadding)
  */
-object RapfiTheme {
-    val colors: RapfiColors
+object ZenythTheme {
+    val colors: ZenythColors
         @Composable @ReadOnlyComposable get() = LocalYixinColors.current
 
     /** Shorthand for the board's skin — by far the most-read entry here. */
@@ -198,9 +198,9 @@ object RapfiTheme {
 
     val spacing: Spacing get() = Spacing
 
-    /** Corners, spacing and touch size; see [RapfiTokens]. */
-    val tokens: RapfiTokens
-        @Composable @ReadOnlyComposable get() = LocalRapfiTokens.current
+    /** Corners, spacing and touch size; see [ZenythTokens]. */
+    val tokens: ZenythTokens
+        @Composable @ReadOnlyComposable get() = LocalZenythTokens.current
 }
 
 /**
@@ -228,8 +228,8 @@ fun ZenythTheme(
     val context = LocalContext.current
     val reduced = remember(context) { reducedMotion(context) }
     CompositionLocalProvider(
-        LocalYixinColors provides if (darkTheme) RapfiColors.Dark else RapfiColors.Light,
-        LocalRapfiTokens provides RapfiTokens.Standard,
+        LocalYixinColors provides if (darkTheme) ZenythColors.Dark else ZenythColors.Light,
+        LocalZenythTokens provides ZenythTokens.Standard,
         LocalReducedMotion provides reduced,
     ) {
         MaterialTheme(

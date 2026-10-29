@@ -10,7 +10,7 @@ import dev.gomoku.zenyth.core.designsystem.component.LabeledProgress
 import dev.gomoku.zenyth.core.designsystem.component.PillBadge
 import dev.gomoku.zenyth.core.designsystem.component.IconTile
 import dev.gomoku.zenyth.core.designsystem.component.ItemCard
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.component.ChipRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.Icon
@@ -54,13 +54,12 @@ import dev.gomoku.zenyth.core.designsystem.component.GomokuBoard
 import dev.gomoku.zenyth.core.designsystem.component.Hint
 import dev.gomoku.zenyth.core.designsystem.component.LocalShellChrome
 import dev.gomoku.zenyth.core.designsystem.component.LocalUiPrefs
-import dev.gomoku.zenyth.core.designsystem.component.RapfiCollapsingTopBar
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSegmented
-import dev.gomoku.zenyth.core.designsystem.component.RapfiTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythCollapsingTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSegmented
+import dev.gomoku.zenyth.core.designsystem.component.ZenythTopBar
 import dev.gomoku.zenyth.core.designsystem.component.ShellChrome
 import dev.gomoku.zenyth.core.designsystem.component.StatusDot
 import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
 import dev.gomoku.zenyth.core.model.AnalysisSnapshot
 import dev.gomoku.zenyth.core.model.BoardMode
 import dev.gomoku.zenyth.core.model.CellTag
@@ -91,8 +90,8 @@ import dev.gomoku.zenyth.feature.settings.SettingsPage
 import dev.gomoku.zenyth.feature.settings.settingsSections
 import dev.gomoku.zenyth.feature.settings.SettingsUiState
 import dev.gomoku.zenyth.navigation.Destination
-import dev.gomoku.zenyth.navigation.RapfiBottomBar
-import dev.gomoku.zenyth.navigation.RapfiRail
+import dev.gomoku.zenyth.navigation.ZenythBottomBar
+import dev.gomoku.zenyth.navigation.ZenythRail
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -286,7 +285,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
                 onToggleTheme = {},
             ),
         ) {
-            RapfiTopBar(title = "보드")
+            ZenythTopBar(title = "보드")
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             EngineChip(ConnectionState.Ready, onStart = {})
@@ -361,10 +360,10 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     @Test
     fun listParts() = shot("list_parts") {
         ChipRow {
-            RapfiFilterChip(selected = true, onClick = {}, label = { Text("전체") })
-            RapfiFilterChip(selected = false, onClick = {}, label = { Text("시간") }, leadingIcon = { Icon(Icons.Outlined.Timer, null, Modifier.size(18.dp)) })
-            RapfiFilterChip(selected = false, onClick = {}, label = { Text("깊이") })
-            RapfiFilterChip(selected = false, onClick = {}, label = { Text("꺼짐") }, enabled = false)
+            ZenythFilterChip(selected = true, onClick = {}, label = { Text("전체") })
+            ZenythFilterChip(selected = false, onClick = {}, label = { Text("시간") }, leadingIcon = { Icon(Icons.Outlined.Timer, null, Modifier.size(18.dp)) })
+            ZenythFilterChip(selected = false, onClick = {}, label = { Text("깊이") })
+            ZenythFilterChip(selected = false, onClick = {}, label = { Text("꺼짐") }, enabled = false)
         }
         ItemCard(
             title = "화월 기본",
@@ -386,11 +385,11 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     /** The six tabs: upright along the bottom, and down the side when wide (P2). */
     @Test
     fun shellNavigation() = shot("shell_nav") {
-        RapfiBottomBar(selected = Destination.Board, connection = ConnectionState.Thinking, onSelect = {})
+        ZenythBottomBar(selected = Destination.Board, connection = ConnectionState.Thinking, onSelect = {})
         Row(Modifier.height(360.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             // A phone on its side: only the selected tab keeps its label.
-            RapfiRail(selected = Destination.Research, connection = ConnectionState.Ready, onSelect = {}, showLabels = false)
-            RapfiRail(selected = Destination.Research, connection = ConnectionState.Error("x"), onSelect = {})
+            ZenythRail(selected = Destination.Research, connection = ConnectionState.Ready, onSelect = {}, showLabels = false)
+            ZenythRail(selected = Destination.Research, connection = ConnectionState.Error("x"), onSelect = {})
         }
     }
 
@@ -401,16 +400,16 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         CompositionLocalProvider(
             LocalShellChrome provides ShellChrome(ConnectionState.Ready, variant.dark, onStartEngine = {}, onToggleTheme = {}),
         ) {
-            RapfiTopBar(title = null, height = 48.dp)
-            RapfiCollapsingTopBar("설정", TopAppBarDefaults.exitUntilCollapsedScrollBehavior())
+            ZenythTopBar(title = null, height = 48.dp)
+            ZenythCollapsingTopBar("설정", TopAppBarDefaults.exitUntilCollapsedScrollBehavior())
         }
-        RapfiSegmented(
+        ZenythSegmented(
             options = listOf(0 to "리뷰·증명", 1 to "오프닝", 2 to "수순", 3 to "랭킹"),
             selection = 0,
             onSelect = {},
             fill = true,
         )
-        RapfiSegmented(options = listOf(0 to "공식 커리큘럼", 1 to "내 정석"), selection = 1, onSelect = {}, fill = true)
+        ZenythSegmented(options = listOf(0 to "공식 커리큘럼", 1 to "내 정석"), selection = 1, onSelect = {}, fill = true)
     }
 
     @Test
@@ -452,7 +451,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
             shot("theme_$tag", dark = dark, amoled = tag == "amoled", chromeHue = hue, fileTag = null) {
                 CompositionLocalProvider(
                     LocalShellChrome provides ShellChrome(ConnectionState.Ready, dark, onStartEngine = {}, onToggleTheme = {}),
-                ) { RapfiTopBar(title = "보드") }
+                ) { ZenythTopBar(title = "보드") }
                 BoardModeSwitch(BoardMode.ANALYSIS, onMode = {})
                 AnalysisCard(analysing, onPreview = {})
                 calmPartsContent()
@@ -463,7 +462,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
     @Composable
     private fun calmPartsContent() {
         CalmCard {
-            CardTitle("카드 제목") { StatusDot(RapfiTheme.colors.positive) }
+            CardTitle("카드 제목") { StatusDot(ZenythTheme.colors.positive) }
             Hint("한 줄 안내")
             ChoiceChips(
                 options = listOf(1 to "1초", 3 to "3초", 10 to "10초", 0 to "무제한"),
@@ -485,7 +484,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         val prefs = remember { UiPrefs(context.applicationContext) }
         CompositionLocalProvider(LocalUiPrefs provides prefs) {
             if (page != SettingsPage.Root) {
-                RapfiCollapsingTopBar(page.title, TopAppBarDefaults.exitUntilCollapsedScrollBehavior(), onBack = {})
+                ZenythCollapsingTopBar(page.title, TopAppBarDefaults.exitUntilCollapsedScrollBehavior(), onBack = {})
             }
             settingsSections(page, state, SettingsActions(), pro = true, prefs = prefs).forEach { it.content() }
         }

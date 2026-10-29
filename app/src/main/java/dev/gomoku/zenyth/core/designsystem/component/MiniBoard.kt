@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import dev.gomoku.zenyth.core.designsystem.theme.BoardSkin
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.model.Move
 import dev.gomoku.zenyth.core.model.OpeningEval
 import kotlin.math.abs
@@ -40,7 +40,7 @@ fun MiniBoard(
     /** 흑 5수 유불리 marks on empty points, drawn the way the user's own
      *  evaluation table draws them. Widens the crop so none falls outside. */
     marks: List<Pair<Move, OpeningEval.Grade>> = emptyList(),
-    skin: BoardSkin = RapfiTheme.board,
+    skin: BoardSkin = ZenythTheme.board,
 ) {
     val center = Move.DEFAULT_SIZE / 2   // 7
     val reach = (stones + marks.map { it.first })

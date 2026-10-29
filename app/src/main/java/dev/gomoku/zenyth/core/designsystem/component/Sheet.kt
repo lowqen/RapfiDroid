@@ -24,7 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 
 /**
  * A sheet that asks for something — the app's one shape for typing a value in
@@ -47,7 +47,7 @@ import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RapfiSheet(
+fun ZenythSheet(
     title: String,
     onDismiss: () -> Unit,
     confirm: @Composable RowScope.() -> Unit,
@@ -59,7 +59,7 @@ fun RapfiSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        shape = RoundedCornerShape(topStart = RapfiTheme.tokens.radiusSheet, topEnd = RapfiTheme.tokens.radiusSheet),
+        shape = RoundedCornerShape(topStart = ZenythTheme.tokens.radiusSheet, topEnd = ZenythTheme.tokens.radiusSheet),
         containerColor = cardColor(),
         dragHandle = { SheetGrip() },
     ) {

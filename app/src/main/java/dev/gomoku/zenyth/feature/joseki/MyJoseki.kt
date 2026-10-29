@@ -6,7 +6,7 @@ import dev.gomoku.zenyth.core.designsystem.component.TileShape
 import dev.gomoku.zenyth.core.designsystem.component.RoundBackButton
 import dev.gomoku.zenyth.core.designsystem.component.PillBadge
 import dev.gomoku.zenyth.core.designsystem.component.ItemCard
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -221,7 +221,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                 CardTitle(tr("${path.size}수 ${moves.last().label()}", "Move ${path.size} ${moves.last().label()}", "第 ${path.size} 手 ${moves.last().label()}"))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     JosekiMark.entries.forEach { mk ->
-                        RapfiFilterChip(
+                        ZenythFilterChip(
                             selected = node.mark == mk,
                             onClick = { vm.onMark(if (node.mark == mk) null else mk) },
                             label = { Text(mk.symbol) },
@@ -230,7 +230,7 @@ internal fun JosekiEditor(ui: JosekiUiState, tree: JosekiTree, vm: JosekiViewMod
                 }
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     JosekiRole.entries.forEach { role ->
-                        RapfiFilterChip(
+                        ZenythFilterChip(
                             selected = node.role == role,
                             onClick = { vm.onRole(if (node.role == role) null else role) },
                             label = { Text(role.label) },

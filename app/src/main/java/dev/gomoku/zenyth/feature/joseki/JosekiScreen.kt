@@ -1,6 +1,6 @@
 package dev.gomoku.zenyth.feature.joseki
 
-import dev.gomoku.zenyth.core.designsystem.component.RapfiCollapsingTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythCollapsingTopBar
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -19,8 +19,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.zenyth.core.designsystem.component.QuietSwitch
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSegmented
-import dev.gomoku.zenyth.core.designsystem.component.RapfiTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSegmented
+import dev.gomoku.zenyth.core.designsystem.component.ZenythTopBar
 import dev.gomoku.zenyth.core.i18n.tr
 
 /**
@@ -70,9 +70,9 @@ fun JosekiScreen(
             .then(if (onList) Modifier.nestedScroll(header.nestedScrollConnection) else Modifier),
     ) {
         if (onList) {
-            RapfiCollapsingTopBar(title = tr("정석", "Joseki", "定式"), scrollBehavior = header)
+            ZenythCollapsingTopBar(title = tr("정석", "Joseki", "定式"), scrollBehavior = header)
         } else {
-            RapfiTopBar(title = tr("정석", "Joseki", "定式"))
+            ZenythTopBar(title = tr("정석", "Joseki", "定式"))
         }
         when {
             lesson != null && course != null -> LessonPage(ui, course, lesson, viewModel)
@@ -87,7 +87,7 @@ fun JosekiScreen(
                 exportPsq.launch("${editing.title.ifBlank { "joseki" }}.psq")
             }
             else -> {
-                RapfiSegmented(
+                ZenythSegmented(
                     options = listOf(0 to tr("공식 커리큘럼", "Curriculum", "官方课程"), 1 to tr("내 정석", "My joseki", "我的定式")),
                     selection = nav.tab,
                     onSelect = viewModel::onTab,

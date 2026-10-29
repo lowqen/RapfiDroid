@@ -1,6 +1,6 @@
 package dev.gomoku.zenyth.feature.tools
 
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.theme.LocalProMode
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
@@ -41,8 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.QuietSwitch
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSegmented
-import dev.gomoku.zenyth.core.designsystem.component.RapfiTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSegmented
+import dev.gomoku.zenyth.core.designsystem.component.ZenythTopBar
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.CallbackConfig
 import dev.gomoku.zenyth.core.model.ToolScripts
@@ -60,12 +60,12 @@ fun EngineScreen(modifier: Modifier = Modifier) {
     val titles = remember { listOf(tr("연결", "Connect", "连接"), tr("도구", "Tools", "工具")) }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("엔진", "Engine", "引擎"))
+        ZenythTopBar(title = tr("엔진", "Engine", "引擎"))
         // Tools — hash, blocked points, scripts, the command language — is an
         // expert surface: without «고급 사용자 모드» the tab is the connection.
         val pro = LocalProMode.current
         if (pro) {
-            RapfiSegmented(
+            ZenythSegmented(
                 options = titles.mapIndexed { i, title -> i to title },
                 selection = tab,
                 onSelect = { tab = it },
@@ -145,7 +145,7 @@ fun ToolsScreen(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip({ viewModel.run("hash clear") }, { Text(tr("지우기", "Clear", "清除")) })
                     AssistChip({ viewModel.run("hash usage") }, { Text(tr("사용량", "Usage", "使用量")) })
-                    RapfiFilterChip(
+                    ZenythFilterChip(
                         selected = ui.settings.hashAutoClear,
                         onClick = viewModel::onToggleHashAutoClear,
                         label = { Text(tr("탐색 전 자동 지우기", "Clear before every search", "每次搜索前清空")) },
@@ -174,12 +174,12 @@ fun ToolsScreen(
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip({ viewModel.run("block reset") }, { Text(tr("차단 해제", "Clear blocks", "清除排除")) })
                     AssistChip({ viewModel.run("blockpath reset") }, { Text(tr("경로 차단 해제", "Clear blocked paths", "清除排除路径")) })
-                    RapfiFilterChip(
+                    ZenythFilterChip(
                         selected = ui.settings.blockAutoReset,
                         onClick = viewModel::onToggleBlockAutoReset,
                         label = { Text(tr("착수 후 자동 해제", "Auto-clear after a move", "落子后自动清除")) },
                     )
-                    RapfiFilterChip(
+                    ZenythFilterChip(
                         selected = ui.settings.blockPathAutoReset,
                         onClick = viewModel::onToggleBlockPathAutoReset,
                         label = { Text(tr("경로 자동 해제", "Auto-clear paths", "自动清除路径")) },
@@ -251,7 +251,7 @@ fun ToolsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RapfiFilterChip(
+                    ZenythFilterChip(
                         selected = ui.tools.callbacksActive,
                         onClick = {
                             viewModel.run(if (ui.tools.callbacksSuspended) "callback on" else "callback off")
@@ -285,7 +285,7 @@ fun ToolsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AssistChip({ viewModel.run("help") }, { Text(tr("도움말", "Help", "帮助")) })
                     AssistChip(viewModel::onClearLog, { Text(tr("지우기", "Clear", "清除")) })
-                    RapfiFilterChip(
+                    ZenythFilterChip(
                         selected = ui.tools.commandMode,
                         onClick = {
                             viewModel.run(if (ui.tools.commandMode) "command off" else "command on")
@@ -333,7 +333,7 @@ private fun CallbackDialog(
                 Modifier.verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()).heightIn(max = 460.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = draft.enabled,
                     onClick = { draft = draft.copy(enabled = !draft.enabled) },
                     label = { Text(if (draft.enabled) tr("사용", "on", "开启") else tr("사용 안 함", "off", "关闭")) },

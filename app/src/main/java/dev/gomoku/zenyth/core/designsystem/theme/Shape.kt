@@ -20,9 +20,9 @@ import androidx.compose.material3.Shapes
  *   Zenyth Web's `.panel` stays 16 — the two now differ (D5).
  * - extraLarge 28dp — sheets, the biggest containers
  *
- * The numbers live in [RapfiTokens]; this maps them onto the Material slots.
+ * The numbers live in [ZenythTokens]; this maps them onto the Material slots.
  */
-val Shapes = RapfiTokens.Standard.let { t ->
+val Shapes = ZenythTokens.Standard.let { t ->
     Shapes(
         extraSmall = RoundedCornerShape(t.radiusBar),
         small = RoundedCornerShape(t.radiusChip),

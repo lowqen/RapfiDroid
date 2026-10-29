@@ -1,7 +1,7 @@
 package dev.gomoku.zenyth.feature.rankings
 
 import dev.gomoku.zenyth.core.designsystem.component.ChipRow
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -62,7 +62,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.MiniBoard
 import dev.gomoku.zenyth.core.designsystem.component.EmptyState
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.Opening26
@@ -189,7 +189,7 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
             verticalAlignment = Alignment.CenterVertically,
         ) {
             DirectFilter.entries.forEach { df ->
-                RapfiFilterChip(selected = ui.directFilter == df, onClick = { vm.onDirectFilter(df) },
+                ZenythFilterChip(selected = ui.directFilter == df, onClick = { vm.onDirectFilter(df) },
                     label = { Text(when (df) {
                         DirectFilter.ALL -> tr("전체", "All", "全部"); DirectFilter.DIRECT -> tr("직접(直)", "Direct", "直接(直)")
                         DirectFilter.INDIRECT -> tr("간접(間)", "Indirect", "间接(间)")
@@ -350,7 +350,7 @@ private fun SortChips(
     if (options.size < 2) return
     ChipRow(Modifier.padding(horizontal = 12.dp, vertical = 2.dp)) {
         options.forEach { sort ->
-            RapfiFilterChip(
+            ZenythFilterChip(
                 selected = current == sort,
                 onClick = { onSort(sort) },
                 label = { Text(sortLabel(sort, side)) },
@@ -384,7 +384,7 @@ private fun sortLabel(sort: RankSort, side: RankSide): String = when (sort) {
 @Composable
 private fun ResultBar(split: ResultSplit) {
     val decided = (split.blackWins + split.draws + split.whiteWins).coerceAtLeast(1)
-    val colors = RapfiTheme.colors
+    val colors = ZenythTheme.colors
     Column {
         Row(Modifier.fillMaxWidth().height(10.dp).clip(MaterialTheme.shapes.extraSmall)) {
             Box(Modifier.weight(split.blackWins.toFloat().coerceAtLeast(0.001f)).fillMaxHeight().background(colors.resultBlack))
@@ -473,7 +473,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                     Text(tr("룰", "Rule", "规则"), style = MaterialTheme.typography.labelLarge)
                     ChipRow {
                         ui.ruleOptions.forEach { (idx, name) ->
-                            RapfiFilterChip(selected = idx in ui.filter.ruleIndices,
+                            ZenythFilterChip(selected = idx in ui.filter.ruleIndices,
                                 onClick = { vm.onToggleRule(idx) }, label = { Text(name) })
                         }
                     }
@@ -483,7 +483,7 @@ private fun FilterSheet(ui: RankingsUiState, vm: RankingsViewModel) {
                 Text(tr("색", "Side", "执色"), style = MaterialTheme.typography.labelLarge)
                 ChipRow {
                     RankSide.entries.forEach { s ->
-                        RapfiFilterChip(selected = ui.filter.side == s, onClick = { vm.onSide(s) },
+                        ZenythFilterChip(selected = ui.filter.side == s, onClick = { vm.onSide(s) },
                             label = { Text(when (s) {
                                 RankSide.EITHER -> tr("양쪽", "Either", "双方")
                                 RankSide.BLACK -> tr("흑", "Black", "黑")

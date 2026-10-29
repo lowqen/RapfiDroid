@@ -57,7 +57,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.theme.ChromeMotion
 import dev.gomoku.zenyth.core.designsystem.theme.MOTION_QUICK
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.Duration
 import dev.gomoku.zenyth.data.prefs.UiPrefs
@@ -86,8 +86,8 @@ fun cardColor(): Color = MaterialTheme.colorScheme.surfaceContainer
 @Composable
 fun CalmCard(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(RapfiTheme.tokens.cardPadding),
-    spacing: androidx.compose.ui.unit.Dp = RapfiTheme.tokens.cardSpacing,
+    contentPadding: PaddingValues = PaddingValues(ZenythTheme.tokens.cardPadding),
+    spacing: androidx.compose.ui.unit.Dp = ZenythTheme.tokens.cardSpacing,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     CardFace(MaterialTheme.shapes.large, modifier.fillMaxWidth()) {
@@ -258,7 +258,7 @@ fun <T> ChoiceChips(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         options.forEach { (value, label) ->
-            RapfiFilterChip(
+            ZenythFilterChip(
                 selected = value == selected,
                 onClick = { onSelect(value) },
                 enabled = enabled,
@@ -403,7 +403,7 @@ fun ConnectedGroup(
             // rows' own text line rather than the card's edge (M2).
             Text(
                 title,
-                modifier = Modifier.padding(start = RapfiTheme.tokens.rowPaddingH, top = 8.dp, bottom = 6.dp),
+                modifier = Modifier.padding(start = ZenythTheme.tokens.rowPaddingH, top = 8.dp, bottom = 6.dp),
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -433,7 +433,7 @@ fun ConnectedGroup(
                 Column(
                     Modifier
                         .heightIn(min = 64.dp)
-                        .padding(horizontal = RapfiTheme.tokens.rowPaddingH, vertical = RapfiTheme.tokens.rowPaddingV),
+                        .padding(horizontal = ZenythTheme.tokens.rowPaddingH, vertical = ZenythTheme.tokens.rowPaddingV),
                     verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                     content = row.content,
                 )
@@ -468,7 +468,7 @@ class ConnectedGroupScope internal constructor() {
  * from the track's colour.
  */
 @Composable
-fun RapfiSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
+fun ZenythSwitch(checked: Boolean, onCheckedChange: ((Boolean) -> Unit)?, modifier: Modifier = Modifier, enabled: Boolean = true) {
     androidx.compose.material3.Switch(
         checked = checked,
         onCheckedChange = onCheckedChange,

@@ -4,7 +4,7 @@ import dev.gomoku.zenyth.core.designsystem.component.CappedFontScale
 import dev.gomoku.zenyth.core.designsystem.component.PillBadge
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.animateColorAsState
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSwitch
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSwitch
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -68,7 +68,7 @@ import dev.gomoku.zenyth.core.designsystem.component.TagPalette
 import dev.gomoku.zenyth.core.designsystem.component.TimePicker
 import dev.gomoku.zenyth.core.designsystem.component.TextOutline
 import dev.gomoku.zenyth.core.designsystem.component.engineWord
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.BoardShift
@@ -243,7 +243,7 @@ internal fun PositionStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            val skin = RapfiTheme.board
+            val skin = ZenythTheme.board
             Box(
                 Modifier.size(14.dp).clip(CircleShape)
                     .background(if (ui.sideToMove.name == "BLACK") skin.blackLow else skin.whiteHigh),
@@ -469,7 +469,7 @@ internal fun AnalysisOptions(
                 Text(tr("정지하면 최선수 두기", "Play the best move on stop", "停止时下出最佳着法"), style = MaterialTheme.typography.labelLarge)
                 Hint(tr("빈 판은 H8", "H8 on an empty board", "空棋盘下 H8"))
             }
-            RapfiSwitch(checked = ui.playBestOnStop, onCheckedChange = onPlayBest)
+            ZenythSwitch(checked = ui.playBestOnStop, onCheckedChange = onPlayBest)
         }
     }
 }
@@ -560,7 +560,7 @@ internal fun EvalGraphCard(history: List<Double?>, currentPly: Int) {
 
 @Composable
 private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
-    val line = RapfiTheme.colors.resultBlack
+    val line = ZenythTheme.colors.resultBlack
     val fill = line.copy(alpha = 0.18f)
     val grid = MaterialTheme.colorScheme.outlineVariant
     val midGrid = MaterialTheme.colorScheme.outline
@@ -628,7 +628,7 @@ internal fun GameCard(
     CalmCard(modifier) {
         val (word, color) = engineWord(ui.connection)
         CardTitle(tr("대국", "Game", "对局")) {
-            StatusDot(if (ui.game.thinking) RapfiTheme.colors.caution else color)
+            StatusDot(if (ui.game.thinking) ZenythTheme.colors.caution else color)
             Text(
                 if (ui.game.thinking) tr("엔진이 생각 중", "Engine thinking", "引擎思考中") else word,
                 style = MaterialTheme.typography.labelLarge,
@@ -691,7 +691,7 @@ private fun ClockRow(ui: BoardUiState) {
             Column(Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(name, style = MaterialTheme.typography.labelMedium)
-                    if (clock.running == side) StatusDot(RapfiTheme.colors.positive, size = 6.dp)
+                    if (clock.running == side) StatusDot(ZenythTheme.colors.positive, size = 6.dp)
                 }
                 Text(clock.label(side), style = MaterialTheme.typography.titleMedium.tabular())
                 Text(
@@ -817,7 +817,7 @@ private fun SummaryStripBody(ui: BoardUiState, modifier: Modifier) {
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatusDot(if (ui.game.thinking) RapfiTheme.colors.caution else color)
+                    StatusDot(if (ui.game.thinking) ZenythTheme.colors.caution else color)
                     Text(
                         ui.game.result?.describe()
                             ?: (

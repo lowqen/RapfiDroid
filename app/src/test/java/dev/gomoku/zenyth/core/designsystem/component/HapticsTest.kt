@@ -17,7 +17,7 @@ class HapticsTest {
     @Test
     fun `each event has its own vibration`() {
         val r = Recorder()
-        RapfiHaptics(r, enabled = true).apply {
+        ZenythHaptics(r, enabled = true).apply {
             stonePlaced()
             refused()
             decided()
@@ -40,7 +40,7 @@ class HapticsTest {
     @Test
     fun `switched off means silent`() {
         val r = Recorder()
-        RapfiHaptics(r, enabled = false).apply {
+        ZenythHaptics(r, enabled = false).apply {
             stonePlaced()
             refused()
             decided()

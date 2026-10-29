@@ -63,7 +63,7 @@ import dev.gomoku.zenyth.core.designsystem.component.GomokuBoard
 import dev.gomoku.zenyth.core.designsystem.component.Hint
 import dev.gomoku.zenyth.core.designsystem.component.MiniBoard
 import dev.gomoku.zenyth.core.designsystem.component.ReadingWidth
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.joseki.Course
@@ -89,8 +89,8 @@ internal fun CourseList(ui: JosekiUiState, onOpen: (String) -> Unit, onRefresh: 
     val stagger = rememberStagger()
     LazyColumn(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
-        contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+        contentPadding = PaddingValues(ZenythTheme.tokens.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(ZenythTheme.tokens.listGap),
         flingBehavior = rememberCalmFling(),
     ) {
         item {
@@ -183,8 +183,8 @@ internal fun CoursePage(
     val finished = course.lessons.count { it.id in ui.progress }
     LazyColumn(
         Modifier.fillMaxSize().widthIn(max = ReadingWidth),
-        contentPadding = PaddingValues(RapfiTheme.tokens.screenPadding),
-        verticalArrangement = Arrangement.spacedBy(RapfiTheme.tokens.listGap),
+        contentPadding = PaddingValues(ZenythTheme.tokens.screenPadding),
+        verticalArrangement = Arrangement.spacedBy(ZenythTheme.tokens.listGap),
         flingBehavior = rememberCalmFling(),
     ) {
         item {
@@ -395,7 +395,7 @@ private fun LessonTabs(learn: Boolean, onMode: (Boolean) -> Unit) {
 /** The coach: two stones for a face, a bubble with whose move it is and what to know. */
 @Composable
 private fun Coach(blackToMove: Boolean, where: String, content: @Composable ColumnScope.() -> Unit) {
-    val skin = RapfiTheme.board
+    val skin = ZenythTheme.board
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(Modifier.size(40.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
             Box(Modifier.padding(start = 8.dp, top = 9.dp).size(16.dp).clip(CircleShape).background(skin.blackLow))
@@ -429,7 +429,7 @@ private fun QuizBox(quiz: QuizState, lesson: Lesson) {
                 (if (fb.alternative) tr("정답 · 다른 좋은 수", "Right · another good move", "正确 · 另一个好着法") else tr("정답", "Right", "正确")) +
                     " " + fb.node.move?.label().orEmpty(),
                 style = MaterialTheme.typography.titleSmall,
-                color = RapfiTheme.colors.positive,
+                color = ZenythTheme.colors.positive,
             )
             if (fb.node.comment.isNotEmpty()) MarkdownText(fb.node.comment)
             if (!quiz.done && here !== fb.node && here.comment.isNotEmpty()) MarkdownText(here.comment)

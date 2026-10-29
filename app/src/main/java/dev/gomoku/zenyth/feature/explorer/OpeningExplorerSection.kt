@@ -52,7 +52,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.GradeMark
 import dev.gomoku.zenyth.core.designsystem.component.LocalSnackbarHostState
 import dev.gomoku.zenyth.core.designsystem.component.ReadingWidth
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.ExplorerGameRow
@@ -340,7 +340,7 @@ private fun NameChain(chain: List<String>) {
 @Composable
 private fun KpiRow(pos: ExplorerPosition) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        val colors = RapfiTheme.colors
+        val colors = ZenythTheme.colors
         Kpi(tr("대국", "Games", "对局"), pos.games, null, null, Modifier.weight(1f))
         Kpi(tr("결과 흑승", "Result B", "结果 黑胜"), pos.blackWins, pos.percent(pos.blackWins), colors.resultBlack, Modifier.weight(1f))
         Kpi(tr("결과 백승", "Result W", "结果 白胜"), pos.whiteWins, pos.percent(pos.whiteWins), colors.resultWhite, Modifier.weight(1f))
@@ -487,7 +487,7 @@ private fun NextRow(row: ExplorerNext, scale: Int, parentGames: Int, onPlay: () 
                     Modifier.fillMaxWidth().padding(top = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    val colors = RapfiTheme.colors
+                    val colors = ZenythTheme.colors
                     Bar(row.blackWins, scale, colors.resultBlack, Modifier.weight(1f))
                     Bar(row.draws, scale, colors.resultDraw, Modifier.weight(1f))
                     Bar(row.whiteWins, scale, colors.resultWhite, Modifier.weight(1f))
@@ -517,7 +517,7 @@ private fun Bar(count: Int, scale: Int, color: Color, modifier: Modifier = Modif
                 Text(
                     "$count",
                     style = MaterialTheme.typography.labelSmall.tabular(),
-                    color = RapfiTheme.colors.onResult,
+                    color = ZenythTheme.colors.onResult,
                     textAlign = TextAlign.Center,
                 )
             }

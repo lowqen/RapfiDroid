@@ -31,7 +31,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.component.SmoothProgressBar
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSheet
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSheet
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.DbCellKind
 import dev.gomoku.zenyth.core.model.FontSpec
@@ -138,7 +138,7 @@ private fun InfoDialog(title: String, text: String, onDismiss: () -> Unit) {
 internal fun BalanceDialog(onDismiss: () -> Unit, onConfirm: (Boolean, Int) -> Unit) {
     var bias by remember { mutableStateOf("0") }
     val value = bias.trim().toIntOrNull() ?: 0
-    RapfiSheet(
+    ZenythSheet(
         title = tr("균형점 찾기", "Balance", "平衡点"),
         onDismiss = onDismiss,
         dismiss = {
@@ -178,7 +178,7 @@ internal fun PositionDialog(
 ) {
     val clipboard = LocalClipboardManager.current
     var draft by remember { mutableStateOf("") }
-    RapfiSheet(
+    ZenythSheet(
         title = tr("국면 문자열", "Position string", "局面代码"),
         onDismiss = onDismiss,
         dismiss = { TextButton(onClick = onDismiss) { Text(tr("닫기", "Close", "关闭")) } },
@@ -238,7 +238,7 @@ internal fun BoardTextDialog(
     onConfirm: (String) -> Unit,
 ) {
     var text by remember(cell) { mutableStateOf(initial) }
-    RapfiSheet(
+    ZenythSheet(
         title = tr("보드 텍스트  ${cell.label(size)}", "Board text  ${cell.label(size)}", "棋盘文字  ${cell.label(size)}"),
         onDismiss = onDismiss,
         dismiss = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },
@@ -288,7 +288,7 @@ internal fun CommentDialog(
     onConfirm: (String) -> Unit,
 ) {
     var text by remember { mutableStateOf(initial) }
-    RapfiSheet(
+    ZenythSheet(
         title = tr("국면 주석", "Position comment", "局面注释"),
         onDismiss = onDismiss,
         dismiss = { TextButton(onClick = onDismiss) { Text(tr("취소", "Cancel", "取消")) } },

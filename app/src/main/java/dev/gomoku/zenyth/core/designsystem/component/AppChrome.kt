@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.theme.MOTION_QUICK
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.Spacing
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.ConnectionState
@@ -97,7 +97,7 @@ val LocalShellChrome = compositionLocalOf<ShellChrome?> { null }
  * below the status bar.
  */
 @Composable
-fun RapfiTopBar(
+fun ZenythTopBar(
     title: String?,
     modifier: Modifier = Modifier,
     height: Dp = 52.dp,
@@ -147,7 +147,7 @@ fun RapfiTopBar(
  * The screen hands [scrollBehavior]'s connection to its own column:
  *
  *     Column(Modifier.nestedScroll(behavior.nestedScrollConnection)) {
- *         RapfiCollapsingTopBar(title, behavior)
+ *         ZenythCollapsingTopBar(title, behavior)
  *         LazyColumn { … }
  *     }
  *
@@ -156,7 +156,7 @@ fun RapfiTopBar(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RapfiCollapsingTopBar(
+fun ZenythCollapsingTopBar(
     title: String,
     scrollBehavior: TopAppBarScrollBehavior,
     modifier: Modifier = Modifier,
@@ -285,12 +285,12 @@ fun EngineChip(
                     Icons.Filled.Thermostat,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = RapfiTheme.colors.caution,
+                    tint = ZenythTheme.colors.caution,
                 )
                 Text(
                     thermalThreads.toString(),
                     style = MaterialTheme.typography.labelLarge,
-                    color = RapfiTheme.colors.caution,
+                    color = ZenythTheme.colors.caution,
                     maxLines = 1,
                 )
             }
@@ -309,10 +309,10 @@ fun EngineChip(
 /** The word and the dot colour for an engine state — the chip and the tab badge agree. */
 @Composable
 fun engineWord(state: ConnectionState): Pair<String, Color> = when (state) {
-    ConnectionState.Ready -> tr("엔진 준비", "Ready", "引擎就绪") to RapfiTheme.colors.positive
-    ConnectionState.Thinking -> tr("탐색 중", "Searching", "搜索中") to RapfiTheme.colors.caution
+    ConnectionState.Ready -> tr("엔진 준비", "Ready", "引擎就绪") to ZenythTheme.colors.positive
+    ConnectionState.Thinking -> tr("탐색 중", "Searching", "搜索中") to ZenythTheme.colors.caution
     ConnectionState.Connecting, ConnectionState.Handshaking ->
-        tr("준비 중", "Starting", "启动中") to RapfiTheme.colors.caution
+        tr("준비 중", "Starting", "启动中") to ZenythTheme.colors.caution
     is ConnectionState.Error -> tr("엔진 오류", "Engine error", "引擎错误") to MaterialTheme.colorScheme.error
     ConnectionState.Disconnected -> tr("엔진 꺼짐", "Engine off", "引擎关闭") to MaterialTheme.colorScheme.outline
 }

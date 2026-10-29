@@ -36,7 +36,7 @@ import dev.gomoku.zenyth.core.model.ConnectionState
  * the chosen tab filled and bold on its pale pill, the rest outlined.
  */
 @Composable
-fun RapfiBottomBar(
+fun ZenythBottomBar(
     selected: Destination?,
     connection: ConnectionState,
     onSelect: (Destination) -> Unit,
@@ -66,7 +66,7 @@ fun RapfiBottomBar(
  * Its tabs follow the bar's rule — filled and bold when chosen, outlined when not.
  */
 @Composable
-fun RapfiRail(
+fun ZenythRail(
     selected: Destination?,
     connection: ConnectionState,
     onSelect: (Destination) -> Unit,

@@ -56,8 +56,8 @@ class ThemeContrastTest {
     @Test
     fun `the app's own colours are readable on its own surfaces`() {
         listOf(
-            "light" to (RapfiColors.Light to LightColorsForTest),
-            "dark" to (RapfiColors.Dark to DarkColorsForTest),
+            "light" to (ZenythColors.Light to LightColorsForTest),
+            "dark" to (ZenythColors.Dark to DarkColorsForTest),
         ).forEach { (name, pair) ->
             val (colors, scheme) = pair
             listOf(
@@ -78,7 +78,7 @@ class ThemeContrastTest {
 
     @Test
     fun `the three result colours stay apart from each other`() {
-        listOf(RapfiColors.Light, RapfiColors.Dark).forEach { c ->
+        listOf(ZenythColors.Light, ZenythColors.Dark).forEach { c ->
             // Adjacent segments of one bar: they carry different meanings and
             // must not need a legend to tell apart.
             assertThat(distance(c.resultBlack, c.resultWhite)).isAtLeast(0.20f)
@@ -167,7 +167,7 @@ class ThemeContrastTest {
     @Test
     fun `the app's own colours stay readable whatever the theme choice`() {
         variants().forEach { (name, s) ->
-            val colors = if (name.startsWith("light")) RapfiColors.Light else RapfiColors.Dark
+            val colors = if (name.startsWith("light")) ZenythColors.Light else ZenythColors.Dark
             listOf(colors.resultBlack, colors.resultWhite, colors.resultDraw, colors.positive, colors.caution).forEach { c ->
                 assertWithMessage("$name — ${c.toHex()} on surface").that(contrastRatio(c, s.surface)).isAtLeast(aa)
                 assertWithMessage("$name — ${c.toHex()} on card").that(contrastRatio(c, s.surfaceContainer)).isAtLeast(aa)
@@ -208,7 +208,7 @@ class ThemeContrastTest {
         // case is the dark theme against «black won» blue, ~0.085 — why it is
         // violet at 298° and not royal blue (0.05 at 270°).
         variants().forEach { (name, s) ->
-            val colors = if (name.startsWith("light")) RapfiColors.Light else RapfiColors.Dark
+            val colors = if (name.startsWith("light")) ZenythColors.Light else ZenythColors.Dark
             listOf(colors.resultBlack, colors.resultWhite, colors.resultDraw, colors.positive, colors.caution).forEach { c ->
                 assertWithMessage("$name — primary ${s.primary.toHex()} vs ${c.toHex()}")
                     .that(oklabDistance(s.primary, c)).isAtLeast(0.08f)

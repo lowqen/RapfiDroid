@@ -1,6 +1,6 @@
 package dev.gomoku.zenyth.feature.connection
 
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import dev.gomoku.zenyth.core.designsystem.theme.LocalProMode
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
 import androidx.compose.foundation.layout.Arrangement
@@ -43,7 +43,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.FlatCard
 import dev.gomoku.zenyth.core.designsystem.component.WideLayoutMin
 import dev.gomoku.zenyth.core.designsystem.theme.MonoStyle
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.ConnectionState
 import dev.gomoku.zenyth.core.model.ConsoleLine
@@ -99,13 +99,13 @@ private fun ConnectionContent(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = ui.localMode,
                     onClick = { onLocalModeChange(true) },
                     enabled = ui.canConnect,
                     label = { Text(tr("기기 내 엔진", "On-device", "本机引擎")) },
                 )
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = !ui.localMode,
                     onClick = { onLocalModeChange(false) },
                     enabled = ui.canConnect,
@@ -325,10 +325,10 @@ private fun StatusChip(state: ConnectionState) {
     val (label, color) = when (state) {
         ConnectionState.Disconnected -> tr("연결 안 됨", "Not connected", "未连接") to MaterialTheme.colorScheme.onSurfaceVariant
         // The engine chip's colours (engineWord): a state, not an accent.
-        ConnectionState.Connecting -> tr("연결 중", "Connecting", "连接中") to RapfiTheme.colors.caution
-        ConnectionState.Handshaking -> tr("핸드셰이크", "Handshake", "握手") to RapfiTheme.colors.caution
-        ConnectionState.Ready -> tr("준비됨", "Ready", "就绪") to RapfiTheme.colors.positive
-        ConnectionState.Thinking -> tr("분석 중", "Searching", "分析中") to RapfiTheme.colors.caution
+        ConnectionState.Connecting -> tr("연결 중", "Connecting", "连接中") to ZenythTheme.colors.caution
+        ConnectionState.Handshaking -> tr("핸드셰이크", "Handshake", "握手") to ZenythTheme.colors.caution
+        ConnectionState.Ready -> tr("준비됨", "Ready", "就绪") to ZenythTheme.colors.positive
+        ConnectionState.Thinking -> tr("분석 중", "Searching", "分析中") to ZenythTheme.colors.caution
         is ConnectionState.Error -> tr("오류", "Error", "错误") to MaterialTheme.colorScheme.error
     }
     Surface(
@@ -370,7 +370,7 @@ private fun ConsoleRow(line: ConsoleLine, scale: Float) {
     val color = when {
         line.outbound -> MaterialTheme.colorScheme.secondary
         line.text.startsWith("ERROR", ignoreCase = true) -> MaterialTheme.colorScheme.error
-        isCoordinate(line.text) -> RapfiTheme.colors.positive
+        isCoordinate(line.text) -> ZenythTheme.colors.positive
         else -> MaterialTheme.colorScheme.onSurface
     }
     val prefix = if (line.outbound) "» " else "  "

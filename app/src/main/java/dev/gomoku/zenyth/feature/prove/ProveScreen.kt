@@ -1,6 +1,6 @@
 package dev.gomoku.zenyth.feature.prove
 
-import dev.gomoku.zenyth.core.designsystem.component.RapfiFilterChip
+import dev.gomoku.zenyth.core.designsystem.component.ZenythFilterChip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -82,13 +82,13 @@ fun ProveCard(
         }
         Disclosure(id = "prove-options", title = tr("증명 설정", "Proof settings", "证明设置"), summary = budgetText) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = !options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = false)) },
                     label = { Text(tr("시간", "Time", "时间")) },
                     enabled = editable,
                 )
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = options.byDepth,
                     onClick = { viewModel.onOptions(options.copy(byDepth = true)) },
                     label = { Text(tr("깊이", "Depth", "深度")) },
@@ -114,13 +114,13 @@ fun ProveCard(
                 viewModel.onOptions(options.copy(nbest = it))
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = options.bestFirst,
                     onClick = { viewModel.onOptions(options.copy(bestFirst = !options.bestFirst)) },
                     label = { Text(tr("최선 공격수 먼저", "Best attack first", "最佳进攻优先")) },
                     enabled = editable,
                 )
-                RapfiFilterChip(
+                ZenythFilterChip(
                     selected = options.probe,
                     onClick = { viewModel.onOptions(options.copy(probe = !options.probe)) },
                     label = { Text(tr("최강 방어 조기 탐침", "Probe the strongest defence early", "提前探测最强防守")) },

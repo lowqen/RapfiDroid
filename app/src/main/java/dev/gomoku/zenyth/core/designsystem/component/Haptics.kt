@@ -20,7 +20,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
  * bar and a settings switch cannot drift into three vocabularies. Nothing calls
  * this yet; the board takes it up in P3 (docs/UI-개편-마스터플랜.md).
  */
-class RapfiHaptics internal constructor(
+class ZenythHaptics internal constructor(
     private val feedback: HapticFeedback,
     private val enabled: Boolean,
 ) {
@@ -51,8 +51,8 @@ class RapfiHaptics internal constructor(
 val LocalHapticsEnabled = staticCompositionLocalOf { true }
 
 @Composable
-fun rememberRapfiHaptics(): RapfiHaptics {
+fun rememberZenythHaptics(): ZenythHaptics {
     val feedback = LocalHapticFeedback.current
     val enabled = LocalHapticsEnabled.current
-    return remember(feedback, enabled) { RapfiHaptics(feedback, enabled) }
+    return remember(feedback, enabled) { ZenythHaptics(feedback, enabled) }
 }

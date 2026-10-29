@@ -12,8 +12,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.component.QuietSwitch
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSegmented
-import dev.gomoku.zenyth.core.designsystem.component.RapfiTopBar
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSegmented
+import dev.gomoku.zenyth.core.designsystem.component.ZenythTopBar
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.feature.explorer.MoveOrderSection
 import dev.gomoku.zenyth.feature.explorer.OpeningExplorerSection
@@ -42,8 +42,8 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        RapfiTopBar(title = tr("연구", "Research", "研究"))
-        RapfiSegmented(
+        ZenythTopBar(title = tr("연구", "Research", "研究"))
+        ZenythSegmented(
             options = titles.mapIndexed { i, title -> i to title },
             selection = tab,
             onSelect = { tab = it },

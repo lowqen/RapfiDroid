@@ -79,8 +79,8 @@ import dev.gomoku.zenyth.core.designsystem.component.ChoiceChips
 import dev.gomoku.zenyth.core.designsystem.component.ConnectedGroup
 import dev.gomoku.zenyth.core.designsystem.component.FieldRow
 import dev.gomoku.zenyth.core.designsystem.component.Hint
-import dev.gomoku.zenyth.core.designsystem.component.RapfiSwitch
-import dev.gomoku.zenyth.core.designsystem.theme.RapfiTheme
+import dev.gomoku.zenyth.core.designsystem.component.ZenythSwitch
+import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.RowNoteStyle
 import dev.gomoku.zenyth.core.designsystem.theme.RowTitleStyle
 import dev.gomoku.zenyth.core.designsystem.theme.hapticsEnabled
@@ -236,7 +236,7 @@ private fun SectionsBuilder.rootSections(ui: SettingsUiState, actions: SettingsA
                     Icons.Outlined.Science,
                     tr("고급 사용자 모드", "Expert mode", "高级用户模式"),
                     tr("DB 탭 · 엔진 콘솔 · 도구 · PC 설정 ${ui.total}개", "DB tab, engine console, tools, ${ui.total} PC settings", "数据库页 · 引擎控制台 · 工具 · ${ui.total} 项 PC 设置"),
-                ) { RapfiSwitch(checked = pro, onCheckedChange = actions.onPro) }
+                ) { ZenythSwitch(checked = pro, onCheckedChange = actions.onPro) }
             }
             if (pro) {
                 row(onClick = { actions.onOpen(SettingsPage.Desktop) }) {
@@ -364,7 +364,7 @@ private fun SectionsBuilder.designSections(ui: SettingsUiState, actions: Setting
 @Composable
 private fun ThemePreview() {
     val scheme = MaterialTheme.colorScheme
-    val skin = RapfiTheme.board
+    val skin = ZenythTheme.board
     val dark = scheme.surface.luminance() < 0.5f
     Box(
         Modifier
