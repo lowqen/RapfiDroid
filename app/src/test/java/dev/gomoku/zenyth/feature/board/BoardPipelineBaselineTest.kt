@@ -109,6 +109,15 @@ class BoardPipelineBaselineTest {
         val analysisNanos = System.nanoTime() - t0
         val analysisBytes = PerfBaseline.allocatedBytes() - bytes0
         val analysisEmissions = emissions
+        // Once more under the recorder, apart from the counted pass.
+        rig.vm.onMultiPvChange(3)
+        runCurrent()
+        PerfBaseline.profiled("pipeline_analysis") {
+            responses.forEach {
+                rig.engine.responseFlow.emit(it)
+                runCurrent()
+            }
+        }
         rig.vm.onStopAnalyze()
         runCurrent()
 
@@ -127,6 +136,12 @@ class BoardPipelineBaselineTest {
         }
         val clockBytes = PerfBaseline.allocatedBytes() - bytes1
         val clockEmissions = emissions
+        PerfBaseline.profiled("pipeline_clock") {
+            repeat(TICKS) {
+                rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
+                runCurrent()
+            }
+        }
 
         // ---- the floor: the same plumbing with nothing in it -----------------
         // A 22-way combine into a 5-way combine into stateIn, as `panel` and

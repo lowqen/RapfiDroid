@@ -26,6 +26,29 @@ internal object PerfBaseline {
     /** Bytes this thread has allocated so far. */
     fun allocatedBytes(): Long = threads.getThreadAllocatedBytes(Thread.currentThread().id)
 
+    /** `ZENYTH_JFR_DIR`: where [profiled] leaves its recordings; unset, it records nothing. */
+    val jfrDir: File? = System.getenv("ZENYTH_JFR_DIR")?.takeIf { it.isNotBlank() }?.let(::File)
+
+    /**
+     * [block] under a Flight Recorder allocation profile, written to
+     * `<jfrDir>/<name>.jfr` — the measured stretch alone, not the test's
+     * start-up around it.
+     */
+    inline fun <T> profiled(name: String, block: () -> T): T {
+        val dir = jfrDir ?: return block()
+        val recording = jdk.jfr.Recording()
+        recording.enable("jdk.ObjectAllocationSample").with("throttle", "1000000/s").withStackTrace()
+        recording.start()
+        try {
+            return block()
+        } finally {
+            recording.stop()
+            dir.mkdirs()
+            recording.dump(File(dir, "$name.jfr").toPath())
+            recording.close()
+        }
+    }
+
     fun report(name: String, lines: List<String>) {
         val text = lines.joinToString("\n", postfix = "\n")
         println("---- $name ----\n$text")

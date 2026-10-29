@@ -41,25 +41,20 @@ jobs:
       - name: Baseline tests
         env:
           ZENYTH_PERF_OUT: ${{ github.workspace }}/perf
+          ZENYTH_JFR_DIR: ${{ github.workspace }}/jfr
         run: >
           ./gradlew testDebugUnitTest --rerun --tests '*BaselineTest*'
           --stacktrace
 
-      # Where the board view model's per-line allocation goes: the pipeline
-      # baseline again, under Flight Recorder, charged to the app's own frames.
-      - name: Allocation profile
-        env:
-          ZENYTH_PERF_OUT: ${{ github.workspace }}/perf-jfr
-          ZENYTH_JFR: ${{ github.workspace }}/perf/pipeline.jfr
+      # Where the measured stretches allocate (PerfBaseline.profiled), charged
+      # to the first frame of the app's own code.
+      - name: Allocation profiles
         run: |
-          mkdir -p perf
-          # The profile settings sample 300 allocations a second, too few for a
-          # test this short; the same settings at 20000 a second.
-          sed 's#300/s#20000/s#' "$JAVA_HOME/lib/jfr/profile.jfc" > perf/alloc.jfc
-          ./gradlew testDebugUnitTest --rerun --tests '*BoardPipelineBaselineTest*' --stacktrace
-          "$JAVA_HOME/bin/jfr" print --json --events jdk.ObjectAllocationSample perf/pipeline.jfr > perf-jfr/alloc.json
-          python3 .github/scripts/alloc_top.py perf-jfr/alloc.json > perf/alloc_profile.txt
-          rm perf/pipeline.jfr
+          for f in jfr/*.jfr; do
+            name=$(basename "$f" .jfr)
+            "$JAVA_HOME/bin/jfr" print --json --events jdk.ObjectAllocationSample "$f" > "jfr/$name.json"
+            python3 .github/scripts/alloc_top.py "jfr/$name.json" > "perf/alloc_$name.txt"
+          done
 
       # The report folders are not inputs of the compile task, so without
       # --rerun it comes back UP-TO-DATE and writes nothing.
