@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -83,7 +84,7 @@ class BoardPipelineBaselineTest {
         assumeTrue(PerfBaseline.enabled)
         val rig = boardRig(AppSettings(multiPv = 3), io = StandardTestDispatcher(testScheduler))
         var emissions = 0
-        backgroundScope.launch { rig.vm.uiState.collect { emissions++ } }
+        val subscriber = backgroundScope.launch { rig.vm.uiState.collect { emissions++ } }
         rig.game.replaceLine(stones)
         runCurrent()
 
@@ -136,6 +137,17 @@ class BoardPipelineBaselineTest {
         }
         val clockBytes = PerfBaseline.allocatedBytes() - bytes1
         val clockEmissions = emissions
+        // The same ticks with nobody watching `uiState`: its upstream stops
+        // (WhileSubscribed), so this is what a tick costs outside the pipeline.
+        subscriber.cancel()
+        advanceTimeBy(6_000)
+        runCurrent()
+        val bytes3 = PerfBaseline.allocatedBytes()
+        repeat(TICKS) {
+            rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
+            runCurrent()
+        }
+        val unwatchedBytes = PerfBaseline.allocatedBytes() - bytes3
         PerfBaseline.profiled("pipeline_clock") {
             repeat(TICKS) {
                 rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
@@ -178,6 +190,7 @@ class BoardPipelineBaselineTest {
                 "clock: $TICKS ticks of 250 ms in the game tab",
                 "  uiState emissions: $clockEmissions",
                 "  allocated: ${clockBytes / TICKS} B/tick",
+                "  with no uiState subscriber: ${unwatchedBytes / TICKS} B/tick",
                 "floor: the same combine/stateIn plumbing computing nothing, $TICKS ticks",
                 "  emissions: $floorEmissions, allocated: ${floorBytes / TICKS} B/tick",
             ),
