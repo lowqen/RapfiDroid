@@ -53,6 +53,9 @@ jobs:
           ZENYTH_JFR: ${{ github.workspace }}/perf/pipeline.jfr
         run: |
           mkdir -p perf
+          # The profile settings sample 300 allocations a second, too few for a
+          # test this short; the same settings at 20000 a second.
+          sed 's#300/s#20000/s#' "$JAVA_HOME/lib/jfr/profile.jfc" > perf/alloc.jfc
           ./gradlew testDebugUnitTest --rerun --tests '*BoardPipelineBaselineTest*' --stacktrace
           "$JAVA_HOME/bin/jfr" print --json --events jdk.ObjectAllocationSample perf/pipeline.jfr > perf-jfr/alloc.json
           python3 .github/scripts/alloc_top.py perf-jfr/alloc.json > perf/alloc_profile.txt
