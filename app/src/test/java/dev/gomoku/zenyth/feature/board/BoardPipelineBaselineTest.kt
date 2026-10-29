@@ -137,6 +137,12 @@ class BoardPipelineBaselineTest {
         }
         val clockBytes = PerfBaseline.allocatedBytes() - bytes1
         val clockEmissions = emissions
+        PerfBaseline.profiled("pipeline_clock") {
+            repeat(PROFILED_TICKS) {
+                rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
+                runCurrent()
+            }
+        }
         // The parts of one emission, alone: building the next state, and the
         // equality check StateFlow makes against the last one.
         val last = rig.vm.uiState.value
@@ -163,12 +169,6 @@ class BoardPipelineBaselineTest {
             runCurrent()
         }
         val unwatchedBytes = PerfBaseline.allocatedBytes() - bytes3
-        PerfBaseline.profiled("pipeline_clock") {
-            repeat(TICKS) {
-                rig.game.stateFlow.value = rig.game.stateFlow.value.let { it.copy(clock = it.clock.tick(250)) }
-                runCurrent()
-            }
-        }
 
         // ---- the floor: the same plumbing with nothing in it -----------------
         // A 22-way combine into a 5-way combine into stateIn, as `panel` and
@@ -216,5 +216,7 @@ class BoardPipelineBaselineTest {
 
     private companion object {
         const val TICKS = 200
+        /** Enough allocation for a few hundred TLAB refills to sample. */
+        const val PROFILED_TICKS = 20_000
     }
 }

@@ -2,7 +2,7 @@
 
 Usage: alloc_top.py <events.json>
 
-Each jdk.ObjectAllocationSample is charged, by its sampled weight, to the
+Each allocation event (sample, or TLAB refill) is charged, by its weight, to the
 first frame of the app's own code on its stack (test and fake classes
 skipped), and separately to the class of the object allocated.
 """
@@ -18,7 +18,8 @@ by_frame, by_class, by_stack = collections.Counter(), collections.Counter(), col
 total = 0
 for e in events:
     v = e['values']
-    w = int(v.get('weight') or 0)
+    # Sample events carry a weight; TLAB events the TLAB (or the object) size.
+    w = int(v.get('weight') or v.get('tlabSize') or v.get('allocationSize') or 0)
     total += w
     by_class[(v.get('objectClass') or {}).get('name', '?')] += w
     frames = ((v.get('stackTrace') or {}).get('frames')) or []

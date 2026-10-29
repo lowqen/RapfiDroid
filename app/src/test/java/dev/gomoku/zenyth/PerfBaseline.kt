@@ -57,9 +57,12 @@ internal object PerfBaseline {
 
         fun start(): Any {
             val r = recording.getConstructor().newInstance()
-            val s = recording.getMethod("enable", String::class.java).invoke(r, "jdk.ObjectAllocationSample")
-            settings.getMethod("with", String::class.java, String::class.java).invoke(s, "throttle", "1000000/s")
-            settings.getMethod("withStackTrace").invoke(s)
+            // A TLAB refill is recorded with the stack of the allocation that
+            // caused it - a sample in proportion to bytes, and never throttled.
+            for (event in listOf("jdk.ObjectAllocationInNewTLAB", "jdk.ObjectAllocationOutsideTLAB")) {
+                val s = recording.getMethod("enable", String::class.java).invoke(r, event)
+                settings.getMethod("withStackTrace").invoke(s)
+            }
             recording.getMethod("start").invoke(r)
             return r
         }

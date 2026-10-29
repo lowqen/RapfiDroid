@@ -52,7 +52,7 @@ jobs:
         run: |
           for f in jfr/*.jfr; do
             name=$(basename "$f" .jfr)
-            "$JAVA_HOME/bin/jfr" print --json --events jdk.ObjectAllocationSample "$f" > "jfr/$name.json"
+            "$JAVA_HOME/bin/jfr" print --json --events jdk.ObjectAllocationInNewTLAB,jdk.ObjectAllocationOutsideTLAB "$f" > "jfr/$name.json"
             python3 .github/scripts/alloc_top.py "jfr/$name.json" > "perf/alloc_$name.txt"
           done
 
