@@ -134,7 +134,7 @@ class BoardPipelineBaselineTest {
         // costs here before the view model does any work of its own.
         val tick = MutableStateFlow(0)
         val panelInputs = List(21) { MutableStateFlow(0) } + tick
-        val floorPanel = combine(panelInputs) { it.size }
+        val floorPanel = combine(panelInputs) { it.sum() }
         val zero = MutableStateFlow(0)
         val floorUi = combine(zero, zero, floorPanel, zero, zero) { a, b, c, d, e -> a + b + c + d + e }
             .stateIn(backgroundScope, SharingStarted.WhileSubscribed(5_000), 0)
