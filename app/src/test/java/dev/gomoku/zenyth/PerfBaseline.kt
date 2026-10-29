@@ -36,16 +36,38 @@ internal object PerfBaseline {
      */
     inline fun <T> profiled(name: String, block: () -> T): T {
         val dir = jfrDir ?: return block()
-        val recording = jdk.jfr.Recording()
-        recording.enable("jdk.ObjectAllocationSample").with("throttle", "1000000/s").withStackTrace()
-        recording.start()
+        val recording = Recorder.start()
         try {
             return block()
         } finally {
-            recording.stop()
             dir.mkdirs()
-            recording.dump(File(dir, "$name.jfr").toPath())
-            recording.close()
+            Recorder.stop(recording, File(dir, "$name.jfr"))
+        }
+    }
+
+    /**
+     * `jdk.jfr.Recording`, reached through the system class loader: inside a
+     * Robolectric test the sandbox loader would instrument `jdk.jfr` itself,
+     * which the module system refuses.
+     */
+    object Recorder {
+        private val loader = ClassLoader.getSystemClassLoader()
+        private val recording = loader.loadClass("jdk.jfr.Recording")
+        private val settings = loader.loadClass("jdk.jfr.EventSettings")
+
+        fun start(): Any {
+            val r = recording.getConstructor().newInstance()
+            val s = recording.getMethod("enable", String::class.java).invoke(r, "jdk.ObjectAllocationSample")
+            settings.getMethod("with", String::class.java, String::class.java).invoke(s, "throttle", "1000000/s")
+            settings.getMethod("withStackTrace").invoke(s)
+            recording.getMethod("start").invoke(r)
+            return r
+        }
+
+        fun stop(r: Any, file: File) {
+            recording.getMethod("stop").invoke(r)
+            recording.getMethod("dump", java.nio.file.Path::class.java).invoke(r, file.toPath())
+            recording.getMethod("close").invoke(r)
         }
     }
 
