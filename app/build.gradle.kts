@@ -110,6 +110,11 @@ android {
             // or the suite passes on a Korean machine and fails on any other.
             it.systemProperty("user.language", "ko")
             it.systemProperty("user.country", "KR")
+            // ZENYTH_JFR=<file>: a Flight Recorder allocation profile of the test
+            // JVM, for perf-baseline.yml. Unset, nothing changes.
+            System.getenv("ZENYTH_JFR")?.takeIf { f -> f.isNotBlank() }?.let { f ->
+                it.jvmArgs("-XX:StartFlightRecording=filename=$f,settings=profile")
+            }
             // Screenshot mode, without the Roborazzi Gradle plugin (one plugin fewer
             // for AGP 9 and for the F-Droid build): `-Pscreenshots=record` writes
             // the goldens in src/test/screenshots, `verify` fails on any pixel

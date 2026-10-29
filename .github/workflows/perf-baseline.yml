@@ -45,6 +45,19 @@ jobs:
           ./gradlew testDebugUnitTest --rerun --tests '*BaselineTest*'
           --stacktrace
 
+      # Where the board view model's per-line allocation goes: the pipeline
+      # baseline again, under Flight Recorder, charged to the app's own frames.
+      - name: Allocation profile
+        env:
+          ZENYTH_PERF_OUT: ${{ github.workspace }}/perf-jfr
+          ZENYTH_JFR: ${{ github.workspace }}/perf/pipeline.jfr
+        run: |
+          mkdir -p perf
+          ./gradlew testDebugUnitTest --rerun --tests '*BoardPipelineBaselineTest*' --stacktrace
+          "$JAVA_HOME/bin/jfr" print --json --events jdk.ObjectAllocationSample perf/pipeline.jfr > perf-jfr/alloc.json
+          python3 .github/scripts/alloc_top.py perf-jfr/alloc.json > perf/alloc_profile.txt
+          rm perf/pipeline.jfr
+
       # The report folders are not inputs of the compile task, so without
       # --rerun it comes back UP-TO-DATE and writes nothing.
       - name: Compose compiler reports
