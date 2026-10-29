@@ -636,8 +636,20 @@ fun DrawScope.drawBoard(
  */
 private class BoardPaints(stoneText: Float) {
     val stoneNumber = textPaint(600).apply { textSize = stoneText }
-    val valueBold = textPaint(850)
-    val valueRegular = textPaint(760)
+
+    /** What a value label is measured with: the weight set once, so 850 indeed. */
+    val valueMeasure = textPaint(850)
+
+    /**
+     * What a value label is drawn with, in the state the per-label paint used
+     * to reach — the weight set a second time, regular labels at 760. Setting
+     * it resets the typeface to the plain face first, and `Paint` ignores
+     * variation settings equal to the ones it has, so a bold label's paint is
+     * left on the plain face. That is how they have always looked, and the
+     * screenshots hold it.
+     */
+    val valueBold = textPaint(850).apply { BoardType.apply(this, 850) }
+    val valueRegular = textPaint(850).apply { BoardType.apply(this, 760) }
 
     private fun textPaint(weight: Int) = android.graphics.Paint().apply {
         textAlign = android.graphics.Paint.Align.CENTER
@@ -806,7 +818,7 @@ private fun DrawScope.drawValueText(
         else -> text
     }
     // Measured at the bold weight, drawn at the label's own.
-    val measure = paints.valueBold
+    val measure = paints.valueMeasure
     measure.textSize = size
     val room = geometry.step * 0.84f
     val width = measure.measureText(reference) * 1.2f
