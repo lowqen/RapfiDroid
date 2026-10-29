@@ -44,6 +44,10 @@ internal object EngineStreams {
         "MESSAGE SOOSORV MOVE4 7 7 3", "MESSAGE SOOSORV SWAP1 Y", "MESSAGE SOOSORV SWAP2 N", "MESSAGE SOOSORV",
         "DEBUG search started", "ERROR unknown command", "UNKNOWN command", "FORBID 07070808.",
         "FORBID 0707080", "FORBID .", "FORBID", "FORBIDxx", "  INFO PV 0  ", "MESSAGEREALTIME POS 7,7",
+        // Numbers past Int and Long, signs where only digits belong.
+        "INFO NODES 99999999999999999999", "INFO NODES 9223372036854775807", "INFO NODES 9223372036854775808",
+        "INFO PV 2147483648", "INFO DEPTH -2147483648", "INFO EVAL +M2147483647", "INFO EVAL -M-2147483648",
+        "MESSAGE REALTIME POS +7,-8", "MESSAGE REALTIME VAL +12", "MESSAGE REALTIME POS 2147483648,1",
     )
 
     /**
@@ -105,6 +109,35 @@ internal object EngineStreams {
         "Eval", "Evaluation", "Time", "|", "-", "+M3", "-M7", "ms", "k", "H8", "I9", "z9", "a1", "ß", "ı", "é",
         "\"q\"", "name=\"Rapfi\",", "version=\"1\"", ",", ".", "0707", "0808.",
     )
+
+    /**
+     * Characters where case-blind matching and `uppercase()` part ways (`ß` grows
+     * to `SS`, the Kelvin sign equals `K` only ignoring case, ligatures, dotless
+     * i), whitespace Kotlin trims but `\s` does not split on, and digits that are
+     * not ASCII.
+     */
+    private val tricky = listOf(
+        'ß', 'ı', 'İ', 'ſ', '\u212A', 'ﬆ', 'ﬁ', '\u00A0', '\u2003', '\u000B', '\u001F', '７', '٣', '+', '-', ',', ' ', '\t',
+    )
+
+    /** [corpus] and a search, each line bent at a few seeded places by [tricky] characters and case flips. */
+    fun mutated(count: Int, seed: Int = 11): List<String> {
+        val rnd = Random(seed)
+        val base = corpus + search(depths = 3, multiPv = 2, seed = seed)
+        return List(count) {
+            val chars = base[rnd.nextInt(base.size)].toMutableList()
+            repeat(rnd.nextInt(1, 4)) {
+                val at = if (chars.isEmpty()) 0 else rnd.nextInt(chars.size + 1)
+                when (rnd.nextInt(4)) {
+                    0 -> chars.add(at, tricky[rnd.nextInt(tricky.size)])
+                    1 -> if (at < chars.size) chars[at] = tricky[rnd.nextInt(tricky.size)]
+                    2 -> if (at < chars.size) chars[at] = chars[at].let { if (it.isUpperCase()) it.lowercaseChar() else it.uppercaseChar() }
+                    else -> if (at < chars.size) chars.removeAt(at)
+                }
+            }
+            chars.joinToString("")
+        }
+    }
 
     /** Seeded lines built from the grammar's own words, cases and spacing mixed. */
     fun fuzz(count: Int, seed: Int = 7): List<String> {

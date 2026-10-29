@@ -8,6 +8,13 @@ import dev.gomoku.zenyth.core.model.Move
  * PVs by [SearchAggregator]. Fully JVM-unit-testable.
  *
  * Coordinates on the wire are **row,col ("y,x")**; [CoordMapper] converts.
+ *
+ * The lines a search streams — `INFO …` and `MESSAGE REALTIME …`, dozens a
+ * second — are read in place, by index, so a line costs its response and
+ * nothing else: no upper-cased copy of the line, no substrings, no split
+ * lists. The rarer lines (database, openings, about) keep the plain string
+ * code. Either way the result is the one the string code gave, character for
+ * character; `EngineIoEquivalenceTest` holds it to that.
  */
 object ResponseParser {
 
@@ -16,11 +23,8 @@ object ResponseParser {
 
     // The rest of the grammar's patterns, held here for the same reason
     // `bestMove` is: `Regex(…)` compiles on construction, and these are built
-    // once per engine line otherwise. During a search the engine streams INFO
-    // and MESSAGE continuously, so `parseThinking`, `parseInfo` and `digits`
-    // were each recompiling a pattern several times a second.
+    // once per engine line otherwise.
     private val whitespace = Regex("""\s+""")
-    private val firstDigits = Regex("""\d+""")
     private val signedDigits = Regex("""-?\d+""")
     private val aboutField = Regex("""(\w+)\s*=\s*"([^"]*)"|(\w+)\s*=\s*([^,]+)""")
 
@@ -31,27 +35,26 @@ object ResponseParser {
         val raw = rawLine
         val line = rawLine.trim()
         if (line.isEmpty()) return EngineResponse.Unknown(raw)
-
-        val upper = line.uppercase()
+        val end = line.length
 
         when {
-            upper.startsWith("MESSAGE REALTIME") -> return parseRealtime(line.substring(16).trim(), coord, raw)
-            upper.startsWith("MESSAGE DATABASE") -> return parseDatabase(line.substring(16).trim(), coord, raw)
-            upper.startsWith("MESSAGE SWAP2") ->
+            line.upperStarts(0, end, "MESSAGE REALTIME") -> return parseRealtime(line, line.offset(16), coord, raw)
+            line.upperStarts(0, end, "MESSAGE DATABASE") -> return parseDatabase(line.substring(16).trim(), coord, raw)
+            line.upperStarts(0, end, "MESSAGE SWAP2") ->
                 return parseOpening(line.substring(13).trim(), swap2 = true, coord = coord, raw = raw)
-            upper.startsWith("MESSAGE SOOSORV") ->
+            line.upperStarts(0, end, "MESSAGE SOOSORV") ->
                 return parseOpening(line.substring(15).trim(), swap2 = false, coord = coord, raw = raw)
-            upper.startsWith("MESSAGE INFO") -> return parseCapability(line.substring(12).trim(), raw)
-            upper.startsWith("MESSAGE") -> {
+            line.upperStarts(0, end, "MESSAGE INFO") -> return parseCapability(line.substring(12).trim(), raw)
+            line.upperStarts(0, end, "MESSAGE") -> {
                 val body = line.drop(7).trim()
                 return parseThinking(body, raw) ?: EngineResponse.Message(body, raw)
             }
-            upper.startsWith("INFO") -> return parseInfo(line.substring(4).trim(), coord, raw)
-            upper.startsWith("DEBUG") -> return EngineResponse.Debug(line.drop(5).trim(), raw)
-            upper.startsWith("ERROR") -> return EngineResponse.Error(line.drop(5).trim(), raw)
-            upper.startsWith("UNKNOWN") -> return EngineResponse.Unknown(raw)
-            upper.startsWith("FORBID") -> return parseForbid(line, coord, raw)
-            upper == "OK" -> return EngineResponse.Ok(raw)
+            line.upperStarts(0, end, "INFO") -> return parseInfo(line, line.offset(4), coord, raw)
+            line.upperStarts(0, end, "DEBUG") -> return EngineResponse.Debug(line.drop(5).trim(), raw)
+            line.upperStarts(0, end, "ERROR") -> return EngineResponse.Error(line.drop(5).trim(), raw)
+            line.upperStarts(0, end, "UNKNOWN") -> return EngineResponse.Unknown(raw)
+            line.upperStarts(0, end, "FORBID") -> return parseForbid(line, coord, raw)
+            line.upperEquals(0, end, "OK") -> return EngineResponse.Ok(raw)
             looksLikeAbout(line) -> return EngineResponse.About(parseAboutFields(line), raw)
         }
 
@@ -69,41 +72,56 @@ object ResponseParser {
     }
 
     /** `INFO <key> <value>` — the realtime search stream. */
-    private fun parseInfo(rest: String, coord: CoordMapper, raw: String): EngineResponse {
-        val space = rest.indexOf(' ')
-        val key = if (space < 0) rest else rest.substring(0, space)
-        val value = if (space < 0) "" else rest.substring(space + 1).trim()
-        return when (key.uppercase()) {
-            "PV" ->
-                if (value.uppercase().startsWith("DONE")) EngineResponse.InfoPvDone(raw)
-                else EngineResponse.InfoPvStart(value.toIntOrNull() ?: 0, raw)
-            "NUMPV" -> EngineResponse.InfoNumPv(value.toIntOrNull() ?: 1, raw)
-            "DEPTH" -> EngineResponse.InfoDepth(value.substringBefore('-').trim().toIntOrNull() ?: 0, raw)
-            "BESTLINE" -> EngineResponse.InfoBestline(parseMoveList(value, coord), raw)
-            "WINRATE" -> EngineResponse.InfoWinRate(value.toDoubleOrNull() ?: 0.0, raw)
-            "EVAL" -> parseEval(value, raw)
-            "NODE", "NODES", "SPEED", "TIME" ->
-                digits(value)?.let { EngineResponse.InfoStat(key.uppercase(), it, raw) }
-                    ?: EngineResponse.Message("INFO $rest", raw)
+    private fun parseInfo(line: String, from: Int, coord: CoordMapper, raw: String): EngineResponse {
+        val rs = line.trimStartAt(from, line.length)
+        val re = line.trimEndAt(rs, line.length)
+        val space = line.indexOf(' ', rs).let { if (it < 0 || it >= re) -1 else it }
+        val ke = if (space < 0) re else space
+        val vs = if (space < 0) re else line.trimStartAt(space + 1, re)
+        val ve = if (space < 0) re else line.trimEndAt(vs, re)
+        fun key(word: String) = line.upperEquals(rs, ke, word)
+        fun message() = EngineResponse.Message("INFO " + line.substring(rs, re), raw)
+        return when {
+            key("PV") ->
+                if (line.upperStarts(vs, ve, "DONE")) EngineResponse.InfoPvDone(raw)
+                else EngineResponse.InfoPvStart(line.intOrNull(vs, ve) ?: 0, raw)
+            key("NUMPV") -> EngineResponse.InfoNumPv(line.intOrNull(vs, ve) ?: 1, raw)
+            key("DEPTH") -> {
+                val dash = line.indexOf('-', vs).let { if (it < 0 || it >= ve) ve else it }
+                val ds = line.trimStartAt(vs, dash)
+                EngineResponse.InfoDepth(line.intOrNull(ds, line.trimEndAt(ds, dash)) ?: 0, raw)
+            }
+            key("BESTLINE") -> EngineResponse.InfoBestline(parseMoveList(line, vs, ve, coord), raw)
+            key("WINRATE") -> EngineResponse.InfoWinRate(line.substring(vs, ve).toDoubleOrNull() ?: 0.0, raw)
+            key("EVAL") -> parseEval(line, vs, ve, raw)
+            key("NODE") -> stat("NODE", line, vs, ve, raw) ?: message()
+            key("NODES") -> stat("NODES", line, vs, ve, raw) ?: message()
+            key("SPEED") -> stat("SPEED", line, vs, ve, raw) ?: message()
+            key("TIME") -> stat("TIME", line, vs, ve, raw) ?: message()
             // The engine's running counters (R4 / Zenyth Web P4-1), every 0.5 s of a search.
             // Without them a long multi-threaded iteration shows no node count for seconds.
-            "TOTALNODES", "TOTALTIME" ->
-                digits(value)?.let { EngineResponse.InfoStat(if (key.uppercase() == "TOTALNODES") "NODES" else "TIME", it, raw) }
-                    ?: EngineResponse.Message("INFO $rest", raw)
-            else -> EngineResponse.Message("INFO $rest", raw)
+            key("TOTALNODES") -> stat("NODES", line, vs, ve, raw) ?: message()
+            key("TOTALTIME") -> stat("TIME", line, vs, ve, raw) ?: message()
+            else -> message()
         }
     }
 
+    private fun stat(key: String, line: String, from: Int, to: Int, raw: String): EngineResponse? =
+        line.leadingDigits(from, to)?.let { EngineResponse.InfoStat(key, it, raw) }
+
     /** EVAL is "+M<n>" / "-M<n>" (mate) or a numeric centipawn value. */
-    private fun parseEval(value: String, raw: String): EngineResponse {
-        val token = value.trim().substringBefore(' ')
-        return when {
-            token.startsWith("+M", ignoreCase = true) ->
-                EngineResponse.InfoEval(mate = token.drop(2).toIntOrNull(), cp = null, raw = raw)
-            token.startsWith("-M", ignoreCase = true) ->
-                EngineResponse.InfoEval(mate = token.drop(2).toIntOrNull()?.let { -it }, cp = null, raw = raw)
-            else ->
-                EngineResponse.InfoEval(mate = null, cp = token.toIntOrNull(), raw = raw)
+    private fun parseEval(line: String, from: Int, to: Int, raw: String): EngineResponse {
+        val ts = line.trimStartAt(from, to)
+        val te = line.indexOf(' ', ts).let { if (it < 0 || it >= to) line.trimEndAt(ts, to) else it }
+        val mateSign = when {
+            te - ts >= 2 && line.regionMatches(ts, "+M", 0, 2, ignoreCase = true) -> 1
+            te - ts >= 2 && line.regionMatches(ts, "-M", 0, 2, ignoreCase = true) -> -1
+            else -> 0
+        }
+        return when (mateSign) {
+            1 -> EngineResponse.InfoEval(mate = line.intOrNull(ts + 2, te), cp = null, raw = raw)
+            -1 -> EngineResponse.InfoEval(mate = line.intOrNull(ts + 2, te)?.let { -it }, cp = null, raw = raw)
+            else -> EngineResponse.InfoEval(mate = null, cp = line.intOrNull(ts, te), raw = raw)
         }
     }
 
@@ -139,8 +157,8 @@ object ResponseParser {
                     else -> evalCp = value.toIntOrNull()
                 }
                 "TIME" -> timeMs = value.removeSuffix("ms").trim().toLongOrNull()
-                "NODE", "NODES", "N" -> nodes = digits(value)
-                "SPEED" -> speed = digits(value)
+                "NODE", "NODES", "N" -> nodes = value.leadingDigits(0, value.length)
+                "SPEED" -> speed = value.leadingDigits(0, value.length)
                 else -> {
                     // Split once, not twice: the token count is the same list's
                     // size, and this runs on every MESSAGE line of a search.
@@ -155,32 +173,40 @@ object ResponseParser {
         )
     }
 
-    /** Leading digits of e.g. "12345k" / "1.2M" -> plain count where possible. */
-    private fun digits(value: String): Long? =
-        firstDigits.find(value)?.value?.toLongOrNull()
-
     /** `MESSAGE REALTIME <sub>` overlays. Sub-tokens matched like the desktop. */
-    private fun parseRealtime(rest: String, coord: CoordMapper, raw: String): EngineResponse {
-        val upper = rest.uppercase()
+    private fun parseRealtime(line: String, from: Int, coord: CoordMapper, raw: String): EngineResponse {
+        val rs = line.trimStartAt(from, line.length)
+        val re = line.trimEndAt(rs, line.length)
+        // `rest.drop(n)`: past the sub-token, never past the end.
+        fun after(n: Int) = minOf(rs + n, re)
         return when {
-            upper.startsWith("BEST") -> pairOrUnknown(rest.drop(4), coord, raw) { EngineResponse.RealtimeBest(it, raw) }
-            upper.startsWith("LOSE") -> pairOrUnknown(rest.drop(4), coord, raw) { EngineResponse.RealtimeLose(it, raw) }
-            upper.startsWith("POS") -> pairOrUnknown(rest.drop(3), coord, raw) { EngineResponse.RealtimePos(it, raw) }
-            upper.startsWith("DONE") -> pairOrUnknown(rest.drop(4), coord, raw) { EngineResponse.RealtimeDone(it, raw) }
-            upper.startsWith("REFRESH") -> EngineResponse.RealtimeRefresh(raw)
-            upper.startsWith("PV") -> EngineResponse.RealtimePv(parseMoveList(rest.drop(2).trim(), coord), raw)
-            upper.startsWith("VAL") -> EngineResponse.RealtimeVal(rest.drop(3).trim().toIntOrNull() ?: 0, raw)
+            line.upperStarts(rs, re, "BEST") -> pairOrUnknown(line, after(4), re, coord, raw) { EngineResponse.RealtimeBest(it, raw) }
+            line.upperStarts(rs, re, "LOSE") -> pairOrUnknown(line, after(4), re, coord, raw) { EngineResponse.RealtimeLose(it, raw) }
+            line.upperStarts(rs, re, "POS") -> pairOrUnknown(line, after(3), re, coord, raw) { EngineResponse.RealtimePos(it, raw) }
+            line.upperStarts(rs, re, "DONE") -> pairOrUnknown(line, after(4), re, coord, raw) { EngineResponse.RealtimeDone(it, raw) }
+            line.upperStarts(rs, re, "REFRESH") -> EngineResponse.RealtimeRefresh(raw)
+            line.upperStarts(rs, re, "PV") -> EngineResponse.RealtimePv(parseMoveList(line, after(2), re, coord), raw)
+            line.upperStarts(rs, re, "VAL") -> {
+                val vs = line.trimStartAt(after(3), re)
+                EngineResponse.RealtimeVal(line.intOrNull(vs, line.trimEndAt(vs, re)) ?: 0, raw)
+            }
             else -> EngineResponse.Unknown(raw)
         }
     }
 
+    /** The first space-delimited token of `[from, to)` as a "y,x" pair. */
     private inline fun pairOrUnknown(
-        rest: String,
+        line: String,
+        from: Int,
+        to: Int,
         coord: CoordMapper,
         raw: String,
         make: (Move) -> EngineResponse,
     ): EngineResponse {
-        val move = coord.parsePair(rest.trim().substringBefore(' '))
+        val ts = line.trimStartAt(from, to)
+        val te = line.trimEndAt(ts, to)
+        val space = line.indexOf(' ', ts).let { if (it < 0 || it >= te) te else it }
+        val move = parsePair(line, ts, space, coord)
         return if (move != null) make(move) else EngineResponse.Unknown(raw)
     }
 
@@ -342,10 +368,36 @@ object ResponseParser {
         return EngineResponse.Forbid(cells, raw)
     }
 
-    /** Space-separated "y,x" tokens (BESTLINE / REALTIME PV). */
-    private fun parseMoveList(value: String, coord: CoordMapper): List<Move> =
-        value.trim().split(whitespace)
-            .mapNotNull { if (it.isBlank()) null else coord.parsePair(it) }
+    /**
+     * Space-separated "y,x" tokens (BESTLINE / REALTIME PV), split where `\s+`
+     * splits: the ASCII whitespace, not every character [Char.isWhitespace] knows.
+     */
+    private fun parseMoveList(line: String, from: Int, to: Int, coord: CoordMapper): List<Move> {
+        val out = ArrayList<Move>()
+        val end = line.trimEndAt(from, to)
+        var i = line.trimStartAt(from, end)
+        while (i < end) {
+            var j = i
+            while (j < end && !line[j].isRegexSpace()) j++
+            if (j > i) parsePair(line, i, j, coord)?.let(out::add)
+            i = j
+            while (i < end && line[i].isRegexSpace()) i++
+        }
+        return out
+    }
+
+    /** `CoordMapper.parsePair` on `[from, to)`: a "row,col" token, or null. */
+    private fun parsePair(line: String, from: Int, to: Int, coord: CoordMapper): Move? {
+        val ts = line.trimStartAt(from, to)
+        val te = line.trimEndAt(ts, to)
+        val comma = line.indexOf(',', ts)
+        if (comma < 0 || comma >= te || line.indexOf(',', comma + 1).let { it in 0 until te }) return null
+        val rs = line.trimStartAt(ts, comma)
+        val row = line.intOrNull(rs, line.trimEndAt(rs, comma)) ?: return null
+        val cs = line.trimStartAt(comma + 1, te)
+        val col = line.intOrNull(cs, line.trimEndAt(cs, te)) ?: return null
+        return coord.fromWire(row, col)
+    }
 
     private fun looksLikeAbout(line: String): Boolean =
         line.contains("name=", ignoreCase = true) && line.contains("version=", ignoreCase = true)
@@ -358,5 +410,137 @@ object ResponseParser {
             if (key.isNotEmpty()) out[key] = v
         }
         return out
+    }
+
+    // ---- reading in place --------------------------------------------------
+    //
+    // Each of these is a String function of the old code, on `[from, to)`
+    // instead of on a copy. Where Unicode makes `uppercase()` and a case-blind
+    // compare disagree (`ß` → `SS`, the Kelvin sign), the ASCII-only fast path
+    // steps aside and the old copy-and-uppercase does the deciding.
+
+    /**
+     * [n], where the old code took `substring(n)` — which throws past the end.
+     * Only a line `uppercase()` stretched (`ß` → `SS`) gets there, and it fails
+     * as it always did.
+     */
+    private fun String.offset(n: Int): Int = if (n <= length) n else substring(n).length
+
+    /** `substring(from, to).uppercase().startsWith(prefix)`, for an upper-case ASCII [prefix]. */
+    private fun String.upperStarts(from: Int, to: Int, prefix: String): Boolean {
+        val n = prefix.length
+        if (to - from >= n && isAscii(from, from + n)) {
+            for (k in 0 until n) if (this[from + k].asciiUpper() != prefix[k]) return false
+            return true
+        }
+        if (to - from < n && isAscii(from, to)) return false
+        return substring(from, to).uppercase().startsWith(prefix)
+    }
+
+    /** `substring(from, to).uppercase() == word`, for an upper-case ASCII [word]. */
+    private fun String.upperEquals(from: Int, to: Int, word: String): Boolean {
+        if (isAscii(from, to)) {
+            if (to - from != word.length) return false
+            for (k in word.indices) if (this[from + k].asciiUpper() != word[k]) return false
+            return true
+        }
+        return substring(from, to).uppercase() == word
+    }
+
+    private fun String.isAscii(from: Int, to: Int): Boolean {
+        for (k in from until to) if (this[k].code >= 0x80) return false
+        return true
+    }
+
+    private fun Char.asciiUpper(): Char = if (this in 'a'..'z') this - 32 else this
+
+    /** Where `substring(from, to).trimStart()` would begin. */
+    private fun String.trimStartAt(from: Int, to: Int): Int {
+        var i = from
+        while (i < to && this[i].isWhitespace()) i++
+        return i
+    }
+
+    /** Where `substring(from, to).trimEnd()` would end. */
+    private fun String.trimEndAt(from: Int, to: Int): Int {
+        var i = to
+        while (i > from && this[i - 1].isWhitespace()) i--
+        return i
+    }
+
+    /** What `\s` matches: space, tab, LF, VT, FF, CR. */
+    private fun Char.isRegexSpace(): Boolean =
+        this == ' ' || this == '\t' || this == '\n' || this == '\u000B' || this == '\u000C' || this == '\r'
+
+    /**
+     * `substring(from, to).toIntOrNull()` — the standard library's algorithm,
+     * signs and all, any Unicode digit, null on overflow.
+     */
+    private fun String.intOrNull(from: Int, to: Int): Int? {
+        if (to <= from) return null
+        val first = this[from]
+        val start: Int
+        val negative: Boolean
+        val limit: Int
+        if (first < '0') {
+            if (to - from == 1) return null
+            start = from + 1
+            when (first) {
+                '-' -> {
+                    negative = true
+                    limit = Int.MIN_VALUE
+                }
+                '+' -> {
+                    negative = false
+                    limit = -Int.MAX_VALUE
+                }
+                else -> return null
+            }
+        } else {
+            start = from
+            negative = false
+            limit = -Int.MAX_VALUE
+        }
+        val limitForMaxRadix = (-Int.MAX_VALUE) / 36
+        var limitBeforeMul = limitForMaxRadix
+        var result = 0
+        for (i in start until to) {
+            val digit = Character.digit(this[i].code, 10)
+            if (digit < 0) return null
+            if (result < limitBeforeMul) {
+                if (limitBeforeMul == limitForMaxRadix) {
+                    limitBeforeMul = limit / 10
+                    if (result < limitBeforeMul) return null
+                } else {
+                    return null
+                }
+            }
+            result *= 10
+            if (result < limit + digit) return null
+            result -= digit
+        }
+        return if (negative) result else -result
+    }
+
+    /**
+     * The first run of ASCII digits in `[from, to)` as a count — what
+     * `Regex("\\d+").find(…)?.value?.toLongOrNull()` gave: "12345k" → 12345,
+     * null when there is no digit or the run passes [Long.MAX_VALUE].
+     */
+    private fun String.leadingDigits(from: Int, to: Int): Long? {
+        var i = from
+        while (i < to && this[i] !in '0'..'9') i++
+        if (i == to) return null
+        var result = 0L
+        while (i < to && this[i] in '0'..'9') {
+            val d = this[i] - '0'
+            if (result > (Long.MAX_VALUE - d) / 10) {
+                // Past Long: the old `toLongOrNull` gave null for the whole run.
+                return null
+            }
+            result = result * 10 + d
+            i++
+        }
+        return result
     }
 }

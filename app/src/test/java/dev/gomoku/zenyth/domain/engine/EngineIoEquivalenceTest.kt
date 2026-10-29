@@ -22,6 +22,7 @@ class EngineIoEquivalenceTest {
         "search" to EngineStreams.search(depths = 18, multiPv = 3),
         "search-1pv" to EngineStreams.search(depths = 12, multiPv = 1, seed = 3),
         "fuzz" to EngineStreams.fuzz(30_000),
+        "mutated" to EngineStreams.mutated(30_000),
     )
 
     /** A result, or the kind of failure; a parser that throws must keep throwing. */

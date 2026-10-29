@@ -62,6 +62,19 @@ class SearchAggregator(private val sideToMove: StoneColor) {
     private val candidates = LinkedHashMap<Move, CandidateState>()
     private val loseCells = LinkedHashSet<Move>()
 
+    // The copies the last snapshot handed out, reused until their source
+    // changes. Most lines of a search move one of the four (a `REALTIME POS`
+    // only the candidates), and copying all four for every line was most of
+    // what a line cost. A copy is never written to once handed out.
+    private var pvsCopy: List<PvSnapshot> = emptyList()
+    private var tagsCopy: Map<Move, CellTag> = emptyMap()
+    private var candidatesCopy: Map<Move, CandidateState> = emptyMap()
+    private var loseCellsCopy: Set<Move> = emptySet()
+    private var pvsDirty = true
+    private var tagsDirty = true
+    private var candidatesDirty = true
+    private var loseCellsDirty = true
+
     /** Feed one parsed response; returns a new snapshot when it changed, else null. */
     fun consume(response: EngineResponse): AnalysisSnapshot? {
         when (response) {
@@ -71,8 +84,8 @@ class SearchAggregator(private val sideToMove: StoneColor) {
                     round++
                     // Whatever the round before last left behind was never
                     // refreshed by the round that has just ended, so it is gone.
-                    pvs.values.removeAll { it.round < round - 1 }
-                    tags.entries.retainAll { it.value.round >= round - 1 }
+                    if (pvs.values.removeAll { it.round < round - 1 }) pvsDirty = true
+                    if (tags.entries.retainAll { it.value.round >= round - 1 }) tagsDirty = true
                 }
                 curIndex = response.index
                 curMate = null
@@ -87,6 +100,7 @@ class SearchAggregator(private val sideToMove: StoneColor) {
                 val stale = pvs.keys.filter { it >= numPv }
                 stale.forEach { pvs.remove(it) }
                 if (stale.isEmpty()) return null
+                pvsDirty = true
             }
 
             is EngineResponse.InfoDepth -> {
@@ -113,14 +127,18 @@ class SearchAggregator(private val sideToMove: StoneColor) {
                     index = curIndex, depth = curDepth, winRate = curWinRate,
                     mate = curMate, eval = curEval, line = curLine, round = round,
                 )
-                curLine.firstOrNull()?.let { head -> tags[head] = tagFor(head) }
+                pvsDirty = true
+                curLine.firstOrNull()?.let { head ->
+                    tags[head] = tagFor(head)
+                    tagsDirty = true
+                }
                 // Last PV of this round: anything not written during it is stale.
                 // Only `INFO NUMPV` can tell us the round is over early; when the
                 // engine does not send one, the next round's `INFO PV 0` does the
                 // same sweep one round later.
                 if (curIndex + 1 >= numPv) {
-                    pvs.values.removeAll { it.round < round }
-                    tags.entries.retainAll { it.value.round >= round }
+                    if (pvs.values.removeAll { it.round < round }) pvsDirty = true
+                    if (tags.entries.retainAll { it.value.round >= round }) tagsDirty = true
                 }
             }
 
@@ -155,21 +173,28 @@ class SearchAggregator(private val sideToMove: StoneColor) {
                             mate = response.mate, eval = response.evalCp, line = response.line,
                             round = round,
                         )
+                        pvsDirty = true
                     }
                 }
             }
 
             is EngineResponse.RealtimeBest -> realtimeBest = response.move
-            is EngineResponse.RealtimePos -> candidates[response.move] = CandidateState.LIVE
+            is EngineResponse.RealtimePos -> {
+                if (candidates.put(response.move, CandidateState.LIVE) != CandidateState.LIVE) candidatesDirty = true
+            }
             is EngineResponse.RealtimeDone -> {
                 if (candidates[response.move] == CandidateState.LIVE) {
                     candidates[response.move] = CandidateState.DONE
+                    candidatesDirty = true
                 } else return null
             }
-            is EngineResponse.RealtimeLose -> loseCells.add(response.move)
+            is EngineResponse.RealtimeLose -> if (loseCells.add(response.move)) loseCellsDirty = true
             is EngineResponse.RealtimePv -> realtimeLine = response.line
             is EngineResponse.RealtimeVal -> stats = stats.copy(realtimeVal = response.value)
-            is EngineResponse.RealtimeRefresh -> candidates.clear()
+            is EngineResponse.RealtimeRefresh -> if (candidates.isNotEmpty()) {
+                candidates.clear()
+                candidatesDirty = true
+            }
 
             else -> return null
         }
@@ -181,6 +206,10 @@ class SearchAggregator(private val sideToMove: StoneColor) {
         tags.clear()
         candidates.clear()
         loseCells.clear()
+        pvsDirty = true
+        tagsDirty = true
+        candidatesDirty = true
+        loseCellsDirty = true
         realtimeBest = null
         realtimeLine = emptyList()
         stats = SearchStats()
@@ -221,16 +250,33 @@ class SearchAggregator(private val sideToMove: StoneColor) {
         (winRate * 100).roundToInt().coerceIn(0, 99)
 
     /** The current view, for a caller that did not just feed a response in. */
-    fun snapshot() =
-        AnalysisSnapshot(
+    fun snapshot(): AnalysisSnapshot {
+        if (pvsDirty) {
+            pvsCopy = pvs.values.toList()
+            pvsDirty = false
+        }
+        if (tagsDirty) {
+            tagsCopy = LinkedHashMap(tags)
+            tagsDirty = false
+        }
+        if (candidatesDirty) {
+            candidatesCopy = LinkedHashMap(candidates)
+            candidatesDirty = false
+        }
+        if (loseCellsDirty) {
+            loseCellsCopy = LinkedHashSet(loseCells)
+            loseCellsDirty = false
+        }
+        return AnalysisSnapshot(
             sideToMove = sideToMove,
-            pvs = pvs.values.toList(),
+            pvs = pvsCopy,
             realtimeBest = realtimeBest,
             depth = depth,
-            tags = LinkedHashMap(tags),
-            candidates = LinkedHashMap(candidates),
-            loseCells = LinkedHashSet(loseCells),
+            tags = tagsCopy,
+            candidates = candidatesCopy,
+            loseCells = loseCellsCopy,
             realtimeLine = realtimeLine,
             stats = stats,
         )
+    }
 }
