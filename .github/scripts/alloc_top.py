@@ -15,6 +15,7 @@ SKIP = ('Test', 'Fake', 'BoardRig', 'PerfBaseline', 'EngineStreams')
 
 events = json.load(open(sys.argv[1], encoding='utf-8'))['recording']['events']
 by_frame, by_class, by_stack = collections.Counter(), collections.Counter(), collections.Counter()
+by_top = collections.Counter()
 total = 0
 for e in events:
     v = e['values']
@@ -30,6 +31,14 @@ for e in events:
         if cls.startswith(APP) and not any(s in cls for s in SKIP):
             own.append(f"{cls[len(APP):]}.{m.get('name')}:{f.get('lineNumber')}")
     by_frame[own[0] if own else '(no app frame)'] += w
+    # Whatever the code: the frames nearest the allocation, for what the app
+    # frames cannot reach (a stack deeper than the recorded 64 frames).
+    top = []
+    for f in frames[:8]:
+        m = f.get('method') or {}
+        cls = (m.get('type') or {}).get('name', '').replace('/', '.')
+        top.append(f"{cls.rsplit('.', 1)[-1]}.{m.get('name')}")
+    by_top[' < '.join(top)] += w
     by_stack[' < '.join(own[:3]) if own else '(no app frame)'] += w
 
 def show(title, counter, n):
@@ -41,3 +50,4 @@ print(f'sampled allocation: {total / 1e6:.1f} MB in {len(events)} samples')
 show('first app frame', by_frame, 30)
 show('first three app frames', by_stack, 25)
 show('object class', by_class, 20)
+show('nearest eight frames, any code', by_top, 12)
