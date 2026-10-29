@@ -16,6 +16,10 @@ import dev.gomoku.zenyth.domain.engine.ResponseParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -124,6 +128,31 @@ class BoardPipelineBaselineTest {
         val clockBytes = PerfBaseline.allocatedBytes() - bytes1
         val clockEmissions = emissions
 
+        // ---- the floor: the same plumbing with nothing in it -----------------
+        // A 22-way combine into a 5-way combine into stateIn, as `panel` and
+        // `uiState` are wired, with lambdas that compute nothing: what a tick
+        // costs here before the view model does any work of its own.
+        val tick = MutableStateFlow(0)
+        val panelInputs = List(21) { MutableStateFlow(0) } + tick
+        val floorPanel = combine(panelInputs) { it.size }
+        val zero = MutableStateFlow(0)
+        val floorUi = combine(zero, zero, floorPanel, zero, zero) { a, b, c, d, e -> a + b + c + d + e }
+            .stateIn(backgroundScope, SharingStarted.WhileSubscribed(5_000), 0)
+        var floorEmissions = 0
+        backgroundScope.launch { floorUi.collect { floorEmissions++ } }
+        runCurrent()
+        repeat(TICKS) {
+            tick.value++
+            runCurrent()
+        }
+        floorEmissions = 0
+        val bytes2 = PerfBaseline.allocatedBytes()
+        repeat(TICKS) {
+            tick.value++
+            runCurrent()
+        }
+        val floorBytes = PerfBaseline.allocatedBytes() - bytes2
+
         PerfBaseline.report(
             "board_pipeline",
             listOf(
@@ -134,6 +163,8 @@ class BoardPipelineBaselineTest {
                 "clock: $TICKS ticks of 250 ms in the game tab",
                 "  uiState emissions: $clockEmissions",
                 "  allocated: ${clockBytes / TICKS} B/tick",
+                "floor: the same combine/stateIn plumbing computing nothing, $TICKS ticks",
+                "  emissions: $floorEmissions, allocated: ${floorBytes / TICKS} B/tick",
             ),
         )
         rig.vm.viewModelScope.cancel()
