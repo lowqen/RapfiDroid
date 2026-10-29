@@ -137,6 +137,21 @@ class BoardPipelineBaselineTest {
         }
         val clockBytes = PerfBaseline.allocatedBytes() - bytes1
         val clockEmissions = emissions
+        // The parts of one emission, alone: building the next state, and the
+        // equality check StateFlow makes against the last one.
+        val last = rig.vm.uiState.value
+        val next = last.copy(game = last.game.copy(clock = last.game.clock.tick(250)))
+        var parts = 0
+        val bytesCopy = PerfBaseline.allocatedBytes()
+        repeat(TICKS) { parts += last.copy(game = next.game).moveCount }
+        val copyBytes = PerfBaseline.allocatedBytes() - bytesCopy
+        val bytesEq = PerfBaseline.allocatedBytes()
+        repeat(TICKS) { if (last == next) parts++ }
+        val equalsBytes = PerfBaseline.allocatedBytes() - bytesEq
+        val bytesHash = PerfBaseline.allocatedBytes()
+        repeat(TICKS) { parts += last.hashCode() }
+        val hashBytes = PerfBaseline.allocatedBytes() - bytesHash
+
         // The same ticks with nobody watching `uiState`: its upstream stops
         // (WhileSubscribed), so this is what a tick costs outside the pipeline.
         subscriber.cancel()
@@ -191,6 +206,7 @@ class BoardPipelineBaselineTest {
                 "  uiState emissions: $clockEmissions",
                 "  allocated: ${clockBytes / TICKS} B/tick",
                 "  with no uiState subscriber: ${unwatchedBytes / TICKS} B/tick",
+                "  parts: BoardUiState.copy ${copyBytes / TICKS} B, equals ${equalsBytes / TICKS} B, hashCode ${hashBytes / TICKS} B ($parts)",
                 "floor: the same combine/stateIn plumbing computing nothing, $TICKS ticks",
                 "  emissions: $floorEmissions, allocated: ${floorBytes / TICKS} B/tick",
             ),
