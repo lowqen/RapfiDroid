@@ -25,7 +25,7 @@ for e in events:
     own = []
     for f in frames:
         m = f.get('method') or {}
-        cls = (m.get('type') or {}).get('name', '')
+        cls = (m.get('type') or {}).get('name', '').replace('/', '.')
         if cls.startswith(APP) and not any(s in cls for s in SKIP):
             own.append(f"{cls[len(APP):]}.{m.get('name')}:{f.get('lineNumber')}")
     by_frame[own[0] if own else '(no app frame)'] += w
