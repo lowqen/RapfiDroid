@@ -75,7 +75,8 @@ class BoardPipelineBaselineTest {
     @Test
     fun `board view model per engine line and per clock tick`() {
         assumeTrue(PerfBaseline.enabled)
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        // Main.immediate, as viewModelScope: the floor below must take the same hops.
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val rig = boardRig(AppSettings(multiPv = 3), io = Dispatchers.Unconfined)
         var emissions = 0
         val subscriber = scope.launch { rig.vm.uiState.collect { emissions++ } }
