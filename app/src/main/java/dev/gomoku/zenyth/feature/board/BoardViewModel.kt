@@ -8,6 +8,8 @@ import dev.gomoku.zenyth.core.common.IncomingLinks
 import dev.gomoku.zenyth.core.designsystem.component.BoardRender
 import dev.gomoku.zenyth.core.designsystem.component.DbLabel
 import dev.gomoku.zenyth.core.designsystem.component.TagPalette
+import dev.gomoku.zenyth.core.i18n.AppLanguage
+import dev.gomoku.zenyth.core.i18n.appLanguage
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.AnalysisSnapshot
 import dev.gomoku.zenyth.core.model.AnalyzeParams
@@ -18,6 +20,7 @@ import dev.gomoku.zenyth.core.model.BoardSymmetry
 import dev.gomoku.zenyth.core.model.BoardTransform
 import dev.gomoku.zenyth.core.model.ComputerSide
 import dev.gomoku.zenyth.core.model.ConnectionState
+import dev.gomoku.zenyth.core.model.DbCell
 import dev.gomoku.zenyth.core.model.DbOpResult
 import dev.gomoku.zenyth.core.model.DbState
 import dev.gomoku.zenyth.core.model.FontSpec
@@ -31,8 +34,10 @@ import dev.gomoku.zenyth.core.model.LngTable
 import dev.gomoku.zenyth.core.model.Move
 import dev.gomoku.zenyth.core.model.MoveGrader
 import dev.gomoku.zenyth.core.model.MoveQuality
+import dev.gomoku.zenyth.core.model.OpeningEval
 import dev.gomoku.zenyth.core.model.OpeningName
 import dev.gomoku.zenyth.core.model.OpeningProtocol
+import dev.gomoku.zenyth.core.model.OpeningTables
 import dev.gomoku.zenyth.core.model.Position
 import dev.gomoku.zenyth.core.model.PositionLink
 import dev.gomoku.zenyth.core.model.PositionRecord
@@ -223,17 +228,15 @@ class BoardViewModel @Inject constructor(
                 eval = if (analysisTab) evalFor(pos, read, p) else null,
                 multiPv = config.multiPv,
                 previewPv = p.preview,
-                winRateHistory =
-                    if (config.showWrGraph) history.map { it.blackWinRate } else emptyList(),
+                winRateHistory = if (config.showWrGraph) winRates(history) else emptyList(),
                 analysisSec = p.analysisSec,
                 playBestOnStop = p.playBest,
                 showEvalBar = config.showEvalBar,
                 showWrGraph = config.showWrGraph,
                 showWarning = config.showWarning,
                 boardZoomPercent = config.boardZoomPercent,
-                openingNames = (1..minOf(OpeningName.MAX_PLY, pos.moves.size))
-                    .mapNotNull { OpeningName.nameAt(it, pos.moves, pos.size) },
-                openingGrade = OpeningName.gradeAt(pos.moves, pos.size),
+                openingNames = openingNames(NamesKey(pos.moves, pos.size, appLanguage(), OpeningTables.names)),
+                openingGrade = openingGrade(GradeKey(pos.moves, pos.size, OpeningTables.evals)),
                 moveGrade = quality?.takeIf { it != MoveQuality.NONE },
                 gameName = p.gameName,
                 linkBackup = p.linkBackup,
@@ -242,7 +245,7 @@ class BoardViewModel @Inject constructor(
                 notice = p.notice,
                 futureCount = p.future.size,
                 balancing = p.balancing,
-                positionString = BoardTransform.toPositionString(pos.moves, pos.size),
+                positionString = positionString(BoardKey(pos.moves, pos.size)),
                 game = p.game,
                 moveTimeMs = GameLevels.moveTimeOf(config.level, config.timeoutTurnSec),
                 strength = GameLevels.strengthOf(config.level, config.maxNode),
@@ -253,10 +256,10 @@ class BoardViewModel @Inject constructor(
                 showClock = config.showClock,
                 openingNeedsOddSize = config.openingNeedsOddSize,
                 research = researchBanner(p),
-                toolbar = p.toolbar.filterNot { FunctionScripts.isBoardRowDuplicate(it.script) },
+                toolbar = toolbar(p.toolbar),
                 language = p.language,
                 toolbarStyle = config.toolbarStyle,
-                dbCommentFont = FontSpec.parse(config.dbCommentFont),
+                dbCommentFont = fromSettings(config).dbCommentFont,
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), BoardUiState())
 
@@ -729,15 +732,19 @@ class BoardViewModel @Inject constructor(
             else -> blackRate.coerceIn(0.0, 1.0)
         }
         records.update { current ->
-            val out = current.toMutableList()
-            while (out.size <= ply) out.add(PositionRecord())
-            val previous = out[ply]
-            out[ply] = PositionRecord(
+            val previous = current.getOrNull(ply) ?: PositionRecord()
+            val next = PositionRecord(
                 blackWinRate = rate,
                 blackMate = blackMate,
                 best = best ?: previous.best,
                 gap = gap ?: previous.gap,
             )
+            // Most lines of a search leave this ply's value as it was; copying
+            // the whole history to store it again made the same list, slower.
+            if (ply < current.size && current[ply] == next) return@update current
+            val out = current.toMutableList()
+            while (out.size <= ply) out.add(PositionRecord())
+            out[ply] = next
             out
         }
     }
@@ -828,10 +835,7 @@ class BoardViewModel @Inject constructor(
         val bestMark = shown?.realtimeBest ?: shown?.best?.head
         val overlay = config.showAnalysis && shown != null
         val dbLabels = if (analysisTab && config.useDatabase && !panel.game.thinking) {
-            panel.db.snapshot.cells.mapNotNull { (move, cell) ->
-                val text = cell.display(config.showBoardText)
-                if (text.isEmpty()) null else move to DbLabel(text, cell.kindOf())
-            }.toMap()
+            dbLabelsOf(DbLabelsKey(panel.db.snapshot.cells, config.showBoardText))
         } else {
             emptyMap()
         }
@@ -859,14 +863,8 @@ class BoardViewModel @Inject constructor(
             prove = panel.prove.takeIf { it.active },
             blocked = panel.blocked,
             showNumbers = config.showNumber,
-            textScale = FontSpec.parse(config.boardTextFont).scale,
-            palette = TagPalette(
-                losingSaturation = config.lossSaturation,
-                winningSaturation = config.winSaturation,
-                minRateSaturation = config.minSaturation,
-                maxRateSaturation = config.maxSaturation,
-                value = config.colorValue,
-            ),
+            textScale = fromSettings(config).textScale,
+            palette = fromSettings(config).palette,
         )
     }
 
@@ -877,18 +875,108 @@ class BoardViewModel @Inject constructor(
      */
     private fun badgeFor(pos: Position, report: GameReport?, config: AppSettings): MoveQuality? {
         if (pos.moves.isEmpty()) return null
-        val ply = pos.moves.size
-        val live = records.value
-        val fromReport = report?.data?.takeIf { it.matchesPrefix(pos.moves) }?.records.orEmpty()
-        val merged = (0..ply).map { i ->
-            fromReport.getOrNull(i)?.takeIf { it.recorded } ?: live.getOrNull(i) ?: PositionRecord()
+        return badge(BadgeKey(pos.moves, pos.size, report, records.value, config.mqPreset, config.skipOpening))
+    }
+
+    // ---- derived values, remembered -----------------------------------------
+    //
+    // `uiState` is rebuilt for every engine line that moves the reading - dozens
+    // a second while a search streams - yet most of what goes into it follows
+    // the board, the settings or the review, not the reading. Each value below
+    // is recomputed only when one of its inputs changed. A key holds every
+    // input, the language `tr()` reads and the opening tables a user can replace
+    // at run time included, so a remembered value is exactly what computing it
+    // again would give. Only the `uiState` upstream uses them, one emission at
+    // a time.
+
+    private class Memo<K, V>(private val compute: (K) -> V) {
+        private var key: Any? = Unset
+        private var value: Any? = null
+
+        @Suppress("UNCHECKED_CAST")
+        operator fun invoke(key: K): V {
+            if (this.key != key) {
+                value = compute(key)
+                this.key = key
+            }
+            return value as V
         }
-        return MoveGrader.currentBadge(
-            moves = pos.moves,
-            size = pos.size,
+
+        private object Unset
+    }
+
+    private data class BoardKey(val moves: List<Move>, val size: Int)
+
+    private data class NamesKey(
+        val moves: List<Move>,
+        val size: Int,
+        val language: AppLanguage,
+        val names: Map<String, OpeningTables.Name>,
+    )
+
+    private data class GradeKey(val moves: List<Move>, val size: Int, val evals: Map<String, Int>)
+
+    private data class BadgeKey(
+        val moves: List<Move>,
+        val size: Int,
+        val report: GameReport?,
+        val live: List<PositionRecord>,
+        val preset: Int,
+        val skipOpening: Boolean,
+    )
+
+    private data class DbLabelsKey(val cells: Map<Move, DbCell>, val showBoardText: Boolean)
+
+    /** What the settings alone decide about the board's drawing. */
+    private class SettingsParts(val palette: TagPalette, val textScale: Float, val dbCommentFont: FontSpec)
+
+    private val openingNames = Memo<NamesKey, List<String>> { k ->
+        (1..minOf(OpeningName.MAX_PLY, k.moves.size)).mapNotNull { OpeningName.nameAt(it, k.moves, k.size) }
+    }
+
+    private val openingGrade = Memo<GradeKey, OpeningEval.Grade?> { k -> OpeningName.gradeAt(k.moves, k.size) }
+
+    private val positionString = Memo<BoardKey, String> { k -> BoardTransform.toPositionString(k.moves, k.size) }
+
+    private val winRates = Memo<List<PositionRecord>, List<Double?>> { history -> history.map { it.blackWinRate } }
+
+    private val toolbar = Memo<List<FunctionScripts.ToolbarItem>, List<FunctionScripts.ToolbarItem>> { items ->
+        items.filterNot { FunctionScripts.isBoardRowDuplicate(it.script) }
+    }
+
+    private val dbLabelsOf = Memo<DbLabelsKey, Map<Move, DbLabel>> { k ->
+        k.cells.mapNotNull { (move, cell) ->
+            val text = cell.display(k.showBoardText)
+            if (text.isEmpty()) null else move to DbLabel(text, cell.kindOf())
+        }.toMap()
+    }
+
+    private val fromSettings = Memo<AppSettings, SettingsParts> { config ->
+        SettingsParts(
+            palette = TagPalette(
+                losingSaturation = config.lossSaturation,
+                winningSaturation = config.winSaturation,
+                minRateSaturation = config.minSaturation,
+                maxRateSaturation = config.maxSaturation,
+                value = config.colorValue,
+            ),
+            textScale = FontSpec.parse(config.boardTextFont).scale,
+            dbCommentFont = FontSpec.parse(config.dbCommentFont),
+        )
+    }
+
+    private val badge = Memo<BadgeKey, MoveQuality?> { k ->
+        val ply = k.moves.size
+        val fromReport = k.report?.data?.takeIf { it.matchesPrefix(k.moves) }?.records.orEmpty()
+        val merged = (0..ply).map { i ->
+            fromReport.getOrNull(i)?.takeIf { it.recorded } ?: k.live.getOrNull(i) ?: PositionRecord()
+        }
+        MoveGrader.currentBadge(
+            moves = k.moves,
+            size = k.size,
             records = merged,
-            preset = GradingPreset.of(config.mqPreset),
-            skipOpening = config.skipOpening,
+            preset = GradingPreset.of(k.preset),
+            skipOpening = k.skipOpening,
         )
     }
 
