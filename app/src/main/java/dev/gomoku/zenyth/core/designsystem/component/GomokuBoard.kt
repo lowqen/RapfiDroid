@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -36,7 +37,14 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sign
 
-/** Everything the board needs to draw one frame (pure data → easy to preview). */
+/**
+ * Everything the board needs to draw one frame (pure data → easy to preview).
+ *
+ * Immutable, and declared so: compared by value, a render equal to the last
+ * one — a clock tick, a card that changed — lets the board skip composing and
+ * drawing again.
+ */
+@Immutable
 data class BoardRender(
     val size: Int = Move.DEFAULT_SIZE,
     val stones: List<Move> = emptyList(),        // played order, black first
@@ -417,6 +425,7 @@ fun GomokuBoard(
     skin: BoardSkin = ZenythTheme.board,
     onTap: ((Move) -> Unit)? = null,
     onLongPress: ((Move) -> Unit)? = null,
+    provePulse: (() -> Boolean)? = null,
 ) {
     val n = render.size
     BoardType.ensure(androidx.compose.ui.platform.LocalContext.current)
@@ -451,7 +460,7 @@ fun GomokuBoard(
                 },
             ),
     ) {
-        drawBoard(render, skin)
+        drawBoard(render, skin, provePulse?.invoke() ?: render.provePulse)
     }
 }
 
@@ -459,11 +468,16 @@ fun GomokuBoard(
  * One board frame. Split out of the composable so the same pixels can be drawn
  * off-screen for the PNG export (see `renderBoardPng`).
  */
-fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) {
+fun DrawScope.drawBoard(
+    render: BoardRender,
+    skin: BoardSkin = BoardSkin.Light,
+    provePulse: Boolean = render.provePulse,
+) {
     val n = render.size
     val geometry = BoardGeometry(min(size.width, size.height), n)
     val step = geometry.step
     val radius = geometry.radius
+    val paints = BoardPaints(stoneText = radius * 0.88f)
     // Stroke widths follow the grid: the PNG export draws the same frame at a
     // higher resolution, where fixed pixel widths would come out as hairlines.
     val hair = (step / 45f).coerceAtLeast(1f)
@@ -532,7 +546,7 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
     render.stones.forEachIndexed { i, m ->
         val black = i % 2 == 0
         val number = if (render.showNumbers) "${i + 1}" else ""
-        drawStone(cx(m.x), cy(m.y), radius, black, number, 1f, skin, hair)
+        drawStone(cx(m.x), cy(m.y), radius, black, number, 1f, skin, hair, paints.stoneNumber)
         // Review grade in the stone's top-right corner (`mq_badge_pixbuf`).
         render.badges[m]?.takeIf { it != MoveQuality.NONE }?.let { quality ->
             drawBadge(cx(m.x), cy(m.y), radius, quality, hair)
@@ -555,7 +569,7 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
     render.ghosts.forEachIndexed { i, m ->
         val black = (start + i) % 2 == 0
         val number = if (render.showNumbers) "${i + 1}" else ""
-        drawStone(cx(m.x), cy(m.y), radius, black, number, 0.4f, skin, hair)
+        drawStone(cx(m.x), cy(m.y), radius, black, number, 0.4f, skin, hair, paints.stoneNumber)
     }
 
     render.gradeMarks.forEach { (m, grade) ->
@@ -569,7 +583,7 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
     render.tags.forEach { (m, tag) ->
         if (tag.label.isNotEmpty() && m !in occupiedCells) {
             drawValueText(
-                cx(m.x), cy(m.y), geometry, tag.label, render.palette.textFor(tag), textScale,
+                cx(m.x), cy(m.y), geometry, tag.label, render.palette.textFor(tag), textScale, paints,
                 bold = tag.kind != TagKind.RATE,
             )
         }
@@ -580,14 +594,14 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
             val pct = label.text.dropLast(1).toIntOrNull()
             drawValueText(
                 cx(m.x), cy(m.y), geometry, label.text,
-                render.palette.textForDb(label.kind, pct), textScale,
+                render.palette.textForDb(label.kind, pct), textScale, paints,
                 bold = label.kind == DbCellKind.WIN || label.kind == DbCellKind.LOSS,
             )
         }
     }
     render.marks.forEach { (m, mark) ->
         if (m !in occupiedCells && m !in render.tags && m !in render.dbLabels) {
-            drawValueText(cx(m.x), cy(m.y), geometry, mark.text, mark.color, textScale * 0.9f, bold = true)
+            drawValueText(cx(m.x), cy(m.y), geometry, mark.text, mark.color, textScale * 0.9f, paints, bold = true)
         }
     }
 
@@ -604,12 +618,31 @@ fun DrawScope.drawBoard(render: BoardRender, skin: BoardSkin = BoardSkin.Light) 
     // prove overlay on top of everything (main.c:9061 `prove_cell_pixbuf`)
     render.prove?.let { prove ->
         prove.ghost.forEach { (m, ply) ->
-            drawProveGhost(cx(m.x), cy(m.y), radius, hair, ply, prove, render.provePulse, skin)
+            drawProveGhost(cx(m.x), cy(m.y), radius, hair, ply, prove, provePulse, skin)
         }
         prove.marks.forEach { (m, mark) ->
             if (m in prove.ghost) return@forEach
             drawProveMark(cx(m.x), cy(m.y), radius, hair, mark, prove.budgetLabel(m))
         }
+    }
+}
+
+/**
+ * One frame's text paints. A paint used to be built for every stone number and
+ * every value on the board, each setting its font's weight axis, which derives
+ * a typeface — a few dozen times a frame. A frame now builds one per weight,
+ * and every use sets, before it draws, all that its drawing depends on. One per
+ * [drawBoard] call, never shared: the PNG export draws on another thread.
+ */
+private class BoardPaints(stoneText: Float) {
+    val stoneNumber = textPaint(600).apply { textSize = stoneText }
+    val valueBold = textPaint(850)
+    val valueRegular = textPaint(760)
+
+    private fun textPaint(weight: Int) = android.graphics.Paint().apply {
+        textAlign = android.graphics.Paint.Align.CENTER
+        isAntiAlias = true
+        BoardType.apply(this, weight)
     }
 }
 
@@ -659,7 +692,7 @@ private fun DrawScope.drawProveGhost(
 ) {
     val black = prove.isBlack(ply)
     val focus = ply == prove.ghostLen
-    drawStone(cx, cy, r, black, "", if (focus && pulse) 0.75f else 0.55f, skin, hair)
+    drawStone(cx, cy, r, black, "", if (focus && pulse) 0.75f else 0.55f, skin, hair, null)
     drawCircle(
         if (prove.isAttack(ply)) ProveAttack else ProveDefend,
         radius = r * if (focus && pulse) 0.99f else 0.90f,
@@ -762,26 +795,24 @@ private fun DrawScope.drawValueText(
     text: String,
     ink: Color,
     textScale: Float,
+    paints: BoardPaints,
     bold: Boolean = false,
 ) {
     val r = geometry.radius
     var size = r * (if (text.length >= 4) 0.8f else if (text.length == 3) 0.9f else 1.05f) * textScale
-    val paint = android.graphics.Paint().apply {
-        textAlign = android.graphics.Paint.Align.CENTER
-        isAntiAlias = true
-        textSize = size
-    }
     val reference = when {
         text.length <= 2 -> "W8"
         text.length == 3 -> "W88"
         else -> text
     }
-    BoardType.apply(paint, 850)
+    // Measured at the bold weight, drawn at the label's own.
+    val measure = paints.valueBold
+    measure.textSize = size
     val room = geometry.step * 0.84f
-    val width = paint.measureText(reference) * 1.2f
+    val width = measure.measureText(reference) * 1.2f
     if (width > room) size *= room / width
+    val paint = if (bold) paints.valueBold else paints.valueRegular
     paint.textSize = size
-    BoardType.apply(paint, if (bold) 850 else 760)
     val baseline = cy - (paint.descent() + paint.ascent()) / 2
     val canvas = drawContext.canvas.nativeCanvas
     paint.style = android.graphics.Paint.Style.STROKE
@@ -817,6 +848,7 @@ private fun DrawScope.drawStone(
     alpha: Float,
     skin: BoardSkin,
     hair: Float,
+    numberPaint: android.graphics.Paint?,
 ) {
     val center = Offset(cx, cy)
     drawCircle(
@@ -844,13 +876,8 @@ private fun DrawScope.drawStone(
         style = Stroke(width = hair),
     )
     if (number.isEmpty()) return
-    val paint = android.graphics.Paint().apply {
-        color = (if (black) skin.whiteHigh else skin.blackLow).copy(alpha = alpha).toArgb()
-        textSize = r * 0.88f
-        textAlign = android.graphics.Paint.Align.CENTER
-        isAntiAlias = true
-    }
-    BoardType.apply(paint, 600)
+    val paint = numberPaint ?: return
+    paint.color = (if (black) skin.whiteHigh else skin.blackLow).copy(alpha = alpha).toArgb()
     drawContext.canvas.nativeCanvas.drawText(
         number, cx, cy - (paint.descent() + paint.ascent()) / 2, paint,
     )

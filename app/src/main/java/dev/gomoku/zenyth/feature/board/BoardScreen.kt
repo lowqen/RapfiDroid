@@ -107,19 +107,23 @@ fun BoardScreen(
         if (uri != null) viewModel.onSaveFile(uri, saveFormat)
     }
     val clipboard = LocalClipboardManager.current
-    val files = GameFileActions(
-        open = { openFile.launch(arrayOf("*/*")) },
-        save = { format ->
-            saveFormat = format
-            saveFile.launch(viewModel.saveName(format))
-        },
-        copyLink = {
-            clipboard.setText(AnnotatedString(viewModel.linkText()))
-            viewModel.onNotice(tr("이 국면의 링크를 복사했습니다", "Copied a link to this position", "已复制此局面的链接"))
-        },
-        positionString = { showPosition = true },
-        saveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
-    )
+    // Built once: a new set every composition made the position card compose
+    // again with every engine line. The actions read the state when they run.
+    val files = remember(viewModel, clipboard, openFile, saveFile, saveImage) {
+        GameFileActions(
+            open = { openFile.launch(arrayOf("*/*")) },
+            save = { format ->
+                saveFormat = format
+                saveFile.launch(viewModel.saveName(format))
+            },
+            copyLink = {
+                clipboard.setText(AnnotatedString(viewModel.linkText()))
+                viewModel.onNotice(tr("이 국면의 링크를 복사했습니다", "Copied a link to this position", "已复制此局面的链接"))
+            },
+            positionString = { showPosition = true },
+            saveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
+        )
+    }
 
     // Haptics at the thresholds (UI overhaul P3): the user's own stone landing,
     // a tap that did nothing, a game decided. The engine's moves are silent —
@@ -162,7 +166,10 @@ fun BoardScreen(
     val board: @Composable (Modifier) -> Unit = { mod ->
         Box(mod) {
             ZoomableBoard(
-                render = ui.render.copy(provePulse = provePulse),
+                render = ui.render,
+                // Read where the board is drawn: the blink redraws the board
+                // and composes nothing.
+                provePulse = { provePulse },
                 scale = ui.boardScale,
                 onTap = { cell ->
                     pendingTap = PendingTap(cell, ui.moveCount, SystemClock.uptimeMillis())
@@ -183,7 +190,7 @@ fun BoardScreen(
     val modeSwitch: @Composable () -> Unit = { BoardModeSwitch(ui.mode, viewModel::onMode) }
     val toolbar: @Composable () -> Unit = {
         MoveToolbar(
-            ui = ui,
+            ui = ui.moveToolbarUi(),
             onNewBoard = onNewBoard,
             onFirst = viewModel::onFirst,
             onUndo = viewModel::onUndo,
@@ -199,17 +206,18 @@ fun BoardScreen(
         // Wide: the position card leads. Narrow: one line instead, the card after
         // the tab's own card, so «지금 두기» is never pushed off the screen.
         if (wide) {
-            PositionCard(ui, files, onResign = { confirmResign = true }, onDraw = viewModel::onOfferDraw)
+            PositionCard(ui.positionCardUi(), files, onResign = { confirmResign = true }, onDraw = viewModel::onOfferDraw)
         } else {
-            PositionStrip(ui)
+            PositionStrip(ui.positionStripUi())
         }
         if (ui.analysisTab) {
             AnalysisCard(ui, viewModel::onPreviewPv)
             if (ui.showWrGraph) EvalGraphCard(ui.winRateHistory, ui.moveCount)
-            AnalysisOptions(ui, viewModel::onAnalysisSec, viewModel::onMultiPvChange, viewModel::onPlayBestOnStop, viewModel::onNotice)
+            AnalysisOptions(ui.analysisOptionsUi(), viewModel::onAnalysisSec, viewModel::onMultiPvChange, viewModel::onPlayBestOnStop, viewModel::onNotice)
         } else {
             GameCard(
-                ui = ui,
+                ui = ui.gameCardUi(),
+                clock = { ui.game.clock },
                 onComputerSide = viewModel::onComputerSide,
                 onMoveTime = viewModel::onMoveTime,
                 onStrength = viewModel::onStrength,
@@ -219,12 +227,12 @@ fun BoardScreen(
                 onNote = viewModel::onNotice,
             )
         }
-        if (!wide) PositionCard(ui, files, onResign = { confirmResign = true }, onDraw = viewModel::onOfferDraw)
+        if (!wide) PositionCard(ui.positionCardUi(), files, onResign = { confirmResign = true }, onDraw = viewModel::onOfferDraw)
         // Defences, balance, transforms, the user's scripts: expert tools,
         // shown in «고급 사용자 모드» only.
         if (ui.analysisTab && pro) {
             ToolsCard(
-                ui = ui,
+                ui = ui.toolsCardUi(),
                 onDefend = viewModel::onSearchDefend,
                 onBalance = { showBalance = true },
                 onSymmetry = viewModel::onSymmetry,
@@ -242,15 +250,26 @@ fun BoardScreen(
         // this one's constraints.
         val width = maxWidth
         val landscape = width > maxHeight && width >= 560.dp
+        val showBar = ui.showEvalBar && ui.analysisTab
         if (landscape) {
-            BoardLandscape(ui, board, modeSwitch, toolbar, summary = { SummaryStrip(ui) }, cards = { cards(true) })
-        } else {
-            BoardPortrait(
-                ui = ui,
+            BoardLandscape(
+                showBar = showBar,
+                eval = { ui.eval },
                 board = board,
                 modeSwitch = modeSwitch,
                 toolbar = toolbar,
-                summary = { SummaryStrip(ui) },
+                summary = { SummaryStrip(ui.summaryUi()) },
+                cards = { cards(true) },
+            )
+        } else {
+            BoardPortrait(
+                showBar = showBar,
+                eval = { ui.eval },
+                timedRun = { ui.timedRun() },
+                board = board,
+                modeSwitch = modeSwitch,
+                toolbar = toolbar,
+                summary = { SummaryStrip(ui.summaryUi()) },
                 cards = { cards(width >= 600.dp) },
             )
         }
@@ -335,20 +354,33 @@ fun BoardScreen(
 @Composable
 private fun ZoomableBoard(
     render: BoardRender,
+    provePulse: () -> Boolean,
     scale: Float,
     onTap: (Move) -> Unit,
     onLongPress: (Move) -> Unit,
 ) {
     if (scale <= 1f) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            GomokuBoard(render = render, modifier = Modifier.fillMaxWidth(scale), onTap = onTap, onLongPress = onLongPress)
+            GomokuBoard(
+                render = render,
+                modifier = Modifier.fillMaxWidth(scale),
+                onTap = onTap,
+                onLongPress = onLongPress,
+                provePulse = provePulse,
+            )
         }
         return
     }
     BoxWithConstraints {
         val width = maxWidth * scale
         Row(Modifier.horizontalScroll(rememberScrollState())) {
-            GomokuBoard(render = render, modifier = Modifier.width(width), onTap = onTap, onLongPress = onLongPress)
+            GomokuBoard(
+                render = render,
+                modifier = Modifier.width(width),
+                onTap = onTap,
+                onLongPress = onLongPress,
+                provePulse = provePulse,
+            )
         }
     }
 }

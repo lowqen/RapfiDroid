@@ -76,6 +76,7 @@ import dev.gomoku.zenyth.core.model.BoardSymmetry
 import dev.gomoku.zenyth.core.model.CellTag
 import dev.gomoku.zenyth.core.model.ClockSide
 import dev.gomoku.zenyth.core.model.ComputerSide
+import dev.gomoku.zenyth.core.model.GameClock
 import dev.gomoku.zenyth.core.model.ConnectionState
 import dev.gomoku.zenyth.core.model.Duration
 import dev.gomoku.zenyth.core.model.GameFileFormat
@@ -103,7 +104,7 @@ internal class GameFileActions(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PositionCard(
-    ui: BoardUiState,
+    ui: PositionCardUi,
     files: GameFileActions,
     onResign: () -> Unit,
     onDraw: () -> Unit,
@@ -196,8 +197,19 @@ internal fun PositionCard(
     }
 }
 
+// The same card from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
 @Composable
-private fun GameFileMenu(ui: BoardUiState, files: GameFileActions) {
+internal fun PositionCard(
+    ui: BoardUiState,
+    files: GameFileActions,
+    onResign: () -> Unit,
+    onDraw: () -> Unit,
+    modifier: Modifier = Modifier,
+) = PositionCard(ui.positionCardUi(), files, onResign, onDraw, modifier)
+
+@Composable
+private fun GameFileMenu(ui: PositionCardUi, files: GameFileActions) {
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) {
@@ -232,7 +244,7 @@ private fun GameFileMenu(ui: BoardUiState, files: GameFileActions) {
  * game controls off the bottom: whose move, count and last, name and grade.
  */
 @Composable
-internal fun PositionStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
+internal fun PositionStrip(ui: PositionStripUi, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
@@ -273,6 +285,11 @@ internal fun PositionStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
         }
     }
 }
+
+// The same card from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
+@Composable
+internal fun PositionStrip(ui: BoardUiState, modifier: Modifier = Modifier) = PositionStrip(ui.positionStripUi(), modifier)
 
 /** «링크로 연 판» — the board a link replaced, until the user decides. */
 @Composable
@@ -432,7 +449,7 @@ private fun PvRow(pv: PvSnapshot, size: Int, strong: Boolean, onClick: () -> Uni
  */
 @Composable
 internal fun AnalysisOptions(
-    ui: BoardUiState,
+    ui: AnalysisOptionsUi,
     onAnalysisSec: (Int) -> Unit,
     onMultiPv: (Int) -> Unit,
     onPlayBest: (Boolean) -> Unit,
@@ -474,11 +491,22 @@ internal fun AnalysisOptions(
     }
 }
 
+// The same card from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
+@Composable
+internal fun AnalysisOptions(
+    ui: BoardUiState,
+    onAnalysisSec: (Int) -> Unit,
+    onMultiPv: (Int) -> Unit,
+    onPlayBest: (Boolean) -> Unit,
+    onNote: (String) -> Unit,
+) = AnalysisOptions(ui.analysisOptionsUi(), onAnalysisSec, onMultiPv, onPlayBest, onNote)
+
 /** The search tools that are not «analyse»: defences, balance, shape moves, the user's toolbar. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun ToolsCard(
-    ui: BoardUiState,
+    ui: ToolsCardUi,
     onDefend: () -> Unit,
     onBalance: () -> Unit,
     onSymmetry: (BoardSymmetry) -> Unit,
@@ -537,6 +565,19 @@ internal fun ToolsCard(
         }
     }
 }
+
+// The same card from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
+@Composable
+internal fun ToolsCard(
+    ui: BoardUiState,
+    onDefend: () -> Unit,
+    onBalance: () -> Unit,
+    onSymmetry: (BoardSymmetry) -> Unit,
+    onShift: (BoardShift) -> Unit,
+    onToggleForbidden: () -> Unit,
+    onRunScript: (String) -> Unit,
+) = ToolsCard(ui.toolsCardUi(), onDefend, onBalance, onSymmetry, onShift, onToggleForbidden, onRunScript)
 
 /**
  * Black's win rate move by move. Gaps (positions never read) are not joined.
@@ -615,7 +656,8 @@ private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun GameCard(
-    ui: BoardUiState,
+    ui: GameCardUi,
+    clock: () -> GameClock,
     onComputerSide: (ComputerSide) -> Unit,
     onMoveTime: (Long) -> Unit,
     onStrength: (Int) -> Unit,
@@ -678,14 +720,32 @@ internal fun GameCard(
         if (ui.openingNeedsOddSize) {
             Hint(tr("오프닝 규칙은 홀수 크기 판이 필요합니다", "An opening rule needs an odd board size", "开局规则需要奇数大小的棋盘"), color = MaterialTheme.colorScheme.error)
         }
-        if (ui.showClock && ui.game.active) ClockRow(ui)
+        if (ui.showClock && ui.game.active) ClockRow(clock)
         ui.game.log.lastOrNull()?.let { Hint(it) }
     }
 }
 
+// The same card from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
 @Composable
-private fun ClockRow(ui: BoardUiState) {
-    val clock = ui.game.clock
+internal fun GameCard(
+    ui: BoardUiState,
+    onComputerSide: (ComputerSide) -> Unit,
+    onMoveTime: (Long) -> Unit,
+    onStrength: (Int) -> Unit,
+    onRule: (Int) -> Unit,
+    onMoveNow: () -> Unit,
+    onEngineMove: () -> Unit,
+    onNote: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) = GameCard(
+    ui.gameCardUi(), { ui.game.clock }, onComputerSide, onMoveTime, onStrength, onRule, onMoveNow, onEngineMove, onNote, modifier,
+)
+
+/** Read here and nowhere else, so a tick composes this row and not the card around it. */
+@Composable
+private fun ClockRow(current: () -> GameClock) {
+    val clock = current()
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         listOf(ClockSide.COMPUTER to tr("컴퓨터", "Computer", "计算机"), ClockSide.HUMAN to tr("사람", "Human", "人")).forEach { (side, name) ->
             Column(Modifier.weight(1f)) {
@@ -793,13 +853,18 @@ internal val SummaryHeight = 64.dp
  * Game: the result, or whose move it is and who is playing whom.
  */
 @Composable
-internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) {
+internal fun SummaryStrip(ui: SummaryUi, modifier: Modifier = Modifier) {
     // The strip is the sheet's 64dp peek: its text grows to 1.3 and no further.
     CappedFontScale(1.3f) { SummaryStripBody(ui, modifier) }
 }
 
+// The same card from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
 @Composable
-private fun SummaryStripBody(ui: BoardUiState, modifier: Modifier) {
+internal fun SummaryStrip(ui: BoardUiState, modifier: Modifier = Modifier) = SummaryStrip(ui.summaryUi(), modifier)
+
+@Composable
+private fun SummaryStripBody(ui: SummaryUi, modifier: Modifier) {
     Row(
         modifier
             .fillMaxWidth()

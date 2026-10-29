@@ -94,10 +94,40 @@ internal fun portraitMetrics(width: Dp, height: Dp, evalBar: Dp, toolbar: Dp, mi
  * scroll and accessibility actions are tested, rather than a hand-made one with
  * a half stop. A half stop can come later if it is missed.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BoardPortrait(
     ui: BoardUiState,
+    board: @Composable (Modifier) -> Unit,
+    modeSwitch: @Composable () -> Unit,
+    toolbar: @Composable () -> Unit,
+    summary: @Composable () -> Unit,
+    cards: @Composable ColumnScope.() -> Unit,
+    modifier: Modifier = Modifier,
+    sheetUp: Boolean = false,
+) = BoardPortrait(
+    showBar = ui.showEvalBar && ui.analysisTab,
+    eval = { ui.eval },
+    timedRun = { ui.timedRun() },
+    board = board,
+    modeSwitch = modeSwitch,
+    toolbar = toolbar,
+    summary = summary,
+    cards = cards,
+    modifier = modifier,
+    sheetUp = sheetUp,
+)
+
+/**
+ * [BoardPortrait] from what it reads itself: whether the eval bar shows, and —
+ * read only where they are drawn, so an engine line does not compose the
+ * sheet again — the bar's value and the timed run's wave.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun BoardPortrait(
+    showBar: Boolean,
+    eval: () -> EvalView?,
+    timedRun: () -> TimedRun?,
     board: @Composable (Modifier) -> Unit,
     modeSwitch: @Composable () -> Unit,
     toolbar: @Composable () -> Unit,
@@ -113,7 +143,6 @@ internal fun BoardPortrait(
         val scheme = MaterialTheme.colorScheme
         val dark = scheme.surface.luminance() < 0.5f
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().drawBehind { stage(skin.wood, skin.woodEdge, dark) }) {
-            val showBar = ui.showEvalBar && ui.analysisTab
             // A 4dp gutter left of the bar, so it does not touch the screen edge.
             val bar = if (showBar) evalBarWidth(compact = true) + 8.dp else 0.dp
             val metrics = portraitMetrics(maxWidth, maxHeight, bar, ToolbarHeight, MinPeek)
@@ -135,7 +164,7 @@ internal fun BoardPortrait(
                 containerColor = Color.Transparent,
                 sheetContent = {
                     summary()
-                    SheetRule(ui)
+                    SheetRule(timedRun)
                     Column(
                         Modifier
                             .fillMaxWidth()
@@ -149,7 +178,7 @@ internal fun BoardPortrait(
                 Column(Modifier.fillMaxWidth()) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                         BoardWithBar(
-                            ui,
+                            eval,
                             showBar,
                             compact = true,
                             side = metrics.side,
@@ -182,13 +211,34 @@ internal fun BoardLandscape(
     summary: @Composable () -> Unit,
     cards: @Composable ColumnScope.() -> Unit,
     modifier: Modifier = Modifier,
+) = BoardLandscape(
+    showBar = ui.showEvalBar && ui.analysisTab,
+    eval = { ui.eval },
+    board = board,
+    modeSwitch = modeSwitch,
+    toolbar = toolbar,
+    summary = summary,
+    cards = cards,
+    modifier = modifier,
+)
+
+/** [BoardLandscape] from what it reads itself; see the portrait's. */
+@Composable
+internal fun BoardLandscape(
+    showBar: Boolean,
+    eval: () -> EvalView?,
+    board: @Composable (Modifier) -> Unit,
+    modeSwitch: @Composable () -> Unit,
+    toolbar: @Composable () -> Unit,
+    summary: @Composable () -> Unit,
+    cards: @Composable ColumnScope.() -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     WoodTheme {
     BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         val side = min(maxHeight - 16.dp, maxWidth * 0.62f)
-        val showBar = ui.showEvalBar && ui.analysisTab
         Row(Modifier.fillMaxSize().padding(8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            BoardWithBar(ui, showBar, compact = false, side = side, board = board)
+            BoardWithBar(eval, showBar, compact = false, side = side, board = board)
             Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ShellActions(Modifier.align(Alignment.End))
                 modeSwitch()
@@ -208,7 +258,7 @@ internal fun BoardLandscape(
 /** The eval bar beside a board of side [side]; the bar is as tall as the board. */
 @Composable
 internal fun BoardWithBar(
-    ui: BoardUiState,
+    eval: () -> EvalView?,
     showBar: Boolean,
     compact: Boolean,
     side: Dp,
@@ -217,7 +267,7 @@ internal fun BoardWithBar(
 ) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top) {
         if (showBar) {
-            VerticalEvalBar(ui.eval, Modifier.width(evalBarWidth(compact)).height(side), compact = compact)
+            VerticalEvalBar(eval(), Modifier.width(evalBarWidth(compact)).height(side), compact = compact)
         }
         board(Modifier.size(side))
     }
@@ -229,8 +279,8 @@ internal fun BoardWithBar(
  * hairline.
  */
 @Composable
-private fun SheetRule(ui: BoardUiState) {
-    val run = ui.timedRun()
+private fun SheetRule(timedRun: () -> TimedRun?) {
+    val run = timedRun()
     Box(
         Modifier.fillMaxWidth().height(10.dp).padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,

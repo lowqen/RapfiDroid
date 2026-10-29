@@ -109,7 +109,7 @@ private val ScrubStep = 28.dp
  */
 @Composable
 internal fun MoveToolbar(
-    ui: BoardUiState,
+    ui: MoveToolbarUi,
     onNewBoard: () -> Unit,
     onFirst: () -> Unit,
     onUndo: () -> Unit,
@@ -191,6 +191,21 @@ internal fun MoveToolbar(
         }
     }
 }
+
+// The same toolbar from the whole state — for callers that have nothing else,
+// the screenshot tests among them. The screen hands it the slice.
+@Composable
+internal fun MoveToolbar(
+    ui: BoardUiState,
+    onNewBoard: () -> Unit,
+    onFirst: () -> Unit,
+    onUndo: () -> Unit,
+    onToggle: () -> Unit,
+    onRedo: () -> Unit,
+    onLast: () -> Unit,
+    onSwapSides: () -> Unit,
+    modifier: Modifier = Modifier,
+) = MoveToolbar(ui.moveToolbarUi(), onNewBoard, onFirst, onUndo, onToggle, onRedo, onLast, onSwapSides, modifier)
 
 /** The bare icons at the toolbar's ends (touch target, not a face). */
 private val BareSize = 44.dp
