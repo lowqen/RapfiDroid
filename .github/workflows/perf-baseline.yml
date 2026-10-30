@@ -43,7 +43,7 @@ jobs:
           ZENYTH_PERF_OUT: ${{ github.workspace }}/perf
           ZENYTH_JFR_DIR: ${{ github.workspace }}/jfr
         run: >
-          ./gradlew testDebugUnitTest --rerun --tests '*BaselineTest*'
+          ./gradlew testDebugUnitTest --rerun --tests '*BaselineTest*' --tests '*EngineIoGoldenTest*'
           --stacktrace
 
       # Where the measured stretches allocate (PerfBaseline.profiled), charged
