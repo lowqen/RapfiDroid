@@ -14,7 +14,7 @@ import dev.gomoku.zenyth.core.model.Move
  * nothing else: no upper-cased copy of the line, no substrings, no split
  * lists. The rarer lines (database, openings, about) keep the plain string
  * code. Either way the result is the one the string code gave, character for
- * character; `EngineIoEquivalenceTest` holds it to that.
+ * character; `EngineIoGoldenTest` holds it to that.
  */
 object ResponseParser {
 

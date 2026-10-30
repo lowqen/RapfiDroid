@@ -3,7 +3,6 @@ package dev.gomoku.zenyth.domain.engine
 import com.google.common.truth.Truth.assertWithMessage
 import dev.gomoku.zenyth.PerfBaseline
 import dev.gomoku.zenyth.core.model.StoneColor
-import org.junit.Assume.assumeTrue
 import org.junit.Test
 import java.security.MessageDigest
 
@@ -14,8 +13,9 @@ import java.security.MessageDigest
  * seeded fuzz lines and 30 000 lines bent with Unicode — and every board
  * mapping: what [ResponseParser] makes of each line (or the failure it
  * raises), and every snapshot [SearchAggregator] builds from the responses,
- * hashed. `engine_io_golden.txt` holds the hashes, recorded from the code the
- * frozen pre-Phase-2 copies proved equal to their own, line for line.
+ * hashed. `engine_io_golden.txt` holds the hashes, recorded from the code that
+ * frozen pre-Phase-2 copies had proved equal to their own, line for line; the
+ * copies are gone, the hashes keep the promise.
  */
 class EngineIoGoldenTest {
 
@@ -78,10 +78,10 @@ class EngineIoGoldenTest {
         val golden = javaClass.getResourceAsStream("/engine_io_golden.txt")?.bufferedReader()?.readLines()
             ?.filter { it.isNotBlank() && !it.startsWith("#") }
         if (golden == null) {
-            // Not recorded yet: the perf-baseline run writes it out to be committed.
+            // Missing is a failure, never a skip. A perf-baseline run writes the
+            // current hashes out (perf/engine_io_golden.txt) to be looked at.
             PerfBaseline.report("engine_io_golden", now)
-            assumeTrue("engine_io_golden.txt is not recorded yet", false)
-            return
+            throw AssertionError("engine_io_golden.txt is missing from the test resources")
         }
         val changed = now.filterNot { it in golden }
         assertWithMessage("streams whose output changed:\n" + changed.joinToString("\n"))

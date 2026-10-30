@@ -1,0 +1,32 @@
+# The engine read path's golden (docs/리팩토링-성능-위생-계획.md, Phase 7-6): per stream
+# of EngineStreams and per board mapping, the SHA-256 and count of what ResponseParser
+# gives for each line, then per stream and side, of every SearchAggregator snapshot.
+# Recorded by perf-baseline run 41054250947, in which EngineIoEquivalenceTest held the
+# code to the frozen pre-Phase-2 parser and aggregator line for line.
+# A change here is a change in how the app reads the engine: never re-record to pass.
+
+parse corpus size=15 flipY=false a92c00e7b556f136009625d203956da74ddf603e03e820217eb1ef93953ec2f0 126
+parse corpus size=15 flipY=true 3f50637429511497f11fbf77496bf60db47a0afbf17f68020639b84ba55f78c3 126
+parse corpus size=20 flipY=false a92c00e7b556f136009625d203956da74ddf603e03e820217eb1ef93953ec2f0 126
+parse search size=15 flipY=false f1801c4eb878207328c80cb2273d55b1a93c82e3410f14fbe2f4440b056f04cc 2341
+parse search size=15 flipY=true 3844a321d23c0c538b7b7e1b117d670082bcef40d4eb6c0abfe9ad2a449cf606 2341
+parse search size=20 flipY=false f1801c4eb878207328c80cb2273d55b1a93c82e3410f14fbe2f4440b056f04cc 2341
+parse search-1pv size=15 flipY=false 319522eb9794fca297a1d74f7fae883dd9b8c090c7294caf3f5a92715ec82505 529
+parse search-1pv size=15 flipY=true e2c0cd6db7e06ada652f69df8027604aace158d018f828e00152ec64026fe6b9 529
+parse search-1pv size=20 flipY=false 319522eb9794fca297a1d74f7fae883dd9b8c090c7294caf3f5a92715ec82505 529
+parse fuzz size=15 flipY=false b4dfce75e15006e07e28fe2d446a82ceacac78af6e3cf9fb3ee9b709d79f7b63 30000
+parse fuzz size=15 flipY=true 021ef90f9446011518394c66301faddd4a0a0095b22a74a96e1dc538b2e17551 30000
+parse fuzz size=20 flipY=false b4dfce75e15006e07e28fe2d446a82ceacac78af6e3cf9fb3ee9b709d79f7b63 30000
+parse mutated size=15 flipY=false 02642b81724721aebb8a74b48135b37a65f1b63c172f45096844bb6684cd9080 30000
+parse mutated size=15 flipY=true d3912d0d89128113e10fc5daba8257bef053371c183ab119a21eaa5a5cbd9b8c 30000
+parse mutated size=20 flipY=false 02642b81724721aebb8a74b48135b37a65f1b63c172f45096844bb6684cd9080 30000
+aggregate corpus BLACK 42473c5d5dcdf6297b4db267bdc86cb8e0a6186c8381c90a28fbf1a6cf87b796 128
+aggregate corpus WHITE e01964255fafaf33ec8b3bca9fe7627ff96f50471a8eb6a3fa05ecaadfad3cac 128
+aggregate search BLACK 91569c656745ac7c58c9b572ecb6525a18addd895cf80d449c2f3ec5dc725416 2343
+aggregate search WHITE e314b343d00d0d2ce0ebbd275a2379d0721ab693bd974784637b0bce837eb0a3 2343
+aggregate search-1pv BLACK 15a213a1941b5b7c9d2cf97cb77a2a7ef762edd427148372f5db718abaa891aa 531
+aggregate search-1pv WHITE df722abacd0b19ce345452c93a433fba4ba64d02d1fdf5b425b5bcfbed7a9488 531
+aggregate fuzz BLACK 69a4cb707f9aa646b028e841dbf4f5e8767024aaed1590fb8809bdcf8496bcb5 29942
+aggregate fuzz WHITE 8880e501d371a2b0b09808af5958653896b1d6e66eca3d9f20adae7c671ec34a 29942
+aggregate mutated BLACK dd606634fd58e899a052539e1ba8ad1f889a34c1947ce76e76d7120af173f7b1 30002
+aggregate mutated WHITE 3e215555e5e53d9ec66a13b3142c52b9bd55a72759b811e5cd0d870bf7e75e81 30002
