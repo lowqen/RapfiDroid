@@ -139,15 +139,20 @@ jobs:
           path: apk
 
       # apksigner checks the signature itself, not only who claims to have made
-      # it, and its build-tools come with the runner's Android SDK.
+      # it, and its build-tools come with the runner's Android SDK. Its line
+      # prefixes differ between versions and flags («Signer #1 …», «V2 Signer: …»),
+      # so the check reads the signer count and every certificate digest, whatever
+      # the prefix. pipefail: without it `tee` would hide a failed verification.
       - name: Gate — signed by the release key, and only by it
         run: |
+          set -o pipefail
           APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
           "$APKSIGNER" verify --verbose --print-certs apk/app-release.apk | tee certs.txt
-          test "$(grep -c '^Signer #[0-9]* certificate SHA-256 digest:' certs.txt)" = 1 \
+          grep -qx 'Number of signers: 1' certs.txt \
             || { echo "::error::서명자가 하나가 아닙니다."; exit 1; }
-          grep -q "^Signer #1 certificate SHA-256 digest: $RELEASE_CERT_SHA256$" certs.txt \
-            || { echo "::error::릴리스 키가 아닌 키로 서명됐습니다 — 배포 중단."; exit 1; }
+          DIGESTS=$(grep -oE 'certificate SHA-256 digest: [0-9a-f]{64}' certs.txt | awk '{print $NF}' | sort -u)
+          test "$DIGESTS" = "$RELEASE_CERT_SHA256" \
+            || { echo "::error::릴리스 키가 아닌 키로 서명됐습니다 ($DIGESTS) — 배포 중단."; exit 1; }
           echo "OK — 릴리스 키 $RELEASE_CERT_SHA256"
 
       # The engine's binaries and weights in the APK, byte for byte the repo's —
