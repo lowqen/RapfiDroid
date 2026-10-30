@@ -20,12 +20,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -69,6 +71,12 @@ fun BoardScreen(
     viewModel: BoardViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    // What the eval bar, the sheet's wave and the clock row read, each changing
+    // only when its own value does. Read through the whole state, every engine
+    // line or clock tick composed all three again.
+    val eval by remember { derivedStateOf(structuralEqualityPolicy()) { ui.eval } }
+    val timedRun by remember { derivedStateOf(structuralEqualityPolicy()) { ui.timedRun() } }
+    val clock by remember { derivedStateOf(structuralEqualityPolicy()) { ui.game.clock } }
     var confirmReset by remember { mutableStateOf(false) }
     var labelTarget by remember { mutableStateOf<Move?>(null) }
     var showBalance by remember { mutableStateOf(false) }
@@ -217,7 +225,7 @@ fun BoardScreen(
         } else {
             GameCard(
                 ui = ui.gameCardUi(),
-                clock = { ui.game.clock },
+                clock = { clock },
                 onComputerSide = viewModel::onComputerSide,
                 onMoveTime = viewModel::onMoveTime,
                 onStrength = viewModel::onStrength,
@@ -254,7 +262,7 @@ fun BoardScreen(
         if (landscape) {
             BoardLandscape(
                 showBar = showBar,
-                eval = { ui.eval },
+                eval = { eval },
                 board = board,
                 modeSwitch = modeSwitch,
                 toolbar = toolbar,
@@ -264,8 +272,8 @@ fun BoardScreen(
         } else {
             BoardPortrait(
                 showBar = showBar,
-                eval = { ui.eval },
-                timedRun = { ui.timedRun() },
+                eval = { eval },
+                timedRun = { timedRun },
                 board = board,
                 modeSwitch = modeSwitch,
                 toolbar = toolbar,
