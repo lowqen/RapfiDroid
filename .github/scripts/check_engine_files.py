@@ -2,7 +2,8 @@
 
 Usage: check_engine_files.py <app.apk>
 
-Every file under app/src/main/assets/engine and app/src/main/jniLibs must sit
+Every file under app/src/main/assets/engine, and every .so under
+app/src/main/jniLibs, must sit
 in the APK (as assets/engine/... and lib/<abi>/...) with the same SHA-256.
 Release shrinking (R8, Phase 7-1) works on code and resources only; this is
 the check that it left the engine's binaries and weights alone. It also
@@ -26,6 +27,10 @@ expected = {}
 for root, prefix in (('app/src/main/assets/engine', 'assets/engine'), ('app/src/main/jniLibs', 'lib')):
     for dirpath, _, files in os.walk(root):
         for f in files:
+            # jniLibs also holds ENGINE_VERSION.txt, a note for people that
+            # packaging leaves out; only the libraries go into the APK.
+            if prefix == 'lib' and not f.endswith('.so'):
+                continue
             path = os.path.join(dirpath, f)
             rel = os.path.relpath(path, root).replace(os.sep, '/')
             expected[f'{prefix}/{rel}'] = sha(open(path, 'rb').read())
