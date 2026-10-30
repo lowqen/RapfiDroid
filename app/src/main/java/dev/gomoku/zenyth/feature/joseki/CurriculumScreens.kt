@@ -49,8 +49,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
@@ -74,6 +72,10 @@ import dev.gomoku.zenyth.core.joseki.QuizFeedback
 import dev.gomoku.zenyth.core.joseki.QuizState
 import dev.gomoku.zenyth.core.model.Move
 import dev.gomoku.zenyth.data.joseki.CurriculumSource
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalClipboard
+import dev.gomoku.zenyth.core.common.plainTextClip
+import kotlinx.coroutines.launch
 
 // ---- course list --------------------------------------------------------------
 
@@ -338,14 +340,17 @@ internal fun LessonPage(
                 }
             }
         }
-        val clipboard = LocalClipboardManager.current
+        val clipboard = LocalClipboard.current
+        val scope = rememberCoroutineScope()
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TextButton(onClick = vm::onLessonToBoard) { Text(tr("보드에 올리기", "Put on the board", "放到棋盘上")) }
             // The same address Zenyth Web shares: opens this lesson on the web, or in the app.
             TextButton(onClick = {
-                vm.lessonLink()?.let {
-                    clipboard.setText(AnnotatedString(it))
-                    vm.onLinkCopied()
+                vm.lessonLink()?.let { link ->
+                    scope.launch {
+                        clipboard.setClipEntry(plainTextClip(link))
+                        vm.onLinkCopied()
+                    }
                 }
             }) { Text(tr("링크 복사", "Copy link", "复制链接")) }
         }

@@ -25,8 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,6 +36,11 @@ import dev.gomoku.zenyth.core.model.FontSpec
 import dev.gomoku.zenyth.core.model.GamePrompt
 import dev.gomoku.zenyth.core.model.Move
 import dev.gomoku.zenyth.core.model.Swap2Choice
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalClipboard
+import dev.gomoku.zenyth.core.common.plainText
+import dev.gomoku.zenyth.core.common.plainTextClip
+import kotlinx.coroutines.launch
 
 /*
  * The board screen's dialogs: the desktop's game prompts, balance, position
@@ -176,7 +179,8 @@ internal fun PositionDialog(
     onLoad: (String) -> Unit,
     onCopied: () -> Unit,
 ) {
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     var draft by remember { mutableStateOf("") }
     ZenythSheet(
         title = tr("국면 문자열", "Position string", "局面代码"),
@@ -202,8 +206,11 @@ internal fun PositionDialog(
             }
             TextButton(
                 onClick = {
-                    clipboard.setText(AnnotatedString(ui.positionString))
-                    onCopied()
+                    val text = ui.positionString
+                    scope.launch {
+                        clipboard.setClipEntry(plainTextClip(text))
+                        onCopied()
+                    }
                 },
                 enabled = ui.positionString.isNotEmpty(),
             ) { Text(tr("복사", "Copy", "复制")) }
@@ -217,7 +224,7 @@ internal fun PositionDialog(
                 modifier = Modifier.weight(1f),
                 label = { Text(tr("불러올 문자열 (예: h8i9g7)", "String to load (e.g. h8i9g7)", "要载入的代码 (例: h8i9g7)")) },
             )
-            TextButton(onClick = { draft = clipboard.getText()?.text.orEmpty() }) {
+            TextButton(onClick = { scope.launch { draft = clipboard.plainText().orEmpty() } }) {
                 Text(tr("붙여넣기", "Paste", "粘贴"))
             }
         }

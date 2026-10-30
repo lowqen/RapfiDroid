@@ -30,8 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +45,8 @@ import dev.gomoku.zenyth.core.model.Move
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.ui.platform.LocalClipboard
+import dev.gomoku.zenyth.core.common.plainTextClip
 
 /**
  * The board screen — two tabs, [분석] | [대국], over one board each
@@ -114,10 +114,10 @@ fun BoardScreen(
     val saveFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         if (uri != null) viewModel.onSaveFile(uri, saveFormat)
     }
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     // Built once: a new set every composition made the position card compose
     // again with every engine line. The actions read the state when they run.
-    val files = remember(viewModel, clipboard, openFile, saveFile, saveImage) {
+    val files = remember(viewModel, clipboard, scope, openFile, saveFile, saveImage) {
         GameFileActions(
             open = { openFile.launch(arrayOf("*/*")) },
             save = { format ->
@@ -125,8 +125,11 @@ fun BoardScreen(
                 saveFile.launch(viewModel.saveName(format))
             },
             copyLink = {
-                clipboard.setText(AnnotatedString(viewModel.linkText()))
-                viewModel.onNotice(tr("이 국면의 링크를 복사했습니다", "Copied a link to this position", "已复制此局面的链接"))
+                val link = viewModel.linkText()
+                scope.launch {
+                    clipboard.setClipEntry(plainTextClip(link))
+                    viewModel.onNotice(tr("이 국면의 링크를 복사했습니다", "Copied a link to this position", "已复制此局面的链接"))
+                }
             },
             positionString = { showPosition = true },
             saveImage = { saveImage.launch(imageFileName(ui.moveCount)) },
