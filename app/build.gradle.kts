@@ -69,7 +69,14 @@ android {
             if (keystoreProperties != null) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            isMinifyEnabled = false
+            // R8 drops the code and resources nothing reaches - most of what
+            // Compose and the icon set bring - and does nothing else: no
+            // optimising, no renaming (proguard-rules.pro). The engine's own
+            // packages are kept whole, and its binaries and weights are assets
+            // and native libraries R8 never touches; CI checks those byte for
+            // byte (.github/scripts/check_engine_files.py).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

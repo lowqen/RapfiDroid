@@ -61,6 +61,17 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # The release build shrinks with R8 (Phase 7-1 of
+      # docs/리팩토링-성능-위생-계획.md). It runs here on every push, unsigned, so
+      # a keep rule that is missing fails the build here and not on a release
+      # day; and the engine's binaries and weights inside it are checked against
+      # the repo byte for byte - shrinking must never reach the engine.
+      - name: Assemble release APK (R8)
+        run: ./gradlew assembleRelease --stacktrace
+
+      - name: Engine files untouched
+        run: python3 .github/scripts/check_engine_files.py app/build/outputs/apk/release/*.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v7
         with:
