@@ -21,9 +21,16 @@ class BaselineProfileGenerator {
     val rule = BaselineProfileRule()
 
     @Test
-    fun startup() = rule.collect(packageName = "dev.gomoku.rapfidroid", includeInStartupProfile = true) {
+    fun startup() = rule.collect(packageName = PACKAGE, includeInStartupProfile = true) {
+        // The notification permission's dialog would cover the board on every
+        // launch; granted beforehand, the start-up recorded is the app's own.
+        device.executeShellCommand("pm grant $PACKAGE android.permission.POST_NOTIFICATIONS")
         pressHome()
         startActivityAndWait()
         device.waitForIdle()
+    }
+
+    private companion object {
+        const val PACKAGE = "dev.gomoku.rapfidroid"
     }
 }
