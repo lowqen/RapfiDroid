@@ -8,7 +8,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -47,6 +46,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalClipboard
 import dev.gomoku.zenyth.core.common.plainTextClip
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.draw.clipToBounds
+import kotlinx.coroutines.flow.first
 
 /**
  * The board screen — two tabs, [분석] | [대국], over one board each
@@ -382,9 +385,19 @@ private fun ZoomableBoard(
         }
         return
     }
-    BoxWithConstraints {
+    // Kept to its own box and moved both ways: a square wider than its box is
+    // taller too, and it used to spill over the mode switch above and the
+    // toolbar below. It opens on the middle of the board, where the game is.
+    BoxWithConstraints(Modifier.clipToBounds()) {
         val width = maxWidth * scale
-        Row(Modifier.horizontalScroll(rememberScrollState())) {
+        val across = rememberScrollState()
+        val down = rememberScrollState()
+        LaunchedEffect(scale) {
+            snapshotFlow { across.maxValue to down.maxValue }.first { (x, y) -> x > 0 || y > 0 }
+            across.scrollTo(across.maxValue / 2)
+            down.scrollTo(down.maxValue / 2)
+        }
+        Box(Modifier.verticalScroll(down).horizontalScroll(across)) {
             GomokuBoard(
                 render = render,
                 modifier = Modifier.width(width),

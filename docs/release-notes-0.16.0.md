@@ -49,6 +49,27 @@ leave it idle in the background.
   never interrupted — on a Galaxy A16 a 15-minute background analysis kept all
   8 threads on the full cores throughout.
 
+### A lighter app
+
+* **About 10 MB smaller, and quicker to start.** The release build now leaves
+  out the code nothing uses (R8 - without optimising or renaming anything it
+  keeps): the APK goes from 56.3 MB (0.15.0) to 46.0 MB and the code inside it
+  from 51 MB to 9 MB. The engine's binaries and weights are untouched; every
+  build checks them byte for byte against the source.
+* **Less work while the engine reads.** Each line the engine reports now costs
+  the app about a quarter of the memory it did, and during an analysis the board
+  screen redraws about half as much per frame - a game's ticking clock, a little
+  over a quarter as much. Nothing on the screen looks different.
+
+### Fixes
+
+* A board zoomed past 100 % no longer covers the tab switch above it and the
+  toolbar below. It stays in its own box, opens on the middle of the board and
+  moves both ways.
+* Win and loss values on the board (W, L) and the database's win and loss marks
+  are drawn in the bold weight they were meant to have. They had been drawn
+  lighter than the ordinary values.
+
 ### Android 14 and 15
 
 * The engine's foreground service is now a *special use* service on Android 14

@@ -31,6 +31,11 @@ object BoardType {
             return
         }
         paint.typeface = f
+        // Cleared first: `Paint` ignores variation settings equal to the ones it
+        // already has, even though the typeface was just reset to the plain
+        // face - so a paint given the same weight twice was left on the plain
+        // face, and the bold value labels came out lighter than the regular ones.
+        paint.fontVariationSettings = null
         paint.fontVariationSettings = "'wght' $weight"
     }
 }
