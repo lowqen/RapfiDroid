@@ -82,16 +82,6 @@ android {
                 "proguard-rules.pro",
             )
         }
-        // What the Baseline Profile is recorded against (Phase 7-2): the release
-        // build, R8 and all, signed with the debug key so the generator can
-        // install it. Only with -PbaselineProfile; no other build has it.
-        if (project.hasProperty("baselineProfile")) {
-            create("benchmark") {
-                initWith(getByName("release"))
-                signingConfig = signingConfigs.getByName("debug")
-                matchingFallbacks += listOf("release")
-            }
-        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
