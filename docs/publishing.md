@@ -33,14 +33,24 @@ keytool -genkeypair -v -keystore zenyth.jks -alias zenyth \
         -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-만든 키를 **Actions 시크릿 4개**로 넣는다(로컬 저장소에는 두지 않는다):
+만든 키를 **`release` 환경(Environment)의 시크릿 4개**로 넣는다(로컬 저장소에는 두지 않는다).
+저장소 레벨이 아니라 환경에 두는 이유: 환경 시크릿은 **본인이 승인한** `release.yml` 의 `build` job 만 읽는다
+(`docs/보안-강화-계획.md` Phase 0 · 1).
 
 ```bash
-gh secret set SIGNING_KEYSTORE          --repo lowqen/Zenyth < <(base64 -w0 zenyth.jks)
-gh secret set SIGNING_STORE_PASSWORD    --repo lowqen/Zenyth
-gh secret set SIGNING_KEY_ALIAS         --repo lowqen/Zenyth   # zenyth
-gh secret set SIGNING_KEY_PASSWORD      --repo lowqen/Zenyth
+gh secret set SIGNING_KEYSTORE          --env release --repo lowqen/Zenyth < <(base64 -w0 zenyth.jks)
+gh secret set SIGNING_STORE_PASSWORD    --env release --repo lowqen/Zenyth
+gh secret set SIGNING_KEY_ALIAS         --env release --repo lowqen/Zenyth   # zenyth
+gh secret set SIGNING_KEY_PASSWORD      --env release --repo lowqen/Zenyth
 ```
+
+> **옮기는 순서**(2026-10-31 기준, 시크릿은 아직 저장소 레벨에 있다): ① 위 네 줄로 환경에 등록 →
+> ② `release.yml` 을 수동 실행해 서명 테스트 빌드가 녹색인지 확인 → ③ 그 뒤에만 저장소 레벨 시크릿을 지운다
+> (`gh secret delete SIGNING_KEYSTORE --repo lowqen/Zenyth` 등 네 개). 같은 이름이면 환경 시크릿이 이기므로
+> ①과 ③ 사이에도 빌드는 깨지지 않는다. ③을 먼저 하면 릴리스가 깨진다.
+>
+> 서명 인증서 SHA-256 은 `f830ff509b96cba8013eb00d1bdbc2f4feef41c93503d506b3c9da6522a9b92e` 이고,
+> `release.yml` 의 `RELEASE_CERT_SHA256` 이 이 값이 아닌 서명을 배포 전에 막는다. 키를 바꾸면(회전) 그 값도 같이 바꾼다.
 
 > **백업**: `.jks` 와 비밀번호를 오프라인 두 곳에. 저장소에는 절대 넣지 않는다
 > (루트 `.gitignore` 가 `*.jks` 를 막고 있지만 믿고 방심하지 말 것).
@@ -64,13 +74,30 @@ git tag -a v0.14.0 -m "Zenyth v0.14.0"
 git push origin v0.14.0
 ```
 
-`.github/workflows/release.yml` 이 나머지를 한다: 유닛 테스트 → 시크릿에서 키
-복원 → `assembleRelease` → **키 파기** → 두 게이트 → 릴리스 생성·APK 첨부.
+태그를 밀면 `build` job 이 **승인 대기**로 멈춘다. GitHub 의 Actions → 그 실행 → «Review deployments» →
+`release` 체크 → «Approve and deploy». 본인이 태그를 밀지 않았는데 승인 요청이 왔다면 **승인하지 말고** 토큰과
+계정부터 점검한다 — 이 단계가 있는 이유가 그것이다. 수동 실행(서명 테스트 빌드, `main` 에서만)도 같은 승인을 거친다.
 
-### 2-2. 두 게이트 (사람이 잊어도 CI 는 안 잊는다)
+`.github/workflows/release.yml` 은 job 셋으로 나머지를 한다.
+
+| job | 권한 | 하는 일 |
+|---|---|---|
+| `build` | 읽기 + 서명 키(`release` 환경) | 유닛 테스트 → 키 복원 → `assembleRelease` → **키 파기** → 서명 APK 를 하루짜리 아티팩트 `app-release-test` 로 |
+| `verify` | 읽기 | 게이트 넷(아래) |
+| `publish` | 쓰기 · 출처 증명 | 태그 push 때만. 빌드 출처 증명(attestation) → 릴리스 생성 · APK 첨부. Gradle 을 돌리지 않는다 |
+
+받은 APK 확인: `gh attestation verify Zenyth-<버전>.apk -R lowqen/Zenyth` — 이 커밋의 이 워크플로가 만든
+파일인지 Sigstore 서명으로 확인한다. 릴리스 본문에는 APK SHA-256 과 서명 인증서 SHA-256 이 같이 실린다.
+
+워크플로의 모든 액션은 **커밋 SHA 로 고정**돼 있다(`uses: …@<40자> # v7.0.1`). 태그는 남이 옮길 수 있고 커밋은
+못 옮긴다. Dependabot 이 SHA 와 주석을 같이 올린다 — 손으로 `@v7` 로 되돌리지 말 것.
+
+### 2-2. 게이트 (사람이 잊어도 CI 는 안 잊는다)
 
 | 게이트 | 무엇을 막나 |
 |---|---|
+| 릴리스 키 서명 | 서명자가 정확히 하나이고 그 인증서가 `RELEASE_CERT_SHA256` 인지(`apksigner verify`). 다른 키로 서명된 APK 는 우리 것이 아니다 |
+| 엔진 파일 바이트 대조 | `check_engine_files.py` — 서명 APK 안의 엔진 바이너리 · 가중치가 저장소와 바이트 동일 |
 | RenjuNet 파생물 0건 | 팩·`freq_data.json`·`.rif` 가 APK 에 섞여 나가는 것. 그 자료는 **온라인에 올릴 수 없다** — 릴리스는 온라인이다 |
 | 엔진 동봉·압축 확인 | `libengine.so` 가 빠지거나 **압축되지 않은 채** 들어가는 것. 후자면 패키지 매니저가 추출하지 않아 exec 할 경로가 없고, 증상은 사용자 폰에서만 나타난다 |
 
@@ -97,7 +124,8 @@ git push origin v0.14.0
 ## 4. 릴리스 체크리스트
 
 - [x] `lowqen/rapfi` 공개 · `android` 브랜치 · `ENGINE_VERSION.txt` 커밋과 일치
-- [ ] 서명 키 생성 + Actions 시크릿 4개 (§1)
+- [ ] 서명 키 생성 + `release` 환경 시크릿 4개 (§1)
+- [ ] 태그 push 뒤 승인 요청이 **내가 민 태그**의 것인지 확인하고 승인 (§2-1)
 - [ ] `versionCode`·`versionName` 을 올렸다
 - [ ] `docs/release-notes-<버전>.md` 를 썼다 (없으면 CI 가 멈춘다)
 - [ ] `app/src/main/assets/whatsnew/<versionCode>.txt` 를 썼다 — 업데이트 후 첫 실행에 한 번 뜨는 «새로워진 점» 창(ko/en/zh 항목 수가 같아야 한다, 없으면 `WhatsNewTest` 가 멈춘다)

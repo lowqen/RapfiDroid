@@ -3,29 +3,60 @@ name: Release APK
 # Pushing a tag is the whole trigger: `git tag -a v0.14.0 -m … && git push origin v0.14.0`.
 # Nothing here can run by accident on a branch push, and the release is created
 # from the tagged tree, so what people download is what the tag says it is.
+#
+# Three jobs, so that no step holds more than it needs (docs/보안-강화-계획.md,
+# Phase 1):
+#
+#   build    runs Gradle — third-party code: AGP, Kotlin, Hilt, KSP and their
+#            plugins — and signs. It holds the signing key and nothing else:
+#            read-only token, and it waits for the owner's approval because it
+#            runs in the `release` environment.
+#   verify   holds nothing. Checks the signed APK: right key, engine untouched,
+#            no RenjuNet data.
+#   publish  holds the write token and never runs Gradle or anything the build
+#            downloaded — it attests the APK it was handed and creates the release.
+#
+# Every action is pinned to a commit, not a tag: a tag can be moved under us,
+# a commit cannot. Dependabot bumps the commit and the comment together.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
 
 permissions:
-  contents: write   # needed to create the release
+  contents: read
+
+env:
+  # SHA-256 of the release signing certificate (apksigner's «certificate SHA-256
+  # digest»; v0.15.0 and v0.16.0 are both signed by it). An APK signed by any
+  # other key is not ours, whatever the secrets say.
+  RELEASE_CERT_SHA256: f830ff509b96cba8013eb00d1bdbc2f4feef41c93503d506b3c9da6522a9b92e
 
 jobs:
-  release:
+  build:
+    # A manual run is a signed test build for the user's own phone, and only
+    # from main: the key does not sign a branch nobody reviewed.
+    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    # Required reviewer (the owner) and only tags v* or main — set in the
+    # repository's environment settings, not here.
+    environment: release
+    permissions:
+      contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
         with:
           distribution: temurin
           java-version: '17'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
       # gradle.properties is sized for a 4 GB laptop. AGP 9 runs lint inside the
       # Gradle daemon, and lintVitalAnalyzeRelease loads more classes than a
@@ -78,6 +109,52 @@ jobs:
         if: always()
         run: rm -f keystore.properties "$RUNNER_TEMP/release.jks"
 
+      # The hand-over to the other two jobs. A manual run's artifact is also the
+      # test build for the user's phone (`gh run download -n app-release-test`),
+      # so it keeps that name; it lives a day either way.
+      - name: Upload signed APK
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-release-test
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # Only the scripts: nothing from the tree is built or run here but them.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download signed APK
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: app-release-test
+          path: apk
+
+      # apksigner checks the signature itself, not only who claims to have made
+      # it, and its build-tools come with the runner's Android SDK.
+      - name: Gate — signed by the release key, and only by it
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$APKSIGNER" verify --verbose --print-certs apk/app-release.apk | tee certs.txt
+          test "$(grep -c '^Signer #[0-9]* certificate SHA-256 digest:' certs.txt)" = 1 \
+            || { echo "::error::서명자가 하나가 아닙니다."; exit 1; }
+          grep -q "^Signer #1 certificate SHA-256 digest: $RELEASE_CERT_SHA256$" certs.txt \
+            || { echo "::error::릴리스 키가 아닌 키로 서명됐습니다 — 배포 중단."; exit 1; }
+          echo "OK — 릴리스 키 $RELEASE_CERT_SHA256"
+
+      # The engine's binaries and weights in the APK, byte for byte the repo's —
+      # the same check build.yml runs on the unsigned build.
+      - name: Gate — engine files untouched
+        run: python3 .github/scripts/check_engine_files.py apk/app-release.apk
+
       # RenjuNet's licence forbids its data, or anything derived from it, in any
       # website or online system. A GitHub release is exactly that. The packs are
       # gitignored and built on the device, so this should never fire — which is
@@ -85,9 +162,7 @@ jobs:
       # one "just to test".
       - name: Gate — no RenjuNet-derived data in the APK
         run: |
-          APK=$(ls app/build/outputs/apk/release/*.apk)
-          echo "checking $APK"
-          if unzip -l "$APK" | grep -iE "renju_(stats|games)|freq_data|\.rif$"; then
+          if unzip -l apk/app-release.apk | grep -iE "renju_(stats|games)|freq_data|\.rif$"; then
             echo "::error::APK 에 RenjuNet 파생물이 들어 있습니다 — 배포 중단."
             exit 1
           fi
@@ -98,7 +173,7 @@ jobs:
       # and the only symptom is at runtime on a user's phone.
       - name: Gate — the on-device engine is present and executable-shaped
         run: |
-          APK=$(ls app/build/outputs/apk/release/*.apk)
+          APK=apk/app-release.apk
           unzip -l "$APK" | grep "lib/arm64-v8a/libengine.so" \
             || { echo "::error::libengine.so 가 APK 에 없습니다."; exit 1; }
           # useLegacyPackaging keeps it stored deflated so the package manager
@@ -108,31 +183,45 @@ jobs:
             || { echo "::error::libengine.so 가 압축되지 않았습니다 — useLegacyPackaging 확인."; exit 1; }
           echo "OK — 엔진 동봉 확인"
 
-      # A manual run is a signed test build for the user's own phone: same key,
-      # so `adb install -r` keeps the app's data, but no tag and no release.
-      # The debug APK is already an artifact on every push; this one only lives
-      # a day.
-      - name: Upload signed test APK (manual run)
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v7
+  publish:
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the release
+      id-token: write      # sign the provenance attestation (Sigstore)
+      attestations: write  # store it on the repository
+    steps:
+      # For the release notes only.
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download signed APK
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: app-release-test
-          path: app/build/outputs/apk/release/app-release.apk
-          retention-days: 1
+          path: apk
 
       - name: Name the artifact after the tag
-        if: github.event_name == 'push'
         id: name
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          mv app/build/outputs/apk/release/app-release.apk "Zenyth-$VERSION.apk"
+          mv apk/app-release.apk "Zenyth-$VERSION.apk"
+
+      # Build provenance: anyone can check that this APK came out of this
+      # workflow at this commit with `gh attestation verify Zenyth-x.apk -R lowqen/Zenyth`.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: Zenyth-${{ steps.name.outputs.version }}.apk
 
       # `gh` is preinstalled on the runner. Using it instead of a third-party
       # action keeps the step that handles a signed artifact free of any
       # dependency we do not control.
       - name: Create the release
-        if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.name.outputs.version }}
@@ -140,7 +229,8 @@ jobs:
           NOTES="docs/release-notes-$VERSION.md"
           test -f "$NOTES" || { echo "::error::$NOTES 가 없습니다."; exit 1; }
           # A sideloaded APK has no store vouching for it. Publish the hash so a
-          # user who cares can check that what they downloaded is what CI built.
+          # user who cares can check that what they downloaded is what CI built,
+          # and the key it is signed with, which does not change between releases.
           SHA=$(sha256sum "Zenyth-$VERSION.apk" | cut -d' ' -f1)
           cp "$NOTES" release-body.md
           {
@@ -148,7 +238,10 @@ jobs:
             echo "### Verify your download"
             echo
             echo '```'
-            echo "sha256  $SHA"
+            echo "sha256       $SHA"
+            echo "signing cert $RELEASE_CERT_SHA256"
             echo '```'
+            echo
+            echo "Build provenance: \`gh attestation verify Zenyth-$VERSION.apk -R $GITHUB_REPOSITORY\`"
           } >> release-body.md
-          gh release create "$GITHUB_REF_NAME" "Zenyth-$VERSION.apk" --title "Zenyth $GITHUB_REF_NAME" --notes-file release-body.md
+          gh release create "$GITHUB_REF_NAME" "Zenyth-$VERSION.apk" --repo "$GITHUB_REPOSITORY" --title "Zenyth $GITHUB_REF_NAME" --notes-file release-body.md

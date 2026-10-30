@@ -119,16 +119,19 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Checkout harness (Zenyth Web)
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           repository: lowqen/Zenyth-web
           ref: ${{ inputs.tools_ref }}
           path: web
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
 
@@ -150,7 +153,7 @@ jobs:
 
       - name: Restore Rapfi source
         id: src
-        uses: actions/cache/restore@v6
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.WORK }}/rapfi
           key: rapfi-3c94c2a9-arm-v1
@@ -218,7 +221,7 @@ jobs:
       - name: Save Rapfi source
         if: steps.src.outputs.cache-hit != 'true'
         continue-on-error: true
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ env.WORK }}/rapfi
           key: rapfi-3c94c2a9-arm-v1
@@ -276,7 +279,7 @@ jobs:
       - name: Results
         if: always()
         continue-on-error: true
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: arm-${{ inputs.mode }}-${{ inputs.variant }}
           retention-days: 14
