@@ -178,7 +178,7 @@ internal fun colorSchemeFor(dark: Boolean, amoled: Boolean, chromeHue: Float?): 
 }
 
 /** The app's own colours, alongside Material's. See [ZenythColors]. */
-val LocalYixinColors = staticCompositionLocalOf { ZenythColors.Light }
+val LocalZenythColors = staticCompositionLocalOf { ZenythColors.Light }
 
 /**
  * Everything the theme offers that MaterialTheme has no name for.
@@ -190,11 +190,11 @@ val LocalYixinColors = staticCompositionLocalOf { ZenythColors.Light }
  */
 object ZenythTheme {
     val colors: ZenythColors
-        @Composable @ReadOnlyComposable get() = LocalYixinColors.current
+        @Composable @ReadOnlyComposable get() = LocalZenythColors.current
 
     /** Shorthand for the board's skin — by far the most-read entry here. */
     val board: BoardSkin
-        @Composable @ReadOnlyComposable get() = LocalYixinColors.current.board
+        @Composable @ReadOnlyComposable get() = LocalZenythColors.current.board
 
     val spacing: Spacing get() = Spacing
 
@@ -228,7 +228,7 @@ fun ZenythTheme(
     val context = LocalContext.current
     val reduced = remember(context) { reducedMotion(context) }
     CompositionLocalProvider(
-        LocalYixinColors provides if (darkTheme) ZenythColors.Dark else ZenythColors.Light,
+        LocalZenythColors provides if (darkTheme) ZenythColors.Dark else ZenythColors.Light,
         LocalZenythTokens provides ZenythTokens.Standard,
         LocalReducedMotion provides reduced,
     ) {
