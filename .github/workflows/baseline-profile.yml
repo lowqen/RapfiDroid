@@ -55,7 +55,13 @@ jobs:
           target: google_apis
           arch: x86_64
           disable-animations: true
-          script: ./gradlew :baselineprofile:connectedBenchmarkAndroidTest -PbaselineProfile -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile --stacktrace
+          # A rooted shell, so the profiler can make the app write its profile
+          # out; the alternative, <profileable> in the app's manifest, would
+          # change the shipped app for a build-time tool.
+          script: |
+            adb root
+            adb wait-for-device
+            ./gradlew :baselineprofile:connectedBenchmarkAndroidTest -PbaselineProfile -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile --stacktrace
 
       - name: Collect the profile
         run: |
