@@ -9,6 +9,13 @@ name: Baseline profile
 
 on:
   workflow_dispatch:
+  # Also when the generator itself changes on a refactor branch: a workflow can
+  # be started by hand only once it is on main.
+  push:
+    branches: ['refactor/**']
+    paths:
+      - 'baselineprofile/**'
+      - '.github/workflows/baseline-profile.yml'
 
 jobs:
   profile:
