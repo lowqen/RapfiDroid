@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.gomoku.zenyth.core.designsystem.component.IconTile
@@ -65,15 +66,34 @@ import dev.gomoku.zenyth.feature.settings.CheckMark
  * Colours are this app's roles in the places Mornye uses its own.
  */
 
+/**
+ * Korean broken between words, not syllables (the first shots split «상태/가»
+ * and «엔진/이»). Phrase breaking is Android 13's; older phones keep their
+ * usual breaks, which is no worse than before.
+ */
+internal val WordBreaks = LineBreak(
+    strategy = LineBreak.Strategy.HighQuality,
+    strictness = LineBreak.Strictness.Normal,
+    wordBreak = LineBreak.WordBreak.Phrase,
+)
+
 /** A step's title: the page title's weight, a size smaller (Mornye ~24 – 26sp). */
 @Composable
 internal fun stepTitleStyle(): TextStyle =
-    MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 34.sp)
+    MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 34.sp, lineBreak = LineBreak.Heading)
 
 /** The welcome's title, between the two. */
 @Composable
 internal fun welcomeTitleStyle(): TextStyle =
-    MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 38.sp)
+    MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 38.sp, lineBreak = LineBreak.Heading)
+
+/**
+ * The grey sentence under a title. Centred, so its lines are balanced too:
+ * no last line holding a single word.
+ */
+@Composable
+internal fun stepBodyStyle(): TextStyle =
+    MaterialTheme.typography.bodyLarge.copy(lineBreak = LineBreak.Heading)
 
 /** A step's icon: 96dp pale circle, the strong accent inside. */
 @Composable
@@ -219,7 +239,7 @@ internal fun FeatureRow(icon: ImageVector, text: String, modifier: Modifier = Mo
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         IconTile(icon)
         Spacer(Modifier.width(20.dp))
-        Text(text, style = RowTitleStyle, color = MaterialTheme.colorScheme.onSurface)
+        Text(text, style = RowTitleStyle.copy(lineBreak = WordBreaks), color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

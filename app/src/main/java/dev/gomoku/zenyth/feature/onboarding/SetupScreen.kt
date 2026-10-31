@@ -276,14 +276,14 @@ private fun WelcomeStep() {
         style = welcomeTitleStyle(),
         textAlign = TextAlign.Center,
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(16.dp))
     Text(
         tr(
             "폰 안에서 도는 진짜 오목 · 렌주 엔진",
             "A real gomoku & renju engine, on your phone",
             "在手机里运行的真正五子棋 · 连珠引擎",
         ),
-        style = MaterialTheme.typography.bodyLarge,
+        style = stepBodyStyle(),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
     )
@@ -330,14 +330,14 @@ private fun NotificationsStep(on: Boolean, blocked: Boolean, onAsk: () -> Unit, 
         style = stepTitleStyle(),
         textAlign = TextAlign.Center,
     )
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(16.dp))
     Text(
         tr(
             "앱을 나가도 엔진이 분석을 이어 가는 동안 알림에 그 상태가 보입니다. 기보 데이터를 만드는 진행도 알림으로 볼 수 있습니다",
             "While the engine keeps analysing with the app closed, its state shows in a notification — and so does the progress of building game data",
             "退出应用后引擎继续分析时，通知里会显示它的状态；生成棋谱数据的进度也会显示在通知里",
         ),
-        style = MaterialTheme.typography.bodyLarge,
+        style = stepBodyStyle(),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
     )
@@ -387,7 +387,7 @@ internal fun LanguageList(current: String, onChoose: (String) -> Unit) {
             "Choose the app's language. You can change it later in Settings",
             "选择应用使用的语言。之后可在设置中更改",
         ),
-        style = MaterialTheme.typography.bodyMedium,
+        style = MaterialTheme.typography.bodyMedium.copy(lineBreak = WordBreaks),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
     Column(Modifier.padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
