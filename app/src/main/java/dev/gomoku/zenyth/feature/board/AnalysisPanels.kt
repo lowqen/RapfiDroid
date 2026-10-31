@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,14 +61,15 @@ import dev.gomoku.zenyth.core.model.TagKind
 import kotlin.math.roundToInt
 
 /**
- * The engine card of the analysis tab — what the summary line above it has no
- * room for: what the engine is doing, time · nodes · speed under «세부 수치»,
- * and the candidate lines.
+ * The engine card of the analysis tab: what the engine is doing, its reading
+ * as three tiles — win rate · evaluation · depth — then time · nodes · speed
+ * under «세부 수치», and the candidate lines.
  *
- * The best move, win rate, evaluation and depth are the summary line's
- * ([SummaryStrip]), and «분석» / «정지» are the toolbar's ▶: the card used to
- * repeat all of it, one sheet-height under the same numbers. Nothing read yet
- * says nothing here — the summary line says what ▶ does.
+ * The tiles were a 12sp pill under the best move in the summary line, too small
+ * to read (user request, 2026-11-01); the summary line keeps the best move
+ * alone, large, and the board writes the win rate on that point anyway.
+ * «분석» / «정지» are the toolbar's ▶. Nothing read yet says nothing here —
+ * the summary line says what ▶ does.
  *
  * A result whose position the board has moved on from keeps full strength and
  * says so in words. Dimmed, it was hard to read on exactly the screens where a
@@ -124,11 +124,21 @@ internal fun AnalysisCard(
         val s = snap.stats
         val size = ui.render.size
         Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatTile(tr("승률", "Win rate", "胜率"), s.winRatePct?.let { "$it%" } ?: "–", Modifier.weight(1f), big = true)
+                StatTile(tr("평가", "Eval", "评价"), evalText(s.mate, s.evalCp), Modifier.weight(1f), big = true)
+                StatTile(
+                    tr("깊이", "Depth", "深度"),
+                    if (s.depth > 0) (if (s.selDepth > 0) "${s.depth}/${s.selDepth}" else "${s.depth}") else "–",
+                    Modifier.weight(1f),
+                    big = true,
+                )
+            }
             if (detail) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Stat(tr("시간", "Time", "用时"), s.timeMs?.let { timeText(it) } ?: tr("없음", "None", "无"), Modifier.weight(1f))
-                    Stat(tr("노드", "Nodes", "结点"), compact(s.nodes), Modifier.weight(1f))
-                    Stat(tr("속도", "Speed", "速度"), s.speed?.let { compact(it) + "/s" } ?: tr("없음", "None", "无"), Modifier.weight(1f))
+                    StatTile(tr("시간", "Time", "用时"), s.timeMs?.let { timeText(it) } ?: tr("없음", "None", "无"), Modifier.weight(1f))
+                    StatTile(tr("노드", "Nodes", "结点"), compact(s.nodes), Modifier.weight(1f))
+                    StatTile(tr("속도", "Speed", "速度"), s.speed?.let { compact(it) + "/s" } ?: tr("없음", "None", "无"), Modifier.weight(1f))
                 }
             }
             Text(

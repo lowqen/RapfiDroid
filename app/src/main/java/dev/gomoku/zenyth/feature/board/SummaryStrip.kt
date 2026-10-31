@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.component.StatusDot
@@ -32,10 +33,12 @@ internal val SummaryHeight = 64.dp
  * The line the sheet rests on, under the board — what the board's reader wants
  * without pulling anything up (UI overhaul P3).
  *
- * Analysis: the best move, then win rate, evaluation and depth (`18/27`:
- * depth / selective depth). Tabular, never interpolated, and at full strength
- * even when they belong to the position before — the card says so in words.
- * Nothing read yet is one line saying what ▶ does.
+ * Analysis: the best move, large and alone. Win rate, evaluation and depth sat
+ * under it in a 12sp pill nobody could read; they are the engine card's
+ * headline tiles now (user request, 2026-11-01), and the board writes the win
+ * rate on the best move's point. At full strength even when it belongs to the
+ * position before — the card says so in words. Nothing read yet is one line
+ * saying what ▶ does.
  * Game: the result, or whose move it is and who is playing whom.
  */
 @Composable
@@ -104,31 +107,17 @@ private fun SummaryStripBody(ui: SummaryUi, modifier: Modifier) {
             )
             return@Row
         }
-        val s = snap.stats
         val best = snap.best?.head ?: snap.realtimeBest
-        // Mornye's now-playing: the title large, and the facts about it in one
-        // quiet pill under it (its «FLAC · 16-bit») — M5. Centred, as the
-        // player sets its title: on the left it left the line's right half
-        // empty (device review, 2026-10-29).
-        Column(
-            Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            Text(
-                best?.label(ui.render.size) ?: tr("없음", "None", "无"),
-                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold).tabular(),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-            )
-            PillBadge(
-                listOf(
-                    tr("승률", "Win", "胜率") + " " + (s.winRatePct?.let { "$it%" } ?: "–"),
-                    tr("평가", "Eval", "评价") + " " + evalText(s.mate, s.evalCp),
-                    tr("깊이", "Depth", "深度") + " " + (if (s.depth > 0) (if (s.selDepth > 0) "${s.depth}/${s.selDepth}" else "${s.depth}") else "–"),
-                ).joinToString(" · "),
-            )
-        }
+        // Mornye's now-playing title, large and centred (M5): on the left it
+        // left the line's right half empty (device review, 2026-10-29).
+        Text(
+            best?.label(ui.render.size) ?: tr("없음", "None", "无"),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold).tabular(),
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
 
     }
 }

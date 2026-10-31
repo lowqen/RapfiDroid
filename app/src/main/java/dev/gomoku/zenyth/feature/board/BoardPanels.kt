@@ -5,29 +5,44 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import kotlin.math.roundToInt
 
+/**
+ * One reading in its own tile: the name small, the figure under it. [big] for
+ * the engine card's headline row (win rate · evaluation · depth), which used to
+ * be a 12sp pill under the best move that nobody could read (user request,
+ * 2026-11-01); the smaller size for the details under «세부 수치».
+ */
 @Composable
-internal fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            value,
-            style = MaterialTheme.typography.titleMedium.tabular(),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-        )
+internal fun StatTile(label: String, value: String, modifier: Modifier = Modifier, big: Boolean = false) {
+    Surface(modifier, shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHighest) {
+        Column(
+            Modifier.padding(horizontal = 12.dp, vertical = if (big) 10.dp else 8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(
+                value,
+                style = (if (big) MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold) else MaterialTheme.typography.titleMedium).tabular(),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+            )
+        }
     }
 }
 @Composable
