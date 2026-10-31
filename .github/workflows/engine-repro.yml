@@ -8,11 +8,16 @@ name: Engine reproducibility
 # This rebuilds them with tools/build_engine_android.sh — run as it is, not a
 # copy — and compares:
 #
-#   weights      copied from the pinned rapfi-networks commit: byte for byte, or fail
-#   BENCH hash   of a host build of the same patched source: ENGINE_VERSION.txt's, or fail
-#   binaries     libengine*.so byte for byte. Reported, not yet a failure: the shipped
-#                ones were built with the NDK's Windows prebuilt, this with its Linux
-#                one, and whether the two give the same bytes is what the first run finds out.
+#   weights          copied from the pinned rapfi-networks commit: byte for byte, or fail
+#   BENCH hash       of a host build of the same patched source: ENGINE_VERSION.txt's, or fail
+#   libengine.so     (NEON, no PGO) every byte but the 20 of the linker's build id, or
+#                    fail. The first run (41160528754) found exactly that: the NDK's Linux
+#                    prebuilt reproduces what its Windows one built, build id aside.
+#   libengine_dotprod.so  reported only. Its PGO profile names each file-local function
+#                    after the absolute source path of the build that recorded it (a
+#                    Windows scratch folder), so a build anywhere else applies the profile
+#                    to fewer functions and lays the code out differently. It becomes
+#                    checkable when the next profile is recorded from a fixed build path.
 #
 # Read only. It never writes the engine files; what ships is what is committed.
 on:
@@ -26,6 +31,7 @@ on:
       - 'tools/patches/**'
       - 'tools/pgo/**'
       - '.github/workflows/engine-repro.yml'
+      - '.github/scripts/same_elf_but_build_id.py'
 
 permissions:
   contents: read
@@ -83,20 +89,23 @@ jobs:
           if [ "$WANT" = "$GOT" ]; then mark=OK; else mark=DIFFERENT; fail=1; echo "::error::BENCH $GOT, ENGINE_VERSION.txt says $WANT"; fi
           echo "| BENCH (host build) | \`$WANT\` | \`$GOT\` | $mark |" >> "$SUM"
 
-          READELF="$HOME/android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
-          for so in libengine.so libengine_dotprod.so; do
-            a=$(sha "app/src/main/jniLibs/arm64-v8a/$so"); b=$(sha "$OUT/jniLibs/arm64-v8a/$so")
-            if [ "$a" = "$b" ]; then
-              mark=OK
-            else
-              mark="differs (report only)"
-              echo "::warning::$so is not byte-identical to the committed one"
-              echo "--- $so: sizes $(stat -c%s "app/src/main/jniLibs/arm64-v8a/$so") committed / $(stat -c%s "$OUT/jniLibs/arm64-v8a/$so") rebuilt"
-              echo "--- differing bytes: $(cmp -l "app/src/main/jniLibs/arm64-v8a/$so" "$OUT/jniLibs/arm64-v8a/$so" 2>/dev/null | wc -l)"
-              diff <("$READELF" -SW "app/src/main/jniLibs/arm64-v8a/$so") <("$READELF" -SW "$OUT/jniLibs/arm64-v8a/$so") || true
-            fi
-            echo "| jniLibs/$so | \`${a:0:16}\` | \`${b:0:16}\` | $mark |" >> "$SUM"
-          done
+          so=libengine.so
+          a=$(sha "app/src/main/jniLibs/arm64-v8a/$so"); b=$(sha "$OUT/jniLibs/arm64-v8a/$so")
+          if python3 .github/scripts/same_elf_but_build_id.py "app/src/main/jniLibs/arm64-v8a/$so" "$OUT/jniLibs/arm64-v8a/$so"; then
+            mark="OK (build id aside)"
+          else
+            mark=DIFFERENT; fail=1; echo "::error::$so is not the program its source builds"
+          fi
+          echo "| jniLibs/$so | \`${a:0:16}\` | \`${b:0:16}\` | $mark |" >> "$SUM"
+
+          so=libengine_dotprod.so
+          a=$(sha "app/src/main/jniLibs/arm64-v8a/$so"); b=$(sha "$OUT/jniLibs/arm64-v8a/$so")
+          if python3 .github/scripts/same_elf_but_build_id.py "app/src/main/jniLibs/arm64-v8a/$so" "$OUT/jniLibs/arm64-v8a/$so"; then
+            mark="OK (build id aside)"
+          else
+            mark="differs — PGO profile is path-bound (report only)"
+          fi
+          echo "| jniLibs/$so | \`${a:0:16}\` | \`${b:0:16}\` | $mark |" >> "$SUM"
 
           exit $fail
 
