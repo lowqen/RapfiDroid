@@ -12,7 +12,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -36,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -43,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -53,6 +57,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.gomoku.zenyth.core.designsystem.component.IconTile
@@ -63,6 +69,7 @@ import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.AppLocales
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.feature.settings.CheckMark
+import kotlin.math.min
 
 /*
  * The first-run setup's parts, after Mornye's (docs/온보딩-계획.md §0): the
@@ -154,11 +161,16 @@ internal fun StepProgressRing(step: Int, of: Int, modifier: Modifier = Modifier)
                 drawArc(arc, -90f, sweep, useCenter = false, topLeft = topLeft, size = arcSize, style = style)
             }
         }
-        Text(
-            "$step/$of",
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold).tabular(),
-            modifier = Modifier.clearAndSetSemantics {},
-        )
+        // The ring is a fixed 48dp: past 1.3 the numbers would leave it (2.0 shot).
+        // The label stays readable — TalkBack hears the step above anyway.
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, min(density.fontScale, 1.3f))) {
+            Text(
+                "$step/$of",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold).tabular(),
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
     }
 }
 
@@ -241,6 +253,24 @@ internal fun DoneCard(text: String, modifier: Modifier = Modifier) {
             color = scheme.onSecondaryContainer,
         )
     }
+}
+
+/**
+ * The page's last lines fade into it while there is more below — a page cut
+ * off at a large font gave no sign it scrolled (2.0 shot). The same fade as
+ * the «새로워진 점» window.
+ */
+@Composable
+internal fun BoxScope.MoreBelowFade(scroll: ScrollState) {
+    if (!scroll.canScrollForward) return
+    val surface = MaterialTheme.colorScheme.surface
+    Box(
+        Modifier
+            .align(Alignment.BottomCenter)
+            .fillMaxWidth()
+            .height(40.dp)
+            .background(Brush.verticalGradient(listOf(Color.Transparent, surface))),
+    )
 }
 
 /**

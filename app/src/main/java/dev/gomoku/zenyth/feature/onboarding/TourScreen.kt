@@ -175,65 +175,69 @@ internal fun TourContent(
 /** One page: the icon, the title, a sentence, then what is there to see. */
 @Composable
 private fun TourPageBody(page: TourPage) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    val scroll = rememberScrollState()
+    Box(Modifier.fillMaxSize()) {
         Column(
-            Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
+            Modifier.fillMaxSize().verticalScroll(scroll, flingBehavior = rememberCalmFling()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val (icon, title, body) = page.head()
-            HeroIcon(icon)
-            Spacer(Modifier.height(28.dp))
-            Text(title, style = tourTitleStyle(), textAlign = TextAlign.Center)
-            Spacer(Modifier.height(16.dp))
-            Text(
-                body,
-                style = stepBodyStyle(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            Spacer(Modifier.height(36.dp))
-            when (page) {
-                TourPage.Board -> {
-                    BoardPicture()
-                    Spacer(Modifier.height(28.dp))
-                    Rows(
-                        Triple(Icons.Outlined.Palette, tr("값은 글자색으로", "Values in colour", "数值以颜色显示"),
-                            tr("따뜻한 빨강일수록 이기는 수, 차가운 파랑일수록 지는 수입니다", "Warm red is a winning move, cool blue a losing one", "越接近暖红越占优，越接近冷蓝越不利")),
-                        Triple(Icons.Outlined.FolderOpen, tr("기보", "Game records", "棋谱"),
-                            tr("열기 · .psq/.sav 저장 · 링크 복사 · 이미지로 내보내기", "Open, save as .psq/.sav, copy a link, export an image", "打开 · 保存为 .psq/.sav · 复制链接 · 导出图片")),
-                    )
-                }
-                TourPage.Research -> Rows(
-                    Triple(Icons.Outlined.History, tr("게임 리뷰", "Game review", "对局复盘"),
-                        tr("끝난 판을 되짚으며 평가가 뒤집힌 지점을 짚어 줍니다", "Walks a finished game back and marks where the evaluation turned", "回顾已结束的对局，指出评估翻转的地方")),
-                    Triple(Icons.Outlined.Explore, tr("오프닝 익스플로러", "Opening explorer", "开局浏览器"),
-                        tr("주형 이름 249개와 흑 5수 유불리를 판 위에 보여 줍니다", "249 opening names and the 5th-move verdicts, on the board", "在棋盘上显示 249 个开局名称和黑第 5 手优劣")),
-                    Triple(Icons.Outlined.Verified, tr("국면 증명 · 랭킹", "Prove position · Rankings", "局面证明 · 排行"),
-                        tr("평가가 아니라 증명을 시키고, 26주형을 견줘 봅니다", "Asks for a proof, not an evaluation, and compares the 26 openings", "让引擎证明而不只是评估，并比较 26 种开局")),
+            Column(
+                Modifier.widthIn(max = 480.dp).fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val (icon, title, body) = page.head()
+                HeroIcon(icon)
+                Spacer(Modifier.height(28.dp))
+                Text(title, style = tourTitleStyle(), textAlign = TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    body,
+                    style = stepBodyStyle(),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
-                TourPage.Joseki -> Rows(
-                    Triple(Icons.Outlined.School, tr("공식 커리큘럼", "Curriculum", "官方课程"),
-                        tr("레슨마다 살펴보고, 수순을 직접 맞히며 익힙니다", "Look through each lesson, then learn it by finding the moves", "逐课浏览，再亲手找出着法来学习")),
-                    Triple(Icons.Outlined.Bookmarks, tr("내 정석", "My joseki", "我的定式"),
-                        tr("갈래 · 평가 기호 · 메모를 달고, 대칭까지 찾습니다", "Branches, marks and notes, found in any symmetry", "添加分支、评价符号和笔记，按对称查找")),
-                    Triple(Icons.Outlined.Link, tr("레슨 링크", "Lesson links", "课程链接"),
-                        tr("Zenyth Web 의 레슨 링크를 누르면 앱에서 열립니다", "A Zenyth Web lesson link opens in the app", "点击 Zenyth Web 的课程链接会在应用中打开")),
-                )
-                TourPage.Engine -> {
-                    EnginePicture()
-                    Spacer(Modifier.height(28.dp))
-                    Rows(
-                        Triple(Icons.Outlined.Computer, tr("내 PC 엔진", "Your PC's engine", "电脑上的引擎"),
-                            tr("엔진 탭에서 PC 에서 도는 엔진 서버에 연결할 수도 있습니다", "The engine tab can also connect to an engine server on your PC", "也可以在引擎页连接电脑上运行的引擎服务器")),
-                        Triple(Icons.Outlined.Thermostat, tr("발열 · 절전", "Heat · battery saver", "发热 · 省电"),
-                            tr("폰이 뜨겁거나 절전 중이면 스레드를 줄여 버팁니다", "A hot phone or battery saver makes it run on fewer threads", "手机发热或省电时会减少线程继续运行")),
+                Spacer(Modifier.height(36.dp))
+                when (page) {
+                    TourPage.Board -> {
+                        BoardPicture()
+                        Spacer(Modifier.height(28.dp))
+                        Rows(
+                            Triple(Icons.Outlined.Palette, tr("값은 글자색으로", "Values in colour", "数值以颜色显示"),
+                                tr("따뜻한 빨강일수록 이기는 수, 차가운 파랑일수록 지는 수입니다", "Warm red is a winning move, cool blue a losing one", "越接近暖红越占优，越接近冷蓝越不利")),
+                            Triple(Icons.Outlined.FolderOpen, tr("기보", "Game records", "棋谱"),
+                                tr("열기 · .psq/.sav 저장 · 링크 복사 · 이미지로 내보내기", "Open, save as .psq/.sav, copy a link, export an image", "打开 · 保存为 .psq/.sav · 复制链接 · 导出图片")),
+                        )
+                    }
+                    TourPage.Research -> Rows(
+                        Triple(Icons.Outlined.History, tr("게임 리뷰", "Game review", "对局复盘"),
+                            tr("끝난 판을 되짚으며 평가가 뒤집힌 지점을 짚어 줍니다", "Walks a finished game back and marks where the evaluation turned", "回顾已结束的对局，指出评估翻转的地方")),
+                        Triple(Icons.Outlined.Explore, tr("오프닝 익스플로러", "Opening explorer", "开局浏览器"),
+                            tr("주형 이름 249개와 흑 5수 유불리를 판 위에 보여 줍니다", "249 opening names and the 5th-move verdicts, on the board", "249 个开局名称与黑第 5 手优劣")),
+                        Triple(Icons.Outlined.Verified, tr("국면 증명 · 랭킹", "Prove position · Rankings", "局面证明 · 排行"),
+                            tr("평가가 아니라 증명을 시키고, 26주형을 견줘 봅니다", "Asks for a proof, not an evaluation, and compares the 26 openings", "让引擎证明而不只是评估，并比较 26 种开局")),
                     )
+                    TourPage.Joseki -> Rows(
+                        Triple(Icons.Outlined.School, tr("공식 커리큘럼", "Curriculum", "官方课程"),
+                            tr("레슨마다 살펴보고, 수순을 직접 맞히며 익힙니다", "Look through each lesson, then learn it by finding the moves", "逐课浏览，再亲手找出着法来学习")),
+                        Triple(Icons.Outlined.Bookmarks, tr("내 정석", "My joseki", "我的定式"),
+                            tr("갈래 · 평가 기호 · 메모를 달고, 대칭까지 찾습니다", "Branches, marks and notes, found in any symmetry", "添加分支、评价符号和笔记，按对称查找")),
+                        Triple(Icons.Outlined.Link, tr("레슨 링크", "Lesson links", "课程链接"),
+                            tr("Zenyth Web 의 레슨 링크를 누르면 앱에서 열립니다", "A Zenyth Web lesson link opens in the app", "点击 Zenyth Web 的课程链接会在应用中打开")),
+                    )
+                    TourPage.Engine -> {
+                        EnginePicture()
+                        Spacer(Modifier.height(28.dp))
+                        Rows(
+                            Triple(Icons.Outlined.Computer, tr("내 PC 엔진", "Your PC's engine", "电脑上的引擎"),
+                                tr("엔진 탭에서 PC 에서 도는 엔진 서버에 연결할 수도 있습니다", "The engine tab can also connect to an engine server on your PC", "也可以在引擎页连接电脑上运行的引擎服务器")),
+                            Triple(Icons.Outlined.Thermostat, tr("발열 · 절전", "Heat · battery saver", "发热 · 省电"),
+                                tr("폰이 뜨겁거나 절전 중이면 스레드를 줄여 버팁니다", "A hot phone or battery saver makes it run on fewer threads", "手机发热或省电时会减少线程继续运行")),
+                        )
+                    }
                 }
             }
         }
+        MoreBelowFade(scroll)
     }
 }
 

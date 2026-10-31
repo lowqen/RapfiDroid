@@ -245,8 +245,9 @@ internal fun SetupContent(
 private fun StepPage(content: @Composable ColumnScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val minHeight = maxHeight
+        val scroll = rememberScrollState()
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState(), flingBehavior = rememberCalmFling()),
+            Modifier.fillMaxSize().verticalScroll(scroll, flingBehavior = rememberCalmFling()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(
@@ -260,6 +261,7 @@ private fun StepPage(content: @Composable ColumnScope.() -> Unit) {
                 content = content,
             )
         }
+        MoreBelowFade(scroll)
     }
 }
 
