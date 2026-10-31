@@ -30,4 +30,13 @@ class OnboardingTest {
         assertThat(Onboarding.needsSetup(Onboarding.VERSION - 1)).isTrue()
         assertThat(Onboarding.needsSetup(Onboarding.UNDECIDED)).isFalse()
     }
+
+    /** Android 13 asks for the notification permission; below it there is nothing to ask. */
+    @Test
+    fun twoScreensAtMost() {
+        assertThat(setupSteps(sdk = 35)).containsExactly(SetupStep.Welcome, SetupStep.Notifications).inOrder()
+        assertThat(setupSteps(sdk = 33)).containsExactly(SetupStep.Welcome, SetupStep.Notifications).inOrder()
+        assertThat(setupSteps(sdk = 32)).containsExactly(SetupStep.Welcome)
+        assertThat(setupSteps(sdk = 26)).containsExactly(SetupStep.Welcome)
+    }
 }

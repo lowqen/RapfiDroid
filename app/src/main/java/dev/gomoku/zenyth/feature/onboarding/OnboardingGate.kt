@@ -1,22 +1,17 @@
 package dev.gomoku.zenyth.feature.onboarding
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.common.isFreshInstall
 import dev.gomoku.zenyth.core.designsystem.component.LocalUiPrefs
 
 /**
- * The first-run windows (plan: `docs/온보딩-계획.md`): a setup that asks the few
- * things worth asking before anything else, then a tour of the tabs.
+ * The first-run setup (plan: `docs/온보딩-계획.md`): the few things worth asking
+ * before the board, on two screens at most. The tour of the tabs is not part of
+ * it — it opens from Settings ▸ 정보 when someone wants it.
  *
  * Only a fresh install gets them. An update keeps the setup its user already
  * made, so the first launch of a version with this feature decides once, and
@@ -49,13 +44,12 @@ object Onboarding {
 }
 
 /**
- * Puts the setup in front of the app and the tour over it, then [afterwards].
+ * Puts the setup in front of the app, then [afterwards].
  *
  * The setup stands *in place of* [app], so the shell — and with it the engine's
  * auto start — does not exist until it is done: no engine notification before
  * the step that explains notifications, no network load fighting the setup's
- * motion. The tour lies *over* [app], so the engine comes up behind it while it
- * is read. [afterwards] («새로워진 점») waits until both are gone (user request,
+ * motion. [afterwards] («새로워진 점») waits until it is gone (user request,
  * 2026-10-31).
  */
 @Composable
@@ -79,26 +73,18 @@ fun OnboardingGate(
         }
     }
     val doneValue by done.state.collectAsStateWithLifecycle()
-    // Saveable: a rotation must not end the tour. A process death does — the
-    // tour is a courtesy, not a gate.
-    var touring by rememberSaveable { mutableStateOf(false) }
 
     if (Onboarding.needsSetup(doneValue)) {
+        val step = remember(prefs) { prefs.int(Onboarding.STEP_PREF, 0) }
         SetupScreen(
+            stepPref = step,
             onFinish = {
-                prefs.int(Onboarding.STEP_PREF, 0).set(0)
-                touring = true
+                step.set(0)
                 done.set(Onboarding.VERSION)
             },
         )
         return
     }
-    Box(Modifier.fillMaxSize()) {
-        app()
-        if (touring) {
-            TourScreen(onFinish = { touring = false })
-        } else {
-            afterwards()
-        }
-    }
+    app()
+    afterwards()
 }
