@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -33,8 +35,10 @@ import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.outlined.Bookmarks
 import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Link
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Thermostat
 import androidx.compose.material.icons.outlined.Verified
@@ -192,7 +196,16 @@ private fun TourPageBody(page: TourPage) {
             )
             Spacer(Modifier.height(36.dp))
             when (page) {
-                TourPage.Board -> BoardPicture()
+                TourPage.Board -> {
+                    BoardPicture()
+                    Spacer(Modifier.height(28.dp))
+                    Rows(
+                        Triple(Icons.Outlined.Palette, tr("값은 글자색으로", "Values in colour", "数值以颜色显示"),
+                            tr("따뜻한 빨강일수록 이기는 수, 차가운 파랑일수록 지는 수입니다", "Warm red is a winning move, cool blue a losing one", "越接近暖红越占优，越接近冷蓝越不利")),
+                        Triple(Icons.Outlined.FolderOpen, tr("기보", "Game records", "棋谱"),
+                            tr("열기 · .psq/.sav 저장 · 링크 복사 · 이미지로 내보내기", "Open, save as .psq/.sav, copy a link, export an image", "打开 · 保存为 .psq/.sav · 复制链接 · 导出图片")),
+                    )
+                }
                 TourPage.Research -> Rows(
                     Triple(Icons.Outlined.History, tr("게임 리뷰", "Game review", "对局复盘"),
                         tr("끝난 판을 되짚으며 평가가 뒤집힌 지점을 짚어 줍니다", "Walks a finished game back and marks where the evaluation turned", "回顾已结束的对局，指出评估翻转的地方")),
@@ -308,9 +321,13 @@ private fun BoardPicture() = PictureCard {
 }
 
 /** The engine page's picture: the chip as it reads ready, searching under heat, and off. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EnginePicture() = PictureCard {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         EngineChip(ConnectionState.Ready, onStart = {})
         EngineChip(ConnectionState.Thinking, onStart = {}, thermalThreads = 4)
         EngineChip(ConnectionState.Disconnected, onStart = {})
