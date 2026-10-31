@@ -68,7 +68,9 @@ import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.Opening26
 import dev.gomoku.zenyth.core.model.RankSide
 import dev.gomoku.zenyth.core.model.ResultSplit
-import dev.gomoku.zenyth.feature.data.DataSetupCard
+import dev.gomoku.zenyth.feature.data.GameDataPrompt
+import dev.gomoku.zenyth.feature.data.GameDataPromptSlot
+import dev.gomoku.zenyth.feature.data.gameDataForm
 
 @Composable
 fun RankingsScreen(
@@ -76,17 +78,15 @@ fun RankingsScreen(
     viewModel: RankingsViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    // Without the dataset both tabs are near-empty, so the way to fill them
+    // leads each tab's list (R2): the full card, or the banner it folds into.
+    // In the list rather than above the tabs, so it scrolls away with it
+    // instead of pinning half the screen.
+    val dataForm = gameDataForm()
 
     Column(modifier = modifier.fillMaxSize()) {
         Header(ui, onFilter = viewModel::onOpenFilter)
         ui.error?.let { ErrorBanner(it, viewModel::onDismissError) }
-
-        // Without the dataset both tabs are near-empty, so the way to fill them
-        // goes above the tabs rather than inside a filter sheet the user has no
-        // reason to open yet.
-        if (!ui.freqLoaded) {
-            DataSetupCard(Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
-        }
 
         // A segmented control, not a second tab row. This screen already sits
         // inside the research tabs, and tabs nested in tabs read as one broken
@@ -109,8 +109,8 @@ fun RankingsScreen(
         }
 
         when (ui.tab) {
-            RankTab.THREE_MOVE -> ThreeMoveTab(ui, viewModel, Modifier.weight(1f))
-            RankTab.FIVE_MOVE -> FiveMoveTab(ui, viewModel, Modifier.weight(1f))
+            RankTab.THREE_MOVE -> ThreeMoveTab(ui, viewModel, dataForm, Modifier.weight(1f))
+            RankTab.FIVE_MOVE -> FiveMoveTab(ui, viewModel, dataForm, Modifier.weight(1f))
         }
     }
 
@@ -173,7 +173,7 @@ private fun ErrorBanner(message: String, onDismiss: () -> Unit) {
 // ---------------- 3-move tab ----------------
 
 @Composable
-private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Modifier) {
+private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, dataForm: GameDataPrompt.Form, modifier: Modifier) {
     // A re-sorted or re-filtered list is a *new* list, and a lazy list keeps the
     // item that was on screen: it re-finds it by key and scrolls to wherever it
     // landed, which drops the user into the middle of a ranking they just asked
@@ -215,6 +215,9 @@ private fun ThreeMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: M
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            if (dataForm != GameDataPrompt.Form.NONE) {
+                item(key = "game-data", span = { GridItemSpan(maxLineSpan) }) { GameDataPromptSlot() }
+            }
             items(ui.openingCards, key = { it.index }) { card ->
                 OpeningCardView(card, ui.freqLoaded, ui.threeTotalGames)
             }
@@ -247,6 +250,21 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
                     style = MaterialTheme.typography.labelMedium.tabular())
                 Spacer(Modifier.height(4.dp))
                 ResultBar(card.split)
+            } else if (!freqLoaded) {
+                // Where the games and the result bar go: said, not just missing (R2).
+                Text(
+                    tr("대국 데이터를 넣으면 표시", "Shown once game data is added", "添加对局数据后显示"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(4.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                )
             }
         }
     }
@@ -255,7 +273,7 @@ private fun OpeningCardView(card: OpeningCard, freqLoaded: Boolean, totalGames: 
 // ---------------- 5-move tab ----------------
 
 @Composable
-private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Modifier) {
+private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, dataForm: GameDataPrompt.Form, modifier: Modifier) {
     // Same as the 3-move grid: a new ordering starts at the top. A filter change
     // can drop every visible key, so the list would otherwise hold a raw index —
     // the middle of the old scroll.
@@ -278,15 +296,18 @@ private fun FiveMoveTab(ui: RankingsUiState, vm: RankingsViewModel, modifier: Mo
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            if (ui.fiveRows.isEmpty()) {
+            if (dataForm != GameDataPrompt.Form.NONE) {
+                // No data: the way to add it says why the list is empty.
+                item(key = "game-data", span = { GridItemSpan(maxLineSpan) }) { GameDataPromptSlot() }
+            } else if (ui.fiveRows.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     EmptyState(
                         icon = Icons.Filled.BarChart,
                         title = tr("표시할 모양이 없습니다", "Nothing to show", "没有可显示的形状"),
                         body = tr(
-                            "설정 › 대국 데이터 추가 뒤에 실전 빈도가 채워집니다",
-                            "Fills in from real games after Settings › Add game data",
-                            "在 设置 › 添加对局数据 后按实战频率填充",
+                            "검색이나 필터를 바꿔 보세요",
+                            "Try another search or filter",
+                            "请换一个搜索或筛选条件",
                         ),
                     )
                 }

@@ -261,4 +261,4 @@ private fun Outcome(title: String, body: String, tone: androidx.compose.ui.graph
     }
 }
 
-private const val RENJU_NET_GAMES = "https://www.renju.net/game/"
+internal const val RENJU_NET_GAMES = "https://www.renju.net/game/"

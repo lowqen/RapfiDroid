@@ -48,6 +48,12 @@ class ExplorerPackStore @Inject constructor(
     val packs: StateFlow<Packs?> = _packs.asStateFlow()
 
     /**
+     * Whether a build's pack is on disk — what [restore] would load, asked
+     * without loading it (a file check, off the main thread).
+     */
+    val onDisk: Boolean get() = packFile.isFile
+
+    /**
      * Bumped whenever the opening tables change, so the explorer re-syncs after
      * a late import. The tables themselves live in [OpeningTables] — a name is
      * a property of a position, not something every caller carries.

@@ -15,6 +15,7 @@ import dev.gomoku.zenyth.core.designsystem.component.QuietSwitch
 import dev.gomoku.zenyth.core.designsystem.component.ZenythSegmented
 import dev.gomoku.zenyth.core.designsystem.component.ZenythTopBar
 import dev.gomoku.zenyth.core.i18n.tr
+import dev.gomoku.zenyth.feature.data.GameDataSheetOnce
 import dev.gomoku.zenyth.feature.explorer.MoveOrderSection
 import dev.gomoku.zenyth.feature.explorer.OpeningExplorerSection
 import dev.gomoku.zenyth.feature.rankings.RankingsScreen
@@ -62,4 +63,10 @@ fun ResearchScreen(modifier: Modifier = Modifier) {
             }
         }
     }
+    // The two tabs the game data fills offer it once, in a sheet, the first
+    // time they open without it (R2). The move order never uses it.
+    if (tab == TAB_OPENINGS || tab == TAB_RANKINGS) GameDataSheetOnce()
 }
+
+private const val TAB_OPENINGS = 1
+private const val TAB_RANKINGS = 3

@@ -42,6 +42,9 @@ class FreqStore @Inject constructor(
     private val _bundle = MutableStateFlow<FreqBundle?>(null)
     val bundle: StateFlow<FreqBundle?> = _bundle.asStateFlow()
 
+    /** Whether a build's dataset is on disk, asked without reading it (off the main thread). */
+    val onDisk: Boolean get() = file.isFile
+
     /** Reload what a previous build wrote. */
     suspend fun restore() {
         if (_bundle.value != null) return

@@ -60,7 +60,9 @@ import dev.gomoku.zenyth.core.model.ExplorerNext
 import dev.gomoku.zenyth.core.model.ExplorerPosition
 import dev.gomoku.zenyth.core.model.ExplorerStatus
 import dev.gomoku.zenyth.core.model.RjGame
-import dev.gomoku.zenyth.feature.data.DataSetupCard
+import dev.gomoku.zenyth.feature.data.GameDataPrompt
+import dev.gomoku.zenyth.feature.data.GameDataPromptSlot
+import dev.gomoku.zenyth.feature.data.gameDataForm
 
 /**
  * 오프닝 익스플로러 — RenjuNet statistics for the position on the board
@@ -76,6 +78,7 @@ fun OpeningExplorerSection(
     viewModel: OpeningExplorerViewModel = hiltViewModel(),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    val dataForm = gameDataForm()
     // The app's one snackbar, not a second host inside a tab — a notice raised
     // here used to appear in a different place from one raised on the board.
     val snackbar = LocalSnackbarHostState.current
@@ -106,10 +109,10 @@ fun OpeningExplorerSection(
     }
 
     val info: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
+        // With no data, adding it is the thing to do next: first, above all
+        // else (R2) — a card, or the banner it folds into.
+        if (dataForm != GameDataPrompt.Form.NONE) item { GameDataPromptSlot() }
         item { HeaderCard(ui) }
-
-        // With no data the build is the thing to do next.
-        if (ui.status == ExplorerStatus.NO_PACKS) item { DataSetupCard() }
 
         ui.position?.let { pos ->
             if (pos.games > 0) {
