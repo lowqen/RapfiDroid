@@ -33,21 +33,20 @@ keytool -genkeypair -v -keystore zenyth.jks -alias zenyth \
         -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-만든 키를 **`release` 환경(Environment)의 시크릿 4개**로 넣는다(로컬 저장소에는 두지 않는다).
-저장소 레벨이 아니라 환경에 두는 이유: 환경 시크릿은 **본인이 승인한** `release.yml` 의 `build` job 만 읽는다
-(`docs/보안-강화-계획.md` Phase 0 · 1).
+만든 키를 **Actions 시크릿 4개**로 넣는다(로컬 저장소에는 두지 않는다):
 
 ```bash
-gh secret set SIGNING_KEYSTORE          --env release --repo lowqen/Zenyth < <(base64 -w0 zenyth.jks)
-gh secret set SIGNING_STORE_PASSWORD    --env release --repo lowqen/Zenyth
-gh secret set SIGNING_KEY_ALIAS         --env release --repo lowqen/Zenyth   # zenyth
-gh secret set SIGNING_KEY_PASSWORD      --env release --repo lowqen/Zenyth
+gh secret set SIGNING_KEYSTORE          --repo lowqen/Zenyth < <(base64 -w0 zenyth.jks)
+gh secret set SIGNING_STORE_PASSWORD    --repo lowqen/Zenyth
+gh secret set SIGNING_KEY_ALIAS         --repo lowqen/Zenyth   # zenyth
+gh secret set SIGNING_KEY_PASSWORD      --repo lowqen/Zenyth
 ```
 
-> **옮기는 순서**(2026-10-31 기준, 시크릿은 아직 저장소 레벨에 있다): ① 위 네 줄로 환경에 등록 →
-> ② `release.yml` 을 수동 실행해 서명 테스트 빌드가 녹색인지 확인 → ③ 그 뒤에만 저장소 레벨 시크릿을 지운다
-> (`gh secret delete SIGNING_KEYSTORE --repo lowqen/Zenyth` 등 네 개). 같은 이름이면 환경 시크릿이 이기므로
-> ①과 ③ 사이에도 빌드는 깨지지 않는다. ③을 먼저 하면 릴리스가 깨진다.
+> **저장소 레벨에 둔다**(2026-10-31 사용자 결정). `release` 환경으로 옮기면 승인된 `build` job 만 키를 읽게 되지만,
+> 옮기지 않기로 했다. 그래도 서명 job 은 `environment: release` 라 **본인 승인 없이는 돌지 않는다.** 남는 차이는,
+> 다른 워크플로가 `${{ secrets.SIGNING_* }}` 를 참조하도록 바뀌면 승인 없이 키를 읽을 수 있다는 것 — 그래서
+> `release.yml` 밖에서 `SIGNING_` 시크릿을 쓰는 변경은 하지 않는다. 옮기려면 같은 명령에 `--env release` 를 붙여
+> 등록하고, 녹색 확인 뒤 저장소 레벨 시크릿을 지운다(순서가 바뀌면 릴리스가 깨진다).
 >
 > 서명 인증서 SHA-256 은 `f830ff509b96cba8013eb00d1bdbc2f4feef41c93503d506b3c9da6522a9b92e` 이고,
 > `release.yml` 의 `RELEASE_CERT_SHA256` 이 이 값이 아닌 서명을 배포 전에 막는다. 키를 바꾸면(회전) 그 값도 같이 바꾼다.
@@ -82,7 +81,7 @@ git push origin v0.14.0
 
 | job | 권한 | 하는 일 |
 |---|---|---|
-| `build` | 읽기 + 서명 키(`release` 환경) | 유닛 테스트 → 키 복원 → `assembleRelease` → **키 파기** → 서명 APK 를 하루짜리 아티팩트 `app-release-test` 로 |
+| `build` | 읽기 + 서명 키(`release` 환경 승인 뒤) | 유닛 테스트 → 키 복원 → `assembleRelease` → **키 파기** → 서명 APK 를 하루짜리 아티팩트 `app-release-test` 로 |
 | `verify` | 읽기 | 게이트 넷(아래) |
 | `publish` | 쓰기 · 출처 증명 | 태그 push 때만. 빌드 출처 증명(attestation) → 릴리스 생성 · APK 첨부. Gradle 을 돌리지 않는다 |
 
@@ -124,7 +123,7 @@ git push origin v0.14.0
 ## 4. 릴리스 체크리스트
 
 - [x] `lowqen/rapfi` 공개 · `android` 브랜치 · `ENGINE_VERSION.txt` 커밋과 일치
-- [ ] 서명 키 생성 + `release` 환경 시크릿 4개 (§1)
+- [ ] 서명 키 생성 + Actions 시크릿 4개 (§1)
 - [ ] 태그 push 뒤 승인 요청이 **내가 민 태그**의 것인지 확인하고 승인 (§2-1)
 - [ ] `versionCode`·`versionName` 을 올렸다
 - [ ] `docs/release-notes-<버전>.md` 를 썼다 (없으면 CI 가 멈춘다)
