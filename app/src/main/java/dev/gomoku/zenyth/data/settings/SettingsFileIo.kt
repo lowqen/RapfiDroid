@@ -4,6 +4,8 @@ import android.content.Context
 import android.net.Uri
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.zenyth.core.common.IoDispatcher
+import dev.gomoku.zenyth.core.common.ReadLimits
+import dev.gomoku.zenyth.core.common.readAtMost
 import dev.gomoku.zenyth.core.i18n.tr
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -22,7 +24,9 @@ class SettingsFileIo @Inject constructor(
 ) {
     suspend fun read(uri: Uri): String = withContext(io) {
         val stream = context.contentResolver.openInputStream(uri) ?: error(tr("열 수 없습니다: $uri", "Cannot open: $uri", "无法打开: $uri"))
-        stream.use { it.readBytes().toString(Charsets.UTF_8) }
+        val bytes = stream.use { it.readAtMost(ReadLimits.TEXT) }
+            ?: error(tr("설정 파일이라기엔 너무 큽니다", "Too large to be a settings file", "文件太大，不是设置文件"))
+        bytes.toString(Charsets.UTF_8)
     }
 
     suspend fun write(uri: Uri, text: String) = withContext(io) {

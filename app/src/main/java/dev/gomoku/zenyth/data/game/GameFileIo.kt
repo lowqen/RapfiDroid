@@ -3,6 +3,8 @@ package dev.gomoku.zenyth.data.game
 import android.content.Context
 import android.net.Uri
 import dev.gomoku.zenyth.core.common.IoDispatcher
+import dev.gomoku.zenyth.core.common.ReadLimits
+import dev.gomoku.zenyth.core.common.readAtMost
 import dev.gomoku.zenyth.domain.repository.GameFileReader
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.gomoku.zenyth.core.i18n.tr
@@ -27,9 +29,10 @@ class GameFileIo @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : GameFileReader {
 
+    /** Null when the document cannot be read — or is too large to be a game or joseki file. */
     override suspend fun read(uri: String): ByteArray? = withContext(io) {
         runCatching {
-            context.contentResolver.openInputStream(Uri.parse(uri))!!.use { it.readBytes() }
+            context.contentResolver.openInputStream(Uri.parse(uri))!!.use { it.readAtMost(ReadLimits.DOCUMENT) }
         }.getOrNull()
     }
 

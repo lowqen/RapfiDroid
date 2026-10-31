@@ -73,10 +73,15 @@ object GameFile {
 
     /** main.c:3568 — two sizes to skip, a count, then `row col` pairs. */
     private fun parseSav(text: String, size: Int): List<Move>? {
-        val numbers = NUMBER.findAll(text).map { it.value.toInt() }.toList()
+        // A number past Int (no real file has one) makes the file unreadable
+        // rather than throwing out of the caller's coroutine.
+        val numbers = NUMBER.findAll(text).map { it.value.toIntOrNull() }.toList()
+            .map { it ?: return null }
         if (numbers.size < 3) return null
         val count = numbers[2]
-        val out = ArrayList<Move>(count.coerceAtLeast(0))
+        // The count is the file's word, not ours: sized by it, «15 15 2000000000»
+        // allocated eight gigabytes up front. No line is longer than the board.
+        val out = ArrayList<Move>(count.coerceIn(0, size * size))
         var i = 3
         while (out.size < count && i + 1 < numbers.size) {
             val move = Move(x = numbers[i + 1], y = numbers[i])

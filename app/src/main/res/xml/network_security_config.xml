@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  HTTPS only, on every Android version this app installs on (docs/보안-강화-계획.md
+  S8). Android 9 and later refuse cleartext by default; Android 8.x (minSdk 26)
+  allows it, so a stray http:// would have gone out unencrypted there.
+
+  Only the system's certificate authorities are trusted, never ones the user
+  installed: the only HTTPS this app speaks is the curriculum fetch from Zenyth
+  Web, and nothing about it needs a private CA.
+
+  This governs HTTP stacks only. The engine links are not HTTP — the on-device
+  engine is a pipe and the server engine a plain TCP socket over the user's
+  Tailscale VPN — and are untouched by it.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -3,6 +3,8 @@ package dev.gomoku.zenyth.data.appearance
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
+import dev.gomoku.zenyth.core.common.ReadLimits
+import dev.gomoku.zenyth.core.common.readAtMost
 
 /**
  * The little bit of `DocumentFile` this needs, done against the platform.
@@ -80,7 +82,8 @@ class SafTree(private val resolver: ContentResolver, private val tree: Uri) {
             .firstOrNull { !it.isDirectory && it.name.equals(name, true) } ?: return null
         val uri = DocumentsContract.buildDocumentUriUsingTree(tree, entry.documentId)
         return runCatching {
-            resolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) }
+            // A script or .lng table is a few KB; a bigger file is not one, and is skipped.
+            resolver.openInputStream(uri)?.use { it.readAtMost(ReadLimits.TEXT) }?.toString(Charsets.UTF_8)
         }.getOrNull()
     }
 

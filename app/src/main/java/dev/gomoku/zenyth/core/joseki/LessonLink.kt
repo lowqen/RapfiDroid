@@ -29,13 +29,21 @@ object LessonLink {
     fun parse(text: String): LessonTarget? {
         val uri = runCatching { URI(text.trim()) }.getOrNull() ?: return null
         if (uri.path?.trimEnd('/')?.endsWith("/joseki") != true) return null
-        val query = uri.rawQuery.orEmpty().split('&').mapNotNull { part ->
+        val query = HashMap<String, String>()
+        for (part in uri.rawQuery.orEmpty().split('&')) {
             val i = part.indexOf('=')
-            if (i <= 0) null else part.substring(0, i) to URLDecoder.decode(part.substring(i + 1), "UTF-8")
-        }.toMap()
+            if (i <= 0) continue
+            // URLDecoder throws on a broken escape (`%zz`). `URI` above refuses
+            // those first today; this keeps the parse total even if that changes,
+            // because any web page or app can hand the app such a link.
+            query[part.substring(0, i)] = decode(part.substring(i + 1)) ?: return null
+        }
         val lesson = query["lesson"]?.takeIf { it.isNotBlank() }
         val course = query["course"]?.takeIf { it.isNotBlank() }
         if (lesson == null && course == null) return null
         return LessonTarget(lesson, course, learn = lesson != null && query["mode"] == "learn")
     }
+
+    private fun decode(value: String): String? =
+        runCatching { URLDecoder.decode(value, "UTF-8") }.getOrNull()
 }

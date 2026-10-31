@@ -16,6 +16,13 @@ object PositionLink {
     private val SHAPE = Regex("^([A-Za-z]\\d{1,2})*$")
     private val TOKEN = Regex("[A-Za-z]\\d{1,2}")
 
+    /**
+     * A full 22 × 22 board is under 1,500 characters. Anything far longer is not
+     * a position, and is refused before the shape regex walks it: a link is
+     * input any web page or app can send.
+     */
+    private const val MAX_CHARS = 4096
+
     fun encode(moves: List<Move>, size: Int): String =
         moves.joinToString("") { it.label(size).lowercase() }
 
@@ -24,7 +31,7 @@ object PositionLink {
     /** A move string: empty is the empty board, null when it cannot be read. */
     fun parse(text: String, size: Int): List<Move>? {
         val src = text.replace(Regex("[\\s,]"), "")
-        if (!SHAPE.matches(src)) return null
+        if (src.length > MAX_CHARS || !SHAPE.matches(src)) return null
         val out = ArrayList<Move>()
         for (m in TOKEN.findAll(src)) {
             val move = Move.fromLabel(m.value.uppercase(), size) ?: return null
@@ -48,7 +55,9 @@ object PositionLink {
                 .firstOrNull { it.size == 2 && it[0] == PARAM }
                 ?.get(1)
                 ?: return null
-            return parse(java.net.URLDecoder.decode(value, "UTF-8"), size)
+            // A broken escape (`%zz`) makes URLDecoder throw: no position, not a crash.
+            val decoded = runCatching { java.net.URLDecoder.decode(value, "UTF-8") }.getOrNull() ?: return null
+            return parse(decoded, size)
         }
         return parse(trimmed, size)?.takeIf { it.isNotEmpty() }
     }

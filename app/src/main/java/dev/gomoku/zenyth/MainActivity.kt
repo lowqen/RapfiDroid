@@ -146,14 +146,20 @@ class MainActivity : ComponentActivity() {
     /**
      * Zenyth Web links: a curriculum lesson or course (`…/joseki?lesson=<id>`)
      * goes to the joseki tab, a position (`…/board?p=h8i9j10`) to the board.
+     *
+     * The activity is exported, so any app can send it any address, not only
+     * the ones the intent filter names. A link that cannot be read is dropped;
+     * it must never take the app down in onCreate.
      */
     private fun takeLink(intent: Intent?) {
-        if (intent?.action != Intent.ACTION_VIEW) return
-        val url = intent.dataString ?: return
-        val lesson = LessonLink.parse(url)
-        when {
-            lesson != null -> links.offerLesson(lesson)
-            url.contains("p=") -> links.offer(url)
+        runCatching {
+            if (intent?.action != Intent.ACTION_VIEW) return
+            val url = intent.dataString ?: return
+            val lesson = LessonLink.parse(url)
+            when {
+                lesson != null -> links.offerLesson(lesson)
+                url.contains("p=") -> links.offer(url)
+            }
         }
     }
 
