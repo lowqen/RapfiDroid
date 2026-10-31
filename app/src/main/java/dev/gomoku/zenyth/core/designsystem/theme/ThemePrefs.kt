@@ -17,11 +17,25 @@ import dev.gomoku.zenyth.data.prefs.UiPrefs
 /**
  * «기기 설정»: light or dark follows the phone instead of settings.txt line 27.
  *
- * Off by default, so nobody's theme changes under them with this release. It is
- * switched off again when a desktop settings file is imported, because the
- * point of importing one is that the app looks like the PC (decision D4).
+ * Its default is settled once by [settleThemeDefault]; until then it reads off.
+ * It is switched off again when a desktop settings file is imported, because
+ * the point of importing one is that the app looks like the PC (decision D4).
  */
-val UiPrefs.themeFollowsSystem: UiPrefs.BoolPref get() = bool("theme.followSystem", false)
+val UiPrefs.themeFollowsSystem: UiPrefs.BoolPref get() = bool(THEME_FOLLOW_KEY, false)
+
+private const val THEME_FOLLOW_KEY = "theme.followSystem"
+
+/**
+ * Settles «기기 설정»'s default on the first launch that reads it. A fresh
+ * install follows the phone (user request, 2026-10-31: it opened dark, the
+ * desktop's own default in line 27). An update keeps what it had — off, the
+ * old default — so nobody's theme changes under them. Written either way, so
+ * it is decided once: the install times [freshInstall] reads move with the
+ * next update. Call before the first frame.
+ */
+fun UiPrefs.settleThemeDefault(freshInstall: () -> Boolean) {
+    if (!contains(THEME_FOLLOW_KEY)) themeFollowsSystem.set(freshInstall())
+}
 
 /** Black page and containers in the dark theme, for OLED screens. */
 val UiPrefs.themeAmoled: UiPrefs.BoolPref get() = bool("theme.amoled", false)

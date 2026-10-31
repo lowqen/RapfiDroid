@@ -1,17 +1,28 @@
 package dev.gomoku.zenyth.feature.board
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Save
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -29,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,6 +48,7 @@ import dev.gomoku.zenyth.core.designsystem.component.CalmCard
 import dev.gomoku.zenyth.core.designsystem.component.CardTitle
 import dev.gomoku.zenyth.core.designsystem.component.GradeMark
 import dev.gomoku.zenyth.core.designsystem.component.Hint
+import dev.gomoku.zenyth.core.designsystem.theme.LocalReducedMotion
 import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
@@ -50,10 +63,14 @@ internal class GameFileActions(
     val saveImage: () -> Unit,
 )
 /**
- * The position card: whose move, how many, the last one; the opening name chain
- * with its 흑 5수 grade; the last move's grade; the database's value and
- * comment; the file this line came from. File work is behind one «기보» menu.
- * On the game tab, the two buttons that end a game.
+ * The position card: the opening name chain with its 흑 5수 grade; the last
+ * move's grade; the database's value and comment; the file this line came
+ * from; and at its foot the file work as four labelled keys. On the game tab,
+ * the two buttons that end a game.
+ *
+ * Whose move, how many and the last one were three tiles here; they went
+ * (user request, 2026-10-31) — the board, the one-line strip and the sheet's
+ * head already say them.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -74,26 +91,12 @@ internal fun PositionCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            GameFileMenu(ui, files)
         }
         ui.game.result?.let {
             Text(
                 it.describe(),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.primary,
-            )
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Tile(tr("둘 차례", "To move", "轮到"), ui.sideToMove.label, Modifier.weight(1f))
-            Tile(
-                tr("수", "Moves", "手数"),
-                if (ui.futureCount > 0) "${ui.moveCount} / ${ui.moveCount + ui.futureCount}" else "${ui.moveCount}",
-                Modifier.weight(1f),
-            )
-            Tile(
-                tr("마지막", "Last", "最后一手"),
-                ui.render.lastMove?.label(ui.render.size) ?: tr("없음", "None", "无"),
-                Modifier.weight(1f),
             )
         }
         if (ui.openingNames.isNotEmpty()) {
@@ -138,6 +141,7 @@ internal fun PositionCard(
         ui.gameName?.let { name ->
             KeyValue(tr("기보", "Game", "棋谱")) { Text(name, style = MaterialTheme.typography.bodyMedium) }
         }
+        GameFileKeys(ui, files)
         if (!ui.analysisTab) {
             if (ui.game.offeringFifth) {
                 Hint(tr("5수 후보 ${ui.game.fifthCount}개를 놓으세요", "Place ${ui.game.fifthCount} fifth-move candidates", "请放置 ${ui.game.fifthCount} 个第5手打点"))
@@ -160,32 +164,95 @@ internal fun PositionCard(
     onDraw: () -> Unit,
     modifier: Modifier = Modifier,
 ) = PositionCard(ui.positionCardUi(), files, onResign, onDraw, modifier)
+/**
+ * The file work as four labelled keys (2026-10-31). It sat behind a small
+ * «기보 ⌄» beside the title, which read as a label rather than a menu, so
+ * people never found «열기» or «저장». Mornye's icon-button group — the shape
+ * of Settings ▸ 디자인's theme keys. «저장» and «공유» each open a small menu
+ * for the one choice they hide (the format; a link or the text), so four keys
+ * put everything one tap away and the card stays calm.
+ */
 @Composable
-private fun GameFileMenu(ui: PositionCardUi, files: GameFileActions) {
+private fun GameFileKeys(ui: PositionCardUi, files: GameFileActions) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FileKey(Icons.Outlined.FolderOpen, tr("열기", "Open", "打开"), Modifier.weight(1f), onClick = files.open)
+        FileKey(
+            Icons.Outlined.Save,
+            tr("저장", "Save", "保存"),
+            Modifier.weight(1f),
+            menu = listOf(
+                FileChoice(tr(".psq 로 저장", "As .psq", "保存为 .psq")) { files.save(GameFileFormat.PSQ) },
+                FileChoice(tr(".sav 로 저장", "As .sav", "保存为 .sav")) { files.save(GameFileFormat.SAV) },
+            ),
+        )
+        FileKey(
+            Icons.Outlined.Share,
+            tr("공유", "Share", "分享"),
+            Modifier.weight(1f),
+            menu = listOf(
+                FileChoice(tr("링크 복사", "Copy link", "复制链接"), enabled = ui.moveCount > 0, action = files.copyLink),
+                FileChoice(tr("국면 문자열", "Position string", "局面代码"), action = files.positionString),
+            ),
+        )
+        FileKey(Icons.Outlined.Image, tr("이미지", "Image", "图片"), Modifier.weight(1f), onClick = files.saveImage)
+    }
+}
+
+/** One entry of a [FileKey]'s menu. */
+private class FileChoice(val label: String, val enabled: Boolean = true, val action: () -> Unit)
+
+/**
+ * A key of [GameFileKeys]: icon over label on a quiet face, its corners
+ * squaring a little under the finger like every key in the app. With a
+ * [menu] it opens that instead of acting.
+ */
+@Composable
+private fun FileKey(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier,
+    menu: List<FileChoice> = emptyList(),
+    onClick: () -> Unit = {},
+) {
     var open by remember { mutableStateOf(false) }
-    Box {
-        TextButton(onClick = { open = true }) {
-            Text(tr("기보", "Game", "棋谱"))
-            Icon(Icons.Filled.ExpandMore, contentDescription = null, modifier = Modifier.size(18.dp))
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val reduced = LocalReducedMotion.current
+    val corner by animateIntAsState(
+        if (pressed && !reduced) 18 else 26,
+        spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMediumLow),
+        label = "fileKey",
+    )
+    val scheme = MaterialTheme.colorScheme
+    Box(modifier) {
+        Surface(
+            onClick = { if (menu.isEmpty()) onClick() else open = true },
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+            shape = RoundedCornerShape(corner),
+            color = scheme.surfaceContainerHighest,
+            contentColor = scheme.onSurface,
+            interactionSource = interaction,
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(22.dp), tint = scheme.primary)
+                Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+            }
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            fun item(label: String, enabled: Boolean = true, action: () -> Unit) = Triple(label, enabled, action)
-            listOf(
-                item(tr("기보 열기", "Open game", "打开棋谱"), action = files.open),
-                item(tr(".psq 저장", "Save .psq", "保存 .psq")) { files.save(GameFileFormat.PSQ) },
-                item(tr(".sav 저장", "Save .sav", "保存 .sav")) { files.save(GameFileFormat.SAV) },
-                item(tr("링크 복사", "Copy link", "复制链接"), enabled = ui.moveCount > 0, action = files.copyLink),
-                item(tr("국면 문자열", "Position string", "局面代码"), action = files.positionString),
-                item(tr("이미지 저장", "Save image", "保存图片"), action = files.saveImage),
-            ).forEach { (label, enabled, action) ->
-                DropdownMenuItem(
-                    text = { Text(label) },
-                    enabled = enabled,
-                    onClick = {
-                        open = false
-                        action()
-                    },
-                )
+        if (menu.isNotEmpty()) {
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                menu.forEach { choice ->
+                    DropdownMenuItem(
+                        text = { Text(choice.label) },
+                        enabled = choice.enabled,
+                        onClick = {
+                            open = false
+                            choice.action()
+                        },
+                    )
+                }
             }
         }
     }

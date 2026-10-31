@@ -19,13 +19,6 @@ import dev.gomoku.zenyth.core.i18n.tr
 import kotlin.math.roundToInt
 
 @Composable
-internal fun Tile(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
-    }
-}
-@Composable
 internal fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

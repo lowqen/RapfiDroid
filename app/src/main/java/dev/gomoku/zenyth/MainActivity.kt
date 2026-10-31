@@ -26,6 +26,8 @@ import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.hapticsEnabled
 import dev.gomoku.zenyth.core.designsystem.theme.themeAmoled
 import dev.gomoku.zenyth.core.designsystem.theme.themeFollowsSystem
+import dev.gomoku.zenyth.core.designsystem.theme.settleThemeDefault
+import dev.gomoku.zenyth.core.common.isFreshInstall
 import dev.gomoku.zenyth.core.designsystem.theme.themeWallpaperTone
 import dev.gomoku.zenyth.core.designsystem.theme.wallpaperHue
 import dev.gomoku.zenyth.core.joseki.LessonLink
@@ -71,6 +73,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // Before the first frame reads it: a fresh install follows the phone.
+        uiPrefs.settleThemeDefault { isFreshInstall(this) }
         lifecycleScope.launch { appearance.restore() }
         debugLog.start()
         if (savedInstanceState == null) takeLink(intent)

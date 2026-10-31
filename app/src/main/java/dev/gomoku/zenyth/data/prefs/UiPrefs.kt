@@ -38,6 +38,9 @@ class UiPrefs @Inject constructor(
      */
     val curriculumAutoUpdate: BoolPref get() = bool("curriculum.autoupdate", true)
 
+    /** Whether [key] has ever been written — a default that depends on that needs it. */
+    fun contains(key: String): Boolean = prefs.contains(key)
+
     /** Whether a [dev.gomoku.zenyth.core.designsystem.component.Disclosure] is open. */
     fun isOpen(id: String, default: Boolean): Boolean = prefs.getBoolean("open.$id", default)
 
