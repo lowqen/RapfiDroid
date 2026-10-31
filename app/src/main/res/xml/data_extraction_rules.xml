@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What Android 12+ backs up (docs/보안-강화-계획.md S12). Everything not named
+  here goes: settings, saved boards, my joseki and lesson progress, and the
+  database the engine learned (engine/rapfi.db).
+
+  Left out, in both directions:
+   - the engine's weights, model and config: 40 MB the APK holds anyway and
+     extracts again on first start; config.toml carries this phone's own hash
+     and thread numbers.
+   - .installed (extraction stamp) and .dotprod-sigill (this CPU cannot run the
+     dotprod engine): facts about one device that are wrong on another.
+   - the debug log: engine traffic, for handing to someone by hand, not a cloud.
+
+  packs/ (opening explorer, rankings) is built from the user's own RenjuNet
+  file, whose licence forbids putting it, or anything derived from it, into any
+  online system. A cloud backup is one, so it stays out of cloud-backup; a
+  device-to-device transfer is not, so it travels and spares a rebuild.
+
+  BackupRulesTest checks every file under assets/engine is listed here.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="engine/mix9svqfreestyle_bsmix.bin.lz4" />
+        <exclude domain="file" path="engine/mix9svqrenju_bs15_black.bin.lz4" />
+        <exclude domain="file" path="engine/mix9svqrenju_bs15_white.bin.lz4" />
+        <exclude domain="file" path="engine/mix9svqstandard_bs15.bin.lz4" />
+        <exclude domain="file" path="engine/model220723.bin" />
+        <exclude domain="file" path="engine/config.toml" />
+        <exclude domain="file" path="engine/.installed" />
+        <exclude domain="file" path="engine/.dotprod-sigill" />
+        <exclude domain="file" path="zenyth-debug.log" />
+        <exclude domain="file" path="packs" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="engine/mix9svqfreestyle_bsmix.bin.lz4" />
+        <exclude domain="file" path="engine/mix9svqrenju_bs15_black.bin.lz4" />
+        <exclude domain="file" path="engine/mix9svqrenju_bs15_white.bin.lz4" />
+        <exclude domain="file" path="engine/mix9svqstandard_bs15.bin.lz4" />
+        <exclude domain="file" path="engine/model220723.bin" />
+        <exclude domain="file" path="engine/config.toml" />
+        <exclude domain="file" path="engine/.installed" />
+        <exclude domain="file" path="engine/.dotprod-sigill" />
+        <exclude domain="file" path="zenyth-debug.log" />
+    </device-transfer>
+</data-extraction-rules>

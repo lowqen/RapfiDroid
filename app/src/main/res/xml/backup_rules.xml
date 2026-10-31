@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What Android 8 – 11 backs up — the same rules as data_extraction_rules.xml,
+  whose comment says why each one is out. These versions use one set for cloud
+  backup and device transfer alike, so packs/ (RenjuNet-derived, never online)
+  is left out of both.
+-->
+<full-backup-content>
+    <exclude domain="file" path="engine/mix9svqfreestyle_bsmix.bin.lz4" />
+    <exclude domain="file" path="engine/mix9svqrenju_bs15_black.bin.lz4" />
+    <exclude domain="file" path="engine/mix9svqrenju_bs15_white.bin.lz4" />
+    <exclude domain="file" path="engine/mix9svqstandard_bs15.bin.lz4" />
+    <exclude domain="file" path="engine/model220723.bin" />
+    <exclude domain="file" path="engine/config.toml" />
+    <exclude domain="file" path="engine/.installed" />
+    <exclude domain="file" path="engine/.dotprod-sigill" />
+    <exclude domain="file" path="zenyth-debug.log" />
+    <exclude domain="file" path="packs" />
+</full-backup-content>
