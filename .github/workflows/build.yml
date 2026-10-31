@@ -17,8 +17,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Two jobs on two runners, side by side. The build is CPU-bound: run in one job,
+# the debug side (tests, APK) and the release side (R8) only took turns on the
+# same four cores — 362 s either way. Apart, each has a machine to itself.
 jobs:
-  build:
+  debug:
+    name: Unit tests and debug APK
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -40,8 +44,7 @@ jobs:
         run: chmod +x gradlew
 
       # gradle.properties is sized for a 4 GB laptop: a 1.25 GB heap, two
-      # workers, no parallelism. The runner has 16 GB and four cores, and R8
-      # starved of heap spends its time collecting garbage. The user-home file
+      # workers. The runner has 16 GB and four cores. The user-home file
       # outranks the project's, so only CI gets the bigger numbers.
       - name: Size the build for the runner
         run: |
@@ -70,21 +73,15 @@ jobs:
             echo "debug key: throwaway (no DEBUG_KEYSTORE secret)"
           fi
 
-      # One Gradle run for all three, so they share configuration and the
-      # compiled code, and — with the configuration cache — run side by side:
-      # the unit tests and the R8 release build no longer wait for each other.
-      #
-      # - Unit tests: the engine grammar, the pack readers, the position keys,
-      #   the settings codec, the hostile-input fuzzing. The two screenshot
-      #   classes are left to screenshots.yml, which verifies them on the same
-      #   pushes. Nothing here needs the RenjuNet data: the tests that would skip
-      #   themselves (`assumeTrue`) when the packs are absent, as on a runner.
-      # - The release build shrinks with R8 (docs/리팩토링-성능-위생-계획.md
-      #   Phase 7-1). It runs on every push, unsigned, so a missing keep rule fails
-      #   here and not on a release day; the next step checks the engine inside it.
-      - name: Unit tests, debug APK, release APK (R8)
+      # The engine grammar, the pack readers, the position keys, the settings
+      # codec, the hostile-input fuzzing. The two screenshot classes are left to
+      # screenshots.yml, which verifies them on the same pushes. Nothing here
+      # needs the RenjuNet data: the tests that would skip themselves
+      # (`assumeTrue`) when the packs are absent, as on a runner. One Gradle run
+      # with the configuration cache, so the tests and the APK's dexing overlap.
+      - name: Unit tests and debug APK
         run: >
-          ./gradlew testDebugUnitTest assembleDebug assembleRelease
+          ./gradlew testDebugUnitTest assembleDebug
           --configuration-cache -PskipScreenshotTests -PtestForks=2 --stacktrace
 
       - name: Upload test report
@@ -93,11 +90,6 @@ jobs:
         with:
           name: test-report
           path: app/build/reports/tests/testDebugUnitTest/
-
-      # The engine's binaries and weights inside the release APK, byte for byte
-      # the repo's - shrinking must never reach the engine.
-      - name: Engine files untouched
-        run: python3 .github/scripts/check_engine_files.py app/build/outputs/apk/release/*.apk
 
       # Named after the version and commit, so the list of artifacts says which
       # build each one is (they used to be all «app-debug»).
@@ -114,3 +106,46 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 14
+
+  release:
+    name: Release APK (R8) and engine files
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Grant execute permission to gradlew
+        run: chmod +x gradlew
+
+      # R8 starved of heap spends its time collecting garbage (see the debug job).
+      - name: Size the build for the runner
+        run: |
+          mkdir -p "${GRADLE_USER_HOME:-$HOME/.gradle}"
+          cat >> "${GRADLE_USER_HOME:-$HOME/.gradle}/gradle.properties" <<PROPS
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8
+          kotlin.daemon.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
+          org.gradle.workers.max=4
+          PROPS
+
+      # The release build shrinks with R8 (docs/리팩토링-성능-위생-계획.md
+      # Phase 7-1). It runs on every push, unsigned, so a missing keep rule fails
+      # here and not on a release day.
+      - name: Assemble release APK (R8)
+        run: ./gradlew assembleRelease --configuration-cache --stacktrace
+
+      # The engine's binaries and weights inside the release APK, byte for byte
+      # the repo's - shrinking must never reach the engine.
+      - name: Engine files untouched
+        run: python3 .github/scripts/check_engine_files.py app/build/outputs/apk/release/*.apk
