@@ -258,7 +258,7 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
             ResearchRun(
                 prove = true,
                 title = "국면 증명 · 해결 3 · 미결 5",
-                detail = "공격 · 후보 2/4 · 깊이 14 · 승률 71% · 12/40초",
+                detail = "공격 · 후보 2/4 · 깊이 14 · 71% · 12/40초",
                 stones = stones,
                 fraction = 0.3f,
             ),

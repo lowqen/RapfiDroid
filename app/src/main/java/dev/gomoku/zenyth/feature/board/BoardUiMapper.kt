@@ -163,7 +163,8 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
                 if (p.attack) tr("공격", "Attack", "进攻") else tr("방어", "Defence", "防守"),
                 p.candTotal.takeIf { it > 0 }?.let { tr("후보 ${p.candIndex}/$it", "candidate ${p.candIndex}/$it", "候选 ${p.candIndex}/$it") },
                 p.depth.takeIf { it > 0 }?.let { tr("깊이 $it", "depth $it", "深度 $it") },
-                mateOrRate(p.mate, p.winRatePct),
+                // Bare: this line carries five readings and the bar has one.
+                mateOrRate(p.mate, p.winRatePct, compact = true),
                 if (p.byDepth) {
                     tr("${p.elapsedSec}초", "${p.elapsedSec}s", "${p.elapsedSec} 秒")
                 } else {
@@ -193,9 +194,10 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
     }
 
     /** A mate as «M5» («-M5» when the mover is the one mated), else the win rate. */
-    private fun mateOrRate(mate: Int, winRatePct: Int?): String? = when {
+    private fun mateOrRate(mate: Int, winRatePct: Int?, compact: Boolean = false): String? = when {
         mate > 0 -> "M$mate"
         mate < 0 -> "-M${-mate}"
+        compact -> winRatePct?.let { "$it%" }
         else -> winRatePct?.let { tr("승률 $it%", "win $it%", "胜率 $it%") }
     }
 

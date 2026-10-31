@@ -163,12 +163,14 @@ fun DrawScope.drawBoard(
             }
             drawBestRing(c, radius, hair, skin)
         }
+        // A ring standing off the stone, not hugging it like the last-move
+        // ring: the first cut drew it there and it read as an ordinary stone.
         review.focus?.let { m ->
             val c = Offset(cx(m.x), cy(m.y))
-            drawCircle(skin.stoneShadow, radius = radius * 0.99f, center = c, alpha = 0.35f,
-                style = Stroke(width = hair * 3.4f))
-            drawCircle(skin.lastMove, radius = radius * 0.99f, center = c, alpha = if (provePulse) 1f else 0.45f,
-                style = Stroke(width = hair * 2.4f))
+            drawCircle(skin.stoneShadow, radius = radius * 1.2f, center = c, alpha = 0.3f,
+                style = Stroke(width = hair * 4.2f))
+            drawCircle(skin.lastMove, radius = radius * 1.2f, center = c, alpha = if (provePulse) 1f else 0.4f,
+                style = Stroke(width = hair * 2.8f))
         }
     }
 
@@ -270,7 +272,7 @@ private fun DrawScope.drawBestRing(c: Offset, radius: Float, hair: Float, skin: 
 }
 
 /** Stones past the position a review is reading: there, but not yet in play. */
-private const val AheadOfReview = 0.32f
+private const val AheadOfReview = 0.4f
 
 /** Attack ring colour of the prove overlay (main.c:9089): orange, defense blue. */
 private val ProveAttack = Color(0xFFE67D21)
