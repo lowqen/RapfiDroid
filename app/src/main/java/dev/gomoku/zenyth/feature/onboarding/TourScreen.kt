@@ -211,7 +211,7 @@ private fun TourPageBody(page: TourPage) {
                         tr("끝난 판을 되짚으며 평가가 뒤집힌 지점을 짚어 줍니다", "Walks a finished game back and marks where the evaluation turned", "回顾已结束的对局，指出评估翻转的地方")),
                     Triple(Icons.Outlined.Explore, tr("오프닝 익스플로러", "Opening explorer", "开局浏览器"),
                         tr("주형 이름 249개와 흑 5수 유불리를 판 위에 보여 줍니다", "249 opening names and the 5th-move verdicts, on the board", "在棋盘上显示 249 个开局名称和黑第 5 手优劣")),
-                    Triple(Icons.Outlined.Verified, tr("국면 증명 · 랭킹", "Proof · rankings", "局面证明 · 排行"),
+                    Triple(Icons.Outlined.Verified, tr("국면 증명 · 랭킹", "Prove position · Rankings", "局面证明 · 排行"),
                         tr("평가가 아니라 증명을 시키고, 26주형을 견줘 봅니다", "Asks for a proof, not an evaluation, and compares the 26 openings", "让引擎证明而不只是评估，并比较 26 种开局")),
                 )
                 TourPage.Joseki -> Rows(
@@ -243,7 +243,7 @@ private fun TourPage.head(): Triple<ImageVector, String, String> = when (this) {
         tr("두고 분석하기", "Play and analyse", "落子与分析"),
         tr(
             "보드는 [분석] · [대국] 두 탭입니다. 판이 따로라 섞이지 않고, 둘 다 자동 저장됩니다",
-            "The board has two tabs, Analysis and Game. Each keeps its own position, and both are saved as you go",
+            "The board has two tabs, Analysis and Play. Each keeps its own position, and both are saved as you go",
             "棋盘分为［分析］和［对局］两页。两盘各自独立、互不混杂，并会自动保存",
         ),
     )

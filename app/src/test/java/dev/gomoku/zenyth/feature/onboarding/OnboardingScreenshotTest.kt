@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.gomoku.zenyth.core.designsystem.component.LocalWaveFrames
 import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.ParameterizedRobolectricTestRunner
@@ -90,6 +91,43 @@ class OnboardingScreenshotTest(private val variant: Variant) {
     @Test
     fun tourEngine() = screen("tour_engine") { tour(TourPage.Engine) }
 
+    /*
+     * O4: the other two languages and the largest font, once each (the light
+     * 1.0 run). English runs longest, Chinese shortest; 2.0 is where a page
+     * must scroll rather than clip.
+     */
+
+    @Test
+    @Config(qualifiers = "+en-rUS")
+    fun welcomeEnglish() = once("setup_welcome_en") { setup(index = 0, language = "English") }
+
+    @Test
+    @Config(qualifiers = "+zh-rCN")
+    fun welcomeChinese() = once("setup_welcome_zh") { setup(index = 0, language = "中文") }
+
+    @Test
+    @Config(qualifiers = "+en-rUS")
+    fun notificationsEnglish() = once("setup_notifications_en") { setup(index = 1) }
+
+    @Test
+    @Config(qualifiers = "+en-rUS")
+    fun tourBoardEnglish() = once("tour_board_en") { tour(TourPage.Board) }
+
+    @Test
+    @Config(qualifiers = "+zh-rCN")
+    fun tourResearchChinese() = once("tour_research_zh") { tour(TourPage.Research) }
+
+    @Test
+    fun welcomeLargestFont() = once("setup_welcome_200", fontScale = 2f) { setup(index = 0) }
+
+    @Test
+    fun tourEngineLargestFont() = once("tour_engine_200", fontScale = 2f) { tour(TourPage.Engine) }
+
+    private fun once(name: String, fontScale: Float = 1f, content: @Composable () -> Unit) {
+        assumeTrue(!variant.dark && variant.fontScale == 1f)
+        screen(name, fontScale = fontScale, fileTag = null, content = content)
+    }
+
     @Composable
     private fun tour(page: TourPage) {
         val pages = TourPage.entries
@@ -104,10 +142,10 @@ class OnboardingScreenshotTest(private val variant: Variant) {
     }
 
     @Composable
-    private fun setup(index: Int, on: Boolean = false, blocked: Boolean = false) = SetupContent(
+    private fun setup(index: Int, on: Boolean = false, blocked: Boolean = false, language: String = "한국어") = SetupContent(
         steps = steps,
         index = index,
-        languageLabel = "한국어",
+        languageLabel = language,
         notificationsOn = on,
         notificationsBlocked = blocked,
         onLanguage = {},
@@ -118,12 +156,19 @@ class OnboardingScreenshotTest(private val variant: Variant) {
     )
 
     /** A phone screen under the status bar: 411 × 860dp, or the content's own height. */
-    private fun screen(name: String, height: Int? = 860, content: @Composable () -> Unit) {
-        captureRoboImage("src/test/screenshots/${name}_${variant.tag}.png") {
+    private fun screen(
+        name: String,
+        height: Int? = 860,
+        fontScale: Float = variant.fontScale,
+        fileTag: String? = variant.tag,
+        content: @Composable () -> Unit,
+    ) {
+        val file = if (fileTag == null) name else "${name}_$fileTag"
+        captureRoboImage("src/test/screenshots/$file.png") {
             ZenythTheme(darkTheme = variant.dark) {
                 val density = LocalDensity.current
                 CompositionLocalProvider(
-                    LocalDensity provides Density(density.density, variant.fontScale),
+                    LocalDensity provides Density(density.density, fontScale),
                     LocalWaveFrames provides false,
                 ) {
                     val size = if (height != null) Modifier.size(411.dp, height.dp) else Modifier

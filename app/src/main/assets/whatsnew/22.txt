@@ -1,0 +1,25 @@
+# What changed in this version, shown once after an update (WhatsNew.kt).
+# One file per versionCode: whatsnew/<versionCode>.txt. Under each [ko] / [en] /
+# [zh] heading: "> " is the welcome sentence, "## " starts a group, "- " is an
+# item. Other lines are ignored. Every language must have the same groups and
+# the same number of items in each (WhatsNewTest).
+# versionCode 22 = the release after 0.16.0.
+#
+# DRAFT: only the onboarding group so far (docs/온보딩-계획.md, O4). At release,
+# add the welcome sentence ("> ", WhatsNewTest asks for one in every language)
+# and the other changes since 0.16.0.
+
+[ko]
+## 처음 쓰는 분을 위해
+- 설정 맨 아래의 «둘러보기»에서 보드 · 연구 · 정석 · 엔진을 네 쪽으로 훑어볼 수 있습니다.
+- 새로 설치하면 환영 화면이 먼저 나오고, 알림 권한은 왜 필요한지 설명한 뒤에 묻습니다.
+
+[en]
+## For new players
+- «Tour», at the bottom of Settings, walks through the board, research, joseki and the engine in four pages.
+- A fresh install opens on a welcome screen, and asks for notifications only after saying what they are for.
+
+[zh]
+## 写给新用户
+- 在设置最下方的「功能导览」中，用四页快速了解棋盘、研究、定式和引擎。
+- 新安装后会先显示欢迎页面，并在说明用途之后才请求通知权限。

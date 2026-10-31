@@ -62,4 +62,24 @@ class WhatsNewTest {
         assertThat(shapes.first()).isNotEmpty()
         assertWithMessage("every language has the same groups and items").that(shapes.toSet()).hasSize(1)
     }
+
+    /**
+     * Every notes file, a draft for the next release included: the three
+     * languages say the same things, so a line added in one is not forgotten
+     * in the others until the release that ships it.
+     */
+    @Test
+    fun everyNotesFileHasTheSameShapeInEveryLanguage() {
+        val files = File("src/main/assets/whatsnew").listFiles { f -> f.name.endsWith(".txt") }.orEmpty()
+        assertThat(files).isNotEmpty()
+        files.forEach { file ->
+            val notes = WhatsNew.parse(file.readText())
+            val shapes = AppLanguage.entries.map { lang ->
+                val n = notes[lang]
+                assertWithMessage("${file.name}: $lang has notes").that(n).isNotNull()
+                n!!.groups.map { it.items.size } to (n.intro != null)
+            }
+            assertWithMessage("${file.name}: every language has the same groups, items and welcome").that(shapes.toSet()).hasSize(1)
+        }
+    }
 }

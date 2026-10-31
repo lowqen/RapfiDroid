@@ -309,7 +309,7 @@ private fun WelcomeStep() {
             Icons.Filled.Inventory2,
             tr(
                 "엔진이 배운 국면을 남겨 두고 다음에 이어 씁니다",
-                "What the engine learns is kept and picked up next time",
+                "What the engine learns is kept for next time",
                 "引擎学到的局面会保存下来，下次接着用",
             ),
         )
@@ -333,9 +333,9 @@ private fun NotificationsStep(on: Boolean, blocked: Boolean, onAsk: () -> Unit, 
     Spacer(Modifier.height(16.dp))
     Text(
         tr(
-            "앱을 나가도 엔진이 분석을 이어 가는 동안 알림에 그 상태가 보입니다. 기보 데이터를 만드는 진행도 알림으로 볼 수 있습니다",
-            "While the engine keeps analysing with the app closed, its state shows in a notification — and so does the progress of building game data",
-            "退出应用后引擎继续分析时，通知里会显示它的状态；生成棋谱数据的进度也会显示在通知里",
+            "앱을 나가도 분석이 이어지는 동안 알림에 엔진 상태가 보입니다. 기보 데이터를 만드는 진행도 알림으로 볼 수 있습니다",
+            "While an analysis goes on with the app in the background, the engine's state shows in a notification — as does the progress of building game data",
+            "应用在后台继续分析时，通知中会显示引擎状态；生成棋谱数据的进度也会显示在通知里",
         ),
         style = stepBodyStyle(),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
