@@ -2,7 +2,6 @@ package dev.gomoku.zenyth.feature.board
 
 import androidx.compose.animation.animateColorAsState
 import dev.gomoku.zenyth.core.designsystem.component.ZenythSwitch
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,9 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -54,7 +50,6 @@ import dev.gomoku.zenyth.core.designsystem.component.TagPalette
 import dev.gomoku.zenyth.core.designsystem.component.TimePicker
 import dev.gomoku.zenyth.core.designsystem.component.TextOutline
 import dev.gomoku.zenyth.core.designsystem.component.engineWord
-import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.BoardShift
@@ -334,68 +329,3 @@ internal fun ToolsCard(
     onToggleForbidden: () -> Unit,
     onRunScript: (String) -> Unit,
 ) = ToolsCard(ui.toolsCardUi(), onDefend, onBalance, onSymmetry, onShift, onToggleForbidden, onRunScript)
-/**
- * Black's win rate move by move. Gaps (positions never read) are not joined.
- */
-@Composable
-internal fun EvalGraphCard(history: List<Double?>, currentPly: Int) {
-    val samples = history.count { it != null }
-    if (samples < 1) return
-    CalmCard {
-        val latest = history.getOrNull(currentPly) ?: history.lastOrNull { it != null }
-        CardTitle(tr("형세 그래프", "Evaluation graph", "形势曲线")) {
-            Text(
-                latest?.let { tr("흑 ${(it * 100).roundToInt()}%", "Black ${(it * 100).roundToInt()}%", "黑 ${(it * 100).roundToInt()}%") }.orEmpty(),
-                style = MaterialTheme.typography.labelMedium.tabular(),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        WinRateGraph(history, currentPly)
-    }
-}
-@Composable
-private fun WinRateGraph(history: List<Double?>, currentPly: Int) {
-    val line = ZenythTheme.colors.resultBlack
-    val fill = line.copy(alpha = 0.18f)
-    val grid = MaterialTheme.colorScheme.outlineVariant
-    val midGrid = MaterialTheme.colorScheme.outline
-    val marker = MaterialTheme.colorScheme.tertiary
-    Canvas(Modifier.fillMaxWidth().height(96.dp)) {
-        val padY = size.height * 0.06f
-        val plotH = size.height - padY * 2
-        val lastIdx = (history.size - 1).coerceAtLeast(1)
-        val stepX = size.width / lastIdx
-        fun px(i: Int) = if (history.size == 1) size.width / 2 else i * stepX
-        fun py(v: Double) = padY + plotH * (1f - v.toFloat().coerceIn(0f, 1f))
-        listOf(0f, 0.5f, 1f).forEach { frac ->
-            val y = padY + plotH * (1f - frac)
-            drawLine(if (frac == 0.5f) midGrid else grid, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
-        }
-        var segment = mutableListOf<Offset>()
-        fun flush() {
-            if (segment.size >= 2) {
-                val area = Path().apply {
-                    moveTo(segment.first().x, padY + plotH)
-                    segment.forEach { lineTo(it.x, it.y) }
-                    lineTo(segment.last().x, padY + plotH)
-                    close()
-                }
-                drawPath(area, fill)
-                val stroke = Path().apply {
-                    moveTo(segment.first().x, segment.first().y)
-                    segment.drop(1).forEach { lineTo(it.x, it.y) }
-                }
-                drawPath(stroke, line, style = Stroke(width = 3f))
-            }
-            segment.forEach { drawCircle(line, radius = 3f, center = it) }
-            segment = mutableListOf()
-        }
-        history.forEachIndexed { i, v -> if (v == null) flush() else segment.add(Offset(px(i), py(v))) }
-        flush()
-        history.getOrNull(currentPly)?.let { v ->
-            val c = Offset(px(currentPly), py(v))
-            drawCircle(marker, radius = 6f, center = c)
-            drawCircle(line, radius = 6f, center = c, style = Stroke(width = 2f))
-        }
-    }
-}

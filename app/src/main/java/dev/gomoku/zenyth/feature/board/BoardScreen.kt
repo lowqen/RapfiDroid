@@ -222,7 +222,9 @@ fun BoardScreen(
         }
         if (ui.analysisTab) {
             AnalysisCard(ui, viewModel::onPreviewPv)
-            if (ui.showWrGraph) EvalGraphCard(ui.winRateHistory, ui.moveCount)
+            if (ui.showWrGraph) {
+                EvalGraphCard(ui.winRateHistory, ui.moveCount, ui.moveCount + ui.futureCount, viewModel::onJumpTo)
+            }
             AnalysisOptions(ui.analysisOptionsUi(), viewModel::onAnalysisSec, viewModel::onMultiPvChange, viewModel::onPlayBestOnStop, viewModel::onNotice)
         } else {
             GameCard(

@@ -305,6 +305,9 @@ class BoardViewModel @Inject constructor(
     fun onFirst() = inGame { game.toStart() }
     fun onLast() = inGame { game.toEnd() }
 
+    /** Straight to the position after [ply] stones — the evaluation graph's tap and drag. */
+    fun onJumpTo(ply: Int) = inGame { game.jumpTo(ply) }
+
     /** Discard the board (`clear`), clocks and opening protocol included. */
     fun onReset() = onNewBoard()
 
