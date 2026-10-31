@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import dev.gomoku.zenyth.BuildConfig
+import dev.gomoku.zenyth.core.common.isFreshInstall
 import dev.gomoku.zenyth.core.designsystem.component.LocalUiPrefs
 import dev.gomoku.zenyth.core.designsystem.component.ZenythMark
 import dev.gomoku.zenyth.core.designsystem.component.rememberCalmFling
@@ -134,16 +135,10 @@ object WhatsNew {
         return notes[appLanguage()] ?: notes[AppLanguage.ENGLISH] ?: ReleaseNotes()
     }
 
-    private fun freshInstall(context: Context): Boolean = runCatching {
-        @Suppress("DEPRECATION")
-        val info = context.packageManager.getPackageInfo(context.packageName, 0)
-        info.firstInstallTime == info.lastUpdateTime
-    }.getOrDefault(false)
-
     /** Decides off the main thread; null = nothing to show (and the version is marked seen). */
     internal suspend fun pending(context: Context, seen: Int): ReleaseNotes? = withContext(Dispatchers.IO) {
         val current = BuildConfig.VERSION_CODE
-        if (!shouldShow(seen, current, freshInstall(context))) return@withContext null
+        if (!shouldShow(seen, current, isFreshInstall(context))) return@withContext null
         load(context, current).takeUnless { it.isEmpty }
     }
 }

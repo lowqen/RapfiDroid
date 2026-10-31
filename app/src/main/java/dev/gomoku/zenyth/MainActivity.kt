@@ -2,25 +2,20 @@ package dev.gomoku.zenyth
 
 import dev.gomoku.zenyth.core.designsystem.theme.proMode
 import dev.gomoku.zenyth.core.designsystem.theme.LocalProMode
-import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.graphics.Color
-import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
@@ -40,6 +35,7 @@ import dev.gomoku.zenyth.data.prefs.UiPrefs
 import dev.gomoku.zenyth.domain.repository.AppearanceRepository
 import dev.gomoku.zenyth.domain.repository.EngineToolsRepository
 import dev.gomoku.zenyth.domain.repository.SettingsRepository
+import dev.gomoku.zenyth.feature.onboarding.OnboardingGate
 import dev.gomoku.zenyth.feature.settings.WhatsNewOnUpdate
 import dev.gomoku.zenyth.navigation.ZenythRoot
 import javax.inject.Inject
@@ -72,13 +68,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var links: IncomingLinks
 
-    private val requestNotifications =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* best-effort */ }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        maybeRequestNotifications()
         lifecycleScope.launch { appearance.restore() }
         debugLog.start()
         if (savedInstanceState == null) takeLink(intent)
@@ -112,9 +104,13 @@ class MainActivity : ComponentActivity() {
                     LocalHapticsEnabled provides haptics,
                     LocalProMode provides pro,
                 ) {
-                    ZenythRoot()
-                    // Once after an update: what changed, over the first screen.
-                    WhatsNewOnUpdate()
+                    // A fresh install sets up first; the notification permission
+                    // is asked there, with its reason, not on launch.
+                    OnboardingGate(
+                        app = { ZenythRoot() },
+                        // Once after an update: what changed, over the first screen.
+                        afterwards = { WhatsNewOnUpdate() },
+                    )
                 }
             }
         }
@@ -160,15 +156,6 @@ class MainActivity : ComponentActivity() {
                 lesson != null -> links.offerLesson(lesson)
                 url.contains("p=") -> links.offer(url)
             }
-        }
-    }
-
-    private fun maybeRequestNotifications() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-            PackageManager.PERMISSION_GRANTED
-        ) {
-            requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
 }

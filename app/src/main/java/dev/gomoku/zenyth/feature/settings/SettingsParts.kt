@@ -67,6 +67,7 @@ import dev.gomoku.zenyth.core.designsystem.component.Hint
 import dev.gomoku.zenyth.core.designsystem.theme.ZenythTheme
 import dev.gomoku.zenyth.core.designsystem.theme.RowNoteStyle
 import dev.gomoku.zenyth.core.designsystem.theme.RowTitleStyle
+import dev.gomoku.zenyth.core.i18n.AppLocales
 import dev.gomoku.zenyth.core.i18n.tr
 
 /**
@@ -225,28 +226,15 @@ internal fun ThemeButtons(selected: Int, onSelect: (Int) -> Unit) {
 @Composable
 internal fun LanguageGroup() {
     val context = LocalContext.current
-    val locales = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        context.getSystemService(android.app.LocaleManager::class.java)
-    } else {
-        null
-    }
-    if (locales == null) {
+    if (!AppLocales.supported(context)) {
         Hint(tr("언어는 기기 설정에서 바꿉니다", "Change the language in the phone's settings", "请在系统设置中更改语言"))
         return
     }
-    val current = locales.applicationLocales.toLanguageTags().substringBefore('-').substringBefore(',')
+    val current = AppLocales.current(context)
     ConnectedGroup(title = tr("언어", "Language", "语言")) {
-        listOf(
-            "" to tr("기기 설정", "System", "跟随系统"),
-            "ko" to "한국어",
-            "en" to "English",
-            "zh" to "中文",
-        ).forEach { (tag, label) ->
-            // Chinese is Simplified, so ask for the mainland locale.
+        AppLocales.choices().forEach { (tag, label) ->
             row(
-                onClick = {
-                    locales.applicationLocales = android.os.LocaleList.forLanguageTags(if (tag == "zh") "zh-CN" else tag)
-                },
+                onClick = { AppLocales.set(context, tag) },
                 selected = tag == current,
             ) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -261,10 +249,11 @@ internal fun LanguageGroup() {
  * The chosen row's mark: a filled accent circle with a check; nothing on the
  * rest. Choosing a row grows it in from a soft square to the circle on a spring
  * (M7, Material 3 Expressive's shape change); reduced motion just shows it.
- * Silent to TalkBack — the row itself says it is selected.
+ * Silent to TalkBack — the row itself says it is selected. The first-run
+ * language step and its «done» cards use it too.
  */
 @Composable
-private fun CheckMark(on: Boolean) {
+internal fun CheckMark(on: Boolean) {
     val reduced = LocalReducedMotion.current
     val bouncy = spring<Float>(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium)
     val grow by animateFloatAsState(if (on) 1f else 0f, if (reduced) snap() else bouncy, label = "checkGrow")
