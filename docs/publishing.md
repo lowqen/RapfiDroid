@@ -56,6 +56,42 @@ gh secret set SIGNING_KEY_PASSWORD      --repo lowqen/Zenyth
 > 로컬에서 직접 빌드하고 싶으면 `keystore.properties`(gitignore 됨)를 만들면 된다 —
 > 형식은 `app/build.gradle.kts` 주석에 있다.
 
+### 1-1. 비상용 키 계보(lineage) — 만들어 두고 쓰지 않는다
+
+키가 새면 그 키로 서명한 악성 «업데이트» 를 막을 길이 없다. APK Signature Scheme v3 는 «옛 키가 새 키를
+보증한다» 는 **계보(lineage)** 로 키를 바꿀 수 있게 하는데, 계보는 **옛 키가 있어야** 만들 수 있다. 키를 잃거나
+빼앗긴 뒤에는 늦으므로 지금 만들어 보관만 한다(2026-10-31 결정 — 실제 회전은 하지 않는다).
+
+JDK(`keytool`)와 Android build-tools 28 이상(`apksigner`)이 있는 곳에서, 기존 `zenyth.jks` 옆에서:
+
+```bash
+# 1) 다음 키 — 별도 키스토어, 별도 비밀번호
+keytool -genkeypair -v -keystore zenyth-next.jks -alias zenyth-next \
+        -keyalg EC -groupname secp256r1 -sigalg SHA256withECDSA -validity 10000
+
+# 2) 계보: 옛 키(zenyth) → 다음 키(zenyth-next). 두 키스토어 비밀번호를 차례로 묻는다
+apksigner rotate --out zenyth.lineage \
+  --old-signer --ks zenyth.jks --ks-key-alias zenyth \
+  --new-signer --ks zenyth-next.jks --ks-key-alias zenyth-next
+
+# 3) 확인 — 첫 인증서가 F8:30:FF:50…B9:2E(지금 키)여야 한다
+apksigner lineage --in zenyth.lineage --print-certs
+```
+
+**보관.** `zenyth-next.jks` · 그 비밀번호 · `zenyth.lineage` 를 지금 키의 백업과 같이, 암호화해서 오프라인 두
+곳에. GitHub 시크릿에도 저장소에도 넣지 않는다(`.gitignore` 가 `*.jks` · `*.lineage` 를 막는다). 계보 파일 자체에는
+비밀 키가 없지만 다음 키와 한 묶음이다.
+
+**회전하는 날 정할 것**(지금은 하지 않는다):
+
+- 서명: `apksigner sign --ks zenyth.jks --next-signer --ks zenyth-next.jks --lineage zenyth.lineage` —
+  v2 는 옛 키, v3 는 새 키로 서명된다. 지금의 Gradle 서명 대신 이 단계가 `release.yml` 에 들어가야 한다.
+- **Android 8.x(API 26 · 27)는 v3 를 모른다.** 그 기기들은 계속 v2(옛 키)만 본다 — 옛 키가 샌 경우라면 그
+  사용자들은 회전으로 보호되지 않는다. minSdk 를 28 로 올릴지 함께 결정한다.
+- 옛 키의 권한: 계보에서 옛 키의 capability 를 줄여(`apksigner lineage` 의 `--signer … --set-installed-data false` 류) 옛 키로 서명된
+  APK 를 더는 업데이트로 받지 않게 할지.
+- `release.yml` 의 서명 게이트(`Number of signers: 1` · `RELEASE_CERT_SHA256`)와 README 의 지문을 새 키에 맞게.
+
 ---
 
 ## 2. GitHub Releases — 태그 하나가 전부

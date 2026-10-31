@@ -1,0 +1,114 @@
+name: Engine reproducibility
+
+# The engine binaries and weights in app/src/main are committed, built on a
+# developer machine (jniLibs/ENGINE_VERSION.txt). Nothing proved they come from
+# the source they name; a changed binary would ship unnoticed
+# (docs/보안-강화-계획.md S6, Phase 3).
+#
+# This rebuilds them with tools/build_engine_android.sh — run as it is, not a
+# copy — and compares:
+#
+#   weights      copied from the pinned rapfi-networks commit: byte for byte, or fail
+#   BENCH hash   of a host build of the same patched source: ENGINE_VERSION.txt's, or fail
+#   binaries     libengine*.so byte for byte. Reported, not yet a failure: the shipped
+#                ones were built with the NDK's Windows prebuilt, this with its Linux
+#                one, and whether the two give the same bytes is what the first run finds out.
+#
+# Read only. It never writes the engine files; what ships is what is committed.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/src/main/jniLibs/**'
+      - 'app/src/main/assets/engine/**'
+      - 'tools/build_engine_android.sh'
+      - 'tools/patches/**'
+      - 'tools/pgo/**'
+      - '.github/workflows/engine-repro.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The script installs cmake and ninja with pip; Ubuntu's own Python refuses
+      # system-wide installs (PEP 668), a toolcache Python does not.
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      # The script commits each patch onto its local rapfi clone, which needs an
+      # identity. It names no commit anything outside this runner.
+      - name: Git identity for the local patch commits
+        run: |
+          git config --global user.name "engine-repro"
+          git config --global user.email "engine-repro@localhost"
+
+      - name: Rebuild with the shipped script, unchanged
+        run: bash tools/build_engine_android.sh
+
+      - name: Compare with what is committed
+        run: |
+          set -euo pipefail
+          OUT="$HOME/zenyth-engine"
+          SUM="$GITHUB_STEP_SUMMARY"
+          fail=0
+          sha () { sha256sum "$1" | cut -c1-64; }
+
+          echo "## Engine reproducibility" >> "$SUM"
+          echo "| file | committed | rebuilt | |" >> "$SUM"
+          echo "|---|---|---|---|" >> "$SUM"
+
+          # Weights: config.toml is the app's own template, not a Networks file.
+          for f in app/src/main/assets/engine/*; do
+            name=$(basename "$f")
+            [ "$name" = config.toml ] && continue
+            a=$(sha "$f"); b=$( [ -f "$OUT/assets/engine/$name" ] && sha "$OUT/assets/engine/$name" || echo missing)
+            if [ "$a" = "$b" ]; then mark=OK; else mark=DIFFERENT; fail=1; echo "::error::weights differ: $name"; fi
+            echo "| assets/engine/$name | \`${a:0:16}\` | \`${b:0:16}\` | $mark |" >> "$SUM"
+          done
+
+          WANT=$(grep -oE 'Hash: [0-9a-f]+' app/src/main/jniLibs/ENGINE_VERSION.txt | head -1)
+          GOT=$(grep -oE 'Hash: [0-9a-f]+' "$OUT/bench/bench-host.txt" | tail -1 || echo "Hash: none")
+          if [ "$WANT" = "$GOT" ]; then mark=OK; else mark=DIFFERENT; fail=1; echo "::error::BENCH $GOT, ENGINE_VERSION.txt says $WANT"; fi
+          echo "| BENCH (host build) | \`$WANT\` | \`$GOT\` | $mark |" >> "$SUM"
+
+          READELF="$HOME/android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          for so in libengine.so libengine_dotprod.so; do
+            a=$(sha "app/src/main/jniLibs/arm64-v8a/$so"); b=$(sha "$OUT/jniLibs/arm64-v8a/$so")
+            if [ "$a" = "$b" ]; then
+              mark=OK
+            else
+              mark="differs (report only)"
+              echo "::warning::$so is not byte-identical to the committed one"
+              echo "--- $so: sizes $(stat -c%s "app/src/main/jniLibs/arm64-v8a/$so") committed / $(stat -c%s "$OUT/jniLibs/arm64-v8a/$so") rebuilt"
+              echo "--- differing bytes: $(cmp -l "app/src/main/jniLibs/arm64-v8a/$so" "$OUT/jniLibs/arm64-v8a/$so" 2>/dev/null | wc -l)"
+              diff <("$READELF" -SW "app/src/main/jniLibs/arm64-v8a/$so") <("$READELF" -SW "$OUT/jniLibs/arm64-v8a/$so") || true
+            fi
+            echo "| jniLibs/$so | \`${a:0:16}\` | \`${b:0:16}\` | $mark |" >> "$SUM"
+          done
+
+          exit $fail
+
+      # For looking at a difference by hand. A day is enough; these are rebuilt
+      # from public sources on demand.
+      - name: Upload the rebuilt engine
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: engine-rebuilt
+          path: |
+            ~/zenyth-engine/jniLibs
+            ~/zenyth-engine/bench/bench-host.txt
+          if-no-files-found: warn
+          retention-days: 1

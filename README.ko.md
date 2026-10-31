@@ -47,6 +47,26 @@
 
 한국어 · 영어 · 중국어(간체)를 지원합니다.
 
+### 받은 APK 확인하기
+
+모든 릴리스 APK 는 같은 키로 서명됩니다. 그 인증서의 SHA-256 은
+
+```
+F8:30:FF:50:9B:96:CB:A8:01:3E:B0:0D:1B:DB:C2:F4:FE:EF:41:C9:35:03:D5:06:B3:C9:DA:65:22:A9:B9:2E
+```
+
+이름이 무엇이든 다른 키로 서명된 APK 는 이 프로젝트가 만든 것이 아닙니다. 확인 방법 셋, 쉬운 순서로:
+
+* **폰에서**: [AppVerifier](https://github.com/soupslurpr/AppVerifier) 에 설치된 앱을 공유하거나,
+  `dev.gomoku.rapfidroid` 다음 줄에 위 지문을 붙여 넣습니다.
+* **안드로이드 SDK 로**: `apksigner verify --print-certs Zenyth-x.y.z.apk` 가
+  `certificate SHA-256 digest: f830ff50…b92e` 를 출력합니다.
+* **어디서 빌드됐는지**: `gh attestation verify Zenyth-x.y.z.apk -R lowqen/Zenyth` 가 이 파일을 만든
+  커밋과 워크플로를 적은 서명된 빌드 출처 기록을 확인합니다(v0.16.0 다음 릴리스부터).
+
+안드로이드는 다른 키로 서명된 업데이트를 거부하므로, 이 확인은 처음 설치할 때 가장 중요합니다.
+F-Droid 판은 F-Droid 키로 서명되어 지문이 다릅니다.
+
 ## 기능
 
 ### 두고 분석하기

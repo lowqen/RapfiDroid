@@ -48,6 +48,30 @@ New releases then arrive as a notification and update with one tap.
 
 The interface is available in English, Korean and Simplified Chinese (简体中文).
 
+### Verify your download
+
+Every release APK is signed with the same key. Its certificate SHA-256 is
+
+```
+F8:30:FF:50:9B:96:CB:A8:01:3E:B0:0D:1B:DB:C2:F4:FE:EF:41:C9:35:03:D5:06:B3:C9:DA:65:22:A9:B9:2E
+```
+
+An APK signed with anything else did not come from this project, whatever its
+name says. Three ways to check, from easiest:
+
+* **On the phone**: [AppVerifier](https://github.com/soupslurpr/AppVerifier).
+  Share the installed app to it, or paste this:
+  `dev.gomoku.rapfidroid` followed by the fingerprint above on the next line.
+* **With the Android SDK**: `apksigner verify --print-certs Zenyth-x.y.z.apk`
+  prints `certificate SHA-256 digest: f830ff50…b92e`.
+* **Where it was built**: `gh attestation verify Zenyth-x.y.z.apk -R lowqen/Zenyth`
+  checks a signed build provenance record that says which commit and workflow
+  produced the file (releases after v0.16.0).
+
+Android itself refuses an update signed with a different key, so this matters
+most for the first install. F-Droid builds are signed by F-Droid's key and
+will not match.
+
 ## Features
 
 ### Play and analyse
