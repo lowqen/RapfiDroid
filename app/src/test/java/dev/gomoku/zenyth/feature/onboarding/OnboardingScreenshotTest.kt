@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -73,6 +74,33 @@ class OnboardingScreenshotTest(private val variant: Variant) {
         Column(Modifier.width(420.dp).padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             LanguageList(current = "", onChoose = {})
         }
+    }
+
+    /** The tour's four pages (O3): rows, the two pictured parts, dots, the pill. */
+    @Test
+    fun tourBoard() = screen("tour_board") { tour(TourPage.Board) }
+
+    @Test
+    fun tourResearch() = screen("tour_research") { tour(TourPage.Research) }
+
+    @Test
+    fun tourJoseki() = screen("tour_joseki") { tour(TourPage.Joseki) }
+
+    /** The last page: no «건너뛰기», «완료» in the pill. */
+    @Test
+    fun tourEngine() = screen("tour_engine") { tour(TourPage.Engine) }
+
+    @Composable
+    private fun tour(page: TourPage) {
+        val pages = TourPage.entries
+        TourContent(
+            pages = pages,
+            pager = rememberPagerState(initialPage = page.ordinal) { pages.size },
+            onBack = {},
+            onNext = {},
+            onSelect = {},
+            onSkip = {},
+        )
     }
 
     @Composable

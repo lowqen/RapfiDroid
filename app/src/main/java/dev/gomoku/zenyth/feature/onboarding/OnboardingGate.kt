@@ -1,8 +1,15 @@
 package dev.gomoku.zenyth.feature.onboarding
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.common.isFreshInstall
@@ -44,7 +51,9 @@ object Onboarding {
 }
 
 /**
- * Puts the setup in front of the app, then [afterwards].
+ * Puts the setup in front of the app, then [afterwards]; and holds the tour,
+ * which Settings opens through [LocalOpenTour] and which lies over the whole
+ * app — the bars included — until it is closed.
  *
  * The setup stands *in place of* [app], so the shell — and with it the engine's
  * auto start — does not exist until it is done: no engine notification before
@@ -85,6 +94,13 @@ fun OnboardingGate(
         )
         return
     }
-    app()
+    // Saveable: a rotation must not close the tour.
+    var touring by rememberSaveable { mutableStateOf(false) }
+    CompositionLocalProvider(LocalOpenTour provides { touring = true }) {
+        Box(Modifier.fillMaxSize()) {
+            app()
+            if (touring) TourScreen(onFinish = { touring = false })
+        }
+    }
     afterwards()
 }

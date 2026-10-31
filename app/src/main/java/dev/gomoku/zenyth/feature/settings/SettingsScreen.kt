@@ -64,6 +64,7 @@ import dev.gomoku.zenyth.core.model.LocalEngineProfile
 import dev.gomoku.zenyth.core.model.SettingEditor
 import dev.gomoku.zenyth.core.model.SettingSpec
 import dev.gomoku.zenyth.feature.data.RifBuildDialog
+import dev.gomoku.zenyth.feature.onboarding.LocalOpenTour
 
 /**
  * Settings, as a list of pages (UI overhaul 2, M3): the first page names the
@@ -155,6 +156,7 @@ fun SettingsScreen(
         onRifBuild = { showRifBuild = true },
         onAbout = { showAbout = true },
         onLicenses = { showLicenses = true },
+        onTour = LocalOpenTour.current,
     )
 
     QuietSwitch(page, modifier.fillMaxSize()) { shown ->

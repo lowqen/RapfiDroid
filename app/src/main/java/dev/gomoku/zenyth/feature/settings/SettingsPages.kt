@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.outlined.Article
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Computer
 import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Palette
@@ -98,6 +99,8 @@ internal class SettingsActions(
     val onRifBuild: () -> Unit = {},
     val onAbout: () -> Unit = {},
     val onLicenses: () -> Unit = {},
+    /** The tour of the four tabs; null where nothing can show it (a screenshot). */
+    val onTour: (() -> Unit)? = null,
 )
 /** One block of a page: the screen lays them in a list, a test in a column. */
 internal class SettingsSection(val key: String, val content: @Composable () -> Unit)
@@ -195,6 +198,15 @@ private fun SectionsBuilder.rootSections(ui: SettingsUiState, actions: SettingsA
         ConnectedGroup {
             row(onClick = actions.onAbout) {
                 LinkRow(Icons.Outlined.Info, tr("정보", "About", "关于"), "Zenyth ${BuildConfig.VERSION_NAME}")
+            }
+            actions.onTour?.let { onTour ->
+                row(onClick = onTour) {
+                    LinkRow(
+                        Icons.Outlined.Explore,
+                        tr("둘러보기", "Tour", "功能导览"),
+                        tr("보드 · 연구 · 정석 · 엔진", "Board, research, joseki, engine", "棋盘 · 研究 · 定式 · 引擎"),
+                    )
+                }
             }
             row(onClick = actions.onLicenses) {
                 LinkRow(Icons.AutoMirrored.Outlined.Article, tr("오픈소스 라이선스", "Open-source licences", "开源许可证"), null)

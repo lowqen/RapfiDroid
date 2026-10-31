@@ -8,13 +8,17 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -53,6 +57,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.gomoku.zenyth.core.designsystem.component.IconTile
 import dev.gomoku.zenyth.core.designsystem.theme.LocalReducedMotion
+import dev.gomoku.zenyth.core.designsystem.theme.RowNoteStyle
 import dev.gomoku.zenyth.core.designsystem.theme.RowTitleStyle
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
 import dev.gomoku.zenyth.core.i18n.AppLocales
@@ -85,6 +90,11 @@ internal fun stepTitleStyle(): TextStyle =
 /** The welcome's title, between the two. */
 @Composable
 internal fun welcomeTitleStyle(): TextStyle =
+    MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 38.sp, lineBreak = LineBreak.Heading)
+
+/** The tour's titles: a step larger than the setup's (Mornye ~30 – 34sp there). */
+@Composable
+internal fun tourTitleStyle(): TextStyle =
     MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 38.sp, lineBreak = LineBreak.Heading)
 
 /**
@@ -233,13 +243,62 @@ internal fun DoneCard(text: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** One thing the app does: the icon tile, then a sentence at row size. */
+/**
+ * One thing the app does: the icon tile, then a sentence at row size — or,
+ * with a [title], the name in bold over a quieter line (the tour, where each
+ * row is a feature with a name).
+ */
 @Composable
-internal fun FeatureRow(icon: ImageVector, text: String, modifier: Modifier = Modifier) {
+internal fun FeatureRow(icon: ImageVector, text: String, modifier: Modifier = Modifier, title: String? = null) {
+    val scheme = MaterialTheme.colorScheme
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         IconTile(icon)
         Spacer(Modifier.width(20.dp))
-        Text(text, style = RowTitleStyle.copy(lineBreak = WordBreaks), color = MaterialTheme.colorScheme.onSurface)
+        if (title == null) {
+            Text(text, style = RowTitleStyle.copy(lineBreak = WordBreaks), color = scheme.onSurface)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(title, style = RowTitleStyle.copy(fontWeight = FontWeight.SemiBold, lineBreak = WordBreaks), color = scheme.onSurface)
+                Text(text, style = RowNoteStyle.copy(lineBreak = WordBreaks), color = scheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/**
+ * Which page of the tour: a dot each, the current one stretched into a pill
+ * in the strong accent, on a spring. A dot takes a tap to its page; TalkBack
+ * hears «4쪽 중 2쪽» once for the row.
+ */
+@Composable
+internal fun PageDots(count: Int, current: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    val reduced = LocalReducedMotion.current
+    val said = tr("${count}쪽 중 ${current + 1}쪽", "Page ${current + 1} of $count", "第 ${current + 1} 页，共 $count 页")
+    Row(
+        modifier.semantics(mergeDescendants = true) { contentDescription = said },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        repeat(count) { i ->
+            val on = i == current
+            val width by animateDpAsState(
+                targetValue = if (on) 32.dp else 8.dp,
+                animationSpec = if (reduced) snap() else spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow),
+                label = "dotWidth",
+            )
+            val color by animateColorAsState(if (on) scheme.primary else scheme.outlineVariant, label = "dotColor")
+            // The dot is 8dp; the place to tap is 24dp around it.
+            Box(
+                Modifier
+                    .height(24.dp)
+                    .clickable(interactionSource = null, indication = null) { onSelect(i) }
+                    .padding(horizontal = 4.dp)
+                    .clearAndSetSemantics {},
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(Modifier.size(width, 8.dp).clip(CircleShape).background(color))
+            }
+        }
     }
 }
 
