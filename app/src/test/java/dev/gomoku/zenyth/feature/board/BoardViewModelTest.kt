@@ -15,6 +15,7 @@ import dev.gomoku.zenyth.core.model.OpeningName
 import dev.gomoku.zenyth.core.model.PositionLink
 import dev.gomoku.zenyth.core.model.ProveProgress
 import dev.gomoku.zenyth.core.model.ReviewProgress
+import dev.gomoku.zenyth.core.designsystem.component.ReviewFocus
 import dev.gomoku.zenyth.core.model.TapResult
 import dev.gomoku.zenyth.domain.engine.CoordMapper
 import dev.gomoku.zenyth.domain.engine.EngineResponse
@@ -380,7 +381,40 @@ class BoardViewModelTest {
         h.act { onUndo() }
         assertThat(h.game.undos).isEqualTo(0)
         assertThat(h.ui.notice).contains("국면 증명")
-        assertThat(h.ui.research!!.isProve).isTrue()
+        assertThat(h.ui.research!!.prove).isTrue()
+    }
+
+    /**
+     * A review over the line on the board shows itself there (2026-10-31): the
+     * stones after the position being read fade, the stone it ends on is the
+     * focus, the engine's best so far is marked — and the analysis overlay and
+     * the last-move ring give way to it.
+     */
+    @Test
+    fun `a review over the board's line shows where it is reading`() = boardTest { h ->
+        h.board(h8, g7, i9)
+        h.review.progressFlow.value = ReviewProgress(
+            running = true, index = 2, total = 3, line = listOf(h8, g7, i9), size = 15, best = i9,
+        )
+        h.scope.runCurrent()
+        assertThat(h.ui.render.review).isEqualTo(ReviewFocus(reached = 2, focus = g7, best = i9))
+        assertThat(h.ui.render.lastMove).isNull()
+        assertThat(h.ui.render.ghosts).isEmpty()
+        assertThat(h.ui.research!!.prove).isFalse()
+        assertThat(h.ui.research!!.title).contains("2/4")
+    }
+
+    /** A queued game, or a board off the reviewed line, draws nothing; the bar still counts. */
+    @Test
+    fun `a review of another line leaves the board alone`() = boardTest { h ->
+        h.board(h8, i9)
+        h.review.progressFlow.value = ReviewProgress(
+            running = true, index = 1, total = 3, line = listOf(h8, g7, i9), size = 15,
+        )
+        h.scope.runCurrent()
+        assertThat(h.ui.render.review).isNull()
+        assertThat(h.ui.render.lastMove).isEqualTo(i9)
+        assertThat(h.ui.research).isNotNull()
     }
 
     // ---- links and files ---------------------------------------------------

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
@@ -87,9 +86,9 @@ fun BoardScreen(
     var confirmResign by remember { mutableStateOf(false) }
 
     // `prove_pulse_tick` (main.c:9206): the focus stone blinks twice a second
-    // while a proof runs.
+    // while a proof runs — and a review's, which the board shows the same way.
     var provePulse by remember { mutableStateOf(false) }
-    val proving = ui.render.prove != null
+    val proving = ui.render.prove != null || ui.render.review != null
     LaunchedEffect(proving) {
         provePulse = false
         while (proving) {
@@ -196,9 +195,6 @@ fun BoardScreen(
                     }
                 },
             )
-            ui.research?.let {
-                ResearchBadge(banner = it, modifier = Modifier.align(Alignment.TopStart).padding(6.dp), onStop = viewModel::onStopResearch)
-            }
         }
     }
     val modeSwitch: @Composable () -> Unit = { BoardModeSwitch(ui.mode, viewModel::onMode) }

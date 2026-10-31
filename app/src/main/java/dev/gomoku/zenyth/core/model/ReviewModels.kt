@@ -31,6 +31,18 @@ data class ReviewProgress(
     val budget: ReviewBudget = ReviewBudget(),
     /** Queue position when the run came from the queue, else null. */
     val queue: QueueProgress? = null,
+    /**
+     * The line under review and its board size: the board finds where the
+     * engine is in it, and shows it there (2026-10-31, in place of the badge).
+     */
+    val line: List<Move> = emptyList(),
+    val size: Int = Move.DEFAULT_SIZE,
+    /** The engine's current reading of position [index]: its best move so far… */
+    val best: Move? = null,
+    /** …the mover's win rate, a mate distance (mover's view, 0 = none) and the depth. */
+    val winRatePct: Int? = null,
+    val mate: Int = 0,
+    val depth: Int = 0,
 ) {
     val fraction: Float get() = if (total <= 0) 0f else (index.toFloat() / (total + 1)).coerceIn(0f, 1f)
 }

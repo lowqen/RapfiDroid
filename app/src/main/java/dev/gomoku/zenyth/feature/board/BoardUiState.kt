@@ -83,11 +83,8 @@ data class BoardUiState(
     val showClock: Boolean = true,
     /** An opening protocol is selected but the board has no centre point. */
     val openingNeedsOddSize: Boolean = false,
-    /**
-     * A research run owns the engine right now: the badge painted on the board,
-     * carrying `prove_badge_lines` while a proof runs.
-     */
-    val research: ResearchBanner? = null,
+    /** A review or a proof owns the engine right now: the bar over the tabs. */
+    val research: ResearchRun? = null,
     /** The user's own toolbar (`function/toolbar*.txt`) and the labels for it. */
     val toolbar: List<FunctionScripts.ToolbarItem> = emptyList(),
     val language: LngTable = LngTable.EMPTY,
@@ -177,13 +174,24 @@ object GameLevels {
 }
 
 /**
- * "Something is running" badge on the board. The desktop signals this by
- * painting counters over the win-rate graph; on a phone the board is often the
- * only thing on screen, so it says so plainly and offers the stop button.
+ * A game review or a proof at work, for the bar over the tabs (2026-10-31) —
+ * the mini analysis bar's twin: the job in one line, the engine's reading in
+ * a second, the position in small, and a wave for how far it has got.
+ *
+ * It replaced a coloured badge painted on the board (the desktop's counters,
+ * `prove_badge_lines`). The board now shows the job itself — a proof's line,
+ * a review's place in the game — and the counting moved here.
  */
-data class ResearchBanner(
+data class ResearchRun(
+    val prove: Boolean,
     val title: String,
-    val detail: String = "",
-    val progress: Float? = null,
-    val isProve: Boolean = false,
+    val detail: String,
+    /** The position in small: a review's current one, a proof's root and its line. */
+    val stones: List<dev.gomoku.zenyth.core.model.Move>,
+    val fraction: Float,
+    /** Wave speed for a time budget (fraction per second); 0 eases to [fraction]. */
+    val perSecond: Float = 0f,
+    val ceiling: Float = 1f,
+    /** A new value starts a new wave: each search of a proof is a run of its own. */
+    val wave: Any = Unit,
 )

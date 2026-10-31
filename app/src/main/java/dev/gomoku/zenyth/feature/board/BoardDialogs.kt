@@ -4,17 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import dev.gomoku.zenyth.core.designsystem.component.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,11 +20,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import dev.gomoku.zenyth.core.designsystem.component.SmoothProgressBar
 import dev.gomoku.zenyth.core.designsystem.component.ZenythSheet
 import dev.gomoku.zenyth.core.i18n.tr
 import dev.gomoku.zenyth.core.model.DbCellKind
@@ -315,65 +308,5 @@ internal fun CommentDialog(
             modifier = Modifier.fillMaxWidth(),
             textStyle = base.copy(fontSize = base.fontSize * editFont.scale),
         )
-    }
-}
-
-/** `rgba(0.85, 0.45, 0.15, 0.90)` — the desktop's prove badge (main.c:6892). */
-private val ProveBadgeColor = Color(0xE6D97326)
-
-/** `rgba(0.29, 0.62, 1.0, 0.90)` — the desktop's review badge (main.c:6869). */
-private val ReviewBadgeColor = Color(0xE64A9EFF)
-
-/**
- * The counters the desktop paints in the top-left corner of its drawing area
- * while a review or a proof runs (main.c:6860-6905): one line of totals, a second
- * of live search state, white on a filled box. It sits on the board here for the
- * same reason it does there — that is where the eye already is — and carries the
- * stop button, which on a phone would otherwise be a tab away.
- */
-@Composable
-internal fun ResearchBadge(
-    banner: dev.gomoku.zenyth.feature.board.ResearchBanner,
-    modifier: Modifier = Modifier,
-    onStop: () -> Unit,
-) {
-    Surface(
-        modifier = modifier.widthIn(max = 300.dp),
-        color = if (banner.isProve) ProveBadgeColor else ReviewBadgeColor,
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Column(Modifier.padding(start = 10.dp, end = 4.dp, top = 5.dp, bottom = 5.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    banner.title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                TextButton(
-                    onClick = onStop,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
-                ) {
-                    Text(tr("중지", "Stop", "停止"), color = Color.White, style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            if (banner.detail.isNotEmpty()) {
-                Text(
-                    banner.detail,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontFamily = FontFamily.Monospace,
-                    color = Color.White.copy(alpha = 0.92f),
-                )
-            }
-            banner.progress?.let {
-                SmoothProgressBar(
-                    fraction = it,
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.3f),
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, end = 6.dp),
-                )
-            }
-        }
     }
 }

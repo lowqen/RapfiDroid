@@ -11,12 +11,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.gomoku.zenyth.core.designsystem.component.MiniBoard
 import dev.gomoku.zenyth.core.designsystem.component.TileShape
+import dev.gomoku.zenyth.core.designsystem.component.WavyProgress
 import dev.gomoku.zenyth.core.designsystem.theme.expandFadeIn
 import dev.gomoku.zenyth.core.designsystem.theme.shrinkFadeOut
 import dev.gomoku.zenyth.core.designsystem.theme.tabular
@@ -108,6 +115,84 @@ internal fun MiniAnalysisContent(ui: BoardUiState, onOpen: () -> Unit, onPause: 
                         Box(contentAlignment = Alignment.Center) {
                             Icon(Icons.Filled.Pause, contentDescription = tr("엔진 멈춤", "Pause engine", "暂停引擎"))
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A game review or a proof at work, in the same bar (2026-10-31): it took over
+ * from the coloured badge that sat on the board. The board shows what the
+ * engine is doing; this says how far it has got, wherever the user is — the
+ * job and its place, the engine's reading, the position in small, the wave,
+ * and ⏹. A tap goes to the research tab, where the run's own card is.
+ */
+@Composable
+fun ResearchMiniBar(viewModel: BoardViewModel, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    val run = ui.research
+    // The last run stays drawn while the bar folds away.
+    var last by remember { mutableStateOf<ResearchRun?>(null) }
+    SideEffect { if (run != null) last = run }
+    AnimatedVisibility(run != null, modifier = modifier, enter = expandFadeIn, exit = shrinkFadeOut) {
+        (run ?: last)?.let { ResearchMiniContent(it, onOpen = onOpen, onStop = viewModel::onStopResearch) }
+    }
+}
+
+/** The bar itself; see [ResearchMiniBar]. */
+@Composable
+internal fun ResearchMiniContent(run: ResearchRun, onOpen: () -> Unit, onStop: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        onClick = onOpen,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = MaterialTheme.shapes.large,
+        color = scheme.surfaceContainerHigh,
+    ) {
+        Column {
+            key(run.wave) {
+                WavyProgress(
+                    fraction = run.fraction,
+                    modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 6.dp),
+                    perSecond = run.perSecond,
+                    ceiling = run.ceiling,
+                )
+            }
+            Row(
+                Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MiniBoard(stones = run.stones, modifier = Modifier.size(44.dp).clip(TileShape), showNumbers = false)
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        run.title,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold).tabular(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        run.detail,
+                        style = MaterialTheme.typography.labelMedium.tabular(),
+                        color = scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Surface(
+                    onClick = onStop,
+                    modifier = Modifier.size(width = 52.dp, height = 44.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    color = scheme.primary,
+                    contentColor = scheme.onPrimary,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Filled.Stop,
+                            contentDescription = if (run.prove) tr("증명 중지", "Stop the proof", "停止证明") else tr("리뷰 중지", "Stop the review", "停止复盘"),
+                        )
                     }
                 }
             }

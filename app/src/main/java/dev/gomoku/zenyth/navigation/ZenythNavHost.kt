@@ -1,6 +1,7 @@
 package dev.gomoku.zenyth.navigation
 
 import dev.gomoku.zenyth.feature.board.MiniAnalysisBar
+import dev.gomoku.zenyth.feature.board.ResearchMiniBar
 import dev.gomoku.zenyth.feature.board.BoardViewModel
 import androidx.navigation.NavHostController
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationRailDefaults
@@ -217,8 +219,19 @@ fun ZenythRoot() {
                     bottomBar = {
                         // Always there (user request, 2026-10-29: the bar folding away
                         // on scroll was unwanted).
-                        if (!rail) {
-                            Column {
+                        Column {
+                            // A review or a proof at work (2026-10-31): on every tab
+                            // but research, where its own card is — the board
+                            // included, and beside the rail too, since the bar is
+                            // now the only place its progress and ⏹ are.
+                            if (selected != Destination.Research) {
+                                ResearchBar(
+                                    navController,
+                                    onOpen = { onSelect(Destination.Research) },
+                                    modifier = if (rail) Modifier.navigationBarsPadding() else Modifier,
+                                )
+                            }
+                            if (!rail) {
                                 // The board's engine at work, seen from the other tabs (M5).
                                 if (selected != Destination.Board) {
                                     BoardMiniBar(navController, onOpen = { onSelect(Destination.Board) })
@@ -250,6 +263,17 @@ fun ZenythRoot() {
             }
         }
     }
+}
+
+/** [ResearchMiniBar] for the board tab's view model, found as [BoardMiniBar] finds it. */
+@Composable
+private fun ResearchBar(navController: NavHostController, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val backStack by navController.currentBackStackEntryAsState()
+    val entry = remember(backStack) {
+        runCatching { navController.getBackStackEntry(Destination.Board.route) }.getOrNull()
+    } ?: return
+    val board: BoardViewModel = hiltViewModel(entry)
+    ResearchMiniBar(board, onOpen, modifier)
 }
 
 /**

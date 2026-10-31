@@ -2,6 +2,7 @@ package dev.gomoku.zenyth.feature.board
 
 import dev.gomoku.zenyth.core.designsystem.component.BoardRender
 import dev.gomoku.zenyth.core.designsystem.component.DbLabel
+import dev.gomoku.zenyth.core.designsystem.component.ReviewFocus
 import dev.gomoku.zenyth.core.designsystem.component.TagPalette
 import dev.gomoku.zenyth.core.i18n.AppLanguage
 import dev.gomoku.zenyth.core.i18n.appLanguage
@@ -23,6 +24,8 @@ import dev.gomoku.zenyth.core.model.OpeningName
 import dev.gomoku.zenyth.core.model.OpeningTables
 import dev.gomoku.zenyth.core.model.Position
 import dev.gomoku.zenyth.core.model.PositionRecord
+import dev.gomoku.zenyth.core.model.ProvePhase
+import dev.gomoku.zenyth.core.model.ReviewProgress
 import dev.gomoku.zenyth.core.model.StoneColor
 import dev.gomoku.zenyth.feature.board.BoardViewModel.Panel
 import dev.gomoku.zenyth.feature.board.BoardViewModel.Read
@@ -91,7 +94,7 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
             rule = config.rule,
             showClock = config.showClock,
             openingNeedsOddSize = config.openingNeedsOddSize,
-            research = researchBanner(p),
+            research = researchRun(pos, p),
             toolbar = toolbar(p.toolbar),
             language = p.language,
             toolbarStyle = config.toolbarStyle,
@@ -121,16 +124,93 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
         return EvalView(rate * 100, evalCp = cp, mate = mate)
     }
 
-    private fun researchBanner(panel: Panel): ResearchBanner? = when {
-        panel.proveProgress.running -> {
-            val (first, second) = panel.proveProgress.badgeLines()
-            ResearchBanner(first, second, isProve = true)
-        }
-        panel.reviewProgress.running -> ResearchBanner(
-            tr("리뷰 ${panel.reviewProgress.index}/${panel.reviewProgress.total}", "Review ${panel.reviewProgress.index}/${panel.reviewProgress.total}", "复盘 ${panel.reviewProgress.index}/${panel.reviewProgress.total}"),
-            progress = panel.reviewProgress.fraction.takeIf { panel.reviewProgress.total > 0 },
-        )
+    /** The bar over the tabs while a review or a proof runs; see [ResearchRun]. */
+    private fun researchRun(pos: Position, panel: Panel): ResearchRun? = when {
+        panel.proveProgress.running -> proveRun(pos, panel)
+        panel.reviewProgress.running -> reviewRun(panel.reviewProgress)
         else -> null
+    }
+
+    private fun reviewRun(r: ReviewProgress): ResearchRun {
+        val positions = r.total + 1
+        val queue = r.queue?.let { tr("큐 ${it.index}/${it.total} · ", "Queue ${it.index}/${it.total} · ", "队列 ${it.index}/${it.total} · ") }.orEmpty()
+        val reading = r.best?.let { best ->
+            listOfNotNull(
+                tr("최선 ${best.label(r.size)}", "Best ${best.label(r.size)}", "最佳 ${best.label(r.size)}"),
+                mateOrRate(r.mate, r.winRatePct),
+                r.depth.takeIf { it > 0 }?.let { tr("깊이 $it", "depth $it", "深度 $it") },
+            ).joinToString(" · ")
+        } ?: tr("읽는 중", "Reading", "读取中")
+        return ResearchRun(
+            prove = false,
+            title = queue + tr("게임 리뷰 · 국면 ${r.index}/$positions", "Game review · position ${r.index}/$positions", "对局复盘 · 局面 ${r.index}/$positions"),
+            detail = reading,
+            stones = r.line.take(r.index),
+            fraction = r.fraction,
+            // The review's place as a wave, as on its own card: with a time
+            // budget the head runs through each position at the budget's pace
+            // and waits at the next one's start; by depth it eases along.
+            perSecond = if (r.budget.byDepth) 0f else 1f / (r.budget.seconds * positions),
+            ceiling = ((r.index + 1f) / positions).coerceAtMost(1f),
+        )
+    }
+
+    private fun proveRun(pos: Position, panel: Panel): ResearchRun {
+        val p = panel.proveProgress
+        val searching = p.phase == ProvePhase.SEARCH
+        val detail = if (searching) {
+            listOfNotNull(
+                if (p.attack) tr("공격", "Attack", "进攻") else tr("방어", "Defence", "防守"),
+                p.candTotal.takeIf { it > 0 }?.let { tr("후보 ${p.candIndex}/$it", "candidate ${p.candIndex}/$it", "候选 ${p.candIndex}/$it") },
+                p.depth.takeIf { it > 0 }?.let { tr("깊이 $it", "depth $it", "深度 $it") },
+                mateOrRate(p.mate, p.winRatePct),
+                if (p.byDepth) {
+                    tr("${p.elapsedSec}초", "${p.elapsedSec}s", "${p.elapsedSec} 秒")
+                } else {
+                    tr("${p.elapsedSec}/${p.budget / 1000}초", "${p.elapsedSec}/${p.budget / 1000}s", "${p.elapsedSec}/${p.budget / 1000} 秒")
+                },
+            ).joinToString(" · ")
+        } else {
+            tr("탐색 ${p.searches}회 · 트리 ${p.nodes}개", "${p.searches} searches · ${p.nodes} nodes", "搜索 ${p.searches} 次 · 树 ${p.nodes} 个节点")
+        }
+        val line = panel.prove.ghost.entries.sortedBy { it.value }.map { it.key }
+        // The wave is the search under way: its depth against the budget's,
+        // or its time running on towards the budget's seconds.
+        val budget = p.budget.coerceAtLeast(1)
+        return ResearchRun(
+            prove = true,
+            title = tr("국면 증명 · 해결 ${p.resolved} · 미결 ${p.open}", "Proof · ${p.resolved} settled · ${p.open} open", "局面证明 · 已定 ${p.resolved} · 未定 ${p.open}"),
+            detail = detail,
+            stones = pos.moves.take(panel.prove.rootLen.coerceAtMost(pos.moves.size)) + line,
+            fraction = when {
+                !searching -> 0f
+                p.byDepth -> p.depth.toFloat() / budget
+                else -> p.elapsedSec * 1000f / budget
+            }.coerceIn(0f, 1f),
+            perSecond = if (searching && !p.byDepth) 1000f / budget else 0f,
+            wave = p.searches,
+        )
+    }
+
+    /** A mate as «M5» («-M5» when the mover is the one mated), else the win rate. */
+    private fun mateOrRate(mate: Int, winRatePct: Int?): String? = when {
+        mate > 0 -> "M$mate"
+        mate < 0 -> "-M${-mate}"
+        else -> winRatePct?.let { tr("승률 $it%", "win $it%", "胜率 $it%") }
+    }
+
+    /**
+     * Where a running review is reading, when the board shows its line — the
+     * line itself or the start of it. A queued game, or a board moved off the
+     * line, gets nothing drawn: the bar still says where the review is.
+     */
+    private fun reviewFocus(pos: Position, r: ReviewProgress): ReviewFocus? {
+        if (!r.running || r.size != pos.size) return null
+        val shown = pos.moves.size
+        if (shown > r.line.size || r.line.subList(0, shown) != pos.moves) return null
+        // Rewound past the position being read: the board does not reach it.
+        if (r.index > shown) return null
+        return ReviewFocus(reached = r.index, focus = pos.moves.getOrNull(r.index - 1), best = r.best)
     }
 
     /**
@@ -148,7 +228,11 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
         quality: MoveQuality?,
     ): BoardRender {
         val analysisTab = panel.mode == BoardMode.ANALYSIS
-        val shown = if (analysisTab) snap else null
+        // A review reading this line takes the board over: its place in the
+        // game and the engine's best there — and none of the analysis overlay,
+        // which belongs to whatever was read before.
+        val review = reviewFocus(pos, panel.reviewProgress)
+        val shown = if (analysisTab && review == null) snap else null
         val pv = when {
             panel.preview != null -> shown?.pvs?.firstOrNull { it.index == panel.preview }?.line
             else -> shown?.best?.line?.ifEmpty { shown.realtimeLine }
@@ -156,7 +240,7 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
         val ghosts = pv.filterNot { pos.moves.contains(it) }.take(GHOST_LIMIT)
         val bestMark = shown?.realtimeBest ?: shown?.best?.head
         val overlay = config.showAnalysis && shown != null
-        val dbLabels = if (analysisTab && config.useDatabase && !panel.game.thinking) {
+        val dbLabels = if (analysisTab && review == null && config.useDatabase && !panel.game.thinking) {
             dbLabelsOf(DbLabelsKey(panel.db.snapshot.cells, config.showBoardText))
         } else {
             emptyMap()
@@ -169,7 +253,7 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
         return BoardRender(
             size = pos.size,
             stones = pos.moves,
-            lastMove = pos.moves.lastOrNull(),
+            lastMove = if (review == null) pos.moves.lastOrNull() else null,
             forbidden = panel.forbidden,
             ghosts = ghosts,
             bestMark = if (bestMark != null && !pos.moves.contains(bestMark)) bestMark else null,
@@ -183,6 +267,7 @@ internal class BoardUiMapper(private val liveRecords: () -> List<PositionRecord>
                 emptyMap()
             },
             prove = panel.prove.takeIf { it.active },
+            review = review,
             blocked = panel.blocked,
             showNumbers = config.showNumber,
             textScale = fromSettings(config).textScale,

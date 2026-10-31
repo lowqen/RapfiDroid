@@ -6,6 +6,9 @@ import dev.gomoku.zenyth.core.designsystem.component.FilledTonalButton
 import dev.gomoku.zenyth.core.designsystem.component.Button
 import dev.gomoku.zenyth.core.designsystem.component.LocalWaveFrames
 import dev.gomoku.zenyth.feature.board.MiniAnalysisContent
+import dev.gomoku.zenyth.feature.board.ResearchMiniContent
+import dev.gomoku.zenyth.feature.board.ResearchRun
+import dev.gomoku.zenyth.core.designsystem.component.ReviewFocus
 import dev.gomoku.zenyth.core.designsystem.component.LabeledProgress
 import dev.gomoku.zenyth.core.designsystem.component.PillBadge
 import dev.gomoku.zenyth.core.designsystem.component.IconTile
@@ -233,6 +236,56 @@ class DesignSystemScreenshotTest(private val variant: Variant) {
         onLast = {},
         onSwapSides = {},
     )
+
+    /**
+     * A review and a proof at work (2026-10-31): the bar over the tabs that
+     * took over from the badge on the board.
+     */
+    @Test
+    fun researchBar() = shot("research_bar") {
+        ResearchMiniContent(
+            ResearchRun(
+                prove = false,
+                title = "게임 리뷰 · 국면 12/41",
+                detail = "최선 J10 · 승률 62% · 깊이 18",
+                stones = stones.take(4),
+                fraction = 0.3f,
+            ),
+            onOpen = {},
+            onStop = {},
+        )
+        ResearchMiniContent(
+            ResearchRun(
+                prove = true,
+                title = "국면 증명 · 해결 3 · 미결 5",
+                detail = "공격 · 후보 2/4 · 깊이 14 · 승률 71% · 12/40초",
+                stones = stones,
+                fraction = 0.3f,
+            ),
+            onOpen = {},
+            onStop = {},
+        )
+    }
+
+    /**
+     * A review's place on the board itself: the stones past the position being
+     * read faded, the stone it ends on ringed (the pulse's bright half), the
+     * engine's best there so far as a ghost with the best-move ring.
+     */
+    @Test
+    fun boardReview() {
+        assumeTrue(variant.fontScale == 1f)
+        shot("board_review") {
+            GomokuBoard(
+                render = BoardRender(
+                    stones = stones,
+                    review = ReviewFocus(reached = 4, focus = stones[3], best = Move(9, 7)),
+                    provePulse = true,
+                ),
+                modifier = Modifier.width(396.dp),
+            )
+        }
+    }
 
     /** The engine seen from another tab, the game tab's toolbar, the wave at a few points (M5). */
     @Test

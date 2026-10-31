@@ -128,13 +128,16 @@ fun DrawScope.drawBoard(
 
     val occupiedCells = render.stones.toHashSet()
 
-    // played stones, numbered unless "show number" is off (settings.txt line 14)
+    // played stones, numbered unless "show number" is off (settings.txt line 14);
+    // under a running review, the ones past the position being read fade back
+    val reached = render.review?.reached ?: Int.MAX_VALUE
     render.stones.forEachIndexed { i, m ->
         val black = i % 2 == 0
         val number = if (render.showNumbers) "${i + 1}" else ""
-        drawStone(cx(m.x), cy(m.y), radius, black, number, 1f, skin, hair, paints.stoneNumber)
+        val ahead = i >= reached
+        drawStone(cx(m.x), cy(m.y), radius, black, number, if (ahead) AheadOfReview else 1f, skin, hair, paints.stoneNumber)
         // Review grade in the stone's top-right corner (`mq_badge_pixbuf`).
-        render.badges[m]?.takeIf { it != MoveQuality.NONE }?.let { quality ->
+        if (!ahead) render.badges[m]?.takeIf { it != MoveQuality.NONE }?.let { quality ->
             drawBadge(cx(m.x), cy(m.y), radius, quality, hair)
         }
     }
@@ -148,6 +151,25 @@ fun DrawScope.drawBoard(
             style = Stroke(width = hair * 3f))
         drawCircle(skin.lastMove, radius = radius * 0.99f, center = c,
             style = Stroke(width = hair * 1.8f))
+    }
+
+    // A review at work: the engine's best so far for the position being read,
+    // then the stone that position ends on, ringed on the pulse.
+    render.review?.let { review ->
+        review.best?.let { m ->
+            val c = Offset(cx(m.x), cy(m.y))
+            if (m !in occupiedCells) {
+                drawStone(c.x, c.y, radius, review.reached % 2 == 0, "", 0.45f, skin, hair, paints.stoneNumber)
+            }
+            drawBestRing(c, radius, hair, skin)
+        }
+        review.focus?.let { m ->
+            val c = Offset(cx(m.x), cy(m.y))
+            drawCircle(skin.stoneShadow, radius = radius * 0.99f, center = c, alpha = 0.35f,
+                style = Stroke(width = hair * 3.4f))
+            drawCircle(skin.lastMove, radius = radius * 0.99f, center = c, alpha = if (provePulse) 1f else 0.45f,
+                style = Stroke(width = hair * 2.4f))
+        }
     }
 
     // PV ghosts: continue numbering/colour from the current position
@@ -193,13 +215,7 @@ fun DrawScope.drawBoard(
 
     // best-move highlight: a bright ring over a dark halo, because it lands on
     // bare wood as often as on a dark value chip and has to survive both
-    render.bestMark?.let { m ->
-        val c = Offset(cx(m.x), cy(m.y))
-        drawCircle(skin.bestHalo, radius = radius * 0.87f, center = c,
-            style = Stroke(width = hair * 3.8f))
-        drawCircle(skin.best, radius = radius * 0.87f, center = c,
-            style = Stroke(width = hair * 2.1f))
-    }
+    render.bestMark?.let { m -> drawBestRing(Offset(cx(m.x), cy(m.y)), radius, hair, skin) }
 
     // prove overlay on top of everything (main.c:9061 `prove_cell_pixbuf`)
     render.prove?.let { prove ->
@@ -247,6 +263,15 @@ private fun DrawScope.drawWood(geometry: BoardGeometry, skin: BoardSkin) {
         cornerRadius = CornerRadius(geometry.step * 0.5f),
     )
 }
+/** The best-move ring: bright over a dark halo, so it reads on bare wood and on a stone. */
+private fun DrawScope.drawBestRing(c: Offset, radius: Float, hair: Float, skin: BoardSkin) {
+    drawCircle(skin.bestHalo, radius = radius * 0.87f, center = c, style = Stroke(width = hair * 3.8f))
+    drawCircle(skin.best, radius = radius * 0.87f, center = c, style = Stroke(width = hair * 2.1f))
+}
+
+/** Stones past the position a review is reading: there, but not yet in play. */
+private const val AheadOfReview = 0.32f
+
 /** Attack ring colour of the prove overlay (main.c:9089): orange, defense blue. */
 private val ProveAttack = Color(0xFFE67D21)
 private val ProveDefend = Color(0xFF3F8FED)

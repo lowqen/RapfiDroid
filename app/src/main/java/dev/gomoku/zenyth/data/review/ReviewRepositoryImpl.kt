@@ -184,7 +184,7 @@ class ReviewRepositoryImpl @Inject constructor(
         omit = 0
         _progress.value = ReviewProgress(
             running = true, index = 0, total = total, budget = budget,
-            queue = queueProgress(),
+            queue = queueProgress(), line = whole, size = boardSize,
         )
         // The engine is ours until finish(): a database save now would rewrite
         // the file out from under a search that is still adding to it.
@@ -251,7 +251,8 @@ class ReviewRepositoryImpl @Inject constructor(
             finish(cancelled = false)
             return
         }
-        _progress.update { it.copy(index = index) }
+        // A new position: last position's reading no longer applies.
+        _progress.update { it.copy(index = index, best = null, winRatePct = null, mate = 0, depth = 0) }
         val position = Position(size = size, moves = line.take(index))
         aggregator = SearchAggregator(position.sideToMove)
         latest = null
@@ -284,8 +285,28 @@ class ReviewRepositoryImpl @Inject constructor(
         if (!_progress.value.running) return
         lock.withLock {
             if (!searching) return@withLock
-            aggregator?.consume(response)?.let { latest = it }
+            aggregator?.consume(response)?.let { snap ->
+                latest = snap
+                publishReading(snap)
+            }
             if (response is EngineResponse.BestMove) onBestMove(response.moves.firstOrNull())
+        }
+    }
+
+    /**
+     * The live reading of the position being searched, for the board and the
+     * bar. Equal readings are dropped by the flow, so a stream of lines that
+     * change nothing shown costs nothing downstream.
+     */
+    private fun publishReading(snap: AnalysisSnapshot) {
+        val best = snap.best?.head ?: snap.realtimeBest
+        _progress.update {
+            it.copy(
+                best = best,
+                winRatePct = snap.stats.winRatePct,
+                mate = snap.stats.mate ?: 0,
+                depth = snap.stats.depth,
+            )
         }
     }
 
