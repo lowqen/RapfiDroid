@@ -190,6 +190,30 @@ It is **off by default and hidden behind an advanced switch.** Apart from the
 curriculum file below, nothing in this app contacts the network unless you turn
 it on and enter an address yourself.
 
+### Keep the server link private
+
+The link is plain TCP speaking piskvork, which has no encryption or password of
+its own; Zenyth expects it to run inside [Tailscale](https://tailscale.com),
+whose WireGuard tunnel encrypts it, and warns when the address you type is
+neither a Tailscale nor a private-network one. On the server side:
+
+* **Listen on the tailnet only.** `ss -ltnp | grep 5050` should show the
+  machine's `100.x.y.z:5050`, not `0.0.0.0:5050` or `*:5050`. Listening on
+  everything puts an engine anyone can drive on every network that machine is
+  on, the internet included if it has a public address.
+* **Let only your devices in.** Tailscale's default policy lets every device on
+  the tailnet reach every port. Tag the server and allow port 5050 from your
+  own login only. A rule like this restricts nothing while the default
+  allow-everything rule is still in the policy, so replace that rule with ones
+  for what you actually use:
+
+  ```json
+  "tagOwners": { "tag:rapfi-server": ["autogroup:admin"] },
+  "grants": [
+    { "src": ["you@example.com"], "dst": ["tag:rapfi-server"], "ip": ["tcp:5050"] }
+  ]
+  ```
+
 ### The one automatic request
 
 The Joseki tab fetches the official curriculum from

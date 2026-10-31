@@ -113,6 +113,9 @@ class ConnectionViewModel @Inject constructor(
         // server engine is off), but reading the state rather than the field
         // keeps the two from disagreeing if the switch flips mid-tap.
         val local = localMode.value || !uiState.value.serverEnabled
+        // No default server address: a blank one would resolve to this phone.
+        // The button is off then; this covers a tap that raced the typing.
+        if (!local && !endpoint.isConfigured) return
         val target = if (local) EngineTarget.Local else EngineTarget.Remote(endpoint)
         viewModelScope.launch {
             // The address is saved either way: choosing the on-device engine is

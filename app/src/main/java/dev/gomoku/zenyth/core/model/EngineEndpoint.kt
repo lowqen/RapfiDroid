@@ -1,11 +1,15 @@
 package dev.gomoku.zenyth.core.model
 
 /**
- * Where the Rapfi engine listens. Extracted from engine.exe's frozen `sengine`
- * module (`socket.connect((HOST, PORT))`): it is a transparent piskvork relay to
- * host `rapfi-server` on **TCP 5050**. On the desktop that name is resolved by
- * Tailscale MagicDNS to 100.111.248.44; the Android client connects to that IP
- * directly (no MagicDNS dependency) and speaks piskvork.
+ * Where a server Rapfi listens: a piskvork relay on the user's own machine,
+ * reached over their Tailscale network (the desktop's engine.exe relay listens on
+ * **TCP 5050**, so that is the default port).
+ *
+ * There is no default host. The address is the user's own server and nobody
+ * else's — it used to default to the maintainer's tailnet node, which put a
+ * private address in public source and pointed every install at a machine it
+ * could not reach (docs/보안-강화-계획.md, Phase 5). Until one is typed the
+ * server engine cannot be started.
  */
 data class EngineEndpoint(
     val host: String = DEFAULT_HOST,
@@ -13,9 +17,11 @@ data class EngineEndpoint(
 ) {
     val display: String get() = "$host:$port"
 
+    /** A host has been typed; a blank one points nowhere (and would resolve to this phone). */
+    val isConfigured: Boolean get() = host.isNotBlank()
+
     companion object {
-        // Tailscale node `rapfi-server`; the engine.exe proxy connects here.
-        const val DEFAULT_HOST = "100.111.248.44"
+        const val DEFAULT_HOST = ""
         const val DEFAULT_PORT = 5050
     }
 }

@@ -18,7 +18,7 @@ private val Context.dataStore by preferencesDataStore(name = "engine")
 
 /**
  * Which engine the user last connected to, and the server address they last
- * typed (defaults = rapfi-server).
+ * typed (none until they type one).
  *
  * The address is kept even while the on-device engine is selected: switching to
  * local is not a decision to forget the server, and the field has to come back

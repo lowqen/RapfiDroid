@@ -2,6 +2,7 @@ package dev.gomoku.zenyth.feature.connection
 
 import dev.gomoku.zenyth.core.model.ConnectionState
 import dev.gomoku.zenyth.core.model.ConsoleLine
+import dev.gomoku.zenyth.core.model.EndpointReach
 import dev.gomoku.zenyth.core.model.EngineEndpoint
 import dev.gomoku.zenyth.core.model.FontSpec
 import dev.gomoku.zenyth.core.model.LinkHealth
@@ -38,6 +39,20 @@ data class ConnectionUiState(
     val canConnect: Boolean
         get() = !health.reconnecting &&
             (state is ConnectionState.Disconnected || state is ConnectionState.Error)
+
+    /** The server engine is the one chosen (the same rule [ConnectionViewModel.onConnect] applies). */
+    private val serverChosen: Boolean get() = serverEnabled && !localMode
+
+    /** [canConnect], and a server address when the server is chosen — there is no default one. */
+    val canStart: Boolean
+        get() = canConnect && (!serverChosen || EngineEndpoint(host).isConfigured)
+
+    /**
+     * The server link is plain TCP; only Tailscale encrypts it. An address that
+     * is neither Tailscale nor a private network gets a warning under the field.
+     */
+    val plaintextWarning: Boolean
+        get() = serverChosen && EndpointReach.of(host) == EndpointReach.PUBLIC
 
     val canSend: Boolean
         get() = state.isLive && commandDraft.isNotBlank()

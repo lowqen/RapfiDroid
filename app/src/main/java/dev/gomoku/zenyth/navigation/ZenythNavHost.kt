@@ -107,7 +107,11 @@ class ShellViewModel @Inject constructor(
                 return@launch
             }
             val local = endpoints.localMode.first()
-            val target = if (local) EngineTarget.Local else EngineTarget.Remote(endpoints.endpoint.first())
+            val endpoint = endpoints.endpoint.first()
+            // The server engine with no address typed (there is no default one):
+            // nothing to start; the connection tab asks for it.
+            if (!local && !endpoint.isConfigured) return@launch
+            val target = if (local) EngineTarget.Local else EngineTarget.Remote(endpoint)
             runCatching { engine.connect(target) }
         }
     }

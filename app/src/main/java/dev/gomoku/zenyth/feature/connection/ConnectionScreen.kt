@@ -121,6 +121,8 @@ private fun ConnectionContent(
                     value = ui.host,
                     onValueChange = onHostChange,
                     label = { Text(tr("서버 (Tailscale)", "Server (Tailscale)", "服务器 (Tailscale)")) },
+                    // There is no default address — the server is the user's own.
+                    placeholder = { Text("100.x.y.z") },
                     singleLine = true,
                     enabled = ui.canConnect && !ui.localMode,
                     modifier = Modifier.weight(1f),
@@ -133,6 +135,21 @@ private fun ConnectionContent(
                     enabled = ui.canConnect && !ui.localMode,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(96.dp),
+                )
+            }
+
+            // The server link is plain TCP (piskvork has no encryption); only
+            // Tailscale's WireGuard tunnel protects it. Read from the text alone,
+            // no lookup (EndpointReach).
+            if (ui.plaintextWarning) {
+                Text(
+                    tr(
+                        "Tailscale 이나 사설망 주소가 아닌 것 같습니다. 서버 엔진 연결은 암호화되지 않아, 오가는 국면과 명령이 경로 위에서 그대로 보입니다.",
+                        "This does not look like a Tailscale or private-network address. The server engine link is not encrypted: positions and commands cross the network in the clear.",
+                        "这似乎不是 Tailscale 或局域网地址。服务器引擎连接不加密，局面和命令会以明文在网络上传输。",
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
                 )
             }
         } else {
@@ -154,7 +171,7 @@ private fun ConnectionContent(
             StatusChip(ui.state)
             Spacer(Modifier.weight(1f))
             if (ui.canConnect) {
-                Button(onClick = onConnect) { Text(tr("엔진 시작", "Start engine", "启动引擎")) }
+                Button(onClick = onConnect, enabled = ui.canStart) { Text(tr("엔진 시작", "Start engine", "启动引擎")) }
             } else {
                 OutlinedButton(onClick = onDisconnect) { Text(tr("엔진 끄기", "Stop engine", "关闭引擎")) }
             }
