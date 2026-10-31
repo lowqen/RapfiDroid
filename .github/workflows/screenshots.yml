@@ -30,6 +30,12 @@ on:
 permissions:
   contents: read
 
+# A newer push to the same branch makes the running check pointless. A record
+# run is asked for by hand and is never cancelled by a push.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.mode || 'verify' }}
+  cancel-in-progress: ${{ github.event_name == 'push' }}
+
 jobs:
   screenshots:
     runs-on: ubuntu-latest
@@ -53,6 +59,17 @@ jobs:
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
 
+      # gradle.properties is sized for a 4 GB laptop; the runner has 16 GB and
+      # four cores (the same lines as build.yml).
+      - name: Size the build for the runner
+        run: |
+          mkdir -p "${GRADLE_USER_HOME:-$HOME/.gradle}"
+          cat >> "${GRADLE_USER_HOME:-$HOME/.gradle}/gradle.properties" <<PROPS
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8
+          kotlin.daemon.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
+          org.gradle.workers.max=4
+          PROPS
+
       - name: Choose mode
         id: mode
         run: |
@@ -67,7 +84,7 @@ jobs:
         if: steps.mode.outputs.mode != 'none'
         run: >
           ./gradlew testDebugUnitTest --tests '*ScreenshotTest*'
-          -Pscreenshots=${{ steps.mode.outputs.mode }} --stacktrace
+          -Pscreenshots=${{ steps.mode.outputs.mode }} -PtestForks=2 --configuration-cache --stacktrace
 
       - name: Upload goldens
         if: steps.mode.outputs.mode == 'record'

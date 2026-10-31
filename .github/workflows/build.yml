@@ -1,15 +1,26 @@
 name: Build debug APK
 
+# A push that only touches documentation builds nothing: the APK cannot change.
 on:
   push:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'fdroid/**'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# A newer push to the same branch makes the running build pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -27,6 +38,19 @@ jobs:
 
       - name: Grant execute permission to gradlew
         run: chmod +x gradlew
+
+      # gradle.properties is sized for a 4 GB laptop: a 1.25 GB heap, two
+      # workers, no parallelism. The runner has 16 GB and four cores, and R8
+      # starved of heap spends its time collecting garbage. The user-home file
+      # outranks the project's, so only CI gets the bigger numbers.
+      - name: Size the build for the runner
+        run: |
+          mkdir -p "${GRADLE_USER_HOME:-$HOME/.gradle}"
+          cat >> "${GRADLE_USER_HOME:-$HOME/.gradle}/gradle.properties" <<PROPS
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1536m -Dfile.encoding=UTF-8
+          kotlin.daemon.jvmargs=-Xmx2g -Dfile.encoding=UTF-8
+          org.gradle.workers.max=4
+          PROPS
 
       # Every runner is a fresh machine, and AGP makes a new debug key on each
       # one: two CI builds were signed by two different keys, so a phone
@@ -46,15 +70,22 @@ jobs:
             echo "debug key: throwaway (no DEBUG_KEYSTORE secret)"
           fi
 
-      # The repo carries 43 unit-test classes — the engine grammar, the pack
-      # readers, the position keys, the settings codec. Building without running
-      # them proves only that the code compiles.
+      # One Gradle run for all three, so they share configuration and the
+      # compiled code, and — with the configuration cache — run side by side:
+      # the unit tests and the R8 release build no longer wait for each other.
       #
-      # Nothing here needs the RenjuNet data: the tests that would (the deployed
-      # pack smoke test) guard themselves with `assumeTrue` and skip when the
-      # packs are absent, which they always are on a runner.
-      - name: Unit tests
-        run: ./gradlew testDebugUnitTest --stacktrace
+      # - Unit tests: the engine grammar, the pack readers, the position keys,
+      #   the settings codec, the hostile-input fuzzing. The two screenshot
+      #   classes are left to screenshots.yml, which verifies them on the same
+      #   pushes. Nothing here needs the RenjuNet data: the tests that would skip
+      #   themselves (`assumeTrue`) when the packs are absent, as on a runner.
+      # - The release build shrinks with R8 (docs/리팩토링-성능-위생-계획.md
+      #   Phase 7-1). It runs on every push, unsigned, so a missing keep rule fails
+      #   here and not on a release day; the next step checks the engine inside it.
+      - name: Unit tests, debug APK, release APK (R8)
+        run: >
+          ./gradlew testDebugUnitTest assembleDebug assembleRelease
+          --configuration-cache -PskipScreenshotTests -PtestForks=2 --stacktrace
 
       - name: Upload test report
         if: failure()
@@ -63,23 +94,23 @@ jobs:
           name: test-report
           path: app/build/reports/tests/testDebugUnitTest/
 
-      - name: Assemble debug APK
-        run: ./gradlew assembleDebug --stacktrace
-
-      # The release build shrinks with R8 (Phase 7-1 of
-      # docs/리팩토링-성능-위생-계획.md). It runs here on every push, unsigned, so
-      # a keep rule that is missing fails the build here and not on a release
-      # day; and the engine's binaries and weights inside it are checked against
-      # the repo byte for byte - shrinking must never reach the engine.
-      - name: Assemble release APK (R8)
-        run: ./gradlew assembleRelease --stacktrace
-
+      # The engine's binaries and weights inside the release APK, byte for byte
+      # the repo's - shrinking must never reach the engine.
       - name: Engine files untouched
         run: python3 .github/scripts/check_engine_files.py app/build/outputs/apk/release/*.apk
+
+      # Named after the version and commit, so the list of artifacts says which
+      # build each one is (they used to be all «app-debug»).
+      - name: Name the debug APK
+        id: name
+        run: |
+          VERSION=$(sed -n 's/^ *versionName = "\(.*\)"/\1/p' app/build.gradle.kts)
+          echo "artifact=Zenyth-$VERSION-debug-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Upload APK
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: app-debug
+          name: ${{ steps.name.outputs.artifact }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+          retention-days: 14

@@ -117,6 +117,13 @@ android {
             // or the suite passes on a Korean machine and fails on any other.
             it.systemProperty("user.language", "ko")
             it.systemProperty("user.country", "KR")
+            // CI speed (both unset on an ordinary build, which runs as before):
+            // `-PskipScreenshotTests` leaves the two golden classes to
+            // screenshots.yml, which runs them in verify mode on the same pushes;
+            // `-PtestForks=n` spreads the classes over n JVMs on a runner with
+            // the cores and memory for it.
+            if (project.hasProperty("skipScreenshotTests")) it.filter.excludeTestsMatching("*ScreenshotTest")
+            (project.findProperty("testForks") as String?)?.toIntOrNull()?.let { n -> it.maxParallelForks = n }
             // Screenshot mode, without the Roborazzi Gradle plugin (one plugin fewer
             // for AGP 9 and for the F-Droid build): `-Pscreenshots=record` writes
             // the goldens in src/test/screenshots, `verify` fails on any pixel
